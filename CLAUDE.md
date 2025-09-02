@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**HoodMe** is a comprehensive community application for Nigeria - described as "NextDoor for Nigeria". It consists of two main components:
+**MeCabal** is a comprehensive community application for Nigeria - described as "NextDoor for Nigeria". It consists of two main components:
 
-1. **Mobile App** (`HoodMe_Mobile/`) - React Native with Expo for iOS, Android, and Web
+1. **Mobile App** (`MeCabal_Mobile/`) - React Native with Expo for iOS, Android, and Web
 2. **Backend** (`backend/`) - NestJS microservices architecture with PostgreSQL
 
 The application facilitates neighborhood connections, local commerce, community events, and safety features specifically designed for Nigerian communities.
@@ -14,8 +14,8 @@ The application facilitates neighborhood connections, local commerce, community 
 ## Repository Structure
 
 ```
-HoodMe/
-├── HoodMe_Mobile/          # React Native mobile application
+MeCabal/
+├── MeCabal_Mobile/          # React Native mobile application
 │   ├── src/                # Mobile app source code
 │   ├── assets/             # Images, icons, and media assets
 │   └── package.json        # Mobile dependencies and scripts
@@ -28,8 +28,8 @@ HoodMe/
 
 ## Development Commands
 
-### Mobile App (HoodMe_Mobile/)
-Navigate to `HoodMe_Mobile/` directory first:
+### Mobile App (MeCabal_Mobile/)
+Navigate to `MeCabal_Mobile/` directory first:
 
 - `npm start` - Start Expo development server
 - `npm run ios` - Run on iOS simulator  
@@ -102,7 +102,7 @@ Navigate to `backend/` directory first:
 - Nigerian cultural context: "Estate" and "Compound" terminology
 
 **Design System:**
-- Primary Color: `#00A651` (HoodMe Green)
+- Primary Color: `#00A651` (MeCabal Green)
 - 8px grid spacing system
 - Comprehensive color palette in `src/constants/index.ts`
 - Nigerian-specific UI patterns and cultural references
@@ -193,7 +193,7 @@ Navigate to `backend/` directory first:
 ## Environment Setup
 
 ### Mobile App Environment Variables
-Create `.env` in `HoodMe_Mobile/`:
+Create `.env` in `MeCabal_Mobile/`:
 ```
 EXPO_PUBLIC_API_URL=http://localhost:3000
 EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=your_google_maps_api_key

@@ -1,7 +1,7 @@
-# HoodMe Backend Architecture Overview
+# MeCabal Backend Architecture Overview
 
 ## Project Summary
-HoodMe is a mobile application designed to foster community connection, information exchange, and collaboration among individuals living in various neighborhoods across Nigeria (NextDoor for Nigeria).
+MeCabal is a mobile application designed to foster community connection, information exchange, and collaboration among individuals living in various neighborhoods across Nigeria (NextDoor for Nigeria).
 
 ## High-Level Architecture
 

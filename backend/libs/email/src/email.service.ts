@@ -46,7 +46,7 @@ export class EmailService {
     this.initializeBrevo();
     this.initializeHandlebars();
     this.defaultSender = {
-      name: this.configService.get<string>('EMAIL_FROM_NAME', 'HoodMe Community'),
+      name: this.configService.get<string>('EMAIL_FROM_NAME', 'MeCabal Community'),
       email: this.configService.get<string>('EMAIL_FROM_ADDRESS', 'ayomide@codemygig.com'),
     };
   }
@@ -123,8 +123,8 @@ export class EmailService {
       template: 'otp-verification',
       context: {
         ...data,
-        brandName: 'HoodMe Community',
-        supportEmail: 'support@HoodMecommunity.ng',
+        brandName: 'MeCabal Community',
+        supportEmail: 'support@MeCabalcommunity.ng',
         currentYear: new Date().getFullYear(),
       },
     });
@@ -133,15 +133,15 @@ export class EmailService {
   async sendWelcomeEmail(email: string, data: WelcomeEmailData): Promise<boolean> {
     return this.sendEmail({
       to: email,
-      subject: 'Welcome to HoodMe Community! 🏠',
+      subject: 'Welcome to MeCabal Community! 🏠',
       template: 'welcome',
       context: {
         ...data,
-        brandName: 'HoodMe Community',
-        supportEmail: 'support@HoodMecommunity.ng',
+        brandName: 'MeCabal Community',
+        supportEmail: 'support@MeCabalcommunity.ng',
         currentYear: new Date().getFullYear(),
-        loginUrl: this.configService.get<string>('FRONTEND_URL', 'https://app.HoodMecommunity.ng') + '/login',
-        dashboardUrl: this.configService.get<string>('FRONTEND_URL', 'https://app.HoodMecommunity.ng') + '/dashboard',
+        loginUrl: this.configService.get<string>('FRONTEND_URL', 'https://app.MeCabalcommunity.ng') + '/login',
+        dashboardUrl: this.configService.get<string>('FRONTEND_URL', 'https://app.MeCabalcommunity.ng') + '/dashboard',
       },
     });
   }
@@ -149,14 +149,14 @@ export class EmailService {
   async sendPasswordResetEmail(email: string, data: PasswordResetEmailData): Promise<boolean> {
     return this.sendEmail({
       to: email,
-      subject: 'Reset Your HoodMe Community Password 🔐',
+      subject: 'Reset Your MeCabal Community Password 🔐',
       template: 'password-reset',
       context: {
         ...data,
-        brandName: 'HoodMe Community',
-        supportEmail: 'support@HoodMecommunity.ng',
+        brandName: 'MeCabal Community',
+        supportEmail: 'support@MeCabalcommunity.ng',
         currentYear: new Date().getFullYear(),
-        resetUrl: this.configService.get<string>('FRONTEND_URL', 'https://app.HoodMecommunity.ng') + '/reset-password',
+        resetUrl: this.configService.get<string>('FRONTEND_URL', 'https://app.MeCabalcommunity.ng') + '/reset-password',
       },
     });
   }
@@ -168,8 +168,8 @@ export class EmailService {
       template: 'notification',
       context: {
         ...templateData,
-        brandName: 'HoodMe Community',
-        supportEmail: 'support@HoodMecommunity.ng',
+        brandName: 'MeCabal Community',
+        supportEmail: 'support@MeCabalcommunity.ng',
         currentYear: new Date().getFullYear(),
       },
     });
@@ -188,13 +188,13 @@ export class EmailService {
   private getOtpEmailSubject(purpose: string): string {
     switch (purpose) {
       case 'registration':
-        return 'Verify Your HoodMe Community Account 📧';
+        return 'Verify Your MeCabal Community Account 📧';
       case 'login':
-        return 'Your HoodMe Community Login Code 🔐';
+        return 'Your MeCabal Community Login Code 🔐';
       case 'password_reset':
-        return 'Reset Your HoodMe Community Password 🔒';
+        return 'Reset Your MeCabal Community Password 🔒';
       default:
-        return 'Your HoodMe Community Verification Code';
+        return 'Your MeCabal Community Verification Code';
     }
   }
 
@@ -202,12 +202,12 @@ export class EmailService {
   async sendTestEmail(email: string): Promise<boolean> {
     return this.sendEmail({
       to: email,
-      subject: 'HoodMe Community - Email Service Test ✅',
+      subject: 'MeCabal Community - Email Service Test ✅',
       template: 'test',
       context: {
         testTime: new Date().toISOString(),
-        brandName: 'HoodMe Community',
-        supportEmail: 'support@HoodMecommunity.ng',
+        brandName: 'MeCabal Community',
+        supportEmail: 'support@MeCabalcommunity.ng',
         currentYear: new Date().getFullYear(),
       },
     });
@@ -230,8 +230,8 @@ export class EmailService {
           template: templateName,
           context: {
             ...context,
-            brandName: 'HoodMe Community',
-            supportEmail: 'support@HoodMecommunity.ng',
+            brandName: 'MeCabal Community',
+            supportEmail: 'support@MeCabalcommunity.ng',
             currentYear: new Date().getFullYear(),
           },
         });

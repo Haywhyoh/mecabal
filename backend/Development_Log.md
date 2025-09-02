@@ -1,7 +1,7 @@
-# HoodMe Development Log & Task Tracker
+# MeCabal Development Log & Task Tracker
 
 ## Overview
-This development log breaks down the HoodMe backend implementation into manageable tasks using NestJS. Each task includes specific guidelines, acceptance criteria, and estimated effort.
+This development log breaks down the MeCabal backend implementation into manageable tasks using NestJS. Each task includes specific guidelines, acceptance criteria, and estimated effort.
 
 ## Project Setup & Configuration
 
@@ -21,7 +21,7 @@ This development log breaks down the HoodMe backend implementation into manageab
 #### Guidelines:
 ```bash
 # Project structure
-HoodMe-backend/
+MeCabal-backend/
 ├── apps/
 │   ├── auth-service/
 │   ├── user-service/
@@ -45,8 +45,8 @@ HoodMe-backend/
 1. **Initialize NestJS Monorepo**:
    ```bash
    npm i -g @nestjs/cli
-   nest new HoodMe-backend
-   cd HoodMe-backend
+   nest new MeCabal-backend
+   cd MeCabal-backend
    nest generate app auth-service
    nest generate app user-service
    # Continue for other services
@@ -465,7 +465,7 @@ HoodMe-backend/
 
      async createPost(createPostDto: CreatePostDto, userId: string): Promise<Post> {
        // Validate user is member of neighborhood
-       await this.validateNeighborhoodMembership(userId, createPostDto.neighborhoodId);
+       await this.validateNeighborMeCabalmbership(userId, createPostDto.neighborhoodId);
 
        // Content moderation
        const moderationResult = await this.moderationService.moderateContent(

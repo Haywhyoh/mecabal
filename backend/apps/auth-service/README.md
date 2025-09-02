@@ -1,6 +1,6 @@
 # Authentication Service
 
-The Authentication Service handles user registration, login, token management, and security for the HoodMe application.
+The Authentication Service handles user registration, login, token management, and security for the MeCabal application.
 
 ## Features
 
@@ -145,9 +145,9 @@ BCRYPT_SALT_ROUNDS=12
 # Database (from DatabaseModule)
 DATABASE_HOST=localhost
 DATABASE_PORT=5432
-DATABASE_USERNAME=HoodMe_user
-DATABASE_PASSWORD=HoodMe_password
-DATABASE_NAME=HoodMe_dev
+DATABASE_USERNAME=MeCabal_user
+DATABASE_PASSWORD=MeCabal_password
+DATABASE_NAME=MeCabal_dev
 ```
 
 ## Usage Examples
