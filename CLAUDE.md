@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **MeCabal** is a comprehensive community application for Nigeria - described as "NextDoor for Nigeria". It consists of two main components:
 
-1. **Mobile App** (`MeCabal_Mobile/`) - React Native with Expo for iOS, Android, and Web
+1. **Mobile App** (`Hommie_Mobile/`) - React Native with Expo for iOS, Android, and Web
 2. **Backend** (`backend/`) - NestJS microservices architecture with PostgreSQL
 
 The application facilitates neighborhood connections, local commerce, community events, and safety features specifically designed for Nigerian communities.
@@ -14,8 +14,8 @@ The application facilitates neighborhood connections, local commerce, community 
 ## Repository Structure
 
 ```
-MeCabal/
-├── MeCabal_Mobile/          # React Native mobile application
+mecabal/
+├── Hommie_Mobile/          # React Native mobile application
 │   ├── src/                # Mobile app source code
 │   ├── assets/             # Images, icons, and media assets
 │   └── package.json        # Mobile dependencies and scripts
@@ -28,8 +28,8 @@ MeCabal/
 
 ## Development Commands
 
-### Mobile App (MeCabal_Mobile/)
-Navigate to `MeCabal_Mobile/` directory first:
+### Mobile App (Hommie_Mobile/)
+Navigate to `Hommie_Mobile/` directory first:
 
 - `npm start` - Start Expo development server
 - `npm run ios` - Run on iOS simulator  
@@ -91,20 +91,34 @@ Navigate to `backend/` directory first:
 - AsyncStorage + SecureStore for local storage
 - Expo Location + React Native Maps for location services
 
+**Project Structure (Hommie_Mobile/src/):**
+```
+src/
+├── components/          # Reusable UI components
+├── constants/          # Design system constants and data
+├── contexts/           # React contexts for state management
+├── data/               # Static data and configurations
+├── hooks/              # Custom React hooks
+├── navigation/         # Navigation configuration
+└── screens/            # Screen components
+```
+
 **Authentication Flow:**
 - New Users: Welcome → Phone Verification → OTP → Location Setup → Main App
 - Existing Users: Welcome → Login → Main App
 - Legacy Flow: Onboarding → Location Selection → Invitation Code → Main App
+- Authentication state managed in main App.tsx with simple useState
 
 **Navigation Structure:**
 - Authentication Stack (onboarding/login screens)
 - Main Tab Navigator (Home, Feed, Events, Marketplace, Profile)
-- Nigerian cultural context: "Estate" and "Compound" terminology
+- Navigation handled in App.tsx with conditional rendering based on authentication state
 
 **Design System:**
 - Primary Color: `#00A651` (MeCabal Green)
-- 8px grid spacing system
-- Comprehensive color palette in `src/constants/index.ts`
+- 8px grid spacing system  
+- Comprehensive color palette and typography in `src/constants/index.ts`
+- Detailed style guide in `ux.md` with Nigerian cultural context
 - Nigerian-specific UI patterns and cultural references
 
 ### Backend Architecture
@@ -118,6 +132,8 @@ Navigate to `backend/` directory first:
 - **Marketplace Service** (port 3005) - Local commerce
 - **Events Service** (port 3006) - Community events
 - **Notification Service** (port 3007) - Push notifications
+
+**Note:** User service is not yet fully implemented with individual start script in package.json
 
 **Shared Libraries:**
 - `@app/auth` - Authentication guards, strategies, decorators
@@ -193,7 +209,7 @@ Navigate to `backend/` directory first:
 ## Environment Setup
 
 ### Mobile App Environment Variables
-Create `.env` in `MeCabal_Mobile/`:
+Create `.env` in `Hommie_Mobile/`:
 ```
 EXPO_PUBLIC_API_URL=http://localhost:3000
 EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
@@ -245,6 +261,26 @@ Copy `backend/env.example` to `backend/.env` and configure:
 - Update documentation for new features
 - Security review for authentication/authorization changes
 - Performance testing for critical paths
+
+## Additional Documentation
+
+The backend directory contains comprehensive documentation:
+
+- **API_Documentation.md** - Detailed API endpoint documentation
+- **Backend_Architecture_Overview.md** - In-depth architectural overview
+- **Database_Schema.md** - Complete database schema documentation
+- **Deployment_Guide.md** - Production deployment instructions
+- **Development_Log.md** - Development progress and decisions
+- **Performance_Optimization.md** - Performance tuning guidelines
+- **Security_Implementation.md** - Security measures and best practices
+- **Technology_Stack.md** - Detailed technology stack overview
+
+The mobile app directory (`Hommie_Mobile/`) also contains:
+
+- **CLAUDE.md** - Mobile-specific development guidance
+- **ux.md** - Comprehensive design system and style guide
+- **ONBOARDING_README.md** - Onboarding implementation details
+- Various phase documentation files for feature development
 
 ## Nigerian Context Considerations
 
