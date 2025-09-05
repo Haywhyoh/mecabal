@@ -32,22 +32,6 @@ export default function LoginScreen({ navigation, route }: any) {
     }
   };
 
-  const handleAppleLogin = () => {
-    console.log('Apple login pressed');
-    // For SSO login, authenticate and go to home if successful
-    if (onLoginSuccess) {
-      onLoginSuccess();
-    }
-  };
-
-  const handleFacebookLogin = () => {
-    console.log('Facebook login pressed');
-    // For SSO login, authenticate and go to home if successful
-    if (onLoginSuccess) {
-      onLoginSuccess();
-    }
-  };
-
   const handleEmailSignIn = () => {
     console.log('Email login pressed');
     // For email login, go to email login screen
@@ -74,33 +58,13 @@ export default function LoginScreen({ navigation, route }: any) {
         </View>
 
         <View style={styles.authOptions}>
-          {/* Join Community Section */}
-          {/* <TouchableOpacity style={styles.primaryButton} onPress={handleJoinCommunity}>
-            <Text style={styles.primaryButtonText}>Join A Community</Text>
-          </TouchableOpacity>
-          
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or </Text>
-            <View style={styles.dividerLine} />
-          </View> */}
-
+        
           <View style={styles.socialButtons}>
             <TouchableOpacity style={styles.socialButton} onPress={handleGoogleLogin}>
               <Icon name="google" size={20} color="#DB4437" style={styles.socialIcon} />
               <Text style={styles.socialButtonText}>Sign in with Google</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.socialButton} onPress={handleAppleLogin}>
-              <Icon name="apple" size={20} color="#000000" style={styles.socialIcon} />
-              <Text style={styles.socialButtonText}>Sign in with Apple</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.socialButton} onPress={handleFacebookLogin}>
-              <Icon name="facebook" size={20} color="#1877F2" style={styles.socialIcon} />
-              <Text style={styles.socialButtonText}>Sign in with Facebook</Text>
-            </TouchableOpacity>
-            
+          
             <TouchableOpacity style={styles.socialButton} onPress={handleEmailSignIn}>
               <Icon name="email" size={20} color="#4285F4" style={styles.socialIcon} />
               <Text style={styles.socialButtonText}>Sign in with Email</Text>
@@ -152,7 +116,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    justifyContent: 'space-between',
     paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.xxxl,
     paddingBottom: SPACING.xl,

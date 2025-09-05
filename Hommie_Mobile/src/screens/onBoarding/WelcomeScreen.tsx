@@ -177,7 +177,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    justifyContent: 'space-between',
     paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.xl,
     paddingBottom: SPACING.xl,
@@ -200,7 +199,10 @@ const styles = StyleSheet.create({
     lineHeight: 34,
   },
   authOptions: {
-    marginBottom: SPACING.xl,
+    position: 'absolute',
+    bottom: SPACING.xl,
+    left: SPACING.lg,
+    right: SPACING.lg,
   },
   primaryButton: {
     backgroundColor: COLORS.primary,
