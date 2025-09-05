@@ -88,7 +88,7 @@ export default function WelcomeScreen({ navigation, route }: any) {
       <StatusBar barStyle="light-content" />
       
       <Image 
-        source={require('../../../assets/bg.jpg')} 
+        source={require('../../../assets/background.jpeg')} 
         style={styles.backgroundImage}
         resizeMode="cover"
       />
@@ -157,6 +157,8 @@ export default function WelcomeScreen({ navigation, route }: any) {
 const styles = StyleSheet.create({
   container: { 
     flex: 1,
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   backgroundImage: {
     position: 'absolute',
@@ -171,18 +173,18 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
   },
   content: {
     flex: 1,
     justifyContent: 'space-between',
     paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.xxxl,
+    paddingTop: SPACING.xl,
     paddingBottom: SPACING.xl,
   },
   header: {
     alignItems: 'flex-start',
-    marginTop: SPACING.xxxl,
+    marginTop: SPACING.xl,
   },
   appName: {
     fontSize: 32,
@@ -198,7 +200,7 @@ const styles = StyleSheet.create({
     lineHeight: 34,
   },
   authOptions: {
-    marginBottom: SPACING.xxxl,
+    marginBottom: SPACING.xl,
   },
   primaryButton: {
     backgroundColor: COLORS.primary,
@@ -236,12 +238,14 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.lg,
   },
   socialButton: {
-    backgroundColor: 'rgba(44, 44, 44, 0.9)',
+    // backgroundColor: 'rgba(44, 44, 44, 0.9)',
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: SPACING.md,
     paddingHorizontal: SPACING.md,
     borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
     marginBottom: SPACING.sm,
     minHeight: 48,
     width: '100%',

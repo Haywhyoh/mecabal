@@ -13,6 +13,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../../constants';
+import { MeCabalAuth } from '../../services';
 
 export default function EmailVerificationScreen({ navigation, route }: any) {
   const [verificationCode, setVerificationCode] = useState(['', '', '', '', '', '']);
@@ -45,30 +46,63 @@ export default function EmailVerificationScreen({ navigation, route }: any) {
     setIsLoading(true);
     
     try {
-      // TODO: Implement actual verification logic
-      console.log('Email verification submitted:', { email, code: verificationCode.join('') });
+      const code = verificationCode.join('');
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Use MeCabal authentication service to verify email OTP
+      const result = await MeCabalAuth.verifyEmailOTP(email, code);
       
-      if (isSignup) {
-        // For signup flow, continue to phone verification
-        navigation.navigate('PhoneVerification', { 
-          language: 'en', 
-          signupMethod: 'email',
-          isSignup: true,
-          userDetails: { firstName, lastName, email }
-        });
-      } else {
-        // For login flow, go directly to home
-        if (onLoginSuccess) {
-          onLoginSuccess();
+      if (result.success && result.verified) {
+        if (isSignup) {
+          // For signup flow, create user profile and continue to phone verification
+          const userResult = await MeCabalAuth.createUserWithEmail({
+            email: email,
+            first_name: firstName,
+            last_name: lastName
+          });
+          
+          if (userResult.success) {
+            Alert.alert(
+              'Email Verified!',
+              'Your email has been verified successfully. Now let\'s verify your phone number.',
+              [{ text: 'Continue', onPress: () => {
+                navigation.navigate('PhoneVerification', { 
+                  language: 'en', 
+                  signupMethod: 'email',
+                  isSignup: true,
+                  userDetails: { firstName, lastName, email },
+                  userId: userResult.user?.id
+                });
+              }}]
+            );
+          } else {
+            Alert.alert('Error', userResult.error || 'Failed to create user profile.');
+          }
         } else {
-          Alert.alert('Success', 'Email verified successfully!');
+          // For login flow, complete the login process
+          const loginResult = await MeCabalAuth.completeEmailLogin(email);
+          
+          if (loginResult.success) {
+            Alert.alert(
+              'Welcome Back!',
+              'Your email has been verified successfully.',
+              [{ text: 'Continue', onPress: () => {
+                if (onLoginSuccess) {
+                  onLoginSuccess();
+                } else {
+                  navigation.navigate('MainTabs');
+                }
+              }}]
+            );
+          } else {
+            Alert.alert('Error', loginResult.error || 'Login failed. Please try again.');
+          }
         }
+      } else {
+        Alert.alert('Verification Failed', result.error || 'Invalid verification code. Please try again.');
       }
     } catch (error) {
-      Alert.alert('Error', 'Invalid verification code. Please try again.');
+      console.error('Email verification error:', error);
+      Alert.alert('Error', 'Failed to verify email. Please check your connection and try again.');
     } finally {
       setIsLoading(false);
     }
@@ -78,18 +112,20 @@ export default function EmailVerificationScreen({ navigation, route }: any) {
     if (!canResend) return;
 
     try {
-      // TODO: Implement resend verification code logic
-      console.log('Resending verification code to:', email);
+      const purpose = isSignup ? 'registration' : 'login';
+      const result = await MeCabalAuth.sendEmailOTP(email, purpose);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      setTimer(60);
-      setCanResend(false);
-      setVerificationCode(['', '', '', '', '', '']);
-      Alert.alert('Code Sent', 'A new verification code has been sent to your email');
+      if (result.success) {
+        setTimer(60);
+        setCanResend(false);
+        setVerificationCode(['', '', '', '', '', '']);
+        Alert.alert('Code Sent', 'A new verification code has been sent to your email address');
+      } else {
+        Alert.alert('Error', result.error || 'Failed to resend code. Please try again.');
+      }
     } catch (error) {
-      Alert.alert('Error', 'Failed to resend code. Please try again.');
+      console.error('Resend email OTP error:', error);
+      Alert.alert('Error', 'Failed to resend code. Please check your connection and try again.');
     }
   };
 

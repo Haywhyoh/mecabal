@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, StatusBar, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../../constants';
+import { MeCabalAuth } from '../../services';
 
 export default function RegisterScreen({ navigation }: any) {
   const [formData, setFormData] = useState({
@@ -14,12 +15,47 @@ export default function RegisterScreen({ navigation }: any) {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleContinue = () => {
-    if (formData.streetAddress) {
-      // TODO: Implement address confirmation logic
-      console.log('Address confirmed:', formData);
-      // Navigate to next step or complete registration
-      navigation.navigate('Home');
+  const handleContinue = async () => {
+    if (!formData.streetAddress) {
+      Alert.alert('Address Required', 'Please enter your street address to continue.');
+      return;
+    }
+
+    try {
+      // Get user details from route params
+      const userDetails = navigation.getState().routes.find(route => 
+        route.name === 'RegisterScreen'
+      )?.params?.userDetails || {};
+      
+      const userId = navigation.getState().routes.find(route => 
+        route.name === 'RegisterScreen'
+      )?.params?.userId;
+
+      if (!userId) {
+        Alert.alert('Error', 'User session not found. Please restart the registration process.');
+        return;
+      }
+
+      // Update user profile with address information
+      const updateResult = await MeCabalAuth.updateProfile(userId, {
+        address_details: `${formData.streetAddress}${formData.apartment ? `, ${formData.apartment}` : ''}`,
+        state_of_origin: formData.country === 'Nigeria' ? 'Lagos' : undefined, // Default to Lagos for now
+      });
+
+      if (updateResult.success) {
+        Alert.alert(
+          'Registration Complete!',
+          'Welcome to MeCabal! Your account has been created successfully.',
+          [{ text: 'Get Started', onPress: () => {
+            navigation.navigate('MainTabs');
+          }}]
+        );
+      } else {
+        Alert.alert('Error', updateResult.error || 'Failed to complete registration. Please try again.');
+      }
+    } catch (error) {
+      console.error('Registration completion error:', error);
+      Alert.alert('Error', 'Failed to complete registration. Please try again.');
     }
   };
 

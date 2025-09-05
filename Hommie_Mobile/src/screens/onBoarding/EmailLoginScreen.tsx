@@ -15,6 +15,7 @@ import {
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../../constants';
 import { safeGoBack, contextAwareGoBack } from '../../utils/navigationUtils';
+import { MeCabalAuth } from '../../services';
 
 export default function EmailLoginScreen({ navigation, route }: any) {
   const [email, setEmail] = useState('');
@@ -33,20 +34,27 @@ export default function EmailLoginScreen({ navigation, route }: any) {
     setIsLoading(true);
     
     try {
-      // TODO: Implement actual OTP sending logic for login
-      console.log('Sending login OTP to email:', email);
+      // Use MeCabal authentication service for email login
+      const result = await MeCabalAuth.loginWithEmail(email);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Navigate to EmailVerification for login (not signup)
-      navigation.navigate('EmailVerification', { 
-        email,
-        isSignup: false, // This is for login, not signup
-        onLoginSuccess: onLoginSuccess
-      });
+      if (result.success) {
+        Alert.alert(
+          'Login Code Sent',
+          'A verification code has been sent to your email address.',
+          [{ text: 'OK', onPress: () => {
+            navigation.navigate('EmailVerification', { 
+              email,
+              isSignup: false, // This is for login, not signup
+              onLoginSuccess: onLoginSuccess
+            });
+          }}]
+        );
+      } else {
+        Alert.alert('Error', result.error || 'Failed to send verification code. Please try again.');
+      }
     } catch (error) {
-      Alert.alert('Error', 'Failed to send verification code. Please try again.');
+      console.error('Email login OTP error:', error);
+      Alert.alert('Error', 'Failed to send verification code. Please check your connection and try again.');
     } finally {
       setIsLoading(false);
     }

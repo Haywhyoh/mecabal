@@ -1,11 +1,39 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Alert } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import { contextAwareGoBack } from '../utils/navigationUtils';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
+  const { logout } = useAuth();
+
+  const handleSignOut = async () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await logout();
+              // Navigation will be handled automatically by AuthContext
+            } catch (error) {
+              console.error('Sign out error:', error);
+              Alert.alert('Error', 'Failed to sign out. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -163,7 +191,7 @@ export default function ProfileScreen() {
         </TouchableOpacity>
 
         {/* Sign Out */}
-        <TouchableOpacity style={styles.signOutButton}>
+        <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
           <MaterialCommunityIcons name="logout" size={20} color="#E74C3C" />
           <Text style={styles.signOutText}>Sign out</Text>
         </TouchableOpacity>

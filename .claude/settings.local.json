@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(npm install:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(git mv:*)",
+      "Read(//c/Users/USER/Downloads/**)"
     ],
     "deny": [],
     "ask": []

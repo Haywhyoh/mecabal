@@ -6,8 +6,8 @@ import {
   TouchableOpacity, 
   SafeAreaView, 
   StatusBar, 
-  Image, 
-  ScrollView 
+  Image,
+  ImageBackground
 } from 'react-native';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../../constants';
 
@@ -16,7 +16,6 @@ const COMMUNITY_STATS = [
   { number: '500+', label: 'Communities Served' },
   { number: '99%', label: 'Feel Safer' },
 ];
-
 
 export default function WelcomeHeroScreen({ navigation }: any) {
   const handleGetStarted = () => {
@@ -29,99 +28,120 @@ export default function WelcomeHeroScreen({ navigation }: any) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
-      
-      <View 
-        style={styles.scrollView}
-      >
-        {/* Hero Section */}
-        <View style={styles.heroSection}>
-          <Image source={require('../../../assets/icon.png')} style={styles.logo} />
-          
-          <Text style={styles.heroTitle}>
-            Welcome to your{'\n'}digital neighborhood
-          </Text>
-          
-          <Text style={styles.heroSubtitle}>
-            Connect with neighbors, stay safe, and build stronger communities across Nigeria
-          </Text>
+    <ImageBackground
+      source={require('../../../assets/background.jpeg')}
+      style={styles.backgroundImage}
+      resizeMode="cover"
+    >
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+        {/* Dark overlay */}
+        <View style={styles.overlay} />
 
-          
+        <View style={styles.contentWrapper}>
+          <View style={styles.scrollView}>
+            {/* Hero Section */}
+            <View style={styles.heroSection}>
+              <Image source={require('../../../assets/mecabal.png')} style={styles.logo} />
+              <Text style={styles.heroTitle}>
+                Welcome to your neighborhood
+              </Text>
+              <Text style={styles.heroSubtitle}>
+                Connect with neighbors, stay safe, and build stronger communities across Nigeria
+              </Text>
+            </View>
+          </View>
+
+          {/* Action Buttons */}
+          <View style={styles.actionSection}>
+            <TouchableOpacity style={styles.primaryButton} onPress={handleGetStarted}>
+              <Text style={styles.primaryButtonText}>Join A Community</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.secondaryButton} onPress={handleSignIn}>
+              <Text style={styles.secondaryButtonText}>I already have an account</Text>
+            </TouchableOpacity>
+
+            <Text style={styles.footerText}>
+              Free to join • Nigerian-owned • Community-first
+            </Text>
+          </View>
         </View>
-
-      
-      </View>
-
-      {/* Action Buttons */}
-      <View style={styles.actionSection}>
-        <TouchableOpacity style={styles.primaryButton} onPress={handleGetStarted}>
-          <Text style={styles.primaryButtonText}>Join Your Community</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.secondaryButton} onPress={handleSignIn}>
-          <Text style={styles.secondaryButtonText}>I already have an account</Text>
-        </TouchableOpacity>
-
-        <Text style={styles.footerText}>
-          Free to join • Nigerian-owned • Community-first
-        </Text>
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  backgroundImage: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
   container: {
     flex: 1,
-    backgroundColor: COLORS.white,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    zIndex: 1,
+  },
+  contentWrapper: {
+    flex: 1,
+    zIndex: 2,
+    justifyContent: 'space-between',
   },
   scrollView: {
+    alignItems: 'center',
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
-  scrollContent: {
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.xl,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: '100%',
   },
   heroSection: {
     alignItems: 'center',
-    paddingBottom: SPACING.xxxl,
+    justifyContent: 'center',
+    paddingBottom: SPACING.lg,
+    paddingTop: SPACING.lg,
+    width: '100%',
   },
   logo: {
-    width: 100,
-    height: 100,
-    marginBottom: SPACING.xl,
+    width: 300,
+    height: 300,
+    marginBottom: -100,
     borderRadius: BORDER_RADIUS.xl,
     ...SHADOWS.medium,
   },
   heroTitle: {
-    fontSize: TYPOGRAPHY.fontSizes.display,
+    fontSize:  48,
     fontWeight: '700',
-    color: COLORS.text,
+    color: COLORS.white,
     textAlign: 'center',
-    marginBottom: SPACING.md,
-    lineHeight: TYPOGRAPHY.lineHeights.relaxed,
+    marginBottom: SPACING.sm,
+    textShadowColor: 'rgba(0,0,0,0.4)',
+    textShadowOffset: { width: 0, height: 3 },
+    textShadowRadius: 6,
+    lineHeight: 50,
   },
   heroSubtitle: {
-    fontSize: TYPOGRAPHY.fontSizes.sm,
-    color: COLORS.textSecondary,
+    fontSize: TYPOGRAPHY.fontSizes.lg || 18,
+    fontWeight: '500',
     textAlign: 'center',
-    marginBottom: SPACING.xxxl,
+    marginBottom: SPACING.xl,
     paddingHorizontal: SPACING.sm,
+    color: COLORS.white,
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+    lineHeight: 24,
   },
- 
   actionSection: {
     paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.lg,
     paddingBottom: SPACING.xl,
-    backgroundColor: COLORS.white,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    // backgroundColor: 'rgba(0,0,0,0.)',
+    width: '100%',
+    zIndex: 3,
   },
   primaryButton: {
     backgroundColor: COLORS.primary,
@@ -147,12 +167,13 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     color: COLORS.primary,
-    fontSize: TYPOGRAPHY.fontSizes.md,
+    fontSize: TYPOGRAPHY.fontSizes.lg,
     fontWeight: '600',
   },
   footerText: {
     fontSize: TYPOGRAPHY.fontSizes.sm,
-    color: COLORS.textSecondary,
+    color: COLORS.white,
     textAlign: 'center',
+    opacity: 0.8,
   },
 });

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView, StatusBar, KeyboardAvoidingView, Platform, Alert, ScrollView } from 'react-native';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../../constants';
 import { contextAwareGoBack } from '../../utils/navigationUtils';
+import { MeCabalAuth } from '../../services';
 
 export default function OTPVerificationScreen({ navigation, route }: any) {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -64,16 +65,55 @@ export default function OTPVerificationScreen({ navigation, route }: any) {
       setIsVerifying(true);
       
       try {
-        // TODO: Implement OTP verification logic
-        console.log('OTP verified:', otpString);
+        // Use MeCabal authentication service to verify OTP
+        const result = await MeCabalAuth.verifyOTP(phoneNumber, otpString);
         
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // Show success feedback and navigate
-        navigation.navigate('LocationSetup', { language, phoneNumber, isSignup });
+        if (result.success) {
+          if (isSignup && result.data?.user) {
+            // For signup, create the user profile after OTP verification
+            const userResult = await MeCabalAuth.createUser({
+              phone_number: phoneNumber,
+              verification_method: 'phone',
+              carrier_info: { name: carrier }
+            });
+            
+            if (userResult.success) {
+              Alert.alert(
+                'Verification Successful!',
+                'Your phone number has been verified successfully.',
+                [{ text: 'Continue', onPress: () => {
+                  navigation.navigate('LocationSetup', { 
+                    language, 
+                    phoneNumber, 
+                    isSignup,
+                    userId: userResult.data?.user?.id 
+                  });
+                }}]
+              );
+            } else {
+              Alert.alert('Error', userResult.error || 'Failed to create user profile.');
+            }
+          } else {
+            // For login, just proceed to location setup
+            Alert.alert(
+              'Welcome Back!',
+              'Your phone number has been verified successfully.',
+              [{ text: 'Continue', onPress: () => {
+                navigation.navigate('LocationSetup', { 
+                  language, 
+                  phoneNumber, 
+                  isSignup,
+                  userId: result.data?.user?.id 
+                });
+              }}]
+            );
+          }
+        } else {
+          Alert.alert('Verification Failed', result.error || 'Invalid verification code. Please try again.');
+        }
       } catch (error) {
-        Alert.alert('Error', 'Failed to verify OTP. Please try again.');
+        console.error('OTP verification error:', error);
+        Alert.alert('Error', 'Failed to verify OTP. Please check your connection and try again.');
       } finally {
         setIsVerifying(false);
       }
@@ -82,14 +122,24 @@ export default function OTPVerificationScreen({ navigation, route }: any) {
     }
   };
 
-  const handleResend = () => {
+  const handleResend = async () => {
     if (canResend) {
-      // TODO: Implement resend OTP logic
-      console.log('Resending OTP to:', phoneNumber);
-      setTimeLeft(30);
-      setCanResend(false);
-      setOtp(['', '', '', '', '', '']);
-      Alert.alert('OTP Sent', 'A new verification code has been sent to your phone');
+      try {
+        const purpose = isSignup ? 'registration' : 'login';
+        const result = await MeCabalAuth.sendOTP(phoneNumber, purpose);
+        
+        if (result.success) {
+          setTimeLeft(30);
+          setCanResend(false);
+          setOtp(['', '', '', '', '', '']);
+          Alert.alert('OTP Sent', `A new verification code has been sent via ${result.carrier || 'SMS'}`);
+        } else {
+          Alert.alert('Error', result.error || 'Failed to resend verification code. Please try again.');
+        }
+      } catch (error) {
+        console.error('Resend OTP error:', error);
+        Alert.alert('Error', 'Failed to resend verification code. Please check your connection and try again.');
+      }
     }
   };
 

@@ -4,11 +4,12 @@
     "slug": "MeCabal_Mobile",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/mecabal.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "projectId": "jjmuogczhcunpehsocly",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/mecabal.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },

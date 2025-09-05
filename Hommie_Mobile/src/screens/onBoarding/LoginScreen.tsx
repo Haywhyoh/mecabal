@@ -60,7 +60,7 @@ export default function LoginScreen({ navigation, route }: any) {
       <StatusBar barStyle="light-content" />
       
       <Image 
-        source={require('../../../assets/bg.jpg')} 
+        source={require('../../../assets/background.jpeg')} 
         style={styles.backgroundImage}
         resizeMode="cover"
       />

@@ -1,10 +1,12 @@
 import React from 'react';
+import { View, Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { StatusBar } from 'expo-status-bar';
 import { Provider as PaperProvider } from 'react-native-paper';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 
 // Import improved screens
 import WelcomeScreen from './src/screens/onBoarding/WelcomeScreen';
@@ -160,17 +162,40 @@ function MainStackNavigator() {
 }
 
 
-export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = React.useState(true); // Temporarily set to true to see main app
+// Loading component
+function LoadingScreen() {
+  return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <Text>Loading...</Text>
+    </View>
+  );
+}
+
+// App content component that uses authentication context
+function AppContent() {
+  const { isAuthenticated, isLoading } = useAuth();
 
   const handleLoginSuccess = () => {
-    setIsAuthenticated(true);
+    // This will be handled by the AuthContext automatically
   };
 
   // Function to handle social login success
   const handleSocialLoginSuccess = () => {
-    setIsAuthenticated(true);
+    // This will be handled by the AuthContext automatically
   };
+
+  if (isLoading) {
+    return (
+      <PaperProvider>
+        <NavigationContainer>
+          <StatusBar style="auto" />
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="Loading" component={LoadingScreen} />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </PaperProvider>
+    );
+  }
 
   return (
     <PaperProvider>
@@ -266,5 +291,14 @@ export default function App() {
         )}
       </NavigationContainer>
     </PaperProvider>
+  );
+}
+
+// Main App component with AuthProvider
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }

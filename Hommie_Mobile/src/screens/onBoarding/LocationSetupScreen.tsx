@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ScrollView, Alert } from 'react-native';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../../constants';
 import { contextAwareGoBack } from '../../utils/navigationUtils';
+import { MeCabalLocation } from '../../services';
 
 const LOCATION_OPTIONS = [
   {
@@ -64,16 +65,48 @@ export default function LocationSetupScreen({ navigation, route }: any) {
     }
   };
 
-  const handleGPSLocation = () => {
+  const handleGPSLocation = async () => {
     Alert.alert(
       'Location Access',
       'MeCabal needs access to your location to show you relevant community updates.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Allow', onPress: () => {
-          // TODO: Implement GPS location access
-          Alert.alert('Location Detected', 'Your location has been detected. Welcome to MeCabal!');
-          if (onSetupComplete) onSetupComplete();
+        { text: 'Allow', onPress: async () => {
+          try {
+            // Get user's current location
+            const location = await MeCabalLocation.getCurrentLocation();
+            
+            if (location.success && location.data) {
+              // Verify location with Supabase
+              const verification = await MeCabalLocation.verifyLocation(
+                route.params?.userId || 'temp-user',
+                location.data.latitude,
+                location.data.longitude,
+                location.data.address
+              );
+              
+              if (verification.verified && verification.neighborhood) {
+                Alert.alert(
+                  'Location Verified!',
+                  `Welcome to ${verification.neighborhood.name}! Your location has been verified successfully.`,
+                  [{ text: 'Continue', onPress: () => {
+                    if (onSetupComplete) onSetupComplete();
+                  }}]
+                );
+              } else {
+                Alert.alert(
+                  'Location Not Recognized',
+                  'We couldn\'t find your neighborhood. Please try selecting a landmark nearby or enter your address manually.',
+                  [{ text: 'OK', onPress: () => setSelectedOption('landmark') }]
+                );
+              }
+            } else {
+              Alert.alert('Location Error', 'Unable to get your current location. Please try again or select a landmark.');
+            }
+          } catch (error) {
+            console.error('Location error:', error);
+            Alert.alert('Location Error', 'Failed to access your location. Please try selecting a landmark instead.');
+          }
         }}
       ]
     );
@@ -84,9 +117,37 @@ export default function LocationSetupScreen({ navigation, route }: any) {
     Alert.alert('Map Picker', 'Map picker functionality will be implemented in the next version.');
   };
 
-  const handleLandmarkSelect = (landmark: any) => {
+  const handleLandmarkSelect = async (landmark: any) => {
     setSelectedLandmark(landmark);
     setShowLandmarks(false);
+    
+    try {
+      // Verify landmark-based location
+      const verification = await MeCabalLocation.verifyLandmarkLocation(
+        route.params?.userId || 'temp-user',
+        landmark.name,
+        landmark.type
+      );
+      
+      if (verification.verified && verification.neighborhood) {
+        Alert.alert(
+          'Location Verified!',
+          `Welcome to ${verification.neighborhood.name}! Your location has been verified based on ${landmark.name}.`,
+          [{ text: 'Continue', onPress: () => {
+            if (onSetupComplete) onSetupComplete();
+          }}]
+        );
+      } else {
+        Alert.alert(
+          'Location Not Found',
+          'We couldn\'t verify your location based on this landmark. Please try another landmark or enter your address manually.',
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      console.error('Landmark verification error:', error);
+      Alert.alert('Verification Error', 'Failed to verify your location. Please try again.');
+    }
   };
 
   const handleContinue = () => {

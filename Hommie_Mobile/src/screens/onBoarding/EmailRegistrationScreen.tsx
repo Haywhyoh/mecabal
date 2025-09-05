@@ -13,6 +13,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../../constants';
+import { MeCabalAuth } from '../../services';
 
 export default function EmailRegistrationScreen({ navigation }: any) {
   const [firstName, setFirstName] = useState('');
@@ -31,20 +32,28 @@ export default function EmailRegistrationScreen({ navigation }: any) {
     setIsLoading(true);
     
     try {
-      // TODO: Implement actual registration logic
-      console.log('Email registration submitted:', { firstName, lastName, email });
+      // Use MeCabal authentication service for email registration
+      const result = await MeCabalAuth.sendEmailOTP(email, 'registration');
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      navigation.navigate('EmailVerification', { 
-        email,
-        firstName,
-        lastName,
-        isSignup: true
-      });
+      if (result.success) {
+        Alert.alert(
+          'Verification Code Sent',
+          'A verification code has been sent to your email address.',
+          [{ text: 'OK', onPress: () => {
+            navigation.navigate('EmailVerification', { 
+              email,
+              firstName,
+              lastName,
+              isSignup: true
+            });
+          }}]
+        );
+      } else {
+        Alert.alert('Error', result.error || 'Registration failed. Please try again.');
+      }
     } catch (error) {
-      Alert.alert('Error', 'Registration failed. Please try again.');
+      console.error('Email registration error:', error);
+      Alert.alert('Error', 'Registration failed. Please check your connection and try again.');
     } finally {
       setIsLoading(false);
     }

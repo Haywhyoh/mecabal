@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView, StatusBar, KeyboardAvoidingView, Platform, Alert, ScrollView } from 'react-native';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../../constants';
 import { contextAwareGoBack } from '../../utils/navigationUtils';
+import { MeCabalAuth } from '../../services';
 
 const NIGERIAN_CARRIERS = [
   { name: 'MTN', codes: ['080', '081', '090', '070', '091', '0816', '0813', '0814', '0810', '0811', '0812', '0703', '0706', '0704', '0705', '0708', '0709', '0903', '0906', '0904', '0905', '0908', '0909'] },
@@ -41,20 +42,32 @@ export default function PhoneVerificationScreen({ navigation, route }: any) {
     setIsLoading(true);
     
     try {
-      // TODO: Implement actual phone verification logic
-      console.log('Phone verification submitted:', { countryCode, phoneNumber, carrier: detectedCarrier });
+      const fullPhoneNumber = `${countryCode}${phoneNumber}`;
+      const purpose = isSignup ? 'registration' : 'login';
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Use MeCabal authentication service
+      const result = await MeCabalAuth.sendOTP(fullPhoneNumber, purpose);
       
-      navigation.navigate('OTPVerification', { 
-        phoneNumber: `${countryCode}${phoneNumber}`,
-        carrier: detectedCarrier,
-        language,
-        isSignup
-      });
+      if (result.success) {
+        // Show success message with carrier info
+        Alert.alert(
+          'Verification Code Sent',
+          `A 6-digit code has been sent via ${result.carrier || detectedCarrier || 'SMS'}`,
+          [{ text: 'OK', onPress: () => {
+            navigation.navigate('OTPVerification', { 
+              phoneNumber: fullPhoneNumber,
+              carrier: result.carrier || detectedCarrier,
+              language,
+              isSignup
+            });
+          }}]
+        );
+      } else {
+        Alert.alert('Error', result.error || 'Failed to send verification code. Please try again.');
+      }
     } catch (error) {
-      Alert.alert('Error', 'Failed to send verification code. Please try again.');
+      console.error('Phone verification error:', error);
+      Alert.alert('Error', 'Failed to send verification code. Please check your connection and try again.');
     } finally {
       setIsLoading(false);
     }

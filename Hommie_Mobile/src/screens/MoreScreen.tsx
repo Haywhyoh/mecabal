@@ -7,9 +7,11 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Image,
+  Alert,
 } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { colors, spacing, typography } from '../constants';
+import { useAuth } from '../contexts/AuthContext';
 
 interface MoreScreenProps {
   navigation?: any;
@@ -32,8 +34,36 @@ interface MenuItem {
 }
 
 const MoreScreen: React.FC<MoreScreenProps> = ({ navigation }) => {
+  const { logout } = useAuth();
+
   const handleNavigation = (screenName: string, params?: any) => {
     navigation?.navigate(screenName, params);
+  };
+
+  const handleSignOut = async () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await logout();
+              // Navigation will be handled automatically by AuthContext
+            } catch (error) {
+              console.error('Sign out error:', error);
+              Alert.alert('Error', 'Failed to sign out. Please try again.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const menuSections: MenuSection[] = [
@@ -203,6 +233,14 @@ const MoreScreen: React.FC<MoreScreenProps> = ({ navigation }) => {
           onPress: () => {
             console.log('Navigate to About');
           },
+        },
+        {
+          id: 'signout',
+          title: 'Sign Out',
+          subtitle: 'Sign out of your account',
+          icon: 'logout',
+          iconColor: '#E74C3C',
+          onPress: handleSignOut,
         },
       ],
     },
