@@ -139,16 +139,7 @@ export default function WelcomeScreen({ navigation, route }: any) {
           </View>
         </View>
 
-        <View style={styles.footer}>
-          <View style={styles.languageSelector}>
-            <Text style={styles.languageText}>EN (NG)</Text>
-            <Text style={styles.chevron}>▼</Text>
-          </View>
-          
-          {/* <TouchableOpacity onPress={handleInviteCode}>
-            <Text style={styles.inviteText}>Have an invite code?</Text>
-          </TouchableOpacity> */}
-        </View>
+      
       </View>
     </SafeAreaView>
   );

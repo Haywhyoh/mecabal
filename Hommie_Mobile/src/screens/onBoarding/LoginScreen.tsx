@@ -80,16 +80,7 @@ export default function LoginScreen({ navigation, route }: any) {
           </View>
         </View>
 
-        <View style={styles.footer}>
-          <View style={styles.languageSelector}>
-            <Text style={styles.languageText}>EN (NG)</Text>
-            <Text style={styles.chevron}>▼</Text>
-          </View>
-          
-          {/* <TouchableOpacity onPress={handleInviteCode}>
-            <Text style={styles.inviteText}>Have an invite code?</Text>
-          </TouchableOpacity> */}
-        </View>
+      
       </View>
     </SafeAreaView>
   );
@@ -138,7 +129,10 @@ const styles = StyleSheet.create({
     lineHeight: 34,
   },
   authOptions: {
-    marginBottom: SPACING.xxxl,
+    position: 'absolute',
+    bottom: SPACING.xl,
+    left: SPACING.lg,
+    right: SPACING.lg,
   },
   primaryButton: {
     backgroundColor: COLORS.primary,
