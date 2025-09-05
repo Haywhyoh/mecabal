@@ -11,7 +11,7 @@ export default function OnboardingScreen({ navigation, route }: any) {
   const handleSignIn = () => {
     const onSocialLoginSuccess = route.params?.onSocialLoginSuccess;
     const onLoginSuccess = route.params?.onLoginSuccess;
-    navigation.navigate('Login', { onLoginSuccess, onSocialLoginSuccess });
+    navigation.navigate('Welcome', { mode: 'login', onLoginSuccess, onSocialLoginSuccess });
   };
 
   return (

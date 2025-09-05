@@ -34,15 +34,18 @@ export default function PhoneVerificationScreen({ navigation, route }: any) {
   }, [phoneNumber]);
 
   const handleSubmit = async () => {
-    if (phoneNumber.length < 10) {
-      Alert.alert('Invalid Number', 'Please enter a valid Nigerian phone number');
+    // Allow both formats: 08012345678 (11 digits) and 8012345678 (10 digits)
+    if (phoneNumber.length < 10 || phoneNumber.length > 11) {
+      Alert.alert('Invalid Number', 'Please enter a valid Nigerian phone number (10 or 11 digits)');
       return;
     }
 
     setIsLoading(true);
     
     try {
-      const fullPhoneNumber = `${countryCode}${phoneNumber}`;
+      // Normalize phone number - remove leading 0 if present
+      const normalizedPhone = phoneNumber.startsWith('0') ? phoneNumber.substring(1) : phoneNumber;
+      const fullPhoneNumber = `${countryCode}${normalizedPhone}`;
       const purpose = isSignup ? 'registration' : 'login';
       
       // Use MeCabal authentication service
@@ -141,7 +144,7 @@ export default function PhoneVerificationScreen({ navigation, route }: any) {
                   {/* <Text style={styles.inputLabel}>Mobile phone number</Text> */}
                   <TextInput
                     style={styles.phoneInput}
-                    placeholder=" 8012345678"
+                    placeholder="8012345678 or 08012345678"
                     value={phoneNumber}
                     onChangeText={setPhoneNumber}
                     keyboardType="phone-pad"
@@ -170,10 +173,10 @@ export default function PhoneVerificationScreen({ navigation, route }: any) {
             <TouchableOpacity 
               style={[
                 styles.submitButton, 
-                (phoneNumber.length < 10 || isLoading) && styles.submitButtonDisabled
+                (phoneNumber.length < 10 || phoneNumber.length > 11 || isLoading) && styles.submitButtonDisabled
               ]} 
               onPress={handleSubmit}
-              disabled={phoneNumber.length < 10 || isLoading}
+              disabled={phoneNumber.length < 10 || phoneNumber.length > 11 || isLoading}
             >
               <Text style={[styles.submitButtonText,
                 (phoneNumber.length < 10 || isLoading) && styles.submitButtonDisabled
@@ -241,7 +244,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: TYPOGRAPHY.fontSizes.xxl,
+    fontSize: TYPOGRAPHY.fontSizes['3xl'] || 30,
     fontWeight: '700',
     color: COLORS.text,
     textAlign: 'center',
@@ -258,13 +261,12 @@ const styles = StyleSheet.create({
     minHeight: 200,
   },
   description: {
-    fontSize: TYPOGRAPHY.fontSizes.md,
-    color: COLORS.text, // Changed from textSecondary to text for better visibility
+    fontSize: TYPOGRAPHY.fontSizes.lg || 18,
+    color: COLORS.textSecondary,
     textAlign: 'center',
-    lineHeight: TYPOGRAPHY.lineHeights.tight,
+    lineHeight: 24,
     paddingHorizontal: SPACING.md,
-    maxWidth: 280,
-    opacity: 0.8, // Add slight opacity for subtle secondary appearance
+    maxWidth: 320,
     marginBottom: SPACING.lg,
   },
   inputSection: {
@@ -287,7 +289,7 @@ const styles = StyleSheet.create({
     marginRight: SPACING.sm,
   },
   countryCode: {
-    fontSize: TYPOGRAPHY.fontSizes.lg,
+    fontSize: TYPOGRAPHY.fontSizes.xl || 20,
     color: COLORS.text,
     fontWeight: '600',
   },
@@ -307,15 +309,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   phoneInput: {
-    fontSize: TYPOGRAPHY.fontSizes.md,
+    fontSize: TYPOGRAPHY.fontSizes.xl || 20,
     color: COLORS.text,
-    textAlign: 'center', // Center the input text
+    textAlign: 'center',
     paddingVertical: SPACING.md,
     paddingHorizontal: SPACING.lg,
-    fontWeight: '400',
+    fontWeight: '500',
     width: '100%',
-    minHeight: 50, // Ensure minimum height for proper text display
-    letterSpacing: 1, // Add letter spacing for better readability
+    minHeight: 60,
+    letterSpacing: 1,
   },
   carrierIndicator: {
     alignItems: 'center',
@@ -345,7 +347,7 @@ const styles = StyleSheet.create({
   },
   submitButtonText: {
     color: COLORS.white,
-    fontSize: TYPOGRAPHY.fontSizes.md,
+    fontSize: TYPOGRAPHY.fontSizes.lg || 18,
     fontWeight: '600',
   },
 });

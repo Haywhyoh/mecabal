@@ -40,7 +40,6 @@ import CommunityActivityScreen from './src/screens/CommunityActivityScreen';
 import NeighborRatingScreen from './src/screens/NeighborRatingScreen';
 import CommunityEngagementScreen from './src/screens/CommunityEngagementScreen';
 import NeighborConnectionsScreen from './src/screens/NeighborConnectionsScreen';
-import LoginScreen from './src/screens/onBoarding/LoginScreen';
 import RegisterScreen from './src/screens/onBoarding/RegisterScreen';
 
 import OnboardingScreen from './src/screens/onBoarding/OnboardingScreen';
@@ -173,15 +172,21 @@ function LoadingScreen() {
 
 // App content component that uses authentication context
 function AppContent() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, refreshUser } = useAuth();
 
   const handleLoginSuccess = () => {
-    // This will be handled by the AuthContext automatically
+    // Refresh auth state to trigger navigation to main app
+    // The actual authentication should have been completed by this point
+    console.log('Authentication completed successfully');
+    refreshUser(); // Refresh authentication state
   };
 
   // Function to handle social login success
   const handleSocialLoginSuccess = () => {
-    // This will be handled by the AuthContext automatically
+    // For social login, authentication should be completed by the social provider
+    // This callback ensures the UI updates accordingly  
+    console.log('Social authentication completed successfully');
+    refreshUser(); // Refresh authentication state
   };
 
   if (isLoading) {
@@ -281,11 +286,6 @@ function AppContent() {
               component={ConsentBasicsScreen}
             />
             
-            <Stack.Screen 
-              name="Login" 
-              component={LoginScreen}
-              initialParams={{ onLoginSuccess: handleLoginSuccess, onSocialLoginSuccess: handleSocialLoginSuccess }}
-            />
             <Stack.Screen name="Register" component={RegisterScreen} />
           </Stack.Navigator>
         )}

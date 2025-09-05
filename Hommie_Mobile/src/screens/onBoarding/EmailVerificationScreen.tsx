@@ -53,46 +53,49 @@ export default function EmailVerificationScreen({ navigation, route }: any) {
       
       if (result.success && result.verified) {
         if (isSignup) {
-          // For signup flow, create user profile and continue to phone verification
-          const userResult = await MeCabalAuth.createUserWithEmail({
-            email: email,
-            first_name: firstName,
-            last_name: lastName
-          });
-          
-          if (userResult.success) {
-            Alert.alert(
-              'Email Verified!',
-              'Your email has been verified successfully. Now let\'s verify your phone number.',
-              [{ text: 'Continue', onPress: () => {
-                navigation.navigate('PhoneVerification', { 
-                  language: 'en', 
-                  signupMethod: 'email',
-                  isSignup: true,
-                  userDetails: { firstName, lastName, email },
-                  userId: userResult.user?.id
-                });
-              }}]
-            );
-          } else {
-            Alert.alert('Error', userResult.error || 'Failed to create user profile.');
-          }
+          // For signup flow, email is verified - continue to phone verification
+          Alert.alert(
+            'Email Verified!',
+            'Your email has been verified successfully. Now let\'s verify your phone number.',
+            [{ text: 'Continue', onPress: () => {
+              navigation.navigate('PhoneVerification', { 
+                language: 'en', 
+                signupMethod: 'email',
+                isSignup: true,
+                userDetails: { firstName, lastName, email },
+                emailVerified: true
+              });
+            }}]
+          );
         } else {
           // For login flow, complete the login process
-          const loginResult = await MeCabalAuth.completeEmailLogin(email);
+          const loginResult = await MeCabalAuth.completeEmailLogin();
           
           if (loginResult.success) {
-            Alert.alert(
-              'Welcome Back!',
-              'Your email has been verified successfully.',
-              [{ text: 'Continue', onPress: () => {
-                if (onLoginSuccess) {
-                  onLoginSuccess();
-                } else {
-                  navigation.navigate('MainTabs');
-                }
-              }}]
-            );
+            if (loginResult.needsProfileCompletion) {
+              // User exists but needs to complete profile
+              Alert.alert(
+                'Welcome Back!',
+                'Please complete your profile setup.',
+                [{ text: 'Continue', onPress: () => {
+                  navigation.navigate('ProfileSetup', { 
+                    user: loginResult.user 
+                  });
+                }}]
+              );
+            } else {
+              Alert.alert(
+                'Welcome Back!',
+                'Your email has been verified successfully.',
+                [{ text: 'Continue', onPress: () => {
+                  if (onLoginSuccess) {
+                    onLoginSuccess();
+                  } else {
+                    navigation.navigate('MainTabs');
+                  }
+                }}]
+              );
+            }
           } else {
             Alert.alert('Error', loginResult.error || 'Login failed. Please try again.');
           }
@@ -289,17 +292,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: TYPOGRAPHY.fontSizes.xxxl,
+    fontSize: TYPOGRAPHY.fontSizes['3xl'] || 30,
     fontWeight: '700',
     color: COLORS.text,
     textAlign: 'center',
     marginBottom: SPACING.md,
   },
   subtitle: {
-    fontSize: TYPOGRAPHY.fontSizes.md,
+    fontSize: TYPOGRAPHY.fontSizes.lg || 18,
     color: COLORS.textSecondary,
     textAlign: 'center',
-    lineHeight: TYPOGRAPHY.lineHeights.relaxed,
+    lineHeight: 24,
   },
   emailText: {
     color: COLORS.primary,
@@ -324,17 +327,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   otpInput: {
-    width: 50,
-    height: 60,
+    width: 55,
+    height: 70,
     borderWidth: 2,
     borderColor: COLORS.border,
     borderRadius: BORDER_RADIUS.md,
-    fontSize: TYPOGRAPHY.fontSizes.xxl,
+    fontSize: TYPOGRAPHY.fontSizes['2xl'] || 24,
     fontWeight: '600',
     color: COLORS.text,
     textAlign: 'center',
     backgroundColor: COLORS.white,
     marginHorizontal: SPACING.xs,
+    ...SHADOWS.small,
   },
   otpInputFilled: {
     borderColor: COLORS.primary,
@@ -358,12 +362,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   resendText: {
-    fontSize: TYPOGRAPHY.fontSizes.md,
+    fontSize: TYPOGRAPHY.fontSizes.lg || 18,
     color: COLORS.primary,
-    fontWeight: '400',
+    fontWeight: '500',
   },
   timerText: {
-    fontSize: TYPOGRAPHY.fontSizes.md,
+    fontSize: TYPOGRAPHY.fontSizes.lg || 18,
     color: COLORS.textSecondary,
   },
   buttonContainer: {
@@ -383,7 +387,7 @@ const styles = StyleSheet.create({
   },
   verifyButtonText: {
     color: COLORS.white,
-    fontSize: TYPOGRAPHY.fontSizes.md,
+    fontSize: TYPOGRAPHY.fontSizes.lg || 18,
     fontWeight: '600',
   },
   verifyButtonTextDisabled: {
@@ -394,7 +398,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
   },
   changeEmailText: {
-    fontSize: TYPOGRAPHY.fontSizes.md,
+    fontSize: TYPOGRAPHY.fontSizes.lg || 18,
     color: COLORS.primary,
     fontWeight: '500',
   },

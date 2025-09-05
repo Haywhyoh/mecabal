@@ -19,12 +19,13 @@ const COMMUNITY_STATS = [
 
 export default function WelcomeHeroScreen({ navigation }: any) {
   const handleGetStarted = () => {
-    // Navigate to WelcomeScreen for registration/SSO options
-    navigation.navigate('Welcome');
+    // Navigate to WelcomeScreen in signup mode
+    navigation.navigate('Welcome', { mode: 'signup' });
   };
 
   const handleSignIn = () => {
-    navigation.navigate('Login');
+    // Navigate to WelcomeScreen in login mode  
+    navigation.navigate('Welcome', { mode: 'login' });
   };
 
   return (

@@ -424,9 +424,9 @@ export class MeCabalAuth {
     return phone;
   }
 
-  // Email Authentication Methods
+  // Email Authentication Methods (Using Supabase Built-in Auth)
   
-  // Send OTP to email address
+  // Send OTP to email address using Supabase's built-in email OTP
   static async sendEmailOTP(
     email: string, 
     purpose: 'registration' | 'login' | 'password_reset' = 'registration'
@@ -442,8 +442,10 @@ export class MeCabalAuth {
         };
       }
 
-      const { data, error } = await supabase.functions.invoke('email-otp-verify', {
-        body: { email, purpose }
+      // Use database function for actual OTP codes
+      const { data, error } = await supabase.rpc('send_email_otp', {
+        p_email: email,
+        p_purpose: purpose
       });
 
       logPerformance('sendEmailOTP', startTime);
@@ -456,9 +458,11 @@ export class MeCabalAuth {
       }
 
       return {
-        success: true,
-        message: data.message,
-        expires_at: data.expires_at
+        success: data.success,
+        message: data.message || 'OTP code sent to your email address',
+        expires_at: data.expires_at || new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+        // For development: show OTP code in console (remove in production)
+        otp_code: data.otp_code
       };
     } catch (error: any) {
       logPerformance('sendEmailOTP', startTime);
@@ -469,7 +473,7 @@ export class MeCabalAuth {
     }
   }
 
-  // Verify email OTP code
+  // Verify email OTP code using Supabase's built-in verification
   static async verifyEmailOTP(
     email: string, 
     otpCode: string, 
@@ -478,13 +482,11 @@ export class MeCabalAuth {
     const startTime = Date.now();
     
     try {
-      const { data, error } = await supabase.functions.invoke('email-otp-verify', {
-        body: { 
-          email, 
-          otp_code: otpCode, 
-          purpose,
-          verify: true 
-        }
+      // Use database function to verify OTP code
+      const { data, error } = await supabase.rpc('verify_email_otp', {
+        p_email: email,
+        p_otp_code: otpCode,
+        p_purpose: purpose
       });
 
       logPerformance('verifyEmailOTP', startTime);
@@ -512,9 +514,10 @@ export class MeCabalAuth {
     }
   }
 
-  // Create user account with email after OTP verification
-  static async createUserWithEmail(userData: {
+  // Create user account after both email and phone verification are complete
+  static async createUserAfterVerification(userData: {
     email: string;
+    phone_number?: string;
     first_name: string;
     last_name: string;
     state_of_origin?: string;
@@ -523,23 +526,10 @@ export class MeCabalAuth {
     const startTime = Date.now();
     
     try {
-      // Check if user already exists
-      const { data: existingUser } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email', userData.email)
-        .single();
-
-      if (existingUser) {
-        return {
-          success: false,
-          error: 'User with this email already exists'
-        };
-      }
-
-      // Create auth user with email
+      // Create a temporary password for Supabase auth
       const tempPassword = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
+      // Create auth user with email
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: userData.email,
         password: tempPassword,
@@ -571,17 +561,20 @@ export class MeCabalAuth {
         .insert({
           id: authData.user.id,
           email: userData.email,
+          phone_number: userData.phone_number,
           first_name: userData.first_name,
           last_name: userData.last_name,
           state_of_origin: userData.state_of_origin,
           preferred_language: userData.preferred_language || 'en',
-          is_verified: true, // Already verified via email OTP
-          verification_level: 1
+          is_verified: true, // Already verified via OTP
+          verification_level: userData.phone_number ? 2 : 1, // 2 if both email and phone, 1 if just email
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         })
         .select()
         .single();
 
-      logPerformance('createUserWithEmail', startTime);
+      logPerformance('createUserAfterVerification', startTime);
 
       if (userError) {
         // Clean up auth user if profile creation fails
@@ -598,7 +591,7 @@ export class MeCabalAuth {
         session: authData.session
       };
     } catch (error: any) {
-      logPerformance('createUserWithEmail', startTime);
+      logPerformance('createUserAfterVerification', startTime);
       return {
         success: false,
         error: handleSupabaseError(error)
@@ -606,26 +599,12 @@ export class MeCabalAuth {
     }
   }
 
-  // Login with email (triggers OTP)
+  // Login with email (triggers OTP) - simplified to use Supabase built-in
   static async loginWithEmail(email: string): Promise<ApiResponse<any>> {
     const startTime = Date.now();
     
     try {
-      // Check if user exists
-      const { data: user } = await supabase
-        .from('users')
-        .select('id, email')
-        .eq('email', email)
-        .single();
-
-      if (!user) {
-        return {
-          success: false,
-          error: 'User not found. Please register first.'
-        };
-      }
-
-      // Send OTP for login
+      // Send OTP for login - Supabase will check if user exists
       const otpResult = await this.sendEmailOTP(email, 'login');
       
       logPerformance('loginWithEmail', startTime);
@@ -640,34 +619,52 @@ export class MeCabalAuth {
     }
   }
 
-  // Complete email login after OTP verification
-  static async completeEmailLogin(email: string): Promise<AuthResponse> {
+  // Complete email login after OTP verification - simplified
+  static async completeEmailLogin(): Promise<AuthResponse> {
     const startTime = Date.now();
     
     try {
-      // Get user data
-      const { data: user, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', email)
-        .single();
+      // Get current user and session (should exist after OTP verification)
+      const { data: { user: authUser }, error: getUserError } = await supabase.auth.getUser();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-      if (userError || !user) {
+      if (getUserError || !authUser) {
         return {
           success: false,
-          error: 'User not found'
+          error: 'User not found. Please verify your email first.'
         };
       }
 
-      // Get current session (should exist after OTP verification)
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        return {
+          success: false,
+          error: 'Session not found. Please verify your email first.'
+        };
+      }
+
+      // Get user profile data
+      const { data: user, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', authUser.id)
+        .single();
 
       logPerformance('completeEmailLogin', startTime);
 
-      if (sessionError) {
+      if (userError) {
+        // User might not have completed profile setup
         return {
-          success: false,
-          error: handleSupabaseError(sessionError)
+          success: true,
+          user: {
+            id: authUser.id,
+            email: authUser.email!,
+            first_name: authUser.user_metadata?.first_name || '',
+            last_name: authUser.user_metadata?.last_name || '',
+            is_verified: true,
+            verification_level: 1
+          } as NigerianUser,
+          session: session,
+          needsProfileCompletion: true
         };
       }
 
