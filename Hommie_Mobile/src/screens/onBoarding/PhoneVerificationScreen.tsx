@@ -52,10 +52,14 @@ export default function PhoneVerificationScreen({ navigation, route }: any) {
       const result = await MeCabalAuth.sendOTP(fullPhoneNumber, purpose);
       
       if (result.success) {
-        // Show success message with carrier info
+        // Show success message with carrier info and OTP code for development
+        const message = result.otp_code 
+          ? `A 6-digit code has been sent via ${result.carrier || detectedCarrier || 'SMS'}\n\n🔐 Dev Code: ${result.otp_code}`
+          : `A 6-digit code has been sent via ${result.carrier || detectedCarrier || 'SMS'}`;
+        
         Alert.alert(
           'Verification Code Sent',
-          `A 6-digit code has been sent via ${result.carrier || detectedCarrier || 'SMS'}`,
+          message,
           [{ text: 'OK', onPress: () => {
             navigation.navigate('OTPVerification', { 
               phoneNumber: fullPhoneNumber,

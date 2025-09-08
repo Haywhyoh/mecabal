@@ -2,6 +2,7 @@
 // Nigerian-specific authentication with phone verification
 
 import { supabase, handleSupabaseError, logPerformance } from './supabase';
+import { MockOTPService } from './mockOTP';
 import type { 
   NigerianUser, 
   ApiResponse, 
@@ -28,26 +29,21 @@ export class MeCabalAuth {
         };
       }
 
-      const { data, error } = await supabase.functions.invoke('nigerian-phone-verify', {
-        body: { phone: phoneNumber, purpose }
-      });
-
-      logPerformance('sendOTP', startTime);
-
-      if (error) {
+      // Check if phone number can request new OTP (rate limiting)
+      const canRequest = await MockOTPService.canRequestNewOTP(phoneNumber);
+      if (!canRequest) {
         return {
           success: false,
-          error: handleSupabaseError(error)
+          error: 'Please wait before requesting another OTP code'
         };
       }
 
-      return {
-        success: true,
-        carrier: data.carrier,
-        carrier_color: data.carrier_color,
-        message: data.message,
-        expires_at: data.expires_at
-      };
+      // Use mock OTP service for development
+      const result = await MockOTPService.sendOTP(phoneNumber, purpose);
+      
+      logPerformance('sendOTP', startTime);
+      
+      return result;
     } catch (error: any) {
       logPerformance('sendOTP', startTime);
       return {
@@ -66,31 +62,12 @@ export class MeCabalAuth {
     const startTime = Date.now();
     
     try {
-      const { data, error } = await supabase.functions.invoke('nigerian-phone-verify', {
-        body: { 
-          phone: phoneNumber, 
-          otp_code: otpCode, 
-          purpose,
-          verify: true 
-        }
-      });
-
+      // Use mock OTP service for development
+      const result = await MockOTPService.verifyOTP(phoneNumber, otpCode, purpose);
+      
       logPerformance('verifyOTP', startTime);
-
-      if (error) {
-        return {
-          success: false,
-          verified: false,
-          error: handleSupabaseError(error)
-        };
-      }
-
-      return {
-        success: true,
-        verified: data.verified,
-        carrier: data.carrier,
-        message: data.message
-      };
+      
+      return result;
     } catch (error: any) {
       logPerformance('verifyOTP', startTime);
       return {

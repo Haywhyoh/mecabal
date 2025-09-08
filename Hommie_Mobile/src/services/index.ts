@@ -15,6 +15,7 @@ export {
 
 // Authentication services
 export { MeCabalAuth } from './auth';
+export { MockOTPService } from './mockOTP';
 
 // Location services
 export { MeCabalLocation } from './location';

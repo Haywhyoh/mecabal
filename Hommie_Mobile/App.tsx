@@ -30,7 +30,6 @@ import ProfileScreen from './src/screens/ProfileScreen';
 import BusinessProfileScreen from './src/screens/BusinessProfileScreen';
 import EstateManagerScreen from './src/screens/EstateManagerScreen';
 import CulturalProfileScreen from './src/screens/CulturalProfileScreen';
-import PhoneVerificationEnhancedScreen from './src/screens/PhoneVerificationEnhancedScreen';
 import NINVerificationScreen from './src/screens/NINVerificationScreen';
 import BadgeSystemScreen from './src/screens/BadgeSystemScreen';
 import BusinessRegistrationScreen from './src/screens/BusinessRegistrationScreen';
@@ -41,6 +40,10 @@ import NeighborRatingScreen from './src/screens/NeighborRatingScreen';
 import CommunityEngagementScreen from './src/screens/CommunityEngagementScreen';
 import NeighborConnectionsScreen from './src/screens/NeighborConnectionsScreen';
 import RegisterScreen from './src/screens/onBoarding/RegisterScreen';
+import LocationTestScreen from './src/screens/LocationTestScreen';
+
+// Map Picker Screen
+import MapPickerScreen from './src/screens/onBoarding/MapPickerScreen';
 
 import OnboardingScreen from './src/screens/onBoarding/OnboardingScreen';
 import LocationSelectionScreen from './src/screens/onBoarding/LocationSelectionScreen';
@@ -130,7 +133,6 @@ function MainStackNavigator() {
       <Stack.Screen name="BusinessProfile" component={BusinessProfileScreen} />
       <Stack.Screen name="EstateManager" component={EstateManagerScreen} />
       <Stack.Screen name="CulturalProfile" component={CulturalProfileScreen} />
-      <Stack.Screen name="PhoneVerificationEnhanced" component={PhoneVerificationEnhancedScreen} />
       <Stack.Screen name="NINVerification" component={NINVerificationScreen} />
       <Stack.Screen name="BadgeSystem" component={BadgeSystemScreen} />
       
@@ -156,6 +158,9 @@ function MainStackNavigator() {
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="Messaging" component={MessagingScreen} />
       <Stack.Screen name="Chat" component={ChatScreen} />
+      
+      {/* Development & Testing */}
+      <Stack.Screen name="LocationTest" component={LocationTestScreen} />
     </Stack.Navigator>
   );
 }
@@ -257,6 +262,12 @@ function AppContent() {
               name="LocationSetup" 
               component={LocationSetupScreen}
               initialParams={{ onSetupComplete: handleLoginSuccess }}
+            />
+            
+            {/* Map Picker Screen */}
+            <Stack.Screen 
+              name="MapPicker" 
+              component={MapPickerScreen}
             />
             
             <Stack.Screen 
