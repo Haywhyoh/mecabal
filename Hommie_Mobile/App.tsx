@@ -7,6 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Provider as PaperProvider } from 'react-native-paper';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
+import { logEnvironment, validateEnvironment } from './src/config/environment';
 
 // Import improved screens
 import WelcomeScreen from './src/screens/onBoarding/WelcomeScreen';
@@ -178,6 +179,15 @@ function LoadingScreen() {
 // App content component that uses authentication context
 function AppContent() {
   const { isAuthenticated, isLoading, refreshUser } = useAuth();
+  
+  // Validate environment on startup
+  React.useEffect(() => {
+    logEnvironment();
+    const validation = validateEnvironment();
+    if (!validation.valid) {
+      console.error('❌ App startup failed - missing environment variables:', validation.missing);
+    }
+  }, []);
 
   const handleLoginSuccess = () => {
     // Refresh auth state to trigger navigation to main app

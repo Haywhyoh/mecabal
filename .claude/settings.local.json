@@ -5,7 +5,9 @@
       "WebSearch",
       "Bash(git mv:*)",
       "Read(//c/Users/USER/Downloads/**)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(npx supabase functions deploy:*)",
+      "Read(//c/Users/USER/Pictures/Screenshots/**)"
     ],
     "deny": [],
     "ask": []

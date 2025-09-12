@@ -113,6 +113,52 @@ export interface Location {
   state?: string;
 }
 
+export interface Neighborhood {
+  id: string;
+  name: string;
+  state_name: string;
+  type: 'estate' | 'traditional_area' | 'landmark_based' | 'transport_hub' | 'market_based' | 'road_based';
+  center: {
+    latitude: number;
+    longitude: number;
+  };
+  radius_km: number;
+  member_count: number;
+  recent_posts_count: number;
+  verification_method?: 'gps' | 'landmark' | 'manual' | 'document';
+}
+
+export interface LocationVerificationResponse {
+  verified: boolean;
+  neighborhood?: Neighborhood;
+  confidence?: number;
+  message?: string;
+  error?: string;
+  suggestions?: Array<{
+    name: string;
+    distance: number;
+    type: string;
+  }>;
+}
+
+export interface NeighborhoodMatch extends Neighborhood {
+  distance: number;
+  confidence: number;
+}
+
+export interface GeocodeResponse {
+  success: boolean;
+  data?: {
+    formatted_address: string;
+    components: any;
+    coordinates: {
+      latitude: number;
+      longitude: number;
+    };
+  };
+  error?: string;
+}
+
 // Notification Types
 export interface Notification {
   id: string;

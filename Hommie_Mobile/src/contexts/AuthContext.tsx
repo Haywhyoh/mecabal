@@ -29,9 +29,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const isAuthenticated = !!user;
 
-  // Initialize authentication state
+  // Initialize authentication state and listen for changes
   useEffect(() => {
     initializeAuth();
+    
+    // Listen to Supabase auth state changes
+    const { data: authListener } = MeCabalAuth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.id);
+        
+        if (event === 'SIGNED_IN' && session?.user) {
+          // Get user profile when signed in
+          const userProfile = await MeCabalAuth.getCurrentUser();
+          setUser(userProfile);
+        } else if (event === 'SIGNED_OUT') {
+          // Clear user when signed out
+          setUser(null);
+        }
+      }
+    );
+    
+    // Cleanup listener on unmount
+    return () => {
+      if (authListener?.subscription) {
+        authListener.subscription.unsubscribe();
+      }
+    };
   }, []);
 
   const initializeAuth = async () => {
@@ -101,7 +124,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
       
-      // Create user account
+      // If userData is already a complete user object (from edge function), just set it
+      if (userData.id && userData.email) {
+        setUser(userData);
+        return true;
+      }
+      
+      // Otherwise, create user account using the old method
       const result = await MeCabalAuth.createUser(userData);
       
       if (result.success && result.user) {

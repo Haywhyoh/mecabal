@@ -3,6 +3,7 @@
 
 import { supabase, handleSupabaseError, logPerformance } from './supabase';
 import * as Location from 'expo-location';
+import { GooglePlacesService } from './googlePlaces';
 import type { 
   Neighborhood, 
   LocationVerificationResponse, 
@@ -233,6 +234,352 @@ export class MeCabalLocation {
           radius_km: 2.0,
           member_count: 634,
           recent_posts_count: 19
+        },
+
+        // === ALIMOSHO LGA NEIGHBORHOODS ===
+        {
+          id: 'abesan-estate',
+          name: 'Abesan Estate',
+          state_name: 'Lagos',
+          type: 'estate' as const,
+          center: { latitude: 6.620, longitude: 3.260 },
+          radius_km: 2.0, // Increased from 1.5km
+          member_count: 234,
+          recent_posts_count: 8
+        },
+        {
+          id: 'abule-egba',
+          name: 'Abule Egba',
+          state_name: 'Lagos',
+          type: 'traditional_area' as const,
+          center: { latitude: 6.680, longitude: 3.280 },
+          radius_km: 3.0,
+          member_count: 567,
+          recent_posts_count: 15
+        },
+        {
+          id: 'ipaja',
+          name: 'Ipaja',
+          state_name: 'Lagos',
+          type: 'traditional_area' as const,
+          center: { latitude: 6.620, longitude: 3.290 },
+          radius_km: 2.8,
+          member_count: 445,
+          recent_posts_count: 12
+        },
+        {
+          id: 'ayobo',
+          name: 'Ayobo',
+          state_name: 'Lagos',
+          type: 'traditional_area' as const,
+          center: { latitude: 6.640, longitude: 3.270 },
+          radius_km: 2.5,
+          member_count: 389,
+          recent_posts_count: 10
+        },
+        {
+          id: 'iyana-ipaja',
+          name: 'Iyana Ipaja',
+          state_name: 'Lagos',
+          type: 'transport_hub' as const,
+          center: { latitude: 6.610, longitude: 3.300 },
+          radius_km: 2.5,
+          member_count: 512,
+          recent_posts_count: 18
+        },
+        {
+          id: 'egbeda',
+          name: 'Egbeda',
+          state_name: 'Lagos',
+          type: 'traditional_area' as const,
+          center: { latitude: 6.580, longitude: 3.320 },
+          radius_km: 2.2,
+          member_count: 423,
+          recent_posts_count: 11
+        },
+        {
+          id: 'idimu',
+          name: 'Idimu',
+          state_name: 'Lagos',
+          type: 'traditional_area' as const,
+          center: { latitude: 6.590, longitude: 3.310 },
+          radius_km: 2.0,
+          member_count: 356,
+          recent_posts_count: 9
+        },
+        {
+          id: 'ikotun',
+          name: 'Ikotun',
+          state_name: 'Lagos',
+          type: 'traditional_area' as const,
+          center: { latitude: 6.570, longitude: 3.290 },
+          radius_km: 2.5,
+          member_count: 478,
+          recent_posts_count: 13
+        },
+        {
+          id: 'egbe',
+          name: 'Egbe',
+          state_name: 'Lagos',
+          type: 'traditional_area' as const,
+          center: { latitude: 6.54, longitude: 3.29 }, // Adjusted coordinates
+          radius_km: 1.5, // Increased radius
+          member_count: 312,
+          recent_posts_count: 7
+        },
+        {
+          id: 'igando',
+          name: 'Igando',
+          state_name: 'Lagos',
+          type: 'traditional_area' as const,
+          center: { latitude: 6.550, longitude: 3.270 },
+          radius_km: 2.2,
+          member_count: 389,
+          recent_posts_count: 10
+        },
+
+        // === OSHODI-ISOLO LGA ===
+        {
+          id: 'oshodi',
+          name: 'Oshodi',
+          state_name: 'Lagos',
+          type: 'transport_hub' as const,
+          center: { latitude: 6.550, longitude: 3.307 },
+          radius_km: 2.5,
+          member_count: 634,
+          recent_posts_count: 19
+        },
+        {
+          id: 'isolo',
+          name: 'Isolo',
+          state_name: 'Lagos',
+          type: 'traditional_area' as const,
+          center: { latitude: 6.540, longitude: 3.320 },
+          radius_km: 2.0,
+          member_count: 456,
+          recent_posts_count: 12
+        },
+        {
+          id: 'mushin-oshodi',
+          name: 'Mushin-Oshodi',
+          state_name: 'Lagos',
+          type: 'traditional_area' as const,
+          center: { latitude: 6.530, longitude: 3.330 },
+          radius_km: 2.8,
+          member_count: 523,
+          recent_posts_count: 14
+        },
+
+        // === SHOMOLU LGA ===
+        {
+          id: 'shomolu',
+          name: 'Shomolu',
+          state_name: 'Lagos',
+          type: 'traditional_area' as const,
+          center: { latitude: 6.540, longitude: 3.380 },
+          radius_km: 2.5,
+          member_count: 445,
+          recent_posts_count: 11
+        },
+        {
+          id: 'bariga',
+          name: 'Bariga',
+          state_name: 'Lagos',
+          type: 'traditional_area' as const,
+          center: { latitude: 6.520, longitude: 3.390 },
+          radius_km: 2.2,
+          member_count: 378,
+          recent_posts_count: 9
+        },
+        {
+          id: 'sabon-gari',
+          name: 'Sabon Gari',
+          state_name: 'Lagos',
+          type: 'traditional_area' as const,
+          center: { latitude: 6.550, longitude: 3.370 },
+          radius_km: 1.8,
+          member_count: 312,
+          recent_posts_count: 8
+        },
+
+        // === KOSOFE LGA ===
+        {
+          id: 'ikorodu-road',
+          name: 'Ikorodu Road Area',
+          state_name: 'Lagos',
+          type: 'road_based' as const,
+          center: { latitude: 6.580, longitude: 3.400 },
+          radius_km: 3.0,
+          member_count: 567,
+          recent_posts_count: 16
+        },
+        {
+          id: 'ogudu',
+          name: 'Ogudu',
+          state_name: 'Lagos',
+          type: 'traditional_area' as const,
+          center: { latitude: 6.570, longitude: 3.420 },
+          radius_km: 2.0,
+          member_count: 389,
+          recent_posts_count: 10
+        },
+        {
+          id: 'oworonshoki',
+          name: 'Oworonshoki',
+          state_name: 'Lagos',
+          type: 'traditional_area' as const,
+          center: { latitude: 6.540, longitude: 3.410 },
+          radius_km: 2.5,
+          member_count: 456,
+          recent_posts_count: 13
+        },
+
+        // === IKORODU LGA ===
+        {
+          id: 'ikorodu-main',
+          name: 'Ikorodu',
+          state_name: 'Lagos',
+          type: 'traditional_area' as const,
+          center: { latitude: 6.620, longitude: 3.500 },
+          radius_km: 4.0,
+          member_count: 789,
+          recent_posts_count: 22
+        },
+        {
+          id: 'sagamu-road',
+          name: 'Sagamu Road Area',
+          state_name: 'Lagos',
+          type: 'road_based' as const,
+          center: { latitude: 6.600, longitude: 3.480 },
+          radius_km: 2.5,
+          member_count: 423,
+          recent_posts_count: 11
+        },
+        {
+          id: 'itokin',
+          name: 'Itokin',
+          state_name: 'Lagos',
+          type: 'traditional_area' as const,
+          center: { latitude: 6.650, longitude: 3.520 },
+          radius_km: 2.0,
+          member_count: 312,
+          recent_posts_count: 8
+        },
+
+        // === BADAGRY LGA ===
+        {
+          id: 'badagry-main',
+          name: 'Badagry',
+          state_name: 'Lagos',
+          type: 'traditional_area' as const,
+          center: { latitude: 6.420, longitude: 2.880 },
+          radius_km: 3.5,
+          member_count: 456,
+          recent_posts_count: 12
+        },
+        {
+          id: 'ajara',
+          name: 'Ajara',
+          state_name: 'Lagos',
+          type: 'traditional_area' as const,
+          center: { latitude: 6.400, longitude: 2.900 },
+          radius_km: 2.0,
+          member_count: 289,
+          recent_posts_count: 7
+        },
+        {
+          id: 'seme-border',
+          name: 'Seme Border Area',
+          state_name: 'Lagos',
+          type: 'landmark_based' as const,
+          center: { latitude: 6.380, longitude: 2.850 },
+          radius_km: 2.5,
+          member_count: 234,
+          recent_posts_count: 6
+        },
+
+        // === EPE LGA ===
+        {
+          id: 'epe-main',
+          name: 'Epe',
+          state_name: 'Lagos',
+          type: 'traditional_area' as const,
+          center: { latitude: 6.580, longitude: 3.980 },
+          radius_km: 3.0,
+          member_count: 345,
+          recent_posts_count: 9
+        },
+        {
+          id: 'lekki-epe',
+          name: 'Lekki-Epe Expressway',
+          state_name: 'Lagos',
+          type: 'road_based' as const,
+          center: { latitude: 6.450, longitude: 3.750 },
+          radius_km: 4.0,
+          member_count: 567,
+          recent_posts_count: 18
+        },
+        {
+          id: 'ibejue',
+          name: 'Ibeju',
+          state_name: 'Lagos',
+          type: 'traditional_area' as const,
+          center: { latitude: 6.420, longitude: 3.850 },
+          radius_km: 2.5,
+          member_count: 234,
+          recent_posts_count: 6
+        },
+
+        // === IBEJU-LEKKI LGA ===
+        {
+          id: 'lekki-phase2',
+          name: 'Lekki Phase 2',
+          state_name: 'Lagos',
+          type: 'estate' as const,
+          center: { latitude: 6.440, longitude: 3.580 },
+          radius_km: 2.0,
+          member_count: 423,
+          recent_posts_count: 14
+        },
+        {
+          id: 'ajah',
+          name: 'Ajah',
+          state_name: 'Lagos',
+          type: 'traditional_area' as const,
+          center: { latitude: 6.460, longitude: 3.620 },
+          radius_km: 3.0,
+          member_count: 567,
+          recent_posts_count: 16
+        },
+        {
+          id: 'sangotedo',
+          name: 'Sangotedo',
+          state_name: 'Lagos',
+          type: 'traditional_area' as const,
+          center: { latitude: 6.480, longitude: 3.650 },
+          radius_km: 2.5,
+          member_count: 389,
+          recent_posts_count: 11
+        },
+        {
+          id: 'abijo',
+          name: 'Abijo',
+          state_name: 'Lagos',
+          type: 'traditional_area' as const,
+          center: { latitude: 6.500, longitude: 3.680 },
+          radius_km: 2.0,
+          member_count: 312,
+          recent_posts_count: 8
+        },
+        {
+          id: 'ikate',
+          name: 'Ikate',
+          state_name: 'Lagos',
+          type: 'traditional_area' as const,
+          center: { latitude: 6.420, longitude: 3.600 },
+          radius_km: 1.8,
+          member_count: 267,
+          recent_posts_count: 7
         },
 
         // === ABUJA AREAS ===
@@ -931,86 +1278,6 @@ export class MeCabalLocation {
     }
   }
 
-  // Discover nearby landmarks (for dynamic landmark list)
-  static async discoverNearbyLandmarks(
-    latitude: number,
-    longitude: number,
-    radiusKm: number = 2,
-    limit: number = 10
-  ): Promise<{
-    success: boolean;
-    landmarks?: Array<{
-      id: string;
-      name: string;
-      type: string;
-      distance: number;
-      address?: string;
-    }>;
-    error?: string;
-  }> {
-    const startTime = Date.now();
-    
-    try {
-      // Validate input parameters
-      if (typeof latitude !== 'number' || typeof longitude !== 'number' || 
-          isNaN(latitude) || isNaN(longitude)) {
-        return {
-          success: false,
-          error: 'Invalid coordinates provided for landmark discovery'
-        };
-      }
-
-      if (typeof radiusKm !== 'number' || radiusKm <= 0 || radiusKm > 50) {
-        radiusKm = 2; // Default to 2km if invalid radius
-      }
-
-      if (typeof limit !== 'number' || limit <= 0 || limit > 50) {
-        limit = 10; // Default to 10 if invalid limit
-      }
-      // For now, return mock landmarks based on coordinates
-      // In production, this would integrate with Google Places API or similar
-      
-      const mockLandmarks = [
-        { id: '1', name: 'Ikeja City Mall', type: 'Shopping Center', lat: 6.6018, lng: 3.3515 },
-        { id: '2', name: 'St. Mary\'s Catholic Church', type: 'Church', lat: 6.5964, lng: 3.3515 },
-        { id: '3', name: 'Ikeja Grammar School', type: 'School', lat: 6.5890, lng: 3.3441 },
-        { id: '4', name: 'Ikeja Market', type: 'Market', lat: 6.5955, lng: 3.3472 },
-        { id: '5', name: 'Allen Avenue', type: 'Major Road', lat: 6.5878, lng: 3.3674 },
-        { id: '6', name: 'Murtala Muhammed Airport', type: 'Airport', lat: 6.5777, lng: 3.3211 },
-        { id: '7', name: 'National Stadium Lagos', type: 'Stadium', lat: 6.5244, lng: 3.3792 },
-        { id: '8', name: 'University of Lagos', type: 'University', lat: 6.5158, lng: 3.3974 }
-      ];
-      
-      const landmarksWithDistance = mockLandmarks
-        .map(landmark => ({
-          ...landmark,
-          distance: this.calculateDistance(latitude, longitude, landmark.lat, landmark.lng)
-        }))
-        .filter(landmark => landmark.distance <= radiusKm)
-        .sort((a, b) => a.distance - b.distance)
-        .slice(0, limit)
-        .map(landmark => ({
-          id: landmark.id,
-          name: landmark.name,
-          type: landmark.type,
-          distance: Math.round(landmark.distance * 100) / 100, // Round to 2 decimal places
-          address: `${landmark.name}, Lagos, Nigeria`
-        }));
-      
-      logPerformance('discoverNearbyLandmarks', startTime);
-      
-      return {
-        success: true,
-        landmarks: landmarksWithDistance
-      };
-    } catch (error: any) {
-      logPerformance('discoverNearbyLandmarks', startTime);
-      return {
-        success: false,
-        error: handleSupabaseError(error)
-      };
-    }
-  }
 
   // Helper: Format Nigerian address for display
   static formatNigerianAddress(components: {
@@ -1027,5 +1294,371 @@ export class MeCabalLocation {
     ].filter(Boolean);
     
     return parts.join(', ') + (parts.length > 0 ? ', Nigeria' : 'Nigeria');
+  }
+
+  // Discover real landmarks and businesses near a location using Google Places API with timeout and fallback
+  static async discoverNearbyLandmarks(
+    latitude: number,
+    longitude: number,
+    radius: number = 2000 // Reduced from 5000 for faster response
+  ): Promise<{
+    success: boolean;
+    data?: {
+      landmarks: any[];
+      businesses: any[];
+      total_found: number;
+    };
+    error?: string;
+  }> {
+    const startTime = Date.now();
+    const maxTimeout = 3000; // 3 second timeout
+    
+    console.log(`🔍 [LANDMARK DEBUG] Starting landmark discovery at ${latitude}, ${longitude} with ${radius}m radius`);
+    
+    try {
+      // Validate input parameters
+      if (typeof latitude !== 'number' || typeof longitude !== 'number' || 
+          isNaN(latitude) || isNaN(longitude)) {
+        return {
+          success: false,
+          error: 'Invalid coordinates provided for landmark discovery'
+        };
+      }
+      
+      // Create a promise with timeout
+      const landmarkDiscovery = Promise.race([
+        // Main discovery process
+        this.performLandmarkDiscovery(latitude, longitude, radius),
+        
+        // Timeout promise
+        new Promise<{ success: false; error: string }>((_, reject) => {
+          setTimeout(() => {
+            reject(new Error(`Landmark discovery timeout after ${maxTimeout}ms`));
+          }, maxTimeout);
+        })
+      ]);
+      
+      const result = await landmarkDiscovery;
+      
+      logPerformance('discoverNearbyLandmarks', startTime);
+      console.log(`🔍 [LANDMARK DEBUG] Discovery completed in ${Date.now() - startTime}ms`);
+      
+      return result;
+    } catch (error: any) {
+      logPerformance('discoverNearbyLandmarks', startTime);
+      console.warn(`🔍 [LANDMARK DEBUG] Discovery failed in ${Date.now() - startTime}ms:`, error.message);
+      
+      // Return fallback landmarks for common Nigerian areas
+      const fallbackLandmarks = this.getFallbackLandmarks(latitude, longitude, radius / 1000);
+      
+      return {
+        success: true, // Still return success with fallback
+        data: {
+          landmarks: fallbackLandmarks,
+          businesses: [],
+          total_found: fallbackLandmarks.length
+        },
+        error: `Using fallback landmarks due to: ${error.message}`
+      };
+    }
+  }
+  
+  // Separate method for the actual discovery process
+  private static async performLandmarkDiscovery(
+    latitude: number,
+    longitude: number,
+    radius: number
+  ): Promise<{
+    success: boolean;
+    data?: {
+      landmarks: any[];
+      businesses: any[];
+      total_found: number;
+    };
+    error?: string;
+  }> {
+    try {
+      // Try to get landmarks first (faster than getting both in parallel)
+      const landmarksResult = await GooglePlacesService.findNigerianLandmarks(latitude, longitude, radius);
+      
+      let businessesResult = { success: true, data: [] as any[] };
+      
+      // Only get businesses if landmarks were successful and we have time
+      if (landmarksResult.success) {
+        try {
+          businessesResult = await GooglePlacesService.findNigerianBusinesses(latitude, longitude, undefined, radius);
+        } catch (error) {
+          console.warn('Business discovery failed, continuing with landmarks only:', error);
+        }
+      }
+
+      if (!landmarksResult.success && !businessesResult.success) {
+        return {
+          success: false,
+          error: landmarksResult.error || 'Failed to discover landmarks'
+        };
+      }
+
+      const landmarks = landmarksResult.data || [];
+      const businesses = businessesResult.data || [];
+
+      // Process and format the results (simplified for performance)
+      const processedLandmarks = landmarks.slice(0, 10).map(place => ({
+        id: place.place_id,
+        name: place.name,
+        address: place.formatted_address || place.vicinity,
+        coordinates: {
+          latitude: place.geometry.location.lat,
+          longitude: place.geometry.location.lng
+        },
+        types: place.types?.[0] || 'establishment',
+        rating: place.rating
+      }));
+
+      const processedBusinesses = businesses.slice(0, 5).map(place => ({
+        id: place.place_id,
+        name: place.name,
+        address: place.formatted_address || place.vicinity,
+        coordinates: {
+          latitude: place.geometry.location.lat,
+          longitude: place.geometry.location.lng
+        },
+        types: place.types?.[0] || 'establishment',
+        rating: place.rating,
+        business_status: place.business_status
+      }));
+
+      return {
+        success: true,
+        data: {
+          landmarks: processedLandmarks,
+          businesses: processedBusinesses,
+          total_found: processedLandmarks.length + processedBusinesses.length
+        }
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Discovery failed'
+      };
+    }
+  }
+  
+  // Fallback landmarks for common Nigerian locations
+  private static getFallbackLandmarks(
+    latitude: number,
+    longitude: number,
+    radiusKm: number
+  ): any[] {
+    const commonLandmarks = [
+      { name: 'Ikeja City Mall', type: 'Shopping Center', lat: 6.6018, lng: 3.3515 },
+      { name: 'Murtala Muhammed Airport', type: 'Airport', lat: 6.5777, lng: 3.3211 },
+      { name: 'National Stadium Lagos', type: 'Stadium', lat: 6.5244, lng: 3.3792 },
+      { name: 'University of Lagos', type: 'University', lat: 6.5158, lng: 3.3974 },
+      { name: 'Victoria Island', type: 'Area', lat: 6.430, lng: 3.415 },
+      { name: 'Computer Village', type: 'Market', lat: 6.600, lng: 3.348 },
+      { name: 'Alaba Market', type: 'Market', lat: 6.447, lng: 3.180 }
+    ];
+    
+    return commonLandmarks
+      .map(landmark => ({
+        ...landmark,
+        distance: this.calculateDistance(latitude, longitude, landmark.lat, landmark.lng)
+      }))
+      .filter(landmark => landmark.distance <= radiusKm)
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, 5)
+      .map(landmark => ({
+        id: `fallback-${landmark.name.toLowerCase().replace(/\s+/g, '-')}`,
+        name: landmark.name,
+        address: `${landmark.name}, Lagos, Nigeria`,
+        coordinates: {
+          latitude: landmark.lat,
+          longitude: landmark.lng
+        },
+        types: landmark.type,
+        rating: null,
+        distance: Math.round(landmark.distance * 100) / 100
+      }));
+  }
+
+  // Get detailed information about a specific place
+  static async getPlaceDetails(
+    placeId: string
+  ): Promise<{
+    success: boolean;
+    data?: any;
+    error?: string;
+  }> {
+    const startTime = Date.now();
+    
+    try {
+      const result = await GooglePlacesService.getPlaceDetails(placeId);
+      
+      logPerformance('getPlaceDetails', startTime);
+
+      if (!result.success) {
+        return {
+          success: false,
+          error: result.error || 'Failed to get place details'
+        };
+      }
+
+      const place = result.data;
+      if (!place) {
+        return {
+          success: false,
+          error: 'Place not found'
+        };
+      }
+
+      // Format the place data for Nigerian context
+      const formattedPlace = {
+        id: place.place_id,
+        name: place.name,
+        address: GooglePlacesService.formatNigerianAddress(place),
+        coordinates: {
+          latitude: place.geometry.location.lat,
+          longitude: place.geometry.location.lng
+        },
+        types: place.types,
+        rating: place.rating,
+        price_level: place.price_level,
+        vicinity: place.vicinity,
+        business_status: place.business_status,
+        opening_hours: place.opening_hours ? {
+          open_now: place.opening_hours.open_now,
+          hours: GooglePlacesService.getNigerianBusinessHours(place)
+        } : null,
+        website: place.website,
+        phone: place.international_phone_number,
+        reviews: place.reviews?.map(review => ({
+          author: review.author_name,
+          rating: review.rating,
+          text: review.text,
+          time: new Date(review.time * 1000).toISOString()
+        })),
+        photos: place.photos?.map(photo => ({
+          reference: photo.photo_reference,
+          url: GooglePlacesService.getPlacePhotoUrl(photo.photo_reference),
+          width: photo.width,
+          height: photo.height
+        }))
+      };
+
+      return {
+        success: true,
+        data: formattedPlace
+      };
+    } catch (error: any) {
+      logPerformance('getPlaceDetails', startTime);
+      return {
+        success: false,
+        error: handleSupabaseError(error)
+      };
+    }
+  }
+
+  // Find the closest neighborhood to a set of landmarks
+  static async findNeighborhoodFromLandmarks(
+    latitude: number,
+    longitude: number,
+    landmarks: any[]
+  ): Promise<{
+    success: boolean;
+    data?: {
+      neighborhood: Neighborhood;
+      confidence: number;
+      landmark_matches: number;
+    };
+    error?: string;
+  }> {
+    const startTime = Date.now();
+    
+    try {
+      // Get all neighborhoods
+      const { data: neighborhoods, error } = await supabase
+        .from('neighborhoods')
+        .select('*');
+
+      if (error) {
+        return {
+          success: false,
+          error: handleSupabaseError(error)
+        };
+      }
+
+      if (!neighborhoods || neighborhoods.length === 0) {
+        return {
+          success: false,
+          error: 'No neighborhoods found'
+        };
+      }
+
+      // Calculate confidence scores for each neighborhood based on landmark proximity
+      const neighborhoodScores = neighborhoods.map(neighborhood => {
+        let totalScore = 0;
+        let landmarkMatches = 0;
+
+        landmarks.forEach(landmark => {
+          const distance = this.calculateDistance(
+            latitude,
+            longitude,
+            neighborhood.center.latitude,
+            neighborhood.center.longitude
+          );
+
+          // If landmark is within neighborhood radius, add to score
+          if (distance <= neighborhood.radius_km) {
+            const landmarkDistance = this.calculateDistance(
+              landmark.coordinates.latitude,
+              landmark.coordinates.longitude,
+              neighborhood.center.latitude,
+              neighborhood.center.longitude
+            );
+
+            if (landmarkDistance <= neighborhood.radius_km) {
+              landmarkMatches++;
+              // Higher score for closer landmarks
+              totalScore += (neighborhood.radius_km - landmarkDistance) / neighborhood.radius_km;
+            }
+          }
+        });
+
+        return {
+          neighborhood,
+          score: totalScore,
+          landmark_matches: landmarkMatches
+        };
+      });
+
+      // Sort by score and landmark matches
+      neighborhoodScores.sort((a, b) => {
+        if (b.landmark_matches !== a.landmark_matches) {
+          return b.landmark_matches - a.landmark_matches;
+        }
+        return b.score - a.score;
+      });
+
+      const bestMatch = neighborhoodScores[0];
+      const confidence = Math.min(bestMatch.score / landmarks.length, 1);
+
+      logPerformance('findNeighborhoodFromLandmarks', startTime);
+
+      return {
+        success: true,
+        data: {
+          neighborhood: bestMatch.neighborhood,
+          confidence,
+          landmark_matches: bestMatch.landmark_matches
+        }
+      };
+    } catch (error: any) {
+      logPerformance('findNeighborhoodFromLandmarks', startTime);
+      return {
+        success: false,
+        error: handleSupabaseError(error)
+      };
+    }
   }
 }

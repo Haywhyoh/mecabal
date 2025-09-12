@@ -77,18 +77,24 @@ async function sendEmailOTP(supabase: any, email: string, purpose: string): Prom
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString()
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000) // 10 minutes from now
 
-    // Store OTP in database
+    // Store OTP in database - first delete any existing OTP for this email/purpose
+    await supabase
+      .from('email_otps')
+      .delete()
+      .eq('email', email)
+      .eq('purpose', purpose)
+      .eq('verified', false)
+    
+    // Insert new OTP
     const { error: dbError } = await supabase
       .from('email_otps')
-      .upsert({
+      .insert({
         email,
         otp_code: otpCode,
         purpose,
         expires_at: expiresAt.toISOString(),
         verified: false,
         created_at: new Date().toISOString()
-      }, { 
-        onConflict: 'email,purpose'
       })
 
     if (dbError) {
@@ -105,8 +111,8 @@ async function sendEmailOTP(supabase: any, email: string, purpose: string): Prom
       )
     }
 
-    // Send email via Brevo (SendInBlue)
-    const emailSent = await sendEmailViaBrevio(email, otpCode, purpose)
+    // Send email via Resend
+    const emailSent = await sendEmailViaResend(email, otpCode, purpose)
     
     if (!emailSent.success) {
       return new Response(
@@ -266,47 +272,53 @@ async function verifyEmailOTP(supabase: any, email: string, otpCode: string, pur
   }
 }
 
-async function sendEmailViaBrevio(email: string, otpCode: string, purpose: string): Promise<{success: boolean, error?: string}> {
+async function sendEmailViaResend(email: string, otpCode: string, purpose: string): Promise<{success: boolean, error?: string}> {
   try {
-    const brevoApiKey = Deno.env.get('BREVO_API_KEY')
+    const resendApiKey = Deno.env.get('RESEND_API_KEY')
     
-    if (!brevoApiKey) {
+    if (!resendApiKey) {
+      console.error('RESEND_API_KEY not found in environment variables')
       return { success: false, error: 'Email service not configured' }
     }
 
     const subject = getEmailSubject(purpose)
     const htmlContent = getEmailTemplate(otpCode, purpose)
 
-    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+    console.log(`Sending email via Resend to: ${email}`)
+
+    const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'api-key': brevoApiKey
+        'Authorization': `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        sender: {
-          name: 'MeCabal Community',
-          email: 'noreply@mecabal.com'
-        },
-        to: [{
-          email: email
-        }],
+        from: 'MeCabal Community <noreply@codemygig.com>',
+        to: [email],
         subject: subject,
-        htmlContent: htmlContent
+        html: htmlContent
       })
     })
 
     if (!response.ok) {
-      const errorText = await response.text()
-      console.error('Brevo API Error:', errorText)
-      return { success: false, error: 'Failed to send email via Brevo' }
+      const errorData = await response.json()
+      console.error('Resend API Error:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorData
+      })
+      return { 
+        success: false, 
+        error: `Failed to send email via Resend: ${errorData.message || response.statusText}` 
+      }
     }
 
+    const result = await response.json()
+    console.log('Email sent successfully via Resend:', { id: result.id })
     return { success: true }
 
   } catch (error) {
-    console.error('Brevo send error:', error)
+    console.error('Resend send error:', error)
     return { success: false, error: 'Email service error' }
   }
 }

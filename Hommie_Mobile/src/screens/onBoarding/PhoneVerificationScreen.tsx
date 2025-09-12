@@ -54,8 +54,8 @@ export default function PhoneVerificationScreen({ navigation, route }: any) {
       if (result.success) {
         // Show success message with carrier info and OTP code for development
         const message = result.otp_code 
-          ? `A 6-digit code has been sent via ${result.carrier || detectedCarrier || 'SMS'}\n\n🔐 Dev Code: ${result.otp_code}`
-          : `A 6-digit code has been sent via ${result.carrier || detectedCarrier || 'SMS'}`;
+          ? `A 4-digit code has been sent via ${result.carrier || detectedCarrier || 'SMS'}\n\n🔐 Dev Code: ${result.otp_code}`
+          : `A 4-digit code has been sent via ${result.carrier || detectedCarrier || 'SMS'}`;
         
         Alert.alert(
           'Verification Code Sent',
@@ -131,7 +131,7 @@ export default function PhoneVerificationScreen({ navigation, route }: any) {
               <Text 
                 style={styles.description}
               >
-                 We'll send you a code to keep your account safe.
+                 We'll send you a 4-digit code to keep your account safe.
                </Text>
             </View>
 

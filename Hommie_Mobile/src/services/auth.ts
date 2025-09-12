@@ -2,7 +2,7 @@
 // Nigerian-specific authentication with phone verification
 
 import { supabase, handleSupabaseError, logPerformance } from './supabase';
-import { MockOTPService } from './mockOTP';
+// import { MockOTPService } from './mockOTP'; // Replaced with real Resend integration
 import type { 
   NigerianUser, 
   ApiResponse, 
@@ -29,21 +29,43 @@ export class MeCabalAuth {
         };
       }
 
-      // Check if phone number can request new OTP (rate limiting)
-      const canRequest = await MockOTPService.canRequestNewOTP(phoneNumber);
-      if (!canRequest) {
+      // Use Nigerian phone verification edge function for real SMS
+      const { data, error } = await supabase.functions.invoke('nigerian-phone-verify', {
+        body: {
+          phone: phoneNumber,
+          purpose
+        }
+      });
+
+      logPerformance('sendOTP', startTime);
+
+      if (error || !data) {
+        console.error('SMS OTP edge function error:', error);
         return {
           success: false,
-          error: 'Please wait before requesting another OTP code'
+          error: error?.message || 'Failed to send SMS OTP'
         };
       }
 
-      // Use mock OTP service for development
-      const result = await MockOTPService.sendOTP(phoneNumber, purpose);
-      
-      logPerformance('sendOTP', startTime);
-      
-      return result;
+      if (!data.success) {
+        return {
+          success: false,
+          error: data.error || 'Failed to send SMS OTP'
+        };
+      }
+
+      // Extract carrier info from response for user feedback
+      const carrierInfo = data.carrier ? {
+        name: data.carrier,
+        color: data.carrier_color || '#00A651'
+      } : null;
+
+      return {
+        success: true,
+        message: data.message || 'SMS OTP sent successfully to your phone',
+        expires_at: data.expires_at || new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+        carrier: carrierInfo
+      };
     } catch (error: any) {
       logPerformance('sendOTP', startTime);
       return {
@@ -62,12 +84,41 @@ export class MeCabalAuth {
     const startTime = Date.now();
     
     try {
-      // Use mock OTP service for development
-      const result = await MockOTPService.verifyOTP(phoneNumber, otpCode, purpose);
-      
+      // Use Nigerian phone verification edge function for SMS OTP verification
+      const { data, error } = await supabase.functions.invoke('nigerian-phone-verify', {
+        body: {
+          phone: phoneNumber,
+          otp_code: otpCode,
+          purpose,
+          verify: true
+        }
+      });
+
       logPerformance('verifyOTP', startTime);
-      
-      return result;
+
+      if (error || !data) {
+        console.error('SMS OTP verification error:', error);
+        return {
+          success: false,
+          verified: false,
+          error: error?.message || 'Failed to verify SMS OTP'
+        };
+      }
+
+      if (!data.success) {
+        return {
+          success: false,
+          verified: false,
+          error: data.error || 'Invalid or expired OTP code'
+        };
+      }
+
+      return {
+        success: true,
+        verified: true,
+        message: data.message || 'Phone number verified successfully',
+        carrier: data.carrier
+      };
     } catch (error: any) {
       logPerformance('verifyOTP', startTime);
       return {
@@ -419,27 +470,35 @@ export class MeCabalAuth {
         };
       }
 
-      // Use database function for actual OTP codes
-      const { data, error } = await supabase.rpc('send_email_otp', {
-        p_email: email,
-        p_purpose: purpose
+      // Use Supabase Edge Function with Resend integration
+      const { data, error } = await supabase.functions.invoke('email-otp-verify', {
+        body: {
+          email,
+          purpose
+        }
       });
 
       logPerformance('sendEmailOTP', startTime);
 
-      if (error) {
+      if (error || !data) {
+        console.error('Edge function error:', error);
         return {
           success: false,
-          error: handleSupabaseError(error)
+          error: error?.message || 'Failed to send OTP email'
+        };
+      }
+
+      if (!data.success) {
+        return {
+          success: false,
+          error: data.error || 'Failed to send OTP email'
         };
       }
 
       return {
-        success: data.success,
+        success: true,
         message: data.message || 'OTP code sent to your email address',
-        expires_at: data.expires_at || new Date(Date.now() + 10 * 60 * 1000).toISOString(),
-        // For development: show OTP code in console (remove in production)
-        otp_code: data.otp_code
+        expires_at: data.expires_at || new Date(Date.now() + 10 * 60 * 1000).toISOString()
       };
     } catch (error: any) {
       logPerformance('sendEmailOTP', startTime);
@@ -459,27 +518,31 @@ export class MeCabalAuth {
     const startTime = Date.now();
     
     try {
-      // Use database function to verify OTP code
-      const { data, error } = await supabase.rpc('verify_email_otp', {
-        p_email: email,
-        p_otp_code: otpCode,
-        p_purpose: purpose
+      // Use Supabase Edge Function to verify OTP code
+      const { data, error } = await supabase.functions.invoke('email-otp-verify', {
+        body: {
+          email,
+          otp_code: otpCode,
+          purpose,
+          verify: true
+        }
       });
 
       logPerformance('verifyEmailOTP', startTime);
 
-      if (error) {
+      if (error || !data) {
+        console.error('Edge function verify error:', error);
         return {
           success: false,
           verified: false,
-          error: handleSupabaseError(error)
+          error: error?.message || 'Failed to verify OTP code'
         };
       }
 
       return {
-        success: true,
-        verified: data.verified,
-        message: data.message
+        success: data.success,
+        verified: data.verified || false,
+        message: data.message || (data.success ? 'OTP verified successfully' : 'Invalid OTP code')
       };
     } catch (error: any) {
       logPerformance('verifyEmailOTP', startTime);
@@ -652,6 +715,71 @@ export class MeCabalAuth {
       };
     } catch (error: any) {
       logPerformance('completeEmailLogin', startTime);
+      return {
+        success: false,
+        error: handleSupabaseError(error)
+      };
+    }
+  }
+
+  // Authenticate with OTP and create proper Supabase session
+  static async authenticateWithOTP(
+    email: string,
+    otpCode: string,
+    purpose: 'registration' | 'login',
+    userMetadata?: {
+      first_name?: string;
+      last_name?: string;
+      phone_number?: string;
+      state_of_origin?: string;
+      preferred_language?: string;
+    }
+  ): Promise<AuthResponse> {
+    const startTime = Date.now();
+    
+    try {
+      // Use the auth-with-otp edge function to verify OTP and create session
+      const { data, error } = await supabase.functions.invoke('auth-with-otp', {
+        body: {
+          email,
+          otp_code: otpCode,
+          purpose,
+          user_metadata: userMetadata
+        }
+      });
+
+      logPerformance('authenticateWithOTP', startTime);
+
+      if (error || !data) {
+        console.error('Auth with OTP error:', error);
+        return {
+          success: false,
+          error: error?.message || 'Authentication failed'
+        };
+      }
+
+      if (!data.success) {
+        return {
+          success: false,
+          error: data.error || 'Authentication failed'
+        };
+      }
+
+      // After successful authentication, get the current session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.warn('Session retrieval error after auth:', sessionError);
+      }
+
+      return {
+        success: true,
+        user: data.user as NigerianUser,
+        session: session,
+        message: data.message
+      };
+    } catch (error: any) {
+      logPerformance('authenticateWithOTP', startTime);
       return {
         success: false,
         error: handleSupabaseError(error)
