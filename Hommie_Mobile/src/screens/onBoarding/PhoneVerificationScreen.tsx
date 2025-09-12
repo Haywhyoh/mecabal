@@ -20,6 +20,7 @@ export default function PhoneVerificationScreen({ navigation, route }: any) {
 
   const language = route.params?.language || 'en';
   const isSignup = route.params?.isSignup || false;
+  const userDetails = route.params?.userDetails; // Get user details including email
 
 
   // Detect carrier based on phone number prefix
@@ -65,7 +66,8 @@ export default function PhoneVerificationScreen({ navigation, route }: any) {
               phoneNumber: fullPhoneNumber,
               carrier: result.carrier || detectedCarrier,
               language,
-              isSignup
+              isSignup,
+              userDetails // Pass through the user details including email
             });
           }}]
         );
@@ -86,7 +88,7 @@ export default function PhoneVerificationScreen({ navigation, route }: any) {
       'Phone verification helps keep our community safe. You can still proceed, but some features may be limited.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Skip', onPress: () => navigation.navigate('LocationSetup', { language, phoneNumber: '', isSignup }) }
+        { text: 'Skip', onPress: () => navigation.navigate('LocationSetup', { language, phoneNumber: '', isSignup, userDetails }) }
       ]
     );
   };

@@ -157,7 +157,7 @@ export class MeCabalAuth {
       }
 
       // Create auth user with email (required for Supabase Auth)
-      const tempEmail = userData.email || `${userData.phone_number.replace('+', '')}@mecabal.temp`;
+      const tempEmail = userData.email || `${userData.phone_number.replace(/^\+234/, '0').replace(/^234/, '0')}@mecabal.temp`;
       const tempPassword = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
       const { data: authData, error: authError } = await supabase.auth.signUp({

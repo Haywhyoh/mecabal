@@ -62,326 +62,148 @@ function hashOTP(otp: string): string {
   return btoa(otp + 'mecabal_salt');
 }
 
-// Message Central SMS service integration for Nigerian carriers
-interface MessageCentralAuthResponse {
-  token?: string;
-  authToken?: string; // Alternative field name
-  responseCode?: number;
-  message?: string;
+// SmartSMS Solutions regular SMS API integration
+interface SmartSMSResponse {
+  code?: number;
+  successful?: string;
+  basic_successful?: string;
+  corp_successful?: string;
+  failed?: string;
+  invalid?: string;
+  insufficient_unit?: string;
+  all_numbers?: string;
+  dnd_numbers?: string;
+  nondnd_numbers?: string;
+  units_used?: string;
+  units_calculated?: string;
+  units_before?: string;
+  units_after?: string;
+  sms_pages?: number;
+  message_id?: string;
+  ref_id?: string;
+  comment?: string;
   error?: string;
-  status?: string;
 }
 
-interface MessageCentralSMSResponse {
-  responseCode: number;
-  message: string;
-  data: {
-    verificationId: string;
-    mobileNumber: string;
-    responseCode: number;
-    errorMessage?: string;
-    timeout: string;
-  };
-}
-
-// Get Message Central authentication token
-async function getMessageCentralToken(): Promise<string | null> {
+// Send OTP via SmartSMS Solutions regular SMS API
+async function sendSmartSMSOTP(phoneNumber: string): Promise<string | false> {
   try {
-    const customerId = Deno.env.get('MESSAGE_CENTRAL_CUSTOMER_ID');
-    const authToken = Deno.env.get('MESSAGE_CENTRAL_AUTH_TOKEN'); // This should be base64 encoded password
+    const apiToken = Deno.env.get('SMARTSMS_API_TOKEN');
     
-    if (!customerId || !authToken) {
-      console.error('Message Central credentials not configured:', { 
-        hasCustomerId: !!customerId, 
-        hasAuthToken: !!authToken 
-      });
-      return null;
+    if (!apiToken) {
+      console.error('SmartSMS API token not configured');
+      return false;
     }
 
-    // Use the email address registered with Message Central account
-    // You need to replace this with the actual email used for your Message Central account
-    const accountEmail = Deno.env.get('MESSAGE_CENTRAL_EMAIL') || 'your-account-email@domain.com';
-    const tokenUrl = `https://cpaas.messagecentral.com/auth/v1/authentication/token?customerId=${customerId}&key=${authToken}&scope=NEW&country=234&email=${accountEmail}`;
+    // Generate 4-digit OTP
+    const otpCode = Math.floor(1000 + Math.random() * 9000).toString();
     
-    console.log('Requesting Message Central token...', { customerId, tokenUrl: tokenUrl.replace(authToken, '[REDACTED]') });
+    // Format phone number for SmartSMS (remove country code +234, ensure starts with 0)
+    let formattedPhone = phoneNumber.replace(/^\+234/, ''); // Remove +234
     
-    const response = await fetch(tokenUrl, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      }
+    if (formattedPhone.startsWith('234')) {
+      formattedPhone = formattedPhone.substring(3); // Remove 234 if still present
+    }
+    
+    if (!formattedPhone.startsWith('0')) {
+      formattedPhone = '0' + formattedPhone; // Add leading 0
+    }
+
+    // Create OTP message - avoiding restricted words like "code"
+    const message = `Your MeCabal verification PIN is ${otpCode}. Valid for 5 minutes. Do not share this PIN with anyone.`;
+
+    // Generate unique reference ID
+    const refId = `mecabal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    console.log('Sending OTP via SmartSMS SMS API:', { 
+      originalPhone: phoneNumber,
+      formattedPhone: formattedPhone,
+      otp: '[REDACTED]',
+      refId,
+      messageLength: message.length
     });
 
-    console.log('Message Central token response status:', response.status, response.statusText);
+    // Prepare form data for SmartSMS regular SMS API
+    const formData = new FormData();
+    formData.append('token', apiToken);
+    formData.append('sender', 'MeCabal'); // SmartSMS requires a sender ID
+    formData.append('to', formattedPhone);
+    formData.append('message', message);
+    formData.append('type', '0'); // Plain text message
+    formData.append('routing', '3'); // Basic route, but send DND via Corporate route
+    formData.append('ref_id', refId);
+    
+
+    const response = await fetch('https://app.smartsmssolutions.com/io/api/client/v1/sms/', {
+      method: 'POST',
+      body: formData
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Message Central token request failed:', {
+      console.error('SmartSMS SMS API request failed:', {
         status: response.status,
         statusText: response.statusText,
         body: errorText
       });
-      return null;
+      return false;
     }
 
-    const responseText = await response.text();
-    console.log('Message Central raw response:', responseText);
+    const responseData: SmartSMSResponse = await response.json();
+    console.log('SmartSMS SMS response:', responseData);
 
-    let tokenData: MessageCentralAuthResponse;
-    try {
-      tokenData = JSON.parse(responseText);
-    } catch (parseError) {
-      console.error('Failed to parse Message Central response as JSON:', parseError);
-      return null;
-    }
-    
-    console.log('Message Central token response:', { 
-      responseCode: tokenData.responseCode, 
-      message: tokenData.message,
-      error: tokenData.error,
-      status: tokenData.status,
-      hasToken: !!(tokenData.token || tokenData.authToken),
-      allKeys: Object.keys(tokenData)
-    });
-
-    // Check for different success indicators
-    const isSuccess = tokenData.responseCode === 200 || 
-                     tokenData.status === 'success' ||
-                     !tokenData.error;
-
-    if (!isSuccess) {
-      console.error('Message Central token error:', 
-        tokenData.message || tokenData.error || 'Unknown error');
-      return null;
-    }
-
-    // Try different token field names
-    const token = tokenData.token || tokenData.authToken;
-    if (!token) {
-      console.error('Message Central response missing token field');
+    // Check if SMS was sent successfully (SmartSMS uses code: 1000 for success)
+    if (responseData.code === 1000 && responseData.comment === 'Completed Successfully') {
+      console.log('OTP sent successfully via SmartSMS SMS:', {
+        messageId: responseData.message_id,
+        unitsUsed: responseData.units_used,
+        unitsBefore: responseData.units_before,
+        unitsAfter: responseData.units_after,
+        successful: responseData.successful,
+        refId: responseData.ref_id,
+        smsPages: responseData.sms_pages
+      });
       
-      // Try alternative authentication method with POST
-      return await getMessageCentralTokenAlternative(customerId, authToken);
+      // Return the OTP code for storage in database
+      return otpCode;
+    } else {
+      console.error('SmartSMS SMS delivery failed:', {
+        code: responseData.code,
+        comment: responseData.comment,
+        failed: responseData.failed,
+        invalid: responseData.invalid,
+        insufficient_unit: responseData.insufficient_unit,
+        error: responseData.error
+      });
+      return false;
     }
-
-    console.log('Message Central token obtained successfully');
-    return token;
   } catch (error) {
-    console.error('Error getting Message Central token:', error);
-    
-    // Try alternative authentication method
-    const customerId = Deno.env.get('MESSAGE_CENTRAL_CUSTOMER_ID');
-    const authToken = Deno.env.get('MESSAGE_CENTRAL_AUTH_TOKEN');
-    if (customerId && authToken) {
-      return await getMessageCentralTokenAlternative(customerId, authToken);
-    }
-    return null;
+    console.error('SmartSMS SMS sending error:', error);
+    return false;
   }
 }
 
-// Verify OTP with Message Central
-async function verifyMessageCentralOTP(verificationId: string, otpCode: string, phoneNumber: string): Promise<{success: boolean, error?: string}> {
+// Verify OTP code against stored value (SmartSMS handles sending, we verify locally)
+function verifyOTPCode(storedOTP: string, inputOTP: string): {success: boolean, error?: string} {
   try {
-    // Use JWT token directly from environment variable
-    const authToken = Deno.env.get('MESSAGE_CENTRAL_AUTH_TOKEN');
-    if (!authToken) {
-      return { success: false, error: 'MESSAGE_CENTRAL_AUTH_TOKEN not configured' };
+    if (!storedOTP || !inputOTP) {
+      return { success: false, error: 'Missing OTP codes' };
     }
 
-    const customerId = Deno.env.get('MESSAGE_CENTRAL_CUSTOMER_ID');
-    
-    // Format phone number for Message Central (remove country code, keep only local number)
-    let formattedPhone = phoneNumber.replace(/^\+/, ''); // Remove +
-    if (formattedPhone.startsWith('234')) {
-      formattedPhone = formattedPhone.substring(3); // Remove country code 234
-    }
-    if (formattedPhone.startsWith('0')) {
-      formattedPhone = formattedPhone.substring(1); // Remove leading 0 if present
-    }
-    // Result should be: 8142064474 (just the local number)
-    
-    // Build verification URL with query parameters (as shown in documentation)
-    const verifyUrl = `https://cpaas.messagecentral.com/verification/v3/validateOtp?countryCode=234&mobileNumber=${formattedPhone}&verificationId=${verificationId}&customerId=${customerId}&code=${otpCode}`;
-
-    console.log('Verifying OTP with Message Central:', { 
-      verificationId, 
-      mobileNumber: formattedPhone,
-      customerId,
-      code: '[REDACTED]',
-      url: verifyUrl.replace(otpCode, '[REDACTED]')
-    });
-
-    const response = await fetch(verifyUrl, {
-      method: 'GET', // GET request as shown in documentation
-      headers: {
-        'authToken': authToken,
-        'Accept': 'application/json'
-      }
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Message Central OTP verification failed:', {
-        status: response.status,
-        error: errorText
-      });
-      return { success: false, error: 'OTP verification failed' };
-    }
-
-    const responseData = await response.json();
-    console.log('Message Central OTP verification response:', responseData);
-
-    // Check verification result based on documentation
-    if (responseData.responseCode === 200 && responseData.data?.verificationStatus === 'VERIFICATION_COMPLETED') {
+    // Simple string comparison for OTP verification
+    if (storedOTP.trim() === inputOTP.trim()) {
+      console.log('OTP verification successful');
       return { success: true };
     } else {
-      return { 
-        success: false, 
-        error: responseData.message || responseData.data?.errorMessage || 'Invalid OTP code'
-      };
+      console.log('OTP verification failed: codes do not match');
+      return { success: false, error: 'Invalid OTP code' };
     }
   } catch (error) {
-    console.error('Error verifying OTP with Message Central:', error);
+    console.error('Error verifying OTP:', error);
     return { success: false, error: 'OTP verification error' };
   }
 }
 
-// Alternative authentication method for Message Central
-async function getMessageCentralTokenAlternative(customerId: string, authToken: string): Promise<string | null> {
-  try {
-    console.log('Trying alternative Message Central authentication...');
-    
-    // Try POST method with JSON body
-    const response = await fetch('https://cpaas.messagecentral.com/auth/v1/authentication/token', {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        customerId: customerId,
-        key: authToken,
-        scope: 'NEW',
-        country: '234',
-        email: Deno.env.get('MESSAGE_CENTRAL_EMAIL') || 'your-account-email@domain.com'
-      })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Alternative Message Central auth failed:', {
-        status: response.status,
-        body: errorText
-      });
-      return null;
-    }
-
-    const responseText = await response.text();
-    console.log('Alternative Message Central response:', responseText);
-
-    const tokenData = JSON.parse(responseText);
-    const token = tokenData.token || tokenData.authToken;
-    
-    if (token) {
-      console.log('Alternative Message Central authentication successful');
-      return token;
-    }
-
-    console.error('Alternative method also missing token');
-    return null;
-  } catch (error) {
-    console.error('Alternative authentication error:', error);
-    return null;
-  }
-}
-
-async function sendSMSViaNigerian(
-  phone: string, 
-  message: string, 
-  carrier: NigerianCarrier
-): Promise<string | false> {
-  console.log(`Sending SMS via Message Central to ${phone} (${carrier.name}): ${message}`);
-  
-  try {
-    // Use JWT token directly from environment variable
-    const authToken = Deno.env.get('MESSAGE_CENTRAL_AUTH_TOKEN');
-    if (!authToken) {
-      console.error('MESSAGE_CENTRAL_AUTH_TOKEN not configured');
-      return false;
-    }
-
-    // Format phone number for Message Central (remove country code, keep only local number)
-    let formattedPhone = phone.replace(/^\+/, ''); // Remove +
-    if (formattedPhone.startsWith('234')) {
-      formattedPhone = formattedPhone.substring(3); // Remove country code 234
-    }
-    if (formattedPhone.startsWith('0')) {
-      formattedPhone = formattedPhone.substring(1); // Remove leading 0 if present
-    }
-    // Result should be: 8142064474 (just the local number)
-
-    const customerId = Deno.env.get('MESSAGE_CENTRAL_CUSTOMER_ID');
-    
-    // Message Central SMS API endpoint with query parameters (as shown in documentation)
-    const smsApiUrl = `https://cpaas.messagecentral.com/verification/v3/send?countryCode=234&customerId=${customerId}&flowType=SMS&mobileNumber=${formattedPhone}`;
-
-    console.log('Sending SMS with URL:', { 
-      countryCode: "234",
-      mobileNumber: formattedPhone,
-      customerId: customerId,
-      carrier: carrier.name,
-      url: smsApiUrl
-    });
-
-    const smsResponse = await fetch(smsApiUrl, {
-      method: 'POST', // POST method as shown in documentation
-      headers: {
-        'authToken': authToken, // JWT token directly
-        'Accept': 'application/json'
-      }
-      // No body needed - all parameters in query string
-    });
-
-    if (!smsResponse.ok) {
-      const errorData = await smsResponse.text();
-      console.error('Message Central SMS API error:', {
-        status: smsResponse.status,
-        statusText: smsResponse.statusText,
-        error: errorData
-      });
-      return false;
-    }
-
-    const responseData: MessageCentralSMSResponse = await smsResponse.json();
-    console.log('Message Central SMS response:', responseData);
-
-    // Check if SMS was sent successfully
-    if (responseData.responseCode === 200 && responseData.data) {
-      console.log('SMS sent successfully via Message Central:', {
-        verificationId: responseData.data.verificationId,
-        mobileNumber: responseData.data.mobileNumber,
-        message: responseData.message,
-        carrier: carrier.name
-      });
-      
-      // Store the verificationId for later verification
-      // We'll need this to verify the OTP with Message Central
-      return responseData.data.verificationId; // Return verification ID instead of boolean
-    } else {
-      console.error('Message Central SMS delivery failed:', {
-        responseCode: responseData.responseCode,
-        message: responseData.message,
-        errorMessage: responseData.data?.errorMessage,
-        carrier: carrier.name
-      });
-      return false;
-    }
-  } catch (error) {
-    console.error('Message Central SMS sending error:', error);
-    return false;
-  }
-}
 
 serve(async (req) => {
   const corsHeaders = {
@@ -435,34 +257,31 @@ serve(async (req) => {
       );
     }
 
-    // Check for existing pending OTP
-    const { data: existingOtp } = await supabase
+    // Check for existing pending OTP and invalidate if found (to allow resend)
+    const { data: existingOtps } = await supabase
       .from('otp_verifications')
       .select('*')
       .eq('phone_number', phone)
       .eq('purpose', purpose)
       .eq('is_used', false)
-      .gt('expires_at', new Date().toISOString())
-      .single();
+      .gt('expires_at', new Date().toISOString());
 
-    if (existingOtp) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'OTP already sent. Please wait before requesting a new one.',
-          retry_after: existingOtp.expires_at
-        }),
-        { 
-          status: 429, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+    if (existingOtps && existingOtps.length > 0) {
+      // Invalidate existing OTPs to allow resend
+      await supabase
+        .from('otp_verifications')
+        .update({ is_used: true })
+        .eq('phone_number', phone)
+        .eq('purpose', purpose)
+        .eq('is_used', false);
+      
+      console.log(`Invalidated ${existingOtps.length} existing OTP(s) for resend`);
     }
 
-    // Send SMS via Message Central (they generate the OTP automatically)
-    const smsMessage = `Your MeCabal verification code will be sent by Message Central.`;
-    const verificationId = await sendSMSViaNigerian(phone, smsMessage, carrierInfo);
+    // Send SMS via SmartSMS (generates and sends OTP automatically)
+    const otpCode = await sendSmartSMSOTP(phone);
 
-    if (!verificationId) {
+    if (!otpCode) {
       return new Response(
         JSON.stringify({ 
           error: 'Failed to send SMS. Please try again.' 
@@ -474,13 +293,13 @@ serve(async (req) => {
       );
     }
 
-    // Store Message Central verification ID in database
+    // Store OTP code in database for verification
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
     const { error: dbError } = await supabase
       .from('otp_verifications')
       .insert({
         phone_number: phone,
-        otp_code: verificationId, // Store Message Central verification ID
+        otp_code: otpCode, // Store actual OTP code for verification
         carrier: carrierInfo.name,
         purpose,
         expires_at: expiresAt.toISOString()
@@ -502,9 +321,8 @@ serve(async (req) => {
         success: true,
         carrier: carrierInfo.name,
         carrier_color: carrierInfo.color,
-        message: 'OTP sent successfully via Message Central',
-        expires_at: expiresAt.toISOString(),
-        verification_id: verificationId
+        message: 'OTP sent successfully via SmartSMS',
+        expires_at: expiresAt.toISOString()
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -561,9 +379,9 @@ async function verifyOTP(req: Request, supabase: any, phone: string, otpCode: st
       );
     }
 
-    // Verify OTP with Message Central
-    const verificationId = otpRecord.otp_code; // This is actually the Message Central verification ID
-    const verifyResult = await verifyMessageCentralOTP(verificationId, otpCode, phone);
+    // Verify OTP with SmartSMS (compare against stored OTP code)
+    const storedOtpCode = otpRecord.otp_code; // This is the actual OTP code sent via SmartSMS
+    const verifyResult = verifyOTPCode(storedOtpCode, otpCode);
     
     if (!verifyResult.success) {
       // Increment attempts

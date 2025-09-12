@@ -81,11 +81,12 @@ export default function OTPVerificationScreen({ navigation, route }: any) {
           }
           
           // Create user account after successful OTP verification
+          const userDetails = route.params?.userDetails;
           const authResult = await MeCabalAuth.createUserAfterVerification({
-            email: route.params?.email || `${phoneNumber.replace('+', '')}@mecabal.temp`,
+            email: userDetails?.email || route.params?.email || `${phoneNumber.replace(/^\+234/, '0').replace(/^234/, '0')}@mecabal.temp`,
             phone_number: phoneNumber,
-            first_name: route.params?.firstName || '',
-            last_name: route.params?.lastName || '',
+            first_name: userDetails?.firstName || route.params?.firstName || '',
+            last_name: userDetails?.lastName || route.params?.lastName || '',
             state_of_origin: route.params?.stateOfOrigin,
             preferred_language: language
           });
