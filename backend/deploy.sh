@@ -37,6 +37,13 @@ fi
 
 print_status "Starting MeCabal Backend Deployment..."
 
+# Ensure script has execute permissions (fix for cloned repos)
+if [ ! -x "$0" ]; then
+    print_status "Fixing script permissions..."
+    chmod +x "$0"
+    print_success "Script permissions fixed!"
+fi
+
 # Function to install Docker
 install_docker() {
     print_status "Installing Docker..."

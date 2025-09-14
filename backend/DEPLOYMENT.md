@@ -4,14 +4,40 @@ This guide will help you deploy the MeCabal backend infrastructure with automati
 
 ## Quick Start
 
-### For Linux/macOS Users:
+### Step 1: First Time Setup (After Cloning)
+```bash
+# Make scripts executable and setup environment
+chmod +x setup.sh
+./setup.sh
+```
+
+Or run the all-in-one setup command:
+```bash
+chmod +x setup.sh && ./setup.sh
+```
+
+### Step 2: Deploy Backend
+
+#### For Linux/macOS Users:
 ```bash
 ./deploy.sh
 ```
 
-### For Windows Users:
+#### For Windows Users:
 ```cmd
 deploy.bat
+```
+
+## Alternative: Manual Permission Fix
+
+If you get "Permission denied" when running scripts after cloning:
+
+```bash
+# Fix permissions for all scripts
+chmod +x setup.sh deploy.sh
+
+# Then run setup
+./setup.sh
 ```
 
 ## What the Deployment Script Does
