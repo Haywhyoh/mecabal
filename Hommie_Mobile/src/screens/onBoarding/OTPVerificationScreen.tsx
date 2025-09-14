@@ -72,7 +72,7 @@ export default function OTPVerificationScreen({ navigation, route }: any) {
         const purpose = isSignup ? 'registration' : 'login';
         
         if (isSignup) {
-          // For signup, first verify the OTP then create user account
+          // For signup, first verify the OTP
           const verifyResult = await MeCabalAuth.verifyOTP(phoneNumber, otpString, 'registration');
           
           if (!verifyResult.success) {
@@ -80,35 +80,63 @@ export default function OTPVerificationScreen({ navigation, route }: any) {
             return;
           }
           
-          // Create user account after successful OTP verification
+          // Check if user already exists (from email verification)
+          const existingUserId = route.params?.userId;
           const userDetails = route.params?.userDetails;
-          const authResult = await MeCabalAuth.createUserAfterVerification({
-            email: userDetails?.email || route.params?.email || `${phoneNumber.replace(/^\+234/, '0').replace(/^234/, '0')}@mecabal.temp`,
-            phone_number: phoneNumber,
-            first_name: userDetails?.firstName || route.params?.firstName || '',
-            last_name: userDetails?.lastName || route.params?.lastName || '',
-            state_of_origin: route.params?.stateOfOrigin,
-            preferred_language: language
-          });
           
-          if (authResult.success && authResult.user) {
-            // Update auth context
-            await register(authResult.user);
+          if (existingUserId) {
+            // User already exists from email verification, just update phone number
+            const updateResult = await MeCabalAuth.updateProfile(existingUserId, {
+              phone_number: phoneNumber,
+              verification_level: 2 // Both email and phone verified
+            });
             
-            Alert.alert(
-              'Registration Successful!',
-              'Your account has been created and verified successfully.',
-              [{ text: 'Continue', onPress: () => {
-                navigation.navigate('LocationSetup', { 
-                  language, 
-                  phoneNumber, 
-                  isSignup,
-                  userId: authResult.user?.id 
-                });
-              }}]
-            );
+            if (updateResult.success) {
+              Alert.alert(
+                'Phone Verified!',
+                'Your phone number has been verified successfully.',
+                [{ text: 'Continue', onPress: () => {
+                  navigation.navigate('LocationSetup', { 
+                    language, 
+                    phoneNumber, 
+                    isSignup,
+                    userId: existingUserId 
+                  });
+                }}]
+              );
+            } else {
+              Alert.alert('Update Failed', updateResult.error || 'Failed to update phone number.');
+            }
           } else {
-            Alert.alert('Registration Failed', authResult.error || 'Failed to create account.');
+            // Create new user account after successful OTP verification
+            const authResult = await MeCabalAuth.createUserAfterVerification({
+              email: userDetails?.email || route.params?.email || `${phoneNumber.replace(/^\+234/, '0').replace(/^234/, '0')}@mecabal.temp`,
+              phone_number: phoneNumber,
+              first_name: userDetails?.firstName || route.params?.firstName || '',
+              last_name: userDetails?.lastName || route.params?.lastName || '',
+              state_of_origin: route.params?.stateOfOrigin,
+              preferred_language: language
+            });
+            
+            if (authResult.success && authResult.user) {
+              // Update auth context
+              await register(authResult.user);
+              
+              Alert.alert(
+                'Registration Successful!',
+                'Your account has been created and verified successfully.',
+                [{ text: 'Continue', onPress: () => {
+                  navigation.navigate('LocationSetup', { 
+                    language, 
+                    phoneNumber, 
+                    isSignup,
+                    userId: authResult.user?.id 
+                  });
+                }}]
+              );
+            } else {
+              Alert.alert('Registration Failed', authResult.error || 'Failed to create account.');
+            }
           }
         } else {
           // For login, verify OTP with phone number

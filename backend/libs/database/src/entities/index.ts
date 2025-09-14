@@ -1,6 +1,7 @@
 // Core User & Authentication Entities
 export { User } from './user.entity';
 export { OtpVerification } from './otp-verification.entity';
+export { EmailOtp } from './email-otp.entity';
 export { UserSession } from './user-session.entity';
 export { Role } from './role.entity';
 

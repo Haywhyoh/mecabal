@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../../constants';
 import { MeCabalAuth } from '../../services';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function EmailVerificationScreen({ navigation, route }: any) {
   const [verificationCode, setVerificationCode] = useState(['', '', '', '', '', '']);
@@ -23,6 +24,7 @@ export default function EmailVerificationScreen({ navigation, route }: any) {
   
   // Create refs for OTP input fields
   const otpRefs = useRef<Array<TextInput | null>>([]);
+  const { register } = useAuth();
 
   const { email, firstName, lastName, isSignup, onLoginSuccess } = route.params || {};
 
@@ -64,20 +66,45 @@ export default function EmailVerificationScreen({ navigation, route }: any) {
       
       if (result.success && result.verified) {
         if (isSignup) {
-          // For signup flow, email is verified - continue to phone verification
-          Alert.alert(
-            'Email Verified!',
-            'Your email has been verified successfully. Now let\'s verify your phone number.',
-            [{ text: 'Continue', onPress: () => {
-              navigation.navigate('PhoneVerification', { 
-                language: 'en', 
-                signupMethod: 'email',
-                isSignup: true,
-                userDetails: { firstName, lastName, email },
-                emailVerified: true
-              });
-            }}]
-          );
+          // For signup flow, create user account after email verification
+          try {
+            const authResult = await MeCabalAuth.authenticateWithOTP(
+              email,
+              code,
+              'registration',
+              {
+                first_name: firstName,
+                last_name: lastName,
+                email: email,
+                preferred_language: 'en'
+              }
+            );
+
+            if (authResult.success && authResult.user) {
+              // Update auth context
+              await register(authResult.user);
+              
+              Alert.alert(
+                'Email Verified!',
+                'Your email has been verified successfully. Now let\'s verify your phone number.',
+                [{ text: 'Continue', onPress: () => {
+                  navigation.navigate('PhoneVerification', { 
+                    language: 'en', 
+                    signupMethod: 'email',
+                    isSignup: true,
+                    userDetails: { firstName, lastName, email },
+                    emailVerified: true,
+                    userId: authResult.user?.id
+                  });
+                }}]
+              );
+            } else {
+              Alert.alert('Registration Failed', authResult.error || 'Failed to create account. Please try again.');
+            }
+          } catch (error) {
+            console.error('User creation error:', error);
+            Alert.alert('Error', 'Failed to create account. Please try again.');
+          }
         } else {
           // For login flow, complete the login process
           const loginResult = await MeCabalAuth.completeEmailLogin();

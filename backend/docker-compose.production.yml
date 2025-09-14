@@ -1,0 +1,326 @@
+version: '3.8'
+
+services:
+  # Database
+  postgres:
+    image: postgis/postgis:15-3.3
+    container_name: mecabal-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME}
+      POSTGRES_USER: ${DATABASE_USERNAME}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql/init:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    networks:
+      - mecabal-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USERNAME} -d ${DATABASE_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: mecabal-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - mecabal-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # RabbitMQ
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: mecabal-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-admin}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-admin123}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - mecabal-network
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MinIO (S3-compatible object storage)
+  minio:
+    image: minio/minio:latest
+    container_name: mecabal-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      - mecabal-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    container_name: mecabal-api-gateway
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_HOST=postgres
+      - REDIS_HOST=redis
+    command: ["node", "dist/apps/api-gateway/main.js"]
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - mecabal-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Auth Service
+  auth-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    container_name: mecabal-auth-service
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - DATABASE_HOST=postgres
+      - REDIS_HOST=redis
+    command: ["node", "dist/apps/auth-service/main.js"]
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - mecabal-network
+
+  # User Service
+  user-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    container_name: mecabal-user-service
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3002
+      - DATABASE_HOST=postgres
+      - REDIS_HOST=redis
+    command: ["node", "dist/apps/user-service/main.js"]
+    ports:
+      - "3002:3002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - mecabal-network
+
+  # Social Service
+  social-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    container_name: mecabal-social-service
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3003
+      - DATABASE_HOST=postgres
+      - REDIS_HOST=redis
+    command: ["node", "dist/apps/social-service/main.js"]
+    ports:
+      - "3003:3003"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - mecabal-network
+
+  # Messaging Service
+  messaging-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    container_name: mecabal-messaging-service
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3004
+      - DATABASE_HOST=postgres
+      - REDIS_HOST=redis
+      - RABBITMQ_HOST=rabbitmq
+    command: ["node", "dist/apps/messaging-service/main.js"]
+    ports:
+      - "3004:3004"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - mecabal-network
+
+  # Marketplace Service
+  marketplace-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    container_name: mecabal-marketplace-service
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3005
+      - DATABASE_HOST=postgres
+      - REDIS_HOST=redis
+    command: ["node", "dist/apps/marketplace-service/main.js"]
+    ports:
+      - "3005:3005"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - mecabal-network
+
+  # Events Service
+  events-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    container_name: mecabal-events-service
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3006
+      - DATABASE_HOST=postgres
+      - REDIS_HOST=redis
+    command: ["node", "dist/apps/events-service/main.js"]
+    ports:
+      - "3006:3006"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - mecabal-network
+
+  # Notification Service
+  notification-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    container_name: mecabal-notification-service
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3007
+      - DATABASE_HOST=postgres
+      - REDIS_HOST=redis
+      - RABBITMQ_HOST=rabbitmq
+    command: ["node", "dist/apps/notification-service/main.js"]
+    ports:
+      - "3007:3007"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - mecabal-network
+
+  # Nginx (Reverse Proxy)
+  nginx:
+    image: nginx:alpine
+    container_name: mecabal-nginx
+    restart: unless-stopped
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/ssl/certs:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - api-gateway
+      - auth-service
+      - user-service
+      - social-service
+      - messaging-service
+      - marketplace-service
+      - events-service
+      - notification-service
+    networks:
+      - mecabal-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
+  minio_data:
+    driver: local
+
+networks:
+  mecabal-network:
+    driver: bridge

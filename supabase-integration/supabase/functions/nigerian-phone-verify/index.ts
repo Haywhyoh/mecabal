@@ -183,7 +183,133 @@ async function sendSmartSMSOTP(phoneNumber: string): Promise<string | false> {
   }
 }
 
-// Verify OTP code against stored value (SmartSMS handles sending, we verify locally)
+// Send WhatsApp OTP via Message Central
+async function sendWhatsAppOTP(phoneNumber: string): Promise<string | false> {
+  try {
+    const authToken = Deno.env.get('MESSAGE_CENTRAL_AUTH_TOKEN');
+    const customerId = Deno.env.get('MESSAGE_CENTRAL_CUSTOMER_ID');
+    
+    if (!authToken || !customerId) {
+      console.error('Message Central credentials not configured');
+      return false;
+    }
+
+    // Format phone number for Message Central (remove country code, keep only local number)
+    let formattedPhone = phoneNumber.replace(/^\+234/, '');
+    if (formattedPhone.startsWith('0')) {
+      formattedPhone = formattedPhone.substring(1); // Remove leading 0
+    }
+
+    const whatsappUrl = `https://cpaas.messagecentral.com/verification/v3/send?countryCode=234&customerId=${customerId}&flowType=WHATSAPP&mobileNumber=${formattedPhone}`;
+
+    console.log('Sending WhatsApp OTP via Message Central:', { 
+      phone: formattedPhone,
+      customerId
+    });
+
+    const response = await fetch(whatsappUrl, {
+      method: 'POST',
+      headers: {
+        'authToken': authToken,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Message Central WhatsApp API error:', {
+        status: response.status,
+        error: errorText
+      });
+      return false;
+    }
+
+    const responseData = await response.json();
+    console.log('Message Central WhatsApp response:', responseData);
+
+    // Check if WhatsApp OTP was sent successfully
+    if (responseData.responseCode === 200 && responseData.data?.verificationId) {
+      console.log('WhatsApp OTP sent successfully via Message Central:', {
+        verificationId: responseData.data.verificationId,
+        mobileNumber: responseData.data.mobileNumber,
+        message: responseData.message
+      });
+      
+      // Return the verification ID for storage in database
+      return responseData.data.verificationId;
+    } else {
+      console.error('Message Central WhatsApp delivery failed:', {
+        responseCode: responseData.responseCode,
+        message: responseData.message,
+        errorMessage: responseData.data?.errorMessage
+      });
+      return false;
+    }
+  } catch (error) {
+    console.error('Message Central WhatsApp sending error:', error);
+    return false;
+  }
+}
+
+// Verify OTP with Message Central (for WhatsApp OTPs)
+async function verifyMessageCentralOTP(verificationId: string, otpCode: string, phoneNumber: string): Promise<{success: boolean, error?: string}> {
+  try {
+    const authToken = Deno.env.get('MESSAGE_CENTRAL_AUTH_TOKEN');
+    const customerId = Deno.env.get('MESSAGE_CENTRAL_CUSTOMER_ID');
+    
+    if (!authToken || !customerId) {
+      return { success: false, error: 'Message Central credentials not configured' };
+    }
+
+    // Format phone number for Message Central
+    let formattedPhone = phoneNumber.replace(/^\+234/, '');
+    if (formattedPhone.startsWith('0')) {
+      formattedPhone = formattedPhone.substring(1);
+    }
+    
+    const verifyUrl = `https://cpaas.messagecentral.com/verification/v3/validateOtp?countryCode=234&mobileNumber=${formattedPhone}&verificationId=${verificationId}&customerId=${customerId}&code=${otpCode}`;
+
+    console.log('Verifying OTP with Message Central:', { 
+      verificationId, 
+      mobileNumber: formattedPhone,
+      customerId
+    });
+
+    const response = await fetch(verifyUrl, {
+      method: 'GET',
+      headers: {
+        'authToken': authToken,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Message Central OTP verification failed:', {
+        status: response.status,
+        error: errorText
+      });
+      return { success: false, error: 'OTP verification failed' };
+    }
+
+    const responseData = await response.json();
+    console.log('Message Central OTP verification response:', responseData);
+
+    if (responseData.responseCode === 200 && responseData.data?.verificationStatus === 'VERIFICATION_COMPLETED') {
+      return { success: true };
+    } else {
+      return { 
+        success: false, 
+        error: responseData.message || responseData.data?.errorMessage || 'Invalid OTP code'
+      };
+    }
+  } catch (error) {
+    console.error('Error verifying OTP with Message Central:', error);
+    return { success: false, error: 'OTP verification error' };
+  }
+}
+
+// Verify OTP code against stored value (for SmartSMS OTPs)
 function verifyOTPCode(storedOTP: string, inputOTP: string): {success: boolean, error?: string} {
   try {
     if (!storedOTP || !inputOTP) {
@@ -223,7 +349,7 @@ serve(async (req) => {
     );
 
     const requestData = await req.json();
-    const { phone, purpose = 'registration', otp_code, verify } = requestData;
+    const { phone, purpose = 'registration', otp_code, verify, method = 'sms' } = requestData;
 
     // Route to verification if verify flag is set
     if (verify && otp_code) {
@@ -278,13 +404,24 @@ serve(async (req) => {
       console.log(`Invalidated ${existingOtps.length} existing OTP(s) for resend`);
     }
 
-    // Send SMS via SmartSMS (generates and sends OTP automatically)
-    const otpCode = await sendSmartSMSOTP(phone);
+    // Send OTP based on method (SMS via SmartSMS or WhatsApp via Message Central)
+    let otpResult: string | false;
+    let otpMethod: string;
 
-    if (!otpCode) {
+    if (method === 'whatsapp') {
+      console.log('Sending WhatsApp OTP via Message Central');
+      otpResult = await sendWhatsAppOTP(phone);
+      otpMethod = 'WhatsApp';
+    } else {
+      console.log('Sending SMS OTP via SmartSMS');
+      otpResult = await sendSmartSMSOTP(phone);
+      otpMethod = 'SMS';
+    }
+
+    if (!otpResult) {
       return new Response(
         JSON.stringify({ 
-          error: 'Failed to send SMS. Please try again.' 
+          error: `Failed to send ${otpMethod} OTP. Please try again.`
         }),
         { 
           status: 500, 
@@ -293,15 +430,16 @@ serve(async (req) => {
       );
     }
 
-    // Store OTP code in database for verification
+    // Store OTP/verification ID in database
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
     const { error: dbError } = await supabase
       .from('otp_verifications')
       .insert({
         phone_number: phone,
-        otp_code: otpCode, // Store actual OTP code for verification
+        otp_code: otpResult, // Store OTP code (SMS) or verification ID (WhatsApp)
         carrier: carrierInfo.name,
         purpose,
+        method: method, // Store the method used
         expires_at: expiresAt.toISOString()
       });
 
@@ -321,7 +459,8 @@ serve(async (req) => {
         success: true,
         carrier: carrierInfo.name,
         carrier_color: carrierInfo.color,
-        message: 'OTP sent successfully via SmartSMS',
+        message: `OTP sent successfully via ${otpMethod}`,
+        method: method,
         expires_at: expiresAt.toISOString()
       }),
       { 
@@ -379,9 +518,18 @@ async function verifyOTP(req: Request, supabase: any, phone: string, otpCode: st
       );
     }
 
-    // Verify OTP with SmartSMS (compare against stored OTP code)
-    const storedOtpCode = otpRecord.otp_code; // This is the actual OTP code sent via SmartSMS
-    const verifyResult = verifyOTPCode(storedOtpCode, otpCode);
+    // Verify OTP based on method used
+    let verifyResult: {success: boolean, error?: string};
+    
+    if (otpRecord.method === 'whatsapp') {
+      // WhatsApp OTP: verify with Message Central using verification ID
+      const verificationId = otpRecord.otp_code; // This is the Message Central verification ID
+      verifyResult = await verifyMessageCentralOTP(verificationId, otpCode, phone);
+    } else {
+      // SMS OTP: verify against stored OTP code
+      const storedOtpCode = otpRecord.otp_code; // This is the actual OTP code sent via SmartSMS
+      verifyResult = verifyOTPCode(storedOtpCode, otpCode);
+    }
     
     if (!verifyResult.success) {
       // Increment attempts

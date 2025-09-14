@@ -17,6 +17,7 @@ export default function PhoneVerificationScreen({ navigation, route }: any) {
   const [countryCode, setCountryCode] = useState('+234');
   const [detectedCarrier, setDetectedCarrier] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedMethod, setSelectedMethod] = useState<'sms' | 'whatsapp'>('sms');
 
   const language = route.params?.language || 'en';
   const isSignup = route.params?.isSignup || false;
@@ -49,8 +50,8 @@ export default function PhoneVerificationScreen({ navigation, route }: any) {
       const fullPhoneNumber = `${countryCode}${normalizedPhone}`;
       const purpose = isSignup ? 'registration' : 'login';
       
-      // Use MeCabal authentication service
-      const result = await MeCabalAuth.sendOTP(fullPhoneNumber, purpose);
+      // Use MeCabal authentication service with selected method
+      const result = await MeCabalAuth.sendOTP(fullPhoneNumber, purpose, selectedMethod);
       
       if (result.success) {
         // Show success message with carrier info and OTP code for development
@@ -135,6 +136,40 @@ export default function PhoneVerificationScreen({ navigation, route }: any) {
               >
                  We'll send you a 4-digit code to keep your account safe.
                </Text>
+            </View>
+
+            {/* Method Selection */}
+            <View style={styles.methodSection}>
+              <Text style={styles.methodTitle}>How would you like to receive your verification code?</Text>
+              <View style={styles.methodOptions}>
+                <TouchableOpacity 
+                  style={[
+                    styles.methodOption,
+                    selectedMethod === 'sms' && styles.methodOptionSelected
+                  ]}
+                  onPress={() => setSelectedMethod('sms')}
+                >
+                  <Text style={styles.methodIcon}>📱</Text>
+                  <Text style={[
+                    styles.methodText,
+                    selectedMethod === 'sms' && styles.methodTextSelected
+                  ]}>SMS</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[
+                    styles.methodOption,
+                    selectedMethod === 'whatsapp' && styles.methodOptionSelected
+                  ]}
+                  onPress={() => setSelectedMethod('whatsapp')}
+                >
+                  <Text style={styles.methodIcon}>💬</Text>
+                  <Text style={[
+                    styles.methodText,
+                    selectedMethod === 'whatsapp' && styles.methodTextSelected
+                  ]}>WhatsApp</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* Phone Input Section */}
@@ -354,6 +389,49 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: COLORS.white,
     fontSize: TYPOGRAPHY.fontSizes.lg || 18,
+    fontWeight: '600',
+  },
+  methodSection: {
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.lg,
+    alignItems: 'center',
+  },
+  methodTitle: {
+    fontSize: TYPOGRAPHY.fontSizes.md || 16,
+    color: COLORS.text,
+    fontWeight: '500',
+    textAlign: 'center',
+    marginBottom: SPACING.lg,
+  },
+  methodOptions: {
+    flexDirection: 'row',
+    gap: SPACING.md,
+  },
+  methodOption: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: SPACING.lg,
+    paddingHorizontal: SPACING.md,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 2,
+    borderColor: COLORS.lightGray,
+    backgroundColor: COLORS.white,
+  },
+  methodOptionSelected: {
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.primary + '10', // Light primary background
+  },
+  methodIcon: {
+    fontSize: 24,
+    marginBottom: SPACING.sm,
+  },
+  methodText: {
+    fontSize: TYPOGRAPHY.fontSizes.md || 16,
+    color: COLORS.textSecondary,
+    fontWeight: '500',
+  },
+  methodTextSelected: {
+    color: COLORS.primary,
     fontWeight: '600',
   },
 });

@@ -1,14 +1,30 @@
-# SmartSMS Configuration for MeCabal Edge Function
+# SMS & WhatsApp OTP Configuration for MeCabal Edge Function
 
 ## Environment Variables Required
 
-The `nigerian-phone-verify` edge function requires the following environment variables for SmartSMS integration:
+The `nigerian-phone-verify` edge function requires the following environment variables for SMS and WhatsApp OTP:
+
+## SmartSMS Configuration (for SMS OTP)
 
 ### 1. SMARTSMS_API_TOKEN
 - **Description**: Your SmartSMS API token
-- **Required**: Yes
+- **Required**: Yes (for SMS functionality)
 - **Example**: `your-smartsms-api-token`
 - **How to get**: Obtain from your SmartSMS dashboard
+
+## Message Central Configuration (for WhatsApp OTP)
+
+### 2. MESSAGE_CENTRAL_AUTH_TOKEN
+- **Description**: Your Message Central JWT auth token
+- **Required**: Yes (for WhatsApp functionality)
+- **Example**: `eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJDLTQ3MDlFQz...`
+- **How to get**: Generate from your Message Central dashboard
+
+### 3. MESSAGE_CENTRAL_CUSTOMER_ID
+- **Description**: Your Message Central customer ID
+- **Required**: Yes (for WhatsApp functionality)
+- **Example**: `C-4709EC8B87034B1`
+- **How to get**: Find in your Message Central dashboard
 
 
 ## Setting Environment Variables in Supabase
@@ -18,20 +34,30 @@ The `nigerian-phone-verify` edge function requires the following environment var
 # Navigate to your supabase project directory
 cd supabase-integration
 
-# Set the required environment variable
+# Set SmartSMS environment variable (for SMS)
 supabase secrets set SMARTSMS_API_TOKEN=your-smartsms-api-token
+
+# Set Message Central environment variables (for WhatsApp)
+supabase secrets set MESSAGE_CENTRAL_AUTH_TOKEN=your-jwt-auth-token
+supabase secrets set MESSAGE_CENTRAL_CUSTOMER_ID=your-customer-id
 ```
 
 ### Using Supabase Dashboard:
 1. Go to your Supabase project dashboard
 2. Navigate to Edge Functions > Environment Variables
-3. Add the following variable:
+3. Add the following variables:
    - `SMARTSMS_API_TOKEN`: your-smartsms-api-token
+   - `MESSAGE_CENTRAL_AUTH_TOKEN`: your-jwt-auth-token
+   - `MESSAGE_CENTRAL_CUSTOMER_ID`: your-customer-id
 
-## SmartSMS API Details
+## API Details
 
-### Endpoint Used
-`POST https://app.smartsmssolutions.com/io/api/client/v1/sms/`
+### SMS via SmartSMS
+**Endpoint**: `POST https://app.smartsmssolutions.com/io/api/client/v1/sms/`
+
+### WhatsApp via Message Central  
+**Send Endpoint**: `POST https://cpaas.messagecentral.com/verification/v3/send?countryCode=234&customerId={customerId}&flowType=WHATSAPP&mobileNumber={phone}`
+**Verify Endpoint**: `GET https://cpaas.messagecentral.com/verification/v3/validateOtp?countryCode=234&mobileNumber={phone}&verificationId={verificationId}&customerId={customerId}&code={otpCode}`
 
 ### Parameters Sent
 - `token`: Your API token (from environment variable)
@@ -59,22 +85,30 @@ The function automatically handles Nigerian phone number formatting:
 
 ## Testing the Integration
 
-After setting up the environment variables, you can test the integration:
+After setting up the environment variables, you can test both SMS and WhatsApp:
 
 1. **Deploy the edge function**:
    ```bash
    supabase functions deploy nigerian-phone-verify
    ```
 
-2. **Test sending OTP**:
+2. **Test SMS OTP**:
    ```bash
    curl -X POST 'https://your-project.supabase.co/functions/v1/nigerian-phone-verify' \
      -H 'Authorization: Bearer YOUR_ANON_KEY' \
      -H 'Content-Type: application/json' \
-     -d '{"phone": "+2348012345678", "purpose": "registration"}'
+     -d '{"phone": "+2348012345678", "purpose": "registration", "method": "sms"}'
    ```
 
-3. **Test verifying OTP**:
+3. **Test WhatsApp OTP**:
+   ```bash
+   curl -X POST 'https://your-project.supabase.co/functions/v1/nigerian-phone-verify' \
+     -H 'Authorization: Bearer YOUR_ANON_KEY' \
+     -H 'Content-Type: application/json' \
+     -d '{"phone": "+2348012345678", "purpose": "registration", "method": "whatsapp"}'
+   ```
+
+4. **Test verifying OTP** (works for both methods):
    ```bash
    curl -X POST 'https://your-project.supabase.co/functions/v1/nigerian-phone-verify' \
      -H 'Authorization: Bearer YOUR_ANON_KEY' \

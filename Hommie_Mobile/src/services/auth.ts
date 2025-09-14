@@ -16,7 +16,8 @@ export class MeCabalAuth {
   // Send OTP to Nigerian phone number
   static async sendOTP(
     phoneNumber: string, 
-    purpose: 'registration' | 'login' | 'password_reset' = 'registration'
+    purpose: 'registration' | 'login' | 'password_reset' = 'registration',
+    method: 'sms' | 'whatsapp' = 'sms'
   ): Promise<OTPResponse> {
     const startTime = Date.now();
     
@@ -29,11 +30,12 @@ export class MeCabalAuth {
         };
       }
 
-      // Use Nigerian phone verification edge function for real SMS
+      // Use Nigerian phone verification edge function for SMS or WhatsApp
       const { data, error } = await supabase.functions.invoke('nigerian-phone-verify', {
         body: {
           phone: phoneNumber,
-          purpose
+          purpose,
+          method
         }
       });
 
