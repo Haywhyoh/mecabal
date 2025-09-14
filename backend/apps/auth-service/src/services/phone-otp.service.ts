@@ -116,8 +116,8 @@ export class PhoneOtpService {
       } else {
         userId = user!.id;
         // Update carrier info if not set
-        if (!user!.phoneCarrier) {
-          user!.phoneCarrier = carrierInfo.name;
+        if (user && !user.phoneCarrier) {
+          user.phoneCarrier = carrierInfo.name;
           await this.userRepository.save(user);
         }
       }

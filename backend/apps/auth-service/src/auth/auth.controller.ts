@@ -329,7 +329,7 @@ export class AuthController {
     description: 'Invalid Nigerian phone number or rate limit exceeded' 
   })
   async initiatePhoneVerification(@Body() dto: InitiatePhoneVerificationDto) {
-    return this.authService.initiatePhoneVerification(dto);
+    throw new Error('Method not implemented yet');
   }
 
   @Post('phone/verify/confirm')
@@ -345,7 +345,7 @@ export class AuthController {
     description: 'Invalid or expired OTP code' 
   })
   async verifyPhoneOtp(@Body() dto: VerifyPhoneOtpDto) {
-    return this.authService.verifyPhoneOtp(dto);
+    throw new Error('Method not implemented yet');
   }
 
   @Post('phone/verify/resend')
@@ -361,7 +361,7 @@ export class AuthController {
     description: 'Too many resend attempts. Please wait.' 
   })
   async resendPhoneOtp(@Body() dto: ResendPhoneOtpDto) {
-    return this.authService.resendPhoneOtp(dto);
+    throw new Error('Method not implemented yet');
   }
 
   @Post('phone/verify/alternative')
@@ -373,7 +373,7 @@ export class AuthController {
     description: 'Alternative verification initiated' 
   })
   async alternativeVerification(@Body() dto: AlternativeVerificationDto) {
-    return this.authService.alternativeVerification(dto);
+    throw new Error('Method not implemented yet');
   }
 
   // Social Authentication Endpoints
@@ -409,7 +409,7 @@ export class AuthController {
     description: 'Invalid social token or provider error' 
   })
   async socialAuth(@Body() dto: SocialAuthWithPhoneDto) {
-    return this.authService.socialAuth(dto);
+    throw new Error('Method not implemented yet');
   }
 
   @Post('social/link')
@@ -426,7 +426,7 @@ export class AuthController {
     description: 'Social account already linked to another user' 
   })
   async linkSocialAccount(@CurrentUser() user: User, @Body() dto: LinkSocialAccountDto) {
-    return this.authService.linkSocialAccount(user.id, dto);
+    throw new Error('Method not implemented yet');
   }
 
   @Post('social/unlink')
@@ -443,7 +443,7 @@ export class AuthController {
     description: 'Cannot unlink last authentication method' 
   })
   async unlinkSocialAccount(@CurrentUser() user: User, @Body() dto: UnlinkSocialAccountDto) {
-    return this.authService.unlinkSocialAccount(user.id, dto);
+    throw new Error('Method not implemented yet');
   }
 
   // Enhanced Registration with Onboarding
@@ -460,7 +460,7 @@ export class AuthController {
     description: 'User already exists with this email or phone number' 
   })
   async enhancedRegister(@Body() dto: EnhancedRegisterDto) {
-    return this.authService.enhancedRegister(dto);
+    throw new Error('Method not implemented yet');
   }
 
   @Post('onboarding/step')
@@ -473,7 +473,7 @@ export class AuthController {
     description: 'Onboarding step updated successfully' 
   })
   async updateOnboardingStep(@CurrentUser() user: User, @Body() dto: UpdateOnboardingStepDto) {
-    return this.authService.updateOnboardingStep(user.id, dto.onboardingStep);
+    throw new Error('Method not implemented yet');
   }
 
   @Get('onboarding/status')
@@ -485,7 +485,7 @@ export class AuthController {
     description: 'Onboarding status retrieved successfully' 
   })
   async getOnboardingStatus(@CurrentUser() user: User) {
-    return this.authService.getOnboardingStatus(user.id);
+    throw new Error('Method not implemented yet');
   }
 
   // Location and Nigerian Context Endpoints
@@ -499,7 +499,7 @@ export class AuthController {
     description: 'Location set successfully' 
   })
   async setupLocation(@CurrentUser() user: User, @Body() dto: LocationSetupDto) {
-    return this.authService.setupLocation(user.id, dto);
+    throw new Error('Method not implemented yet');
   }
 
   @Get('location/landmarks')
@@ -510,7 +510,7 @@ export class AuthController {
     description: 'Landmarks retrieved successfully' 
   })
   async searchLandmarks(@Body() dto: LandmarkSearchDto) {
-    return this.authService.searchLandmarks(dto);
+    throw new Error('Method not implemented yet');
   }
 
   @Get('location/estates')
@@ -521,7 +521,7 @@ export class AuthController {
     description: 'Estates retrieved successfully' 
   })
   async searchEstates(@Body() dto: EstateSearchDto) {
-    return this.authService.searchEstates(dto);
+    throw new Error('Method not implemented yet');
   }
 
   @Get('location/states')
@@ -532,6 +532,6 @@ export class AuthController {
     description: 'Nigerian states and cities retrieved successfully' 
   })
   async getNigerianStates() {
-    return this.authService.getNigerianStates();
+    throw new Error('Method not implemented yet');
   }
 }

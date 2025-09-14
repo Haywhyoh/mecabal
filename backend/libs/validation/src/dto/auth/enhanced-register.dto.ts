@@ -1,4 +1,4 @@
-import { IsEmail, IsPhoneNumber, IsString, MinLength, Matches, IsOptional, IsEnum, IsBoolean } from 'class-validator';
+import { IsEmail, IsPhoneNumber, IsString, MinLength, Matches, IsOptional, IsEnum, IsBoolean, IsNotEmpty } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import { SocialProvider } from './social-auth.dto';

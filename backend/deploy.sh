@@ -44,6 +44,57 @@ if [ ! -x "$0" ]; then
     print_success "Script permissions fixed!"
 fi
 
+# Function to validate and fix .env file
+fix_env_file() {
+    print_status "Validating and fixing .env file..."
+    
+    # Check if .env exists
+    if [ ! -f ".env" ]; then
+        if [ -f ".env.example" ]; then
+            print_warning ".env file not found. Creating from .env.example..."
+            cp .env.example .env
+        else
+            print_error ".env file not found and no .env.example available"
+            exit 1
+        fi
+    fi
+    
+    # Create a backup of the original .env
+    cp .env .env.backup
+    
+    # Fix common .env issues
+    print_status "Fixing common .env file issues..."
+    
+    # Remove lines that are just text without = (like "Community")
+    sed -i '/^[^=]*$/d' .env
+    
+    # Fix lines with spaces around = sign
+    sed -i 's/ *= */=/g' .env
+    
+    # Add quotes around values that contain spaces and don't already have quotes
+    sed -i 's/^\([^=]*\)=\([^"'"'"'].*[^"'"'"'].*\)$/\1="\2"/g' .env
+    
+    # Remove empty lines
+    sed -i '/^$/d' .env
+    
+    # Ensure file ends with newline
+    echo "" >> .env
+    
+    # Validate .env file syntax
+    print_status "Validating .env file syntax..."
+    
+    # Check for malformed lines
+    while IFS= read -r line; do
+        if [[ -n "$line" && "$line" != \#* ]]; then
+            if [[ ! "$line" =~ ^[A-Za-z_][A-Za-z0-9_]*=.* ]]; then
+                print_warning "Skipping malformed line: $line"
+            fi
+        fi
+    done < .env
+    
+    print_success ".env file validated and fixed!"
+}
+
 # Function to install Docker
 install_docker() {
     print_status "Installing Docker..."
@@ -146,6 +197,28 @@ install_docker_compose() {
     print_success "Docker Compose $DOCKER_COMPOSE_VERSION installed!"
 }
 
+# Function to fix Docker permissions
+fix_docker_permissions() {
+    print_status "Fixing Docker permissions..."
+    
+    # Check if user is in docker group
+    if ! groups $USER | grep -q docker; then
+        print_warning "User not in docker group. Adding user to docker group..."
+        sudo usermod -aG docker $USER
+        print_warning "You need to log out and log back in for Docker group changes to take effect."
+        print_status "Or run: newgrp docker"
+        
+        # Try to apply group changes immediately
+        if command -v newgrp &> /dev/null; then
+            print_status "Applying group changes immediately..."
+            newgrp docker << 'EOF'
+# This will be executed in the new group context
+echo "Group changes applied. Continuing with deployment..."
+EOF
+        fi
+    fi
+}
+
 # Check if Docker is installed
 if ! command -v docker &> /dev/null; then
     print_warning "Docker is not installed."
@@ -188,33 +261,43 @@ else
     fi
 fi
 
+# Fix Docker permissions
+fix_docker_permissions
+
 # Verify Docker is running
 if ! docker info &> /dev/null; then
     print_error "Docker is installed but not running. Please start Docker and try again."
     print_status "On Linux: sudo systemctl start docker"
     print_status "On macOS/Windows: Start Docker Desktop"
-    exit 1
-fi
-
-print_success "Docker and Docker Compose are ready!"
-
-# Check if .env file exists
-if [ ! -f ".env" ]; then
-    if [ -f ".env.example" ]; then
-        print_warning ".env file not found. Creating from .env.example..."
-        cp .env.example .env
-        print_warning "Please edit .env file with your actual configuration values."
-        read -p "Press Enter to continue after editing .env file..."
+    
+    # Try to start Docker service on Linux
+    if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        print_status "Attempting to start Docker service..."
+        sudo systemctl start docker
+        sleep 5
+        
+        if docker info &> /dev/null; then
+            print_success "Docker service started successfully!"
+        else
+            exit 1
+        fi
     else
-        print_error ".env file not found and no .env.example available"
         exit 1
     fi
 fi
 
-# Load environment variables
-source .env
+print_success "Docker and Docker Compose are ready!"
 
-print_status "Environment loaded successfully"
+# Fix .env file issues
+fix_env_file
+
+# Load environment variables safely
+print_status "Loading environment variables..."
+set -a  # automatically export all variables
+source .env
+set +a  # stop automatically exporting
+
+print_success "Environment loaded successfully"
 
 # Create necessary directories
 print_status "Creating necessary directories..."

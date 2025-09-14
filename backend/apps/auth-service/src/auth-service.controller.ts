@@ -9,7 +9,7 @@ import {
   ValidationPipe,
   UsePipes
 } from '@nestjs/common';
-import { Request } from 'express';
+import type { Request } from 'express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { AuthServiceService } from './auth-service.service';
 import { AuthService } from './services/auth.service';
@@ -107,7 +107,7 @@ export class AuthServiceController {
       carrier: result.carrier,
       carrierColor: result.carrierColor,
       expiresAt: result.expiresAt,
-      method: result.deliveryMethod,
+      method: result.deliveryMethod as 'email' | 'sms' | 'whatsapp',
       ...(result.otpCode && { otpCode: result.otpCode })
     };
   }

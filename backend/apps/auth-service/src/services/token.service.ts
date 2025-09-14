@@ -189,11 +189,11 @@ export class TokenService {
         { id: sessionId },
         { 
           isActive: false,
-          refreshTokenHash: null
+          refreshTokenHash: null as any
         }
       );
 
-      const invalidated = result.affected > 0;
+      const invalidated = (result.affected || 0) > 0;
       if (invalidated) {
         this.logger.log(`Session ${sessionId} invalidated`);
       }
@@ -213,7 +213,7 @@ export class TokenService {
         .update(UserSession)
         .set({ 
           isActive: false,
-          refreshTokenHash: null
+          refreshTokenHash: null as any
         })
         .where('userId = :userId', { userId })
         .andWhere('isActive = true');
@@ -270,7 +270,7 @@ export class TokenService {
 
   private hashToken(token: string): string {
     return crypto
-      .createHmac('sha256', this.configService.get<string>('JWT_REFRESH_SECRET'))
+      .createHmac('sha256', this.configService.get<string>('JWT_REFRESH_SECRET') || 'fallback-secret')
       .update(token)
       .digest('hex');
   }

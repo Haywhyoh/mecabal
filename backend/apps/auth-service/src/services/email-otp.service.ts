@@ -27,7 +27,7 @@ export class EmailOtpService {
     const brevoApiKey = this.configService.get<string>('BREVO_API_KEY');
     
     if (brevoApiKey) {
-      this.transporter = nodemailer.createTransporter({
+      this.transporter = nodemailer.createTransport({
         host: 'smtp-relay.brevo.com',
         port: 587,
         secure: false,

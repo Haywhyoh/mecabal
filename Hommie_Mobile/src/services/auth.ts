@@ -1,8 +1,8 @@
 // MeCabal Authentication Service
 // Nigerian-specific authentication with phone verification
+// Migrated to use custom NestJS backend API
 
-import { supabase, handleSupabaseError, logPerformance } from './supabase';
-// import { MockOTPService } from './mockOTP'; // Replaced with real Resend integration
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { 
   NigerianUser, 
   ApiResponse, 
@@ -12,6 +12,100 @@ import type {
 } from '../types/supabase';
 import type { NigerianCarrier } from '../types/nigerian';
 
+// Backend API configuration
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://api.mecabal.com';
+const API_TIMEOUT = parseInt(process.env.EXPO_PUBLIC_API_TIMEOUT || '10000', 10);
+
+// API client helper
+class ApiClient {
+  private static async makeRequest<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<ApiResponse<T>> {
+    const startTime = Date.now();
+    
+    try {
+      const token = await AsyncStorage.getItem('auth_token');
+      
+      const config: RequestInit = {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+          ...options.headers,
+        },
+        ...options,
+      };
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
+
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        ...config,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+      
+      console.log(`API Request: ${options.method || 'GET'} ${endpoint} - ${Date.now() - startTime}ms`);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({
+          message: `HTTP ${response.status}: ${response.statusText}`,
+        }));
+        
+        return {
+          success: false,
+          error: errorData.message || `Request failed with status ${response.status}`,
+        };
+      }
+
+      const data = await response.json();
+      return {
+        success: true,
+        data,
+        message: data.message,
+      };
+    } catch (error: any) {
+      console.error('API Request failed:', error);
+      
+      if (error.name === 'AbortError') {
+        return {
+          success: false,
+          error: 'Request timeout. Please check your internet connection.',
+        };
+      }
+      
+      return {
+        success: false,
+        error: error.message || 'Network error. Please try again.',
+      };
+    }
+  }
+
+  static async post<T>(endpoint: string, data: any): Promise<ApiResponse<T>> {
+    return this.makeRequest<T>(endpoint, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  static async get<T>(endpoint: string): Promise<ApiResponse<T>> {
+    return this.makeRequest<T>(endpoint, { method: 'GET' });
+  }
+
+  static async put<T>(endpoint: string, data: any): Promise<ApiResponse<T>> {
+    return this.makeRequest<T>(endpoint, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  static async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
+    return this.makeRequest<T>(endpoint, { method: 'DELETE' });
+  }
+}
+
 export class MeCabalAuth {
   // Send OTP to Nigerian phone number
   static async sendOTP(
@@ -19,8 +113,6 @@ export class MeCabalAuth {
     purpose: 'registration' | 'login' | 'password_reset' = 'registration',
     method: 'sms' | 'whatsapp' = 'sms'
   ): Promise<OTPResponse> {
-    const startTime = Date.now();
-    
     try {
       // Validate phone number format
       if (!this.isValidNigerianPhone(phoneNumber)) {
@@ -30,36 +122,26 @@ export class MeCabalAuth {
         };
       }
 
-      // Use Nigerian phone verification edge function for SMS or WhatsApp
-      const { data, error } = await supabase.functions.invoke('nigerian-phone-verify', {
-        body: {
-          phone: phoneNumber,
-          purpose,
-          method
-        }
+      // Call new backend API endpoint
+      const result = await ApiClient.post<any>('/auth/phone/send-otp', {
+        phone: phoneNumber,
+        purpose,
+        method
       });
 
-      logPerformance('sendOTP', startTime);
-
-      if (error || !data) {
-        console.error('SMS OTP edge function error:', error);
+      if (!result.success) {
         return {
           success: false,
-          error: error?.message || 'Failed to send SMS OTP'
+          error: result.error || 'Failed to send SMS OTP'
         };
       }
 
-      if (!data.success) {
-        return {
-          success: false,
-          error: data.error || 'Failed to send SMS OTP'
-        };
-      }
-
+      const { data } = result;
+      
       // Extract carrier info from response for user feedback
       const carrierInfo = data.carrier ? {
-        name: data.carrier,
-        color: data.carrier_color || '#00A651'
+        name: data.carrier.name,
+        color: data.carrier.color || '#00A651'
       } : null;
 
       return {
@@ -69,10 +151,9 @@ export class MeCabalAuth {
         carrier: carrierInfo
       };
     } catch (error: any) {
-      logPerformance('sendOTP', startTime);
       return {
         success: false,
-        error: handleSupabaseError(error)
+        error: error.message || 'Failed to send SMS OTP'
       };
     }
   }
@@ -83,36 +164,38 @@ export class MeCabalAuth {
     otpCode: string, 
     purpose: 'registration' | 'login' | 'password_reset' = 'registration'
   ): Promise<VerifyOTPResponse> {
-    const startTime = Date.now();
-    
     try {
-      // Use Nigerian phone verification edge function for SMS OTP verification
-      const { data, error } = await supabase.functions.invoke('nigerian-phone-verify', {
-        body: {
-          phone: phoneNumber,
-          otp_code: otpCode,
-          purpose,
-          verify: true
-        }
+      // Call new backend API endpoint
+      const result = await ApiClient.post<any>('/auth/phone/verify-otp', {
+        phone: phoneNumber,
+        otp_code: otpCode,
+        purpose
       });
 
-      logPerformance('verifyOTP', startTime);
-
-      if (error || !data) {
-        console.error('SMS OTP verification error:', error);
+      if (!result.success) {
         return {
           success: false,
           verified: false,
-          error: error?.message || 'Failed to verify SMS OTP'
+          error: result.error || 'Failed to verify SMS OTP'
         };
       }
 
-      if (!data.success) {
+      const { data } = result;
+
+      if (!data.verified) {
         return {
           success: false,
           verified: false,
-          error: data.error || 'Invalid or expired OTP code'
+          error: data.message || 'Invalid or expired OTP code'
         };
+      }
+
+      // Store authentication tokens if provided
+      if (data.access_token) {
+        await AsyncStorage.setItem('auth_token', data.access_token);
+        if (data.refresh_token) {
+          await AsyncStorage.setItem('refresh_token', data.refresh_token);
+        }
       }
 
       return {
@@ -122,18 +205,17 @@ export class MeCabalAuth {
         carrier: data.carrier
       };
     } catch (error: any) {
-      logPerformance('verifyOTP', startTime);
       return {
         success: false,
         verified: false,
-        error: handleSupabaseError(error)
+        error: error.message || 'Failed to verify SMS OTP'
       };
     }
   }
 
   // Create user account after OTP verification
   static async createUser(userData: {
-    phone_number: string;
+    phone_number?: string;
     email?: string;
     first_name: string;
     last_name: string;
@@ -141,171 +223,101 @@ export class MeCabalAuth {
     preferred_language?: string;
     carrier_info?: NigerianCarrier;
   }): Promise<AuthResponse> {
-    const startTime = Date.now();
-    
     try {
-      // Check if user already exists
-      const { data: existingUser } = await supabase
-        .from('users')
-        .select('id')
-        .eq('phone_number', userData.phone_number)
-        .single();
-
-      if (existingUser) {
-        return {
-          success: false,
-          error: 'User with this phone number already exists'
-        };
-      }
-
-      // Create auth user with email (required for Supabase Auth)
-      const tempEmail = userData.email || `${userData.phone_number.replace(/^\+234/, '0').replace(/^234/, '0')}@mecabal.temp`;
-      const tempPassword = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: tempEmail,
-        password: tempPassword,
-        phone: userData.phone_number,
-        options: {
-          data: {
-            first_name: userData.first_name,
-            last_name: userData.last_name,
-          }
-        }
+      // Call new backend API endpoint to create user
+      const result = await ApiClient.post<any>('/auth/register', {
+        phone_number: userData.phone_number,
+        email: userData.email,
+        first_name: userData.first_name,
+        last_name: userData.last_name,
+        state_of_origin: userData.state_of_origin,
+        preferred_language: userData.preferred_language || 'en',
+        carrier_info: userData.carrier_info
       });
 
-      if (authError) {
+      if (!result.success) {
         return {
           success: false,
-          error: handleSupabaseError(authError)
+          error: result.error || 'Failed to create user account'
         };
       }
 
-      if (!authData.user) {
-        return {
-          success: false,
-          error: 'Failed to create user account'
-        };
-      }
-
-      // Create user profile in users table
-      const { data: user, error: userError } = await supabase
-        .from('users')
-        .insert({
-          id: authData.user.id,
-          phone_number: userData.phone_number,
-          email: userData.email,
-          first_name: userData.first_name,
-          last_name: userData.last_name,
-          state_of_origin: userData.state_of_origin,
-          preferred_language: userData.preferred_language || 'en',
-          carrier_info: userData.carrier_info,
-          is_verified: true, // Already verified via OTP
-          verification_level: 1
-        })
-        .select()
-        .single();
-
-      logPerformance('createUser', startTime);
-
-      if (userError) {
-        // Clean up auth user if profile creation fails
-        await supabase.auth.admin.deleteUser(authData.user.id);
-        return {
-          success: false,
-          error: handleSupabaseError(userError)
-        };
+      const { data } = result;
+      
+      // Store authentication tokens
+      if (data.access_token) {
+        await AsyncStorage.setItem('auth_token', data.access_token);
+        if (data.refresh_token) {
+          await AsyncStorage.setItem('refresh_token', data.refresh_token);
+        }
       }
 
       return {
         success: true,
-        user: user as NigerianUser,
-        session: authData.session
+        user: data.user as NigerianUser,
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+        message: data.message
       };
     } catch (error: any) {
-      logPerformance('createUser', startTime);
       return {
         success: false,
-        error: handleSupabaseError(error)
+        error: error.message || 'Failed to create user account'
       };
     }
   }
 
   // Login with phone number (triggers OTP)
   static async loginWithPhone(phoneNumber: string): Promise<ApiResponse<any>> {
-    const startTime = Date.now();
-    
     try {
-      // Check if user exists
-      const { data: user } = await supabase
-        .from('users')
-        .select('id, email')
-        .eq('phone_number', phoneNumber)
-        .single();
-
-      if (!user) {
-        return {
-          success: false,
-          error: 'User not found. Please register first.'
-        };
-      }
-
-      // Send OTP for login
+      // Send OTP for login (backend will check if user exists)
       const otpResult = await this.sendOTP(phoneNumber, 'login');
-      
-      logPerformance('loginWithPhone', startTime);
-      
       return otpResult;
     } catch (error: any) {
-      logPerformance('loginWithPhone', startTime);
       return {
         success: false,
-        error: handleSupabaseError(error)
+        error: error.message || 'Failed to initiate phone login'
       };
     }
   }
 
   // Complete login after OTP verification
-  static async completeLogin(phoneNumber: string): Promise<AuthResponse> {
-    const startTime = Date.now();
-    
+  static async completeLogin(phoneNumber: string, otpCode: string): Promise<AuthResponse> {
     try {
-      // Get user data
-      const { data: user, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('phone_number', phoneNumber)
-        .single();
+      // Verify OTP and complete login in one step
+      const result = await ApiClient.post<any>('/auth/login', {
+        phone: phoneNumber,
+        otp_code: otpCode
+      });
 
-      if (userError || !user) {
+      if (!result.success) {
         return {
           success: false,
-          error: 'User not found'
+          error: result.error || 'Login failed'
         };
       }
 
-      // Get current session (should exist after OTP verification)
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-      logPerformance('completeLogin', startTime);
-
-      if (sessionError) {
-        return {
-          success: false,
-          error: handleSupabaseError(sessionError)
-        };
+      const { data } = result;
+      
+      // Store authentication tokens
+      if (data.access_token) {
+        await AsyncStorage.setItem('auth_token', data.access_token);
+        if (data.refresh_token) {
+          await AsyncStorage.setItem('refresh_token', data.refresh_token);
+        }
       }
 
       return {
         success: true,
-        user: user as NigerianUser,
-        session
+        user: data.user as NigerianUser,
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+        message: data.message
       };
     } catch (error: any) {
-      logPerformance('completeLogin', startTime);
       return {
         success: false,
-        error: handleSupabaseError(error)
+        error: error.message || 'Login failed'
       };
     }
   }
@@ -313,22 +325,26 @@ export class MeCabalAuth {
   // Get current authenticated user
   static async getCurrentUser(): Promise<NigerianUser | null> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const token = await AsyncStorage.getItem('auth_token');
       
-      if (!user) return null;
-
-      const { data: profile, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (error) {
-        console.error('Error fetching user profile:', error);
+      if (!token) {
         return null;
       }
 
-      return profile as NigerianUser;
+      const result = await ApiClient.get<NigerianUser>('/auth/me');
+
+      if (!result.success) {
+        // Token might be expired, try to refresh
+        const refreshResult = await this.refreshToken();
+        if (refreshResult) {
+          // Retry with new token
+          const retryResult = await ApiClient.get<NigerianUser>('/auth/me');
+          return retryResult.success ? retryResult.data! : null;
+        }
+        return null;
+      }
+
+      return result.data!;
     } catch (error) {
       console.error('Error getting current user:', error);
       return null;
@@ -337,73 +353,116 @@ export class MeCabalAuth {
 
   // Update user profile
   static async updateProfile(
-    userId: string, 
     updates: Partial<NigerianUser>
   ): Promise<ApiResponse<NigerianUser>> {
-    const startTime = Date.now();
-    
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', userId)
-        .select()
-        .single();
+      const result = await ApiClient.put<NigerianUser>('/auth/profile', updates);
 
-      logPerformance('updateProfile', startTime);
-
-      if (error) {
+      if (!result.success) {
         return {
           success: false,
-          error: handleSupabaseError(error)
+          error: result.error || 'Failed to update profile'
         };
       }
 
       return {
         success: true,
-        data: data as NigerianUser
+        data: result.data!,
+        message: result.message
       };
     } catch (error: any) {
-      logPerformance('updateProfile', startTime);
       return {
         success: false,
-        error: handleSupabaseError(error)
+        error: error.message || 'Failed to update profile'
       };
     }
   }
 
   // Sign out
   static async signOut(): Promise<void> {
-    await supabase.auth.signOut();
-  }
-
-  // Listen to auth state changes
-  static onAuthStateChange(callback: (event: string, session: any) => void) {
-    return supabase.auth.onAuthStateChange((event, session) => {
-      callback(event, session);
-    });
-  }
-
-  // Check if user session is valid
-  static async isSessionValid(): Promise<boolean> {
     try {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      return !error && !!session && new Date(session.expires_at!) > new Date();
-    } catch {
+      const token = await AsyncStorage.getItem('auth_token');
+      
+      if (token) {
+        // Call backend logout endpoint to invalidate tokens
+        await ApiClient.post('/auth/logout', {});
+      }
+      
+      // Clear local storage
+      await AsyncStorage.multiRemove(['auth_token', 'refresh_token']);
+    } catch (error) {
+      console.error('Error signing out:', error);
+      // Clear local storage even if API call fails
+      await AsyncStorage.multiRemove(['auth_token', 'refresh_token']);
+    }
+  }
+
+  // Check authentication status
+  static async isAuthenticated(): Promise<boolean> {
+    try {
+      const token = await AsyncStorage.getItem('auth_token');
+      
+      if (!token) {
+        return false;
+      }
+
+      // Verify token with backend
+      const result = await ApiClient.get('/auth/verify');
+      
+      if (!result.success) {
+        // Try to refresh token
+        const refreshResult = await this.refreshToken();
+        return refreshResult;
+      }
+      
+      return true;
+    } catch (error) {
       return false;
     }
   }
 
-  // Refresh session
-  static async refreshSession(): Promise<boolean> {
+  // Refresh authentication token
+  static async refreshToken(): Promise<boolean> {
     try {
-      const { data, error } = await supabase.auth.refreshSession();
-      return !error && !!data.session;
-    } catch {
+      const refreshToken = await AsyncStorage.getItem('refresh_token');
+      
+      if (!refreshToken) {
+        return false;
+      }
+
+      const result = await ApiClient.post<any>('/auth/refresh', {
+        refresh_token: refreshToken
+      });
+
+      if (!result.success) {
+        // Refresh failed, clear tokens
+        await AsyncStorage.multiRemove(['auth_token', 'refresh_token']);
+        return false;
+      }
+
+      const { data } = result;
+      
+      // Store new tokens
+      await AsyncStorage.setItem('auth_token', data.access_token);
+      if (data.refresh_token) {
+        await AsyncStorage.setItem('refresh_token', data.refresh_token);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      await AsyncStorage.multiRemove(['auth_token', 'refresh_token']);
       return false;
+    }
+  }
+
+  // Get stored authentication token
+  static async getAuthToken(): Promise<string | null> {
+    try {
+      return await AsyncStorage.getItem('auth_token');
+    } catch (error) {
+      console.error('Error getting auth token:', error);
+      return null;
     }
   }
 
@@ -456,13 +515,11 @@ export class MeCabalAuth {
 
   // Email Authentication Methods (Using Supabase Built-in Auth)
   
-  // Send OTP to email address using Supabase's built-in email OTP
+  // Send OTP to email address using new backend API
   static async sendEmailOTP(
     email: string, 
     purpose: 'registration' | 'login' | 'password_reset' = 'registration'
   ): Promise<OTPResponse> {
-    const startTime = Date.now();
-    
     try {
       // Validate email format
       if (!this.isValidEmail(email)) {
@@ -472,30 +529,20 @@ export class MeCabalAuth {
         };
       }
 
-      // Use Supabase Edge Function with Resend integration
-      const { data, error } = await supabase.functions.invoke('email-otp-verify', {
-        body: {
-          email,
-          purpose
-        }
+      // Call new backend API endpoint
+      const result = await ApiClient.post<any>('/auth/email/send-otp', {
+        email,
+        purpose
       });
 
-      logPerformance('sendEmailOTP', startTime);
-
-      if (error || !data) {
-        console.error('Edge function error:', error);
+      if (!result.success) {
         return {
           success: false,
-          error: error?.message || 'Failed to send OTP email'
+          error: result.error || 'Failed to send OTP email'
         };
       }
 
-      if (!data.success) {
-        return {
-          success: false,
-          error: data.error || 'Failed to send OTP email'
-        };
-      }
+      const { data } = result;
 
       return {
         success: true,
@@ -503,55 +550,55 @@ export class MeCabalAuth {
         expires_at: data.expires_at || new Date(Date.now() + 10 * 60 * 1000).toISOString()
       };
     } catch (error: any) {
-      logPerformance('sendEmailOTP', startTime);
       return {
         success: false,
-        error: handleSupabaseError(error)
+        error: error.message || 'Failed to send OTP email'
       };
     }
   }
 
-  // Verify email OTP code using Supabase's built-in verification
+  // Verify email OTP code using new backend API
   static async verifyEmailOTP(
     email: string, 
     otpCode: string, 
     purpose: 'registration' | 'login' | 'password_reset' = 'registration'
   ): Promise<VerifyOTPResponse> {
-    const startTime = Date.now();
-    
     try {
-      // Use Supabase Edge Function to verify OTP code
-      const { data, error } = await supabase.functions.invoke('email-otp-verify', {
-        body: {
-          email,
-          otp_code: otpCode,
-          purpose,
-          verify: true
-        }
+      // Call new backend API endpoint
+      const result = await ApiClient.post<any>('/auth/email/verify-otp', {
+        email,
+        otp_code: otpCode,
+        purpose
       });
 
-      logPerformance('verifyEmailOTP', startTime);
-
-      if (error || !data) {
-        console.error('Edge function verify error:', error);
+      if (!result.success) {
         return {
           success: false,
           verified: false,
-          error: error?.message || 'Failed to verify OTP code'
+          error: result.error || 'Failed to verify OTP code'
         };
       }
 
+      const { data } = result;
+
+      // Store authentication tokens if provided
+      if (data.access_token) {
+        await AsyncStorage.setItem('auth_token', data.access_token);
+        if (data.refresh_token) {
+          await AsyncStorage.setItem('refresh_token', data.refresh_token);
+        }
+      }
+
       return {
-        success: data.success,
+        success: true,
         verified: data.verified || false,
-        message: data.message || (data.success ? 'OTP verified successfully' : 'Invalid OTP code')
+        message: data.message || (data.verified ? 'OTP verified successfully' : 'Invalid OTP code')
       };
     } catch (error: any) {
-      logPerformance('verifyEmailOTP', startTime);
       return {
         success: false,
         verified: false,
-        error: handleSupabaseError(error)
+        error: error.message || 'Failed to verify OTP code'
       };
     }
   }
@@ -565,166 +612,81 @@ export class MeCabalAuth {
     state_of_origin?: string;
     preferred_language?: string;
   }): Promise<AuthResponse> {
-    const startTime = Date.now();
-    
     try {
-      // Create a temporary password for Supabase auth
-      const tempPassword = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-      // Create auth user with email
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      // Use the same createUser method but with email included
+      return await this.createUser({
         email: userData.email,
-        password: tempPassword,
-        options: {
-          data: {
-            first_name: userData.first_name,
-            last_name: userData.last_name,
-          }
-        }
+        phone_number: userData.phone_number,
+        first_name: userData.first_name,
+        last_name: userData.last_name,
+        state_of_origin: userData.state_of_origin,
+        preferred_language: userData.preferred_language
       });
-
-      if (authError) {
-        return {
-          success: false,
-          error: handleSupabaseError(authError)
-        };
-      }
-
-      if (!authData.user) {
-        return {
-          success: false,
-          error: 'Failed to create user account'
-        };
-      }
-
-      // Create user profile in users table
-      const { data: user, error: userError } = await supabase
-        .from('users')
-        .insert({
-          id: authData.user.id,
-          email: userData.email,
-          phone_number: userData.phone_number,
-          first_name: userData.first_name,
-          last_name: userData.last_name,
-          state_of_origin: userData.state_of_origin,
-          preferred_language: userData.preferred_language || 'en',
-          is_verified: true, // Already verified via OTP
-          verification_level: userData.phone_number ? 2 : 1, // 2 if both email and phone, 1 if just email
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .select()
-        .single();
-
-      logPerformance('createUserAfterVerification', startTime);
-
-      if (userError) {
-        // Clean up auth user if profile creation fails
-        await supabase.auth.admin.deleteUser(authData.user.id);
-        return {
-          success: false,
-          error: handleSupabaseError(userError)
-        };
-      }
-
-      return {
-        success: true,
-        user: user as NigerianUser,
-        session: authData.session
-      };
     } catch (error: any) {
-      logPerformance('createUserAfterVerification', startTime);
       return {
         success: false,
-        error: handleSupabaseError(error)
+        error: error.message || 'Failed to create user account'
       };
     }
   }
 
-  // Login with email (triggers OTP) - simplified to use Supabase built-in
+  // Login with email (triggers OTP)
   static async loginWithEmail(email: string): Promise<ApiResponse<any>> {
-    const startTime = Date.now();
-    
     try {
-      // Send OTP for login - Supabase will check if user exists
+      // Send OTP for login (backend will check if user exists)
       const otpResult = await this.sendEmailOTP(email, 'login');
-      
-      logPerformance('loginWithEmail', startTime);
-      
       return otpResult;
     } catch (error: any) {
-      logPerformance('loginWithEmail', startTime);
       return {
         success: false,
-        error: handleSupabaseError(error)
+        error: error.message || 'Failed to initiate email login'
       };
     }
   }
 
-  // Complete email login after OTP verification - simplified
-  static async completeEmailLogin(): Promise<AuthResponse> {
-    const startTime = Date.now();
-    
+  // Complete email login after OTP verification
+  static async completeEmailLogin(email: string, otpCode: string): Promise<AuthResponse> {
     try {
-      // Get current user and session (should exist after OTP verification)
-      const { data: { user: authUser }, error: getUserError } = await supabase.auth.getUser();
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      // Verify OTP and complete login in one step
+      const result = await ApiClient.post<any>('/auth/login', {
+        email,
+        otp_code: otpCode
+      });
 
-      if (getUserError || !authUser) {
+      if (!result.success) {
         return {
           success: false,
-          error: 'User not found. Please verify your email first.'
+          error: result.error || 'Email login failed'
         };
       }
 
-      if (sessionError || !session) {
-        return {
-          success: false,
-          error: 'Session not found. Please verify your email first.'
-        };
-      }
-
-      // Get user profile data
-      const { data: user, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', authUser.id)
-        .single();
-
-      logPerformance('completeEmailLogin', startTime);
-
-      if (userError) {
-        // User might not have completed profile setup
-        return {
-          success: true,
-          user: {
-            id: authUser.id,
-            email: authUser.email!,
-            first_name: authUser.user_metadata?.first_name || '',
-            last_name: authUser.user_metadata?.last_name || '',
-            is_verified: true,
-            verification_level: 1
-          } as NigerianUser,
-          session: session,
-          needsProfileCompletion: true
-        };
+      const { data } = result;
+      
+      // Store authentication tokens
+      if (data.access_token) {
+        await AsyncStorage.setItem('auth_token', data.access_token);
+        if (data.refresh_token) {
+          await AsyncStorage.setItem('refresh_token', data.refresh_token);
+        }
       }
 
       return {
         success: true,
-        user: user as NigerianUser,
-        session
+        user: data.user as NigerianUser,
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+        message: data.message,
+        needsProfileCompletion: data.needs_profile_completion || false
       };
     } catch (error: any) {
-      logPerformance('completeEmailLogin', startTime);
       return {
         success: false,
-        error: handleSupabaseError(error)
+        error: error.message || 'Email login failed'
       };
     }
   }
 
-  // Authenticate with OTP and create proper Supabase session
+  // Authenticate with OTP (for both login and registration)
   static async authenticateWithOTP(
     email: string,
     otpCode: string,
@@ -737,54 +699,35 @@ export class MeCabalAuth {
       preferred_language?: string;
     }
   ): Promise<AuthResponse> {
-    const startTime = Date.now();
-    
     try {
-      // Use the auth-with-otp edge function to verify OTP and create session
-      const { data, error } = await supabase.functions.invoke('auth-with-otp', {
-        body: {
-          email,
-          otp_code: otpCode,
-          purpose,
-          user_metadata: userMetadata
+      if (purpose === 'registration' && userMetadata) {
+        // First verify the OTP
+        const verifyResult = await this.verifyEmailOTP(email, otpCode, purpose);
+        
+        if (!verifyResult.success || !verifyResult.verified) {
+          return {
+            success: false,
+            error: verifyResult.error || 'OTP verification failed'
+          };
         }
-      });
-
-      logPerformance('authenticateWithOTP', startTime);
-
-      if (error || !data) {
-        console.error('Auth with OTP error:', error);
-        return {
-          success: false,
-          error: error?.message || 'Authentication failed'
-        };
+        
+        // Then create the user account
+        return await this.createUser({
+          email,
+          phone_number: userMetadata.phone_number,
+          first_name: userMetadata.first_name!,
+          last_name: userMetadata.last_name!,
+          state_of_origin: userMetadata.state_of_origin,
+          preferred_language: userMetadata.preferred_language
+        });
+      } else {
+        // For login, use the complete login method
+        return await this.completeEmailLogin(email, otpCode);
       }
-
-      if (!data.success) {
-        return {
-          success: false,
-          error: data.error || 'Authentication failed'
-        };
-      }
-
-      // After successful authentication, get the current session
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) {
-        console.warn('Session retrieval error after auth:', sessionError);
-      }
-
-      return {
-        success: true,
-        user: data.user as NigerianUser,
-        session: session,
-        message: data.message
-      };
     } catch (error: any) {
-      logPerformance('authenticateWithOTP', startTime);
       return {
         success: false,
-        error: handleSupabaseError(error)
+        error: error.message || 'Authentication failed'
       };
     }
   }
