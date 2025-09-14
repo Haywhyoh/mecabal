@@ -1,7 +1,7 @@
 # Multi-stage Dockerfile for MeCabal NestJS Backend
 
 # Stage 1: Base
-FROM node:20-alpine AS base
+FROM node:22-alpine AS base
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
@@ -19,7 +19,7 @@ COPY --from=deps /app/node_modules ./node_modules
 RUN npm run build
 
 # Stage 4: Runner
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 
 # Create app user
