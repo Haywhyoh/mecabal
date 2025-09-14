@@ -37,16 +37,159 @@ fi
 
 print_status "Starting MeCabal Backend Deployment..."
 
-# Check if Docker and Docker Compose are installed
+# Function to install Docker
+install_docker() {
+    print_status "Installing Docker..."
+    
+    # Detect operating system
+    if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        # Linux
+        if command -v apt-get &> /dev/null; then
+            # Ubuntu/Debian
+            print_status "Detected Ubuntu/Debian. Installing Docker..."
+            sudo apt-get update
+            sudo apt-get install -y ca-certificates curl gnupg lsb-release
+            
+            # Add Docker's official GPG key
+            sudo mkdir -p /etc/apt/keyrings
+            curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+            
+            # Set up repository
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+            
+            # Install Docker Engine
+            sudo apt-get update
+            sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+            
+        elif command -v yum &> /dev/null; then
+            # CentOS/RHEL/Fedora
+            print_status "Detected CentOS/RHEL/Fedora. Installing Docker..."
+            sudo yum update -y
+            sudo yum install -y yum-utils
+            sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+            sudo yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+            
+        elif command -v pacman &> /dev/null; then
+            # Arch Linux
+            print_status "Detected Arch Linux. Installing Docker..."
+            sudo pacman -Sy docker docker-compose
+            
+        else
+            print_error "Unsupported Linux distribution. Please install Docker manually."
+            print_status "Visit: https://docs.docker.com/engine/install/"
+            exit 1
+        fi
+        
+        # Start and enable Docker service
+        sudo systemctl start docker
+        sudo systemctl enable docker
+        
+        # Add current user to docker group
+        sudo usermod -aG docker $USER
+        print_warning "You need to log out and log back in for Docker group changes to take effect."
+        print_status "Or run: newgrp docker"
+        
+    elif [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS
+        print_status "Detected macOS. Installing Docker..."
+        
+        if command -v brew &> /dev/null; then
+            # Install via Homebrew
+            brew install --cask docker
+            print_status "Docker Desktop installed via Homebrew."
+            print_warning "Please start Docker Desktop from Applications folder."
+        else
+            print_error "Homebrew not found. Please install Docker Desktop manually."
+            print_status "Download from: https://docs.docker.com/desktop/install/mac-install/"
+            exit 1
+        fi
+        
+    elif [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "win32" ]]; then
+        # Windows (Git Bash/MSYS2)
+        print_status "Detected Windows. Please install Docker Desktop manually."
+        print_status "Download from: https://docs.docker.com/desktop/install/windows-install/"
+        print_warning "After installation, restart this script."
+        exit 1
+        
+    else
+        print_error "Unsupported operating system: $OSTYPE"
+        print_status "Please install Docker manually from: https://docs.docker.com/get-docker/"
+        exit 1
+    fi
+    
+    print_success "Docker installation completed!"
+}
+
+# Function to install Docker Compose (for older systems)
+install_docker_compose() {
+    print_status "Installing Docker Compose..."
+    
+    # Get latest version
+    DOCKER_COMPOSE_VERSION=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep 'tag_name' | cut -d\" -f4)
+    
+    # Download and install
+    sudo curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+    sudo chmod +x /usr/local/bin/docker-compose
+    
+    # Create symlink if needed
+    if [ ! -f "/usr/bin/docker-compose" ]; then
+        sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+    fi
+    
+    print_success "Docker Compose $DOCKER_COMPOSE_VERSION installed!"
+}
+
+# Check if Docker is installed
 if ! command -v docker &> /dev/null; then
-    print_error "Docker is not installed. Please install Docker first."
+    print_warning "Docker is not installed."
+    read -p "Do you want to install Docker automatically? (y/n): " install_docker_choice
+    
+    if [ "$install_docker_choice" = "y" ] || [ "$install_docker_choice" = "Y" ]; then
+        install_docker
+    else
+        print_error "Docker is required. Please install Docker manually and run this script again."
+        print_status "Installation guide: https://docs.docker.com/get-docker/"
+        exit 1
+    fi
+fi
+
+# Check if Docker Compose is installed
+if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
+    print_warning "Docker Compose is not installed."
+    
+    # Check if it's the new docker compose plugin
+    if docker compose version &> /dev/null; then
+        print_success "Docker Compose (plugin) is available"
+        COMPOSE_COMMAND="docker compose"
+    else
+        read -p "Do you want to install Docker Compose? (y/n): " install_compose_choice
+        
+        if [ "$install_compose_choice" = "y" ] || [ "$install_compose_choice" = "Y" ]; then
+            install_docker_compose
+            COMPOSE_COMMAND="docker-compose"
+        else
+            print_error "Docker Compose is required. Please install it manually."
+            print_status "Installation guide: https://docs.docker.com/compose/install/"
+            exit 1
+        fi
+    fi
+else
+    if command -v docker-compose &> /dev/null; then
+        COMPOSE_COMMAND="docker-compose"
+    else
+        COMPOSE_COMMAND="docker compose"
+    fi
+fi
+
+# Verify Docker is running
+if ! docker info &> /dev/null; then
+    print_error "Docker is installed but not running. Please start Docker and try again."
+    print_status "On Linux: sudo systemctl start docker"
+    print_status "On macOS/Windows: Start Docker Desktop"
     exit 1
 fi
 
-if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
-    print_error "Docker Compose is not installed. Please install Docker Compose first."
-    exit 1
-fi
+print_success "Docker and Docker Compose are ready!"
 
 # Check if .env file exists
 if [ ! -f ".env" ]; then
@@ -151,15 +294,15 @@ fi
 
 # Stop any running containers
 print_status "Stopping any running containers..."
-docker-compose -f docker-compose.production.yml down 2>/dev/null || true
+$COMPOSE_COMMAND -f docker-compose.production.yml down 2>/dev/null || true
 
 # Pull latest images
 print_status "Pulling latest base images..."
-docker-compose -f docker-compose.production.yml pull
+$COMPOSE_COMMAND -f docker-compose.production.yml pull
 
 # Start the infrastructure
 print_status "Starting MeCabal infrastructure..."
-docker-compose -f docker-compose.production.yml up -d
+$COMPOSE_COMMAND -f docker-compose.production.yml up -d
 
 # Wait for databases to be ready
 print_status "Waiting for databases to be ready..."
@@ -167,7 +310,7 @@ sleep 30
 
 # Run database migrations
 print_status "Running database migrations..."
-docker-compose -f docker-compose.production.yml exec -T postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c "SELECT 1;" > /dev/null 2>&1
+$COMPOSE_COMMAND -f docker-compose.production.yml exec -T postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c "SELECT 1;" > /dev/null 2>&1
 
 if [ $? -eq 0 ]; then
     print_success "Database is ready"
@@ -236,6 +379,6 @@ echo
 
 # Display container status
 print_status "Container status:"
-docker-compose -f docker-compose.production.yml ps
+$COMPOSE_COMMAND -f docker-compose.production.yml ps
 
 print_success "Deployment script completed successfully!"
