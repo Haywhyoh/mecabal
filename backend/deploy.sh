@@ -5,6 +5,10 @@
 
 set -e  # Exit on any error
 
+# Enable Docker BuildKit
+export DOCKER_BUILDKIT=1
+export COMPOSE_DOCKER_CLI_BUILD=1
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -36,6 +40,35 @@ if [[ $EUID -eq 0 ]]; then
 fi
 
 print_status "Starting MeCabal Backend Deployment..."
+
+# Function to check Node.js version
+check_node_version() {
+    print_status "Checking Node.js version..."
+    
+    if command -v node &> /dev/null; then
+        NODE_VERSION=$(node --version | cut -d'v' -f2)
+        NODE_MAJOR_VERSION=$(echo $NODE_VERSION | cut -d'.' -f1)
+        
+        if [ "$NODE_MAJOR_VERSION" -lt 20 ]; then
+            print_warning "Node.js version $NODE_VERSION detected. Recommended: Node.js 20+"
+            print_status "The application will work but you may see engine warnings."
+            print_status "For production, consider upgrading to Node.js 20+"
+            
+            read -p "Do you want to continue anyway? (y/n): " continue_choice
+            if [ "$continue_choice" != "y" ] && [ "$continue_choice" != "Y" ]; then
+                print_error "Deployment cancelled. Please upgrade Node.js to version 20+"
+                exit 1
+            fi
+        else
+            print_success "Node.js version $NODE_VERSION is compatible"
+        fi
+    else
+        print_warning "Node.js not found. Docker will handle Node.js version."
+    fi
+}
+
+# Check Node.js version
+check_node_version
 
 # Ensure script has execute permissions (fix for cloned repos)
 if [ ! -x "$0" ]; then
@@ -370,17 +403,29 @@ EOF
     fi
 fi
 
-# Build the application
-print_status "Building the application..."
-npm install
-npm run build
+# Function to build application with suppressed warnings
+build_application() {
+    print_status "Building the application..."
+    
+    # Suppress engine warnings for local build
+    export NPM_CONFIG_ENGINE_STRICT=false
+    
+    # Install dependencies
+    npm install
+    
+    # Build the application
+    npm run build
+    
+    if [ $? -eq 0 ]; then
+        print_success "Application built successfully"
+    else
+        print_error "Application build failed"
+        exit 1
+    fi
+}
 
-if [ $? -eq 0 ]; then
-    print_success "Application built successfully"
-else
-    print_error "Application build failed"
-    exit 1
-fi
+# Build the application
+build_application
 
 # Stop any running containers
 print_status "Stopping any running containers..."

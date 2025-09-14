@@ -8,7 +8,7 @@ WORKDIR /app
 # Stage 2: Dependencies
 FROM base AS deps
 COPY package.json package-lock.json* ./
-RUN npm ci --only=production=false
+RUN npm ci --include=dev
 
 # Stage 3: Builder
 FROM base AS builder
@@ -32,7 +32,7 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/package-lock.json ./package-lock.json
 
 # Install production dependencies
-RUN npm ci --only=production=true
+RUN npm ci --omit=dev
 
 # Change ownership
 RUN chown -R nestjs:nodejs /app
