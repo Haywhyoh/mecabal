@@ -32,7 +32,7 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/package-lock.json ./package-lock.json
 
 # Install production dependencies
-RUN npm ci --omit=dev
+RUN npm ci --production
 
 # Change ownership
 RUN chown -R nestjs:nodejs /app
