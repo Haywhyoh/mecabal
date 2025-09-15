@@ -9,7 +9,7 @@ import {
   JoinTable,
   Index
 } from 'typeorm';
-import type { Point } from 'typeorm';
+// import type { Point } from 'typeorm'; // Temporarily disabled for PostGIS
 import { ApiProperty } from '@nestjs/swagger';
 import { Exclude } from 'class-transformer';
 import { UserNeighborhood } from './user-neighborhood.entity';
@@ -88,8 +88,8 @@ export class User {
   estate?: string;
 
   @ApiProperty({ description: 'GPS coordinates (PostGIS Point)', required: false })
-  @Column({ type: 'geography', spatialFeatureType: 'Point', srid: 4326, nullable: true })
-  location?: Point;
+  @Column({ type: 'text', nullable: true })
+  location?: string; // Temporarily using text instead of geography
 
   @ApiProperty({ description: 'Landmark for location reference', example: 'Ikeja City Mall', required: false })
   @Column({ nullable: true })
