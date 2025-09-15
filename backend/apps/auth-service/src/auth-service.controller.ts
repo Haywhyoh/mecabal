@@ -11,7 +11,6 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
-import { AuthServiceService } from './auth-service.service';
 import { AuthService } from './services/auth.service';
 import { EmailOtpService } from './services/email-otp.service';
 import { PhoneOtpService } from './services/phone-otp.service';
@@ -28,7 +27,6 @@ import { AuthResponseDto, OtpResponseDto, RefreshTokenDto } from './dto/auth-res
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
 export class AuthServiceController {
   constructor(
-    private readonly authServiceService: AuthServiceService,
     private readonly authService: AuthService,
     private readonly emailOtpService: EmailOtpService,
     private readonly phoneOtpService: PhoneOtpService,
@@ -39,7 +37,11 @@ export class AuthServiceController {
   @ApiOperation({ summary: 'Health check for auth service' })
   @ApiResponse({ status: 200, description: 'Service is healthy' })
   getHealth() {
-    return this.authServiceService.getHealth();
+    return {
+      status: 'healthy',
+      service: 'auth-service',
+      timestamp: new Date().toISOString(),
+    };
   }
 
   // Email OTP Endpoints

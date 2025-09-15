@@ -3,7 +3,6 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthServiceController } from './auth-service.controller';
-import { AuthServiceService } from './auth-service.service';
 
 // Import entities
 import { 
@@ -87,7 +86,6 @@ import { TokenService } from './services/token.service';
   ],
   controllers: [AuthServiceController],
   providers: [
-    AuthServiceService,
     AuthService,
     EmailOtpService,
     PhoneOtpService,

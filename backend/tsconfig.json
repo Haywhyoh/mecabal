@@ -22,12 +22,6 @@
     "strictBindCallApply": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "@app/auth": [
-        "libs/auth/src"
-      ],
-      "@app/auth/*": [
-        "libs/auth/src/*"
-      ],
       "@app/common": [
         "libs/common/src"
       ],
@@ -45,12 +39,6 @@
       ],
       "@app/validation/*": [
         "libs/validation/src/*"
-      ],
-      "@app/email": [
-        "libs/email/src"
-      ],
-      "@app/email/*": [
-        "libs/email/src/*"
       ]
     }
   }
