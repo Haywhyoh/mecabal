@@ -51,7 +51,7 @@ export default function PhoneVerificationScreen({ navigation, route }: any) {
       const purpose = isSignup ? 'registration' : 'login';
       
       // Use MeCabal authentication service with selected method
-      const result = await MeCabalAuth.sendOTP(fullPhoneNumber, purpose, selectedMethod);
+      const result = await MeCabalAuth.sendOTP(fullPhoneNumber, purpose, selectedMethod, userDetails?.email);
       
       if (result.success) {
         // Show success message with carrier info and OTP code for development

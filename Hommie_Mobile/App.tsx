@@ -15,7 +15,6 @@ import WelcomeScreen from './src/screens/onBoarding/WelcomeScreen';
 import WelcomeHeroScreen from './src/screens/onBoarding/WelcomeHeroScreen';
 import PhoneVerificationScreen from './src/screens/onBoarding/PhoneVerificationScreen';
 import OTPVerificationScreen from './src/screens/onBoarding/OTPVerificationScreen';
-import ConsentBasicsScreen from './src/screens/onBoarding/ConsentBasicsScreen';
 import LocationSetupScreen from './src/screens/onBoarding/LocationSetupScreen';
 import EmailRegistrationScreen from './src/screens/onBoarding/EmailRegistrationScreen';
 import EmailVerificationScreen from './src/screens/onBoarding/EmailVerificationScreen';
@@ -46,10 +45,6 @@ import LocationTestScreen from './src/screens/LocationTestScreen';
 // Map Picker Screen
 import MapPickerScreen from './src/screens/onBoarding/MapPickerScreen';
 
-import OnboardingScreen from './src/screens/onBoarding/OnboardingScreen';
-import LocationSelectionScreen from './src/screens/onBoarding/LocationSelectionScreen';
-import InvitationCodeScreen from './src/screens/onBoarding/InvitationCodeScreen';
-import LocationAccessScreen from './src/screens/onBoarding/LocationAccessScreen';
 
 // Event Screens
 import CreateEventScreen from './src/screens/CreateEventScreen';
@@ -284,27 +279,6 @@ function AppContent() {
               name="Welcome" 
               component={WelcomeScreen}
               initialParams={{ onLoginSuccess: handleLoginSuccess, onSocialLoginSuccess: handleSocialLoginSuccess }}
-            />
-            <Stack.Screen 
-              name="Onboarding" 
-              component={OnboardingScreen}
-              initialParams={{ onLoginSuccess: handleLoginSuccess, onSocialLoginSuccess: handleSocialLoginSuccess }}
-            />
-            <Stack.Screen 
-              name="LocationSelection" 
-              component={LocationSelectionScreen}
-            />
-            <Stack.Screen 
-              name="InvitationCode" 
-              component={InvitationCodeScreen}
-            />
-            <Stack.Screen 
-              name="LocationAccess" 
-              component={LocationAccessScreen}
-            />
-            <Stack.Screen 
-              name="ConsentBasics" 
-              component={ConsentBasicsScreen}
             />
             
             <Stack.Screen name="Register" component={RegisterScreen} />

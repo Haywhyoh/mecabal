@@ -9,9 +9,8 @@ import {
   HttpCode
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
 import { 
-  AuthService, 
   LocalAuthGuard, 
   JwtAuthGuard,
   RolesGuard,
@@ -20,6 +19,9 @@ import {
   Roles,
   RequirePermissions
 } from '@app/auth';
+import { AuthService } from '../services/auth.service';
+import { EmailOtpService } from '../services/email-otp.service';
+import { PhoneOtpService } from '../services/phone-otp.service';
 import { 
   RegisterDto, 
   LoginDto, 
@@ -42,14 +44,19 @@ import {
   EstateSearchDto,
   EnhancedRegisterDto,
   UpdateOnboardingStepDto
-} from '@app/validation';
+} from '../dto/auth.dto';
+import { MobileRegisterDto } from '../dto/mobile-register.dto';
 import { User } from '@app/database';
 
 @ApiTags('Authentication')
 @Controller('auth')
 @UseGuards(ThrottlerGuard) // Rate limiting
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly emailOtpService: EmailOtpService,
+    private readonly phoneOtpService: PhoneOtpService
+  ) {}
 
   @Post('register')
   @Public()
@@ -64,11 +71,41 @@ export class AuthController {
     description: 'User already exists with this email or phone number' 
   })
   async register(@Body() registerDto: RegisterDto) {
-    return this.authService.register(registerDto);
+    return this.authService.registerUser(registerDto);
+  }
+
+  @Post('register-mobile')
+  @Public()
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Register a new user (Mobile App)' })
+  @ApiResponse({ 
+    status: 201, 
+    description: 'User registered successfully. OTP sent for verification.' 
+  })
+  @ApiResponse({ 
+    status: 409, 
+    description: 'User already exists with this email or phone number' 
+  })
+  async registerMobile(@Body() registerDto: MobileRegisterDto) {
+    // Convert mobile DTO to internal format
+    const internalDto = {
+      email: registerDto.email,
+      phoneNumber: registerDto.phone_number,
+      firstName: registerDto.first_name,
+      lastName: registerDto.last_name,
+      password: 'temp_password_' + Date.now(), // Temporary password for OTP-based registration
+      state: registerDto.state_of_origin,
+      city: undefined,
+      estate: undefined,
+      preferredLanguage: registerDto.preferred_language || 'en'
+    };
+
+    return this.authService.registerUserMobile(internalDto);
   }
 
   @Post('verify-otp')
   @Public()
+  @Throttle({ 'otp-verify': { limit: 10, ttl: 300000 } }) // 10 attempts per 5 minutes
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verify OTP code' })
   @ApiResponse({ 
@@ -79,8 +116,16 @@ export class AuthController {
     status: 400, 
     description: 'Invalid or expired OTP' 
   })
+  @ApiResponse({ 
+    status: 429, 
+    description: 'Too many verification attempts. Please try again later.' 
+  })
   async verifyOtp(@Body() verifyOtpDto: VerifyOtpDto) {
-    return this.authService.verifyOTP(verifyOtpDto);
+    return this.authService.authenticateWithOTP(
+      verifyOtpDto.email,
+      verifyOtpDto.otpCode,
+      verifyOtpDto.purpose
+    );
   }
 
   @Post('login')
@@ -122,7 +167,7 @@ export class AuthController {
       userAgent: req.headers['user-agent'],
     };
 
-    return this.authService.login(loginDto, deviceInfo);
+    return this.authService.loginUser(loginDto, deviceInfo);
   }
 
   @Post('refresh')
@@ -154,7 +199,7 @@ export class AuthController {
     @CurrentUser() user: User,
     @Body() body?: { refreshToken?: string }
   ) {
-    return this.authService.logout(user.id, body?.refreshToken);
+    return this.authService.logoutUser(user.id);
   }
 
   @Get('profile')
@@ -223,11 +268,16 @@ export class AuthController {
 
   @Post('login/otp/initiate')
   @Public()
+  @Throttle({ 'otp-send': { limit: 3, ttl: 60000 } }) // 3 sends per minute
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Initiate OTP login via email' })
   @ApiResponse({ 
     status: 200, 
     description: 'OTP login code sent to email (if email exists)' 
+  })
+  @ApiResponse({ 
+    status: 429, 
+    description: 'Too many OTP requests. Please try again later.' 
   })
   async initiateOtpLogin(@Body() initiateOtpDto: InitiateOtpLoginDto) {
     return this.authService.initiateOtpLogin(initiateOtpDto);
@@ -235,6 +285,7 @@ export class AuthController {
 
   @Post('login/otp/verify')
   @Public()
+  @Throttle({ 'otp-verify': { limit: 10, ttl: 300000 } }) // 10 attempts per 5 minutes
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verify OTP login code' })
   @ApiResponse({ 
@@ -265,6 +316,61 @@ export class AuthController {
   })
   async verifyOtpLogin(@Body() verifyOtpDto: VerifyOtpLoginDto) {
     return this.authService.verifyOtpLogin(verifyOtpDto);
+  }
+
+  @Post('complete-email-login')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Complete email login with OTP' })
+  @ApiResponse({
+    status: 200,
+    description: 'Login completed successfully'
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Invalid OTP or user not found'
+  })
+  async completeEmailLogin(@Body() body: { email: string; otpCode: string }) {
+    return this.authService.authenticateWithOTP(
+      body.email,
+      body.otpCode,
+      'login'
+    );
+  }
+
+  @Post('complete-email-verification')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Complete email verification and registration in one atomic operation' })
+  @ApiResponse({
+    status: 200,
+    description: 'Email verified and user registered successfully'
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Invalid OTP or verification failed'
+  })
+  async completeEmailVerification(@Body() body: {
+    email: string;
+    otpCode: string;
+    first_name: string;
+    last_name: string;
+    phone_number?: string;
+    state_of_origin?: string;
+    preferred_language?: string;
+  }) {
+    return this.authService.authenticateWithOTP(
+      body.email,
+      body.otpCode,
+      'registration',
+      {
+        first_name: body.first_name,
+        last_name: body.last_name,
+        phone_number: body.phone_number,
+        state_of_origin: body.state_of_origin,
+        preferred_language: body.preferred_language
+      }
+    );
   }
 
   @Get('me/roles')
@@ -527,11 +633,163 @@ export class AuthController {
   @Get('location/states')
   @Public()
   @ApiOperation({ summary: 'Get all Nigerian states and major cities' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Nigerian states and cities retrieved successfully' 
+  @ApiResponse({
+    status: 200,
+    description: 'Nigerian states and cities retrieved successfully'
   })
   async getNigerianStates() {
     throw new Error('Method not implemented yet');
+  }
+
+  // Email OTP Endpoints (moved from AuthServiceController)
+  @Post('email/send-otp')
+  @Public()
+  @Throttle({ 'otp-send': { limit: 3, ttl: 60000 } }) // 3 sends per minute
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Send email verification OTP' })
+  @ApiResponse({
+    status: 200,
+    description: 'OTP sent successfully'
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request'
+  })
+  @ApiResponse({
+    status: 429,
+    description: 'Too many OTP requests. Please try again later.'
+  })
+  async sendEmailOTP(@Body() body: { email: string; purpose?: 'registration' | 'login' | 'password_reset' }) {
+    const result = await this.emailOtpService.sendEmailOTP(
+      body.email,
+      body.purpose || 'registration'
+    );
+
+    return {
+      success: result.success,
+      message: result.message,
+      error: result.error,
+      expiresAt: result.expiresAt,
+      method: 'email',
+      ...(result.otpCode && { otpCode: result.otpCode })
+    };
+  }
+
+  @Post('email/verify-otp')
+  @Public()
+  @Throttle({ 'otp-verify': { limit: 10, ttl: 300000 } }) // 10 attempts per 5 minutes
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify email OTP code' })
+  @ApiResponse({
+    status: 200,
+    description: 'OTP verified successfully'
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid or expired OTP'
+  })
+  @ApiResponse({
+    status: 429,
+    description: 'Too many verification attempts. Please try again later.'
+  })
+  async verifyEmailOTP(@Body() body: {
+    email: string;
+    otpCode: string;
+    purpose?: 'registration' | 'login' | 'password_reset';
+    firstName?: string;
+    lastName?: string;
+    preferredLanguage?: string;
+  }) {
+    const userDetails = (body.purpose === 'registration' && (body.firstName || body.lastName)) ? {
+      firstName: body.firstName,
+      lastName: body.lastName,
+      preferredLanguage: body.preferredLanguage
+    } : undefined;
+
+    const result = await this.emailOtpService.verifyEmailOTP(
+      body.email,
+      body.otpCode,
+      body.purpose || 'registration',
+      true, // markAsUsed
+      userDetails
+    );
+
+    return {
+      success: result.success,
+      verified: result.verified,
+      error: result.error,
+      method: 'email'
+    };
+  }
+
+  // Phone OTP Endpoints (moved from AuthServiceController)
+  @Post('phone/send-otp')
+  @Public()
+  @Throttle({ 'otp-send': { limit: 3, ttl: 60000 } }) // 3 sends per minute
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Send phone verification OTP' })
+  @ApiResponse({
+    status: 200,
+    description: 'OTP sent successfully'
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request'
+  })
+  @ApiResponse({
+    status: 429,
+    description: 'Too many OTP requests. Please try again later.'
+  })
+  async sendPhoneOTP(@Body() body: { phone: string; purpose?: 'registration' | 'login' | 'password_reset'; method?: 'sms' | 'whatsapp'; email?: string }) {
+    const result = await this.phoneOtpService.sendPhoneOTP(
+      body.phone,
+      body.purpose || 'registration',
+      body.method || 'sms',
+      body.email
+    );
+
+    return {
+      success: result.success,
+      message: result.message,
+      error: result.error,
+      expiresAt: result.expiresAt,
+      method: 'phone',
+      carrier: result.carrier,
+      carrier_color: result.carrierColor,
+      ...(result.otpCode && { otpCode: result.otpCode })
+    };
+  }
+
+  @Post('phone/verify-otp')
+  @Public()
+  @Throttle({ 'otp-verify': { limit: 10, ttl: 300000 } }) // 10 attempts per 5 minutes
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify phone OTP code' })
+  @ApiResponse({
+    status: 200,
+    description: 'OTP verified successfully'
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid or expired OTP'
+  })
+  @ApiResponse({
+    status: 429,
+    description: 'Too many verification attempts. Please try again later.'
+  })
+  async verifyPhoneOTP(@Body() body: { phoneNumber: string; otpCode: string; purpose?: 'registration' | 'login' | 'password_reset' }) {
+    const result = await this.phoneOtpService.verifyPhoneOTP(
+      body.phoneNumber,
+      body.otpCode,
+      body.purpose || 'registration'
+    );
+
+    return {
+      success: result.success,
+      verified: result.verified,
+      error: result.error,
+      method: 'phone',
+      carrier: result.carrier
+    };
   }
 }

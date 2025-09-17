@@ -11,10 +11,28 @@ import { AuthController } from './auth.controller';
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
     }),
-    ThrottlerModule.forRoot([{
-      ttl: 60000, // 1 minute
-      limit: 10, // 10 requests per minute
-    }]),
+    ThrottlerModule.forRoot([
+      {
+        name: 'default',
+        ttl: 60000, // 1 minute
+        limit: 100, // 100 requests per minute for general endpoints
+      },
+      {
+        name: 'otp-send',
+        ttl: 60000, // 1 minute
+        limit: 3, // 3 OTP sends per minute per IP
+      },
+      {
+        name: 'otp-verify',
+        ttl: 300000, // 5 minutes
+        limit: 10, // 10 OTP verification attempts per 5 minutes per IP
+      },
+      {
+        name: 'auth-strict',
+        ttl: 900000, // 15 minutes
+        limit: 5, // 5 login attempts per 15 minutes per IP
+      }
+    ]),
     DatabaseModule,
     SharedAuthModule,
   ],

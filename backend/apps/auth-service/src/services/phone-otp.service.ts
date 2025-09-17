@@ -69,14 +69,15 @@ export class PhoneOtpService {
   async sendPhoneOTP(
     phoneNumber: string,
     purpose: 'registration' | 'login' | 'password_reset',
-    method: 'sms' | 'whatsapp' = 'sms'
-  ): Promise<{ 
-    success: boolean; 
-    message?: string; 
-    error?: string; 
+    method: 'sms' | 'whatsapp' = 'sms',
+    email?: string
+  ): Promise<{
+    success: boolean;
+    message?: string;
+    error?: string;
     carrier?: string;
     carrierColor?: string;
-    expiresAt?: Date; 
+    expiresAt?: Date;
     otpCode?: string;
     deliveryMethod?: string;
   }> {
@@ -90,24 +91,35 @@ export class PhoneOtpService {
         };
       }
 
-      // Find or create user for OTP tracking
-      let user = await this.userRepository.findOne({ where: { phoneNumber } });
+      // Find existing user (should exist from email verification step)
+      let user = await this.userRepository.findOne({
+        where: [
+          { phoneNumber },
+          // For registration, also look for users with missing phone numbers (from email verification)
+          ...(purpose === 'registration' ? [
+            { phoneNumber: undefined },
+            // Also look by email if provided
+            ...(email ? [{ email, phoneNumber: undefined }] : [])
+          ] : [])
+        ],
+        order: { createdAt: 'DESC' }
+      });
+
+      // Additional fallback: if registration and email provided, look specifically by email
+      if (!user && purpose === 'registration' && email) {
+        user = await this.userRepository.findOne({
+          where: { email },
+          order: { updatedAt: 'DESC' }
+        });
+      }
+
       let userId: string;
 
       if (!user && purpose === 'registration') {
-        // Create minimal user record for OTP tracking during registration
-        const tempUser = this.userRepository.create({
-          email: `${phoneNumber.replace(/^\+234/, '0').replace(/^234/, '0')}@mecabal.temp`,
-          firstName: '',
-          lastName: '',
-          passwordHash: '', // Will be set during actual registration
-          phoneNumber,
-          phoneCarrier: carrierInfo.name,
-          phoneVerified: false,
-          isVerified: false,
-        });
-        user = await this.userRepository.save(tempUser);
-        userId = user.id;
+        return {
+          success: false,
+          error: 'User record not found. Please complete email verification first.'
+        };
       } else if (!user && purpose === 'login') {
         return {
           success: false,
@@ -115,10 +127,12 @@ export class PhoneOtpService {
         };
       } else {
         userId = user!.id;
-        // Update carrier info if not set
-        if (user && !user.phoneCarrier) {
-          user.phoneCarrier = carrierInfo.name;
-          await this.userRepository.save(user);
+
+        // Update user with phone number and carrier info if not set
+        if (!user!.phoneNumber) {
+          user!.phoneNumber = phoneNumber;
+          user!.phoneCarrier = carrierInfo.name;
+          await this.userRepository.save(user!);
         }
       }
 
@@ -192,9 +206,33 @@ export class PhoneOtpService {
     purpose: 'registration' | 'login' | 'password_reset'
   ): Promise<{ success: boolean; verified: boolean; error?: string; carrier?: string }> {
     try {
-      // Find user by phone number
-      const user = await this.userRepository.findOne({ where: { phoneNumber } });
-      
+      // Find user by phone number (same logic as sendPhoneOTP for consistency)
+      let user = await this.userRepository.findOne({
+        where: [
+          { phoneNumber },
+          // For registration, also look for users with this phone number that might have been just updated
+          ...(purpose === 'registration' ? [{ phoneNumber }] : [])
+        ],
+        order: { updatedAt: 'DESC' }
+      });
+
+      // Fallback: If not found, try to find OTP record first and then find user
+      if (!user && purpose === 'registration') {
+        const otpRecord = await this.otpVerificationRepository.findOne({
+          where: {
+            contactMethod: 'phone',
+            contactValue: phoneNumber,
+            purpose,
+            isUsed: false,
+          },
+          order: { createdAt: 'DESC' }
+        });
+
+        if (otpRecord) {
+          user = await this.userRepository.findOne({ where: { id: otpRecord.userId } });
+        }
+      }
+
       if (!user) {
         return {
           success: false,

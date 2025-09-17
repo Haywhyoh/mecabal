@@ -21,9 +21,12 @@ export default function EmailVerificationScreen({ navigation, route }: any) {
   const [isLoading, setIsLoading] = useState(false);
   const [timer, setTimer] = useState(60);
   const [canResend, setCanResend] = useState(false);
-  
-  // Create refs for OTP input fields
+  const [isVerifying, setIsVerifying] = useState(false);
+
+  // Create refs for OTP input fields and abort controller
   const otpRefs = useRef<Array<TextInput | null>>([]);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const lastRequestTimeRef = useRef<number>(0);
   const { register } = useAuth();
 
   const { email, firstName, lastName, isSignup, onLoginSuccess } = route.params || {};
@@ -39,16 +42,17 @@ export default function EmailVerificationScreen({ navigation, route }: any) {
     }
   }, [timer]);
 
-  // Check if verification code is complete and auto-verify
+  // Cleanup effect to abort pending requests
   useEffect(() => {
-    const codeString = verificationCode.join('');
-    if (codeString.length === 6) {
-      // Auto-verify when all 6 digits are entered
-      setTimeout(() => {
-        handleVerifyCode();
-      }, 500);
-    }
-  }, [verificationCode]);
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
+  // Removed auto-verification to prevent infinite requests
+  // Users must manually click the Verify button
 
   const handleVerifyCode = async () => {
     if (verificationCode.join('').length !== 6) {
@@ -56,96 +60,106 @@ export default function EmailVerificationScreen({ navigation, route }: any) {
       return;
     }
 
+    // Prevent multiple simultaneous verification attempts
+    if (isVerifying || isLoading) {
+      return;
+    }
+
+    // Debouncing: Prevent requests within 1 second of each other
+    const now = Date.now();
+    if (now - lastRequestTimeRef.current < 1000) {
+      return;
+    }
+    lastRequestTimeRef.current = now;
+
+    // Cancel any existing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create new abort controller for this request
+    abortControllerRef.current = new AbortController();
+
+    setIsVerifying(true);
     setIsLoading(true);
-    
+
     try {
       const code = verificationCode.join('');
-      
-      // Use MeCabal authentication service to verify email OTP
-      const result = await MeCabalAuth.verifyEmailOTP(email, code);
-      
-      if (result.success && result.verified) {
-        if (isSignup) {
-          // For signup flow, create user account after email verification
-          try {
-            const authResult = await MeCabalAuth.authenticateWithOTP(
-              email,
-              code,
-              'registration',
-              {
-                first_name: firstName,
-                last_name: lastName,
-                email: email,
-                preferred_language: 'en'
-              }
-            );
 
-            if (authResult.success && authResult.user) {
-              // Update auth context
-              await register(authResult.user);
-              
-              Alert.alert(
-                'Email Verified!',
-                'Your email has been verified successfully. Now let\'s verify your phone number.',
-                [{ text: 'Continue', onPress: () => {
-                  navigation.navigate('PhoneVerification', { 
-                    language: 'en', 
-                    signupMethod: 'email',
-                    isSignup: true,
-                    userDetails: { firstName, lastName, email },
-                    emailVerified: true,
-                    userId: authResult.user?.id
-                  });
-                }}]
-              );
-            } else {
-              Alert.alert('Registration Failed', authResult.error || 'Failed to create account. Please try again.');
-            }
-          } catch (error) {
-            console.error('User creation error:', error);
-            Alert.alert('Error', 'Failed to create account. Please try again.');
+      if (isSignup) {
+        // For signup flow, verify the email OTP and save user details
+        const verifyResult = await MeCabalAuth.verifyEmailOTP(
+          email,
+          code,
+          'registration',
+          {
+            firstName,
+            lastName,
+            preferredLanguage: 'en'
           }
+        );
+
+        if (verifyResult.success && verifyResult.verified) {
+          Alert.alert(
+            'Email Verified!',
+            'Your email has been verified successfully. Now let\'s verify your phone number.',
+            [{ text: 'Continue', onPress: () => {
+              navigation.navigate('PhoneVerification', {
+                language: 'en',
+                signupMethod: 'email',
+                isSignup: true,
+                userDetails: { firstName, lastName, email },
+                emailVerified: true,
+                // Don't pass userId yet since user isn't fully registered
+              });
+            }}]
+          );
         } else {
-          // For login flow, complete the login process
-          const loginResult = await MeCabalAuth.completeEmailLogin();
-          
-          if (loginResult.success) {
-            if (loginResult.needsProfileCompletion) {
-              // User exists but needs to complete profile
-              Alert.alert(
-                'Welcome Back!',
-                'Please complete your profile setup.',
-                [{ text: 'Continue', onPress: () => {
-                  navigation.navigate('ProfileSetup', { 
-                    user: loginResult.user 
-                  });
-                }}]
-              );
-            } else {
-              Alert.alert(
-                'Welcome Back!',
-                'Your email has been verified successfully.',
-                [{ text: 'Continue', onPress: () => {
-                  if (onLoginSuccess) {
-                    onLoginSuccess();
-                  } else {
-                    navigation.navigate('MainTabs');
-                  }
-                }}]
-              );
-            }
-          } else {
-            Alert.alert('Error', loginResult.error || 'Login failed. Please try again.');
-          }
+          Alert.alert('Verification Failed', verifyResult.error || 'Invalid verification code. Please try again.');
         }
       } else {
-        Alert.alert('Verification Failed', result.error || 'Invalid verification code. Please try again.');
+        // For login flow, complete the login process
+        const loginResult = await MeCabalAuth.completeEmailLogin(email, code);
+
+        if (loginResult.success) {
+          if (loginResult.needsProfileCompletion) {
+            // User exists but needs to complete profile
+            Alert.alert(
+              'Welcome Back!',
+              'Please complete your profile setup.',
+              [{ text: 'Continue', onPress: () => {
+                navigation.navigate('ProfileSetup', {
+                  user: loginResult.user
+                });
+              }}]
+            );
+          } else {
+            Alert.alert(
+              'Welcome Back!',
+              'Your email has been verified successfully.',
+              [{ text: 'Continue', onPress: () => {
+                if (onLoginSuccess) {
+                  onLoginSuccess();
+                } else {
+                  navigation.navigate('MainTabs');
+                }
+              }}]
+            );
+          }
+        } else {
+          Alert.alert('Error', loginResult.error || 'Login failed. Please try again.');
+        }
       }
-    } catch (error) {
-      console.error('Email verification error:', error);
-      Alert.alert('Error', 'Failed to verify email. Please check your connection and try again.');
+    } catch (error: any) {
+      // Don't show error if request was aborted
+      if (error.name !== 'AbortError') {
+        console.error('Email verification error:', error);
+        Alert.alert('Error', 'Failed to verify email. Please check your connection and try again.');
+      }
     } finally {
+      setIsVerifying(false);
       setIsLoading(false);
+      abortControllerRef.current = null;
     }
   };
 
@@ -270,13 +284,13 @@ export default function EmailVerificationScreen({ navigation, route }: any) {
           <TouchableOpacity 
             style={[
               styles.verifyButton, 
-              (verificationCode.join('').length < 6 || isLoading) && styles.verifyButtonDisabled
+              (verificationCode.join('').length < 6 || isLoading || isVerifying) && styles.verifyButtonDisabled
             ]} 
             onPress={handleVerifyCode}
-            disabled={verificationCode.join('').length < 6 || isLoading}
+            disabled={verificationCode.join('').length < 6 || isLoading || isVerifying}
           >
             <Text style={styles.verifyButtonText}>
-              {isLoading ? 'Verifying...' : 'Verify'}
+              {(isLoading || isVerifying) ? 'Verifying...' : 'Verify'}
             </Text>
           </TouchableOpacity>
         </ScrollView>

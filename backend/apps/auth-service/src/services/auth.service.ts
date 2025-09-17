@@ -21,6 +21,99 @@ export class AuthService {
     private tokenService: TokenService,
   ) {}
 
+  async registerUserMobile(registerDto: any): Promise<AuthResponseDto> {
+    try {
+      // Check if user already exists
+      const existingUser = await this.userRepository.findOne({
+        where: [
+          { email: registerDto.email },
+          ...(registerDto.phoneNumber ? [{ phoneNumber: registerDto.phoneNumber }] : [])
+        ]
+      });
+
+      let savedUser: any;
+
+      if (existingUser) {
+        // Check if user is already fully verified/registered
+        if (existingUser.isVerified && existingUser.firstName && existingUser.lastName) {
+          if (existingUser.email === registerDto.email) {
+            return {
+              success: false,
+              error: 'User already exists with this email address'
+            };
+          }
+          if (existingUser.phoneNumber === registerDto.phoneNumber) {
+            return {
+              success: false,
+              error: 'User already exists with this phone number'
+            };
+          }
+        }
+
+        // User exists but is unverified (created during OTP sending) - update it
+        const saltRounds = 12;
+        const passwordHash = await bcrypt.hash(registerDto.password, saltRounds);
+
+        existingUser.phoneNumber = registerDto.phoneNumber || existingUser.phoneNumber;
+        existingUser.firstName = registerDto.firstName || existingUser.firstName;
+        existingUser.lastName = registerDto.lastName || existingUser.lastName;
+        existingUser.passwordHash = passwordHash;
+        existingUser.state = registerDto.state || existingUser.state;
+        existingUser.city = registerDto.city || existingUser.city;
+        existingUser.estate = registerDto.estate || existingUser.estate;
+        existingUser.preferredLanguage = registerDto.preferredLanguage || existingUser.preferredLanguage || 'en';
+        existingUser.phoneVerified = false;
+        existingUser.isVerified = false; // Will be set to true after email verification
+
+        savedUser = await this.userRepository.save(existingUser);
+      } else {
+        // Create new user
+        const saltRounds = 12;
+        const passwordHash = await bcrypt.hash(registerDto.password, saltRounds);
+
+        const newUser = this.userRepository.create({
+          email: registerDto.email,
+          phoneNumber: registerDto.phoneNumber,
+          firstName: registerDto.firstName,
+          lastName: registerDto.lastName,
+          passwordHash,
+          state: registerDto.state,
+          city: registerDto.city,
+          estate: registerDto.estate,
+          preferredLanguage: registerDto.preferredLanguage || 'en',
+          phoneVerified: false,
+          isVerified: false,
+        });
+
+        savedUser = await this.userRepository.save(newUser);
+      }
+
+      this.logger.log(`User registered successfully: ${savedUser.id}`);
+
+      return {
+        success: true,
+        message: 'User registered successfully. Please verify your email and/or phone number.',
+        user: {
+          id: savedUser.id,
+          email: savedUser.email,
+          firstName: savedUser.firstName,
+          lastName: savedUser.lastName,
+          phoneNumber: savedUser.phoneNumber,
+          phoneVerified: savedUser.phoneVerified,
+          isVerified: savedUser.isVerified,
+          verificationLevel: 'unverified'
+        }
+      };
+
+    } catch (error) {
+      this.logger.error('Registration error:', error);
+      return {
+        success: false,
+        error: 'Registration failed. Please try again.'
+      };
+    }
+  }
+
   async registerUser(registerDto: RegisterUserDto): Promise<AuthResponseDto> {
     try {
       // Check if user already exists
@@ -159,7 +252,7 @@ export class AuthService {
   async authenticateWithOTP(
     email: string,
     otpCode: string,
-    purpose: 'registration' | 'login',
+    purpose: 'registration' | 'login' | 'password_reset',
     userMetadata?: {
       first_name?: string;
       last_name?: string;
@@ -175,9 +268,10 @@ export class AuthService {
     }
   ): Promise<AuthResponseDto> {
     try {
-      // Verify email OTP first
-      const verifyResult = await this.emailOtpService.verifyEmailOTP(email, otpCode, purpose);
-      
+      // Verify email OTP first (don't mark as used yet for registration)
+      const markAsUsed = purpose !== 'registration';
+      const verifyResult = await this.emailOtpService.verifyEmailOTP(email, otpCode, purpose, markAsUsed);
+
       if (!verifyResult.success || !verifyResult.verified) {
         return {
           success: false,
@@ -186,7 +280,7 @@ export class AuthService {
       }
 
       if (purpose === 'registration') {
-        return await this.handleOTPRegistration(email, userMetadata, deviceInfo);
+        return await this.handleOTPRegistration(email, userMetadata, deviceInfo, verifyResult.otpId);
       } else if (purpose === 'login') {
         return await this.handleOTPLogin(email, deviceInfo);
       }
@@ -344,12 +438,13 @@ export class AuthService {
   private async handleOTPRegistration(
     email: string,
     userMetadata?: any,
-    deviceInfo?: any
+    deviceInfo?: any,
+    otpId?: string
   ): Promise<AuthResponseDto> {
     try {
       // Find existing user by email
       const existingUser = await this.userRepository.findOne({ where: { email } });
-      
+
       if (existingUser && existingUser.isVerified) {
         return {
           success: false,
@@ -358,23 +453,30 @@ export class AuthService {
       }
 
       let user: User;
-      
+
       if (existingUser) {
-        // Update existing user with proper information
+        // Update existing user with proper information (EMAIL VERIFICATION STEP)
         existingUser.firstName = userMetadata?.first_name || existingUser.firstName;
         existingUser.lastName = userMetadata?.last_name || existingUser.lastName;
         existingUser.phoneNumber = userMetadata?.phone_number || existingUser.phoneNumber;
         existingUser.state = userMetadata?.state_of_origin || existingUser.state;
         existingUser.preferredLanguage = userMetadata?.preferred_language || existingUser.preferredLanguage || 'en';
-        existingUser.isVerified = true; // Email is now verified
-        
+        // Note: Email is verified through OTP, but don't set isVerified = true yet
+        // User still needs: phone verification + location setup before being fully verified
+        existingUser.isVerified = false;
+
         // Set a temporary password if not set
         if (!existingUser.passwordHash) {
           const tempPassword = Math.random().toString(36).slice(-8);
           existingUser.passwordHash = await bcrypt.hash(tempPassword, 12);
         }
-        
+
         user = await this.userRepository.save(existingUser);
+
+        // Mark OTP as used after successful registration
+        if (otpId) {
+          await this.emailOtpService.markOTPAsUsed(otpId);
+        }
       } else {
         // This shouldn't happen if OTP verification worked, but handle it
         return {
@@ -433,6 +535,167 @@ export class AuthService {
       return {
         success: false,
         error: 'Login failed'
+      };
+    }
+  }
+
+  // Additional methods for the auth controller
+  async initiatePasswordReset(resetPasswordDto: { email: string }): Promise<AuthResponseDto> {
+    try {
+      const user = await this.userRepository.findOne({ where: { email: resetPasswordDto.email } });
+      
+      if (!user) {
+        // Don't reveal if user exists for security
+        return {
+          success: true,
+          message: 'If an account with this email exists, a password reset code has been sent.'
+        };
+      }
+
+      // Send password reset OTP
+      const otpResult = await this.emailOtpService.sendEmailOTP(resetPasswordDto.email, 'password_reset');
+      
+      if (!otpResult.success) {
+        return {
+          success: false,
+          error: otpResult.error || 'Failed to send reset code'
+        };
+      }
+
+      return {
+        success: true,
+        message: 'Password reset code sent to your email.',
+        expiresAt: otpResult.expiresAt
+      };
+
+    } catch (error) {
+      this.logger.error('Password reset initiation error:', error);
+      return {
+        success: false,
+        error: 'Failed to initiate password reset. Please try again.'
+      };
+    }
+  }
+
+  async confirmPasswordReset(confirmResetDto: { email: string; resetCode: string; newPassword: string }): Promise<AuthResponseDto> {
+    try {
+      const user = await this.userRepository.findOne({ where: { email: confirmResetDto.email } });
+      
+      if (!user) {
+        return {
+          success: false,
+          error: 'User not found'
+        };
+      }
+
+      // Verify OTP
+      const otpResult = await this.emailOtpService.verifyEmailOTP(confirmResetDto.email, confirmResetDto.resetCode, 'password_reset');
+      
+      if (!otpResult.success) {
+        return {
+          success: false,
+          error: otpResult.error || 'Invalid or expired reset code'
+        };
+      }
+
+      // Hash new password
+      const saltRounds = 12;
+      const passwordHash = await bcrypt.hash(confirmResetDto.newPassword, saltRounds);
+      
+      // Update password
+      user.passwordHash = passwordHash;
+      user.updatedAt = new Date();
+      await this.userRepository.save(user);
+
+      this.logger.log(`Password reset completed for user: ${user.id}`);
+
+      return {
+        success: true,
+        message: 'Password reset successfully. You can now login with your new password.'
+      };
+
+    } catch (error) {
+      this.logger.error('Password reset confirmation error:', error);
+      return {
+        success: false,
+        error: 'Failed to reset password. Please try again.'
+      };
+    }
+  }
+
+  async initiateOtpLogin(initiateOtpDto: { email: string }): Promise<AuthResponseDto> {
+    try {
+      // Check if user exists
+      const user = await this.userRepository.findOne({ where: { email: initiateOtpDto.email } });
+      
+      if (!user) {
+        return {
+          success: false,
+          error: 'User not found. Please register first.'
+        };
+      }
+
+      // Check if account is active
+      if (!user.isActive) {
+        return {
+          success: false,
+          error: 'Account is deactivated. Please contact support.'
+        };
+      }
+
+      // Send OTP
+      const otpResult = await this.emailOtpService.sendEmailOTP(initiateOtpDto.email, 'login');
+      
+      if (!otpResult.success) {
+        return {
+          success: false,
+          error: otpResult.error || 'Failed to send OTP'
+        };
+      }
+
+      this.logger.log(`OTP login initiated for: ${initiateOtpDto.email}`);
+
+      return {
+        success: true,
+        message: 'OTP sent to your email. Please check and enter the code.',
+        expiresAt: otpResult.expiresAt
+      };
+
+    } catch (error) {
+      this.logger.error('OTP login initiation error:', error);
+      return {
+        success: false,
+        error: 'Failed to initiate OTP login. Please try again.'
+      };
+    }
+  }
+
+  async verifyOtpLogin(verifyOtpDto: { email: string; otpCode: string }): Promise<AuthResponseDto> {
+    return this.authenticateWithOTP(verifyOtpDto.email, verifyOtpDto.otpCode, 'login');
+  }
+
+  async testEmailService(email: string): Promise<AuthResponseDto> {
+    try {
+      const otpResult = await this.emailOtpService.sendEmailOTP(email, 'registration');
+      
+      if (!otpResult.success) {
+        return {
+          success: false,
+          error: otpResult.error || 'Failed to send test email'
+        };
+      }
+
+      return {
+        success: true,
+        message: 'Test email sent successfully',
+        expiresAt: otpResult.expiresAt
+      };
+
+    } catch (error) {
+      this.logger.error('Test email error:', error);
+      return {
+        success: false,
+        error: 'Failed to send test email. Please try again.'
       };
     }
   }

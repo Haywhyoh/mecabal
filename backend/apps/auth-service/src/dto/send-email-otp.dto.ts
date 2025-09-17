@@ -1,4 +1,4 @@
-import { IsEmail, IsEnum, IsOptional } from 'class-validator';
+import { IsEmail, IsEnum, IsOptional, IsString, MinLength, MaxLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class SendEmailOtpDto {
@@ -34,6 +34,9 @@ export class VerifyEmailOtpDto {
     minLength: 6,
     maxLength: 6
   })
+  @IsString()
+  @MinLength(6, { message: 'OTP code must be exactly 6 digits' })
+  @MaxLength(6, { message: 'OTP code must be exactly 6 digits' })
   otpCode: string;
 
   @ApiProperty({

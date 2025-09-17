@@ -19,25 +19,55 @@ export class EmailOtpService {
     private userRepository: Repository<User>,
     private configService: ConfigService,
   ) {
-    this.initializeEmailTransporter();
+    // Validate required environment variables
+    const requiredEnvVars = [
+      'EMAIL_HOST',
+      'EMAIL_PORT', 
+      'EMAIL_SENDER',
+      'EMAIL_HOST_USER',
+      'EMAIL_HOST_PASSWORD',
+      'CLIENT_URL'
+    ];
+
+    const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+    if (missingVars.length > 0) {
+      this.logger.error('Missing required environment variables for mail service:', missingVars);
+      throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
+    }
+
+    // Create transporter with better configuration
+    this.transporter = nodemailer.createTransport({
+      host: process.env.EMAIL_HOST,
+      port: Number(process.env.EMAIL_PORT),
+      secure: false, // true for 465, false for other ports
+      auth: {
+        user: process.env.EMAIL_HOST_USER,
+        pass: process.env.EMAIL_HOST_PASSWORD,
+      },
+      tls: {
+        rejectUnauthorized: false, // Allow self-signed certificates
+        ciphers: 'SSLv3'
+      },
+      connectionTimeout: 30000, // 30 seconds
+      greetingTimeout: 15000, // 15 seconds
+      socketTimeout: 30000, // 30 seconds
+      pool: true,
+      maxConnections: 5,
+      maxMessages: 100,
+      rateLimit: 10, // max 10 messages per second
+    });
+
+    // Verify connection on startup
+    this.verifyConnection();
   }
 
-  private initializeEmailTransporter() {
-    // Initialize Brevo (formerly SendinBlue) SMTP
-    const brevoApiKey = this.configService.get<string>('BREVO_API_KEY');
-    
-    if (brevoApiKey) {
-      this.transporter = nodemailer.createTransport({
-        host: 'smtp-relay.brevo.com',
-        port: 587,
-        secure: false,
-        auth: {
-          user: this.configService.get<string>('BREVO_SMTP_USER'),
-          pass: brevoApiKey,
-        },
-      });
-    } else {
-      this.logger.warn('Brevo API key not configured, email OTP will not work');
+  private async verifyConnection(): Promise<void> {
+    try {
+      await this.transporter.verify();
+      this.logger.log('Email service connection verified successfully');
+    } catch (error) {
+      this.logger.error('Email service connection verification failed:', error);
+      // Don't throw error here to allow service to start, but log the issue
     }
   }
 
@@ -46,15 +76,20 @@ export class EmailOtpService {
     purpose: 'registration' | 'login' | 'password_reset'
   ): Promise<{ success: boolean; message?: string; error?: string; expiresAt?: Date; otpCode?: string }> {
     try {
+      this.logger.log(`Starting email OTP process for ${email} with purpose: ${purpose}`);
+      
       // Generate 6-digit OTP
       const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
+      
+      this.logger.log(`Generated OTP code: ${otpCode} (expires at: ${expiresAt.toISOString()})`);
 
       // Find or create user for OTP tracking (don't create full user yet)
       let user = await this.userRepository.findOne({ where: { email } });
       let userId: string;
 
       if (!user && purpose === 'registration') {
+        this.logger.log(`Creating temporary user record for registration: ${email}`);
         // Create minimal user record for OTP tracking during registration
         const tempUser = this.userRepository.create({
           email,
@@ -66,22 +101,29 @@ export class EmailOtpService {
         });
         user = await this.userRepository.save(tempUser);
         userId = user.id;
+        this.logger.log(`Temporary user created with ID: ${userId}`);
       } else if (!user && purpose === 'login') {
+        this.logger.warn(`Login attempt for non-existent user: ${email}`);
         return {
           success: false,
           error: 'User not found. Please register first.'
         };
       } else {
         userId = user!.id;
+        this.logger.log(`Found existing user with ID: ${userId}`);
       }
 
       // Clean up any existing OTPs for this user/purpose
-      await this.otpVerificationRepository.delete({
+      const deletedCount = await this.otpVerificationRepository.delete({
         userId,
         contactMethod: 'email',
         purpose,
         isUsed: false,
       });
+      
+      if (deletedCount.affected && deletedCount.affected > 0) {
+        this.logger.log(`Cleaned up ${deletedCount.affected} existing OTP records for user ${userId}`);
+      }
 
       // Create new OTP verification record
       const otpVerification = this.otpVerificationRepository.create({
@@ -94,11 +136,14 @@ export class EmailOtpService {
       });
 
       await this.otpVerificationRepository.save(otpVerification);
+      this.logger.log(`OTP verification record created with ID: ${otpVerification.id}`);
 
       // Send email
+      this.logger.log(`Attempting to send email to ${email}...`);
       const emailSent = await this.sendEmailViaBrevo(email, otpCode, purpose);
       
       if (!emailSent.success) {
+        this.logger.error(`Email sending failed for ${email}: ${emailSent.error}`);
         return {
           success: false,
           error: emailSent.error || 'Failed to send email'
@@ -127,12 +172,14 @@ export class EmailOtpService {
   async verifyEmailOTP(
     email: string,
     otpCode: string,
-    purpose: 'registration' | 'login' | 'password_reset'
-  ): Promise<{ success: boolean; verified: boolean; error?: string }> {
+    purpose: 'registration' | 'login' | 'password_reset',
+    markAsUsed: boolean = true,
+    userDetails?: { firstName?: string; lastName?: string; preferredLanguage?: string }
+  ): Promise<{ success: boolean; verified: boolean; error?: string; otpId?: string }> {
     try {
       // Find user by email
       const user = await this.userRepository.findOne({ where: { email } });
-      
+
       if (!user) {
         return {
           success: false,
@@ -141,14 +188,13 @@ export class EmailOtpService {
         };
       }
 
-      // Find valid OTP record
+      // Find valid OTP record (including recently used ones for grace period)
       const otpRecord = await this.otpVerificationRepository.findOne({
         where: {
           userId: user.id,
           contactMethod: 'email',
           contactValue: email,
           purpose,
-          isUsed: false,
         },
         order: { createdAt: 'DESC' }
       });
@@ -157,7 +203,7 @@ export class EmailOtpService {
         return {
           success: false,
           verified: false,
-          error: 'OTP not found or already used'
+          error: 'OTP not found'
         };
       }
 
@@ -181,15 +227,53 @@ export class EmailOtpService {
         };
       }
 
-      // Mark OTP as used
-      otpRecord.isUsed = true;
-      await this.otpVerificationRepository.save(otpRecord);
+      // Grace period check: Allow reuse within 30 seconds if already used
+      const now = new Date();
+      const gracePeriod = 30 * 1000; // 30 seconds in milliseconds
+      const timeSinceCreated = now.getTime() - otpRecord.createdAt.getTime();
 
-      this.logger.log(`Email OTP verified successfully for ${email}`);
+      if (otpRecord.isUsed && timeSinceCreated > gracePeriod) {
+        return {
+          success: false,
+          verified: false,
+          error: 'OTP code has already been used. Please request a new code.'
+        };
+      }
+
+      // Update user details if provided (for registration flow)
+      if (userDetails && purpose === 'registration') {
+        let userUpdated = false;
+        if (userDetails.firstName && !user.firstName) {
+          user.firstName = userDetails.firstName;
+          userUpdated = true;
+        }
+        if (userDetails.lastName && !user.lastName) {
+          user.lastName = userDetails.lastName;
+          userUpdated = true;
+        }
+        if (userDetails.preferredLanguage && userDetails.preferredLanguage !== user.preferredLanguage) {
+          user.preferredLanguage = userDetails.preferredLanguage;
+          userUpdated = true;
+        }
+
+        if (userUpdated) {
+          await this.userRepository.save(user);
+          this.logger.log(`User details updated for ${email}: firstName=${userDetails.firstName}, lastName=${userDetails.lastName}`);
+        }
+      }
+
+      // Mark OTP as used only if requested and not already used
+      if (markAsUsed && !otpRecord.isUsed) {
+        otpRecord.isUsed = true;
+        await this.otpVerificationRepository.save(otpRecord);
+      }
+
+      this.logger.log(`Email OTP verified successfully for ${email}${otpRecord.isUsed ? ' (within grace period)' : ''}`);
 
       return {
         success: true,
-        verified: true
+        verified: true,
+        otpId: otpRecord.id
       };
 
     } catch (error) {
@@ -209,37 +293,68 @@ export class EmailOtpService {
   ): Promise<{ success: boolean; error?: string }> {
     try {
       if (!this.transporter) {
-        return { success: false, error: 'Email service not configured' };
+        this.logger.error('Email transporter not initialized. Please check your email configuration.');
+        return { success: false, error: 'Email service not configured. Please check your environment variables.' };
       }
 
       const subject = this.getEmailSubject(purpose);
       const htmlContent = this.getEmailTemplate(otpCode, purpose);
 
       const mailOptions = {
-        from: {
-          name: 'MeCabal Community',
-          address: this.configService.get<string>('BREVO_FROM_EMAIL', 'noreply@mecabal.com')
-        },
+        from: `MeCabal Community <${process.env.EMAIL_SENDER || 'noreply@mecabal.com'}>`,
         to: email,
         subject,
         html: htmlContent,
-        // Add tracking for Brevo
+        // Add tracking headers
         headers: {
-          'X-Mailin-Custom': JSON.stringify({
-            purpose,
-            timestamp: new Date().toISOString()
-          })
+          'X-MeCabal-Purpose': purpose,
+          'X-MeCabal-Timestamp': new Date().toISOString(),
+          'X-MeCabal-Client-URL': process.env.CLIENT_URL || 'https://mecabal.com'
         }
       };
 
-      const result = await this.transporter.sendMail(mailOptions);
-      this.logger.log(`Email sent successfully via Brevo: ${result.messageId}`);
+      // Add timeout wrapper to prevent hanging requests
+      const sendEmailWithTimeout = () => {
+        return new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('Email send timeout after 25 seconds'));
+          }, 25000);
+
+          this.transporter.sendMail(mailOptions)
+            .then((result) => {
+              clearTimeout(timeout);
+              resolve(result);
+            })
+            .catch((error) => {
+              clearTimeout(timeout);
+              reject(error);
+            });
+        });
+      };
+
+      const result = await sendEmailWithTimeout() as any;
+      this.logger.log(`Email sent successfully: ${result?.messageId || 'unknown'}`);
       
       return { success: true };
 
     } catch (error) {
-      this.logger.error('Failed to send email via Brevo:', error);
-      return { success: false, error: 'Email service error' };
+      this.logger.error('Failed to send email:', error);
+      
+      // Provide more specific error messages
+      let errorMessage = 'Email service error';
+      if (error.message.includes('timeout')) {
+        errorMessage = 'Email service timeout. Please try again.';
+      } else if (error.message.includes('ECONNREFUSED')) {
+        errorMessage = 'Email service connection refused. Please check your email configuration.';
+      } else if (error.message.includes('authentication')) {
+        errorMessage = 'Email authentication failed. Please check your email credentials.';
+      } else if (error.message.includes('AbortError')) {
+        errorMessage = 'Email request was aborted. Please try again.';
+      } else {
+        errorMessage = `Email service error: ${error.message}`;
+      }
+      
+      return { success: false, error: errorMessage };
     }
   }
 
@@ -353,5 +468,33 @@ export class EmailOtpService {
       </body>
       </html>
     `;
+  }
+
+  // Mark OTP as used by ID (for atomic operations)
+  async markOTPAsUsed(otpId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const result = await this.otpVerificationRepository.update(
+        { id: otpId },
+        { isUsed: true }
+      );
+
+      if (result.affected === 0) {
+        this.logger.warn(`Attempted to mark non-existent OTP as used: ${otpId}`);
+        return {
+          success: false,
+          error: 'OTP record not found'
+        };
+      }
+
+      this.logger.log(`OTP marked as used: ${otpId}`);
+      return { success: true };
+
+    } catch (error) {
+      this.logger.error('Failed to mark OTP as used:', error);
+      return {
+        success: false,
+        error: 'Failed to mark OTP as used'
+      };
+    }
   }
 }

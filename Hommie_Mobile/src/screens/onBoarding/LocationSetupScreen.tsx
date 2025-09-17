@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, Scro
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../../constants';
 import { contextAwareGoBack } from '../../utils/navigationUtils';
 import { MeCabalLocation } from '../../services';
+import { useAuth } from '../../contexts/AuthContext';
 
 const LOCATION_OPTIONS = [
   {
@@ -41,11 +42,38 @@ export default function LocationSetupScreen({ navigation, route }: any) {
   const [landmarks, setLandmarks] = useState<any[]>([]);
   const [landmarksLoading, setLandmarksLoading] = useState(false);
 
+  const { register } = useAuth();
+
   const language = route.params?.language || 'en';
   const phoneNumber = route.params?.phoneNumber || '';
   const firstName = route.params?.firstName || '';
   const communications = route.params?.communications || {};
   const onSetupComplete = route.params?.onSetupComplete;
+  const userId = route.params?.userId;
+  const userDetails = route.params?.userDetails;
+
+  // Function to complete location setup and authenticate user
+  const completeLocationSetup = async () => {
+    try {
+      if (userDetails) {
+        // Authenticate the user with the context
+        await register(userDetails);
+        console.log('User authenticated successfully after location setup');
+      } else if (onSetupComplete) {
+        // Fallback to callback if no userDetails
+        onSetupComplete();
+      } else {
+        // Fallback: navigate to main app
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'MainTabs' }],
+        });
+      }
+    } catch (error) {
+      console.error('Failed to complete authentication:', error);
+      Alert.alert('Error', 'Failed to complete setup. Please try again.');
+    }
+  };
 
   const handleOptionSelect = (optionId: string) => {
     setSelectedOption(optionId);
@@ -151,9 +179,7 @@ export default function LocationSetupScreen({ navigation, route }: any) {
                 Alert.alert(
                   'Location Verified!',
                   `Welcome to ${verification.neighborhood.name}!\n\nAddress: ${location.data.address || 'Location detected'}\nAccuracy: ${Math.round(location.data.accuracy)}m`,
-                  [{ text: 'Continue', onPress: () => {
-                    if (onSetupComplete) onSetupComplete();
-                  }}]
+                  [{ text: 'Continue', onPress: completeLocationSetup }]
                 );
               } else {
                 Alert.alert(
@@ -199,9 +225,7 @@ export default function LocationSetupScreen({ navigation, route }: any) {
             [
               {
                 text: 'Continue',
-                onPress: () => {
-                  if (onSetupComplete) onSetupComplete();
-                }
+                onPress: completeLocationSetup
               }
             ]
           );
@@ -212,9 +236,7 @@ export default function LocationSetupScreen({ navigation, route }: any) {
             [
               {
                 text: 'Continue',
-                onPress: () => {
-                  if (onSetupComplete) onSetupComplete();
-                }
+                onPress: completeLocationSetup
               }
             ]
           );
@@ -239,9 +261,7 @@ export default function LocationSetupScreen({ navigation, route }: any) {
         Alert.alert(
           'Location Verified!',
           `Welcome to ${verification.neighborhood.name}! Your location has been verified based on ${landmark.name}.`,
-          [{ text: 'Continue', onPress: () => {
-            if (onSetupComplete) onSetupComplete();
-          }}]
+          [{ text: 'Continue', onPress: completeLocationSetup }]
         );
       } else {
         Alert.alert(
@@ -259,8 +279,9 @@ export default function LocationSetupScreen({ navigation, route }: any) {
   const handleContinue = () => {
     if (selectedOption === 'landmark' && selectedLandmark) {
       // TODO: Save landmark selection and proceed
-      Alert.alert('Location Set', `You've selected ${selectedLandmark.name}. Welcome to MeCabal!`);
-      if (onSetupComplete) onSetupComplete();
+      Alert.alert('Location Set', `You've selected ${selectedLandmark.name}. Welcome to MeCabal!`, [
+        { text: 'Continue', onPress: completeLocationSetup }
+      ]);
     } else if (selectedOption === 'gps') {
       // GPS already handled
     } else if (selectedOption === 'map') {
@@ -274,10 +295,7 @@ export default function LocationSetupScreen({ navigation, route }: any) {
       'Enter your address manually. If your estate/compound doesn\'t exist, we\'ll create a pending place for review.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Continue', onPress: () => {
-          // TODO: Navigate to manual address input
-          if (onSetupComplete) onSetupComplete();
-        }}
+        { text: 'Continue', onPress: completeLocationSetup }
       ]
     );
   };

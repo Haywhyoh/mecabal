@@ -96,11 +96,12 @@ export default function OTPVerificationScreen({ navigation, route }: any) {
                 'Phone Verified!',
                 'Your phone number has been verified successfully.',
                 [{ text: 'Continue', onPress: () => {
-                  navigation.navigate('LocationSetup', { 
-                    language, 
-                    phoneNumber, 
+                  navigation.navigate('LocationSetup', {
+                    language,
+                    phoneNumber,
                     isSignup,
-                    userId: existingUserId 
+                    userId: existingUserId,
+                    userDetails: userDetails // Pass user details for final authentication
                   });
                 }}]
               );
@@ -119,18 +120,17 @@ export default function OTPVerificationScreen({ navigation, route }: any) {
             });
             
             if (authResult.success && authResult.user) {
-              // Update auth context
-              await register(authResult.user);
-              
+              // Don't authenticate yet - wait for location setup completion
               Alert.alert(
-                'Registration Successful!',
-                'Your account has been created and verified successfully.',
+                'Phone Verified!',
+                'Your phone number has been verified successfully. Let\'s set up your location.',
                 [{ text: 'Continue', onPress: () => {
-                  navigation.navigate('LocationSetup', { 
-                    language, 
-                    phoneNumber, 
+                  navigation.navigate('LocationSetup', {
+                    language,
+                    phoneNumber,
                     isSignup,
-                    userId: authResult.user?.id 
+                    userId: authResult.user?.id,
+                    userDetails: authResult.user // Pass user details for final authentication
                   });
                 }}]
               );
@@ -147,18 +147,17 @@ export default function OTPVerificationScreen({ navigation, route }: any) {
             const loginResult = await MeCabalAuth.completeLogin(phoneNumber);
             
             if (loginResult.success && loginResult.user) {
-              // Update auth context
-              await register(loginResult.user);
-              
+              // Don't authenticate yet - wait for location setup completion
               Alert.alert(
                 'Welcome Back!',
-                'You have been logged in successfully.',
+                'Your phone number has been verified successfully. Let\'s confirm your location.',
                 [{ text: 'Continue', onPress: () => {
-                  navigation.navigate('LocationSetup', { 
-                    language, 
-                    phoneNumber, 
+                  navigation.navigate('LocationSetup', {
+                    language,
+                    phoneNumber,
                     isSignup,
-                    userId: loginResult.user?.id 
+                    userId: loginResult.user?.id,
+                    userDetails: loginResult.user // Pass user details for final authentication
                   });
                 }}]
               );

@@ -29,32 +29,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const isAuthenticated = !!user;
 
-  // Initialize authentication state and listen for changes
+  // Initialize authentication state
   useEffect(() => {
     initializeAuth();
-    
-    // Listen to Supabase auth state changes
-    const { data: authListener } = MeCabalAuth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.id);
-        
-        if (event === 'SIGNED_IN' && session?.user) {
-          // Get user profile when signed in
-          const userProfile = await MeCabalAuth.getCurrentUser();
-          setUser(userProfile);
-        } else if (event === 'SIGNED_OUT') {
-          // Clear user when signed out
-          setUser(null);
-        }
-      }
-    );
-    
-    // Cleanup listener on unmount
-    return () => {
-      if (authListener?.subscription) {
-        authListener.subscription.unsubscribe();
-      }
-    };
   }, []);
 
   const initializeAuth = async () => {
@@ -72,17 +49,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
       
-      // Verify OTP
-      const otpResult = await MeCabalAuth.verifyOTP(phoneNumber, otpCode, 'login');
+      // Complete login with OTP verification
+      const loginResult = await MeCabalAuth.completeLogin(phoneNumber, otpCode);
       
-      if (otpResult.success && otpResult.verified) {
-        // Complete login
-        const loginResult = await MeCabalAuth.completeLogin(phoneNumber);
-        
-        if (loginResult.success && loginResult.user) {
-          setUser(loginResult.user);
-          return true;
-        }
+      if (loginResult.success && loginResult.user) {
+        setUser(loginResult.user);
+        return true;
       }
       
       return false;
@@ -98,17 +70,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
       
-      // Verify email OTP
-      const otpResult = await MeCabalAuth.verifyEmailOTP(email, otpCode, 'login');
+      // Complete email login with OTP verification
+      const loginResult = await MeCabalAuth.completeEmailLogin(email, otpCode);
       
-      if (otpResult.success && otpResult.verified) {
-        // Complete email login
-        const loginResult = await MeCabalAuth.completeEmailLogin(email);
-        
-        if (loginResult.success && loginResult.user) {
-          setUser(loginResult.user);
-          return true;
-        }
+      if (loginResult.success && loginResult.user) {
+        setUser(loginResult.user);
+        return true;
       }
       
       return false;

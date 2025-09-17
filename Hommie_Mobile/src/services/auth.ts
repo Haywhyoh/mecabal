@@ -13,7 +13,7 @@ import type {
 import type { NigerianCarrier } from '../types/nigerian';
 
 // Backend API configuration
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://api.mecabal.com';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 const API_TIMEOUT = parseInt(process.env.EXPO_PUBLIC_API_TIMEOUT || '10000', 10);
 
 // API client helper
@@ -109,9 +109,10 @@ class ApiClient {
 export class MeCabalAuth {
   // Send OTP to Nigerian phone number
   static async sendOTP(
-    phoneNumber: string, 
+    phoneNumber: string,
     purpose: 'registration' | 'login' | 'password_reset' = 'registration',
-    method: 'sms' | 'whatsapp' = 'sms'
+    method: 'sms' | 'whatsapp' = 'sms',
+    email?: string
   ): Promise<OTPResponse> {
     try {
       // Validate phone number format
@@ -126,7 +127,8 @@ export class MeCabalAuth {
       const result = await ApiClient.post<any>('/auth/phone/send-otp', {
         phone: phoneNumber,
         purpose,
-        method
+        method,
+        ...(email && { email })
       });
 
       if (!result.success) {
@@ -168,8 +170,8 @@ export class MeCabalAuth {
     try {
       // Call new backend API endpoint
       const result = await ApiClient.post<any>('/auth/phone/verify-otp', {
-        phone: phoneNumber,
-        otp_code: otpCode,
+        phoneNumber: phoneNumber,
+        otpCode: otpCode,
         purpose
       });
 
@@ -226,7 +228,7 @@ export class MeCabalAuth {
   }): Promise<AuthResponse> {
     try {
       // Call new backend API endpoint to create user
-      const result = await ApiClient.post<any>('/auth/register', {
+      const result = await ApiClient.post<any>('/auth/register-mobile', {
         phone_number: userData.phone_number,
         email: userData.email,
         first_name: userData.first_name,
@@ -283,10 +285,14 @@ export class MeCabalAuth {
   }
 
   // Complete login after OTP verification
-  static async completeLogin(phoneNumber: string): Promise<AuthResponse> {
+  static async completeLogin(phoneNumber: string, otpCode: string): Promise<AuthResponse> {
     try {
-      // Get current user after OTP verification
-      const result = await ApiClient.get<any>('/auth/me');
+      // Verify OTP and complete login in one step
+      const result = await ApiClient.post<any>('/auth/phone/verify-otp', {
+        phoneNumber: phoneNumber,
+        otpCode: otpCode,
+        purpose: 'login'
+      });
 
       if (!result.success) {
         return {
@@ -558,16 +564,22 @@ export class MeCabalAuth {
 
   // Verify email OTP code using new backend API
   static async verifyEmailOTP(
-    email: string, 
-    otpCode: string, 
-    purpose: 'registration' | 'login' | 'password_reset' = 'registration'
+    email: string,
+    otpCode: string,
+    purpose: 'registration' | 'login' | 'password_reset' = 'registration',
+    userDetails?: {
+      firstName?: string;
+      lastName?: string;
+      preferredLanguage?: string;
+    }
   ): Promise<VerifyOTPResponse> {
     try {
       // Call new backend API endpoint
       const result = await ApiClient.post<any>('/auth/email/verify-otp', {
         email,
-        otp_code: otpCode,
-        purpose
+        otpCode: otpCode,
+        purpose,
+        ...userDetails
       });
 
       if (!result.success) {
@@ -647,9 +659,9 @@ export class MeCabalAuth {
   static async completeEmailLogin(email: string, otpCode: string): Promise<AuthResponse> {
     try {
       // Verify OTP and complete login in one step
-      const result = await ApiClient.post<any>('/auth/login', {
+      const result = await ApiClient.post<any>('/auth/complete-email-login', {
         email,
-        otp_code: otpCode
+        otpCode
       });
 
       if (!result.success) {
@@ -700,25 +712,41 @@ export class MeCabalAuth {
   ): Promise<AuthResponse> {
     try {
       if (purpose === 'registration' && userMetadata) {
-        // First verify the OTP
-        const verifyResult = await this.verifyEmailOTP(email, otpCode, purpose);
-        
-        if (!verifyResult.success || !verifyResult.verified) {
-          return {
-            success: false,
-            error: verifyResult.error || 'OTP verification failed'
-          };
-        }
-        
-        // Then create the user account
-        return await this.createUser({
+        // Use the new atomic endpoint for registration
+        const result = await ApiClient.post<any>('/auth/complete-email-verification', {
           email,
-          phone_number: userMetadata.phone_number,
+          otpCode,
           first_name: userMetadata.first_name!,
           last_name: userMetadata.last_name!,
+          phone_number: userMetadata.phone_number,
           state_of_origin: userMetadata.state_of_origin,
-          preferred_language: userMetadata.preferred_language
+          preferred_language: userMetadata.preferred_language || 'en'
         });
+
+        if (!result.success) {
+          return {
+            success: false,
+            error: result.error || 'Registration failed'
+          };
+        }
+
+        const { data } = result;
+
+        // Store authentication tokens
+        if (data.access_token) {
+          await AsyncStorage.setItem('auth_token', data.access_token);
+          if (data.refresh_token) {
+            await AsyncStorage.setItem('refresh_token', data.refresh_token);
+          }
+        }
+
+        return {
+          success: true,
+          user: data.user as NigerianUser,
+          access_token: data.access_token,
+          refresh_token: data.refresh_token,
+          message: data.message || 'Registration completed successfully'
+        };
       } else {
         // For login, use the complete login method
         return await this.completeEmailLogin(email, otpCode);
@@ -737,42 +765,4 @@ export class MeCabalAuth {
     return emailRegex.test(email);
   }
 
-  // Auth state change listener (simplified implementation)
-  static onAuthStateChange(callback: (event: string, session: any) => void) {
-    // For now, we'll implement a simple polling mechanism
-    // In a real implementation, you might want to use WebSockets or Server-Sent Events
-    let isListening = true;
-    
-    const checkAuthState = async () => {
-      if (!isListening) return;
-      
-      try {
-        const token = await AsyncStorage.getItem('auth_token');
-        const currentUser = await this.getCurrentUser();
-        
-        if (token && currentUser) {
-          callback('SIGNED_IN', { user: currentUser });
-        } else {
-          callback('SIGNED_OUT', null);
-        }
-      } catch (error) {
-        callback('SIGNED_OUT', null);
-      }
-      
-      // Check again in 5 seconds
-      setTimeout(checkAuthState, 5000);
-    };
-    
-    // Start checking
-    checkAuthState();
-    
-    // Return subscription object
-    return {
-      subscription: {
-        unsubscribe: () => {
-          isListening = false;
-        }
-      }
-    };
-  }
 }

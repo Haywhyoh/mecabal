@@ -2,7 +2,10 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AuthServiceController } from './auth-service.controller';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { PassportModule } from '@nestjs/passport';
+import { AuthModule } from '@app/auth';
+import { AuthController } from './auth/auth.controller';
 
 // Import entities
 import { 
@@ -33,6 +36,12 @@ import { TokenService } from './services/token.service';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    ThrottlerModule.forRoot([{
+      ttl: 60000, // 1 minute
+      limit: 10, // 10 requests per minute
+    }]),
+    PassportModule.register({ defaultStrategy: 'jwt' }),
+    AuthModule,
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
@@ -84,7 +93,7 @@ import { TokenService } from './services/token.service';
       Role,
     ]),
   ],
-  controllers: [AuthServiceController],
+  controllers: [AuthController],
   providers: [
     AuthService,
     EmailOtpService,
