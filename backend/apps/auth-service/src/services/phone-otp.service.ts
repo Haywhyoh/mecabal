@@ -206,6 +206,8 @@ export class PhoneOtpService {
     purpose: 'registration' | 'login' | 'password_reset'
   ): Promise<{ success: boolean; verified: boolean; error?: string; carrier?: string }> {
     try {
+      // Add debug logging
+      this.logger.log(`🔍 Starting phone OTP verification: ${phoneNumber}, purpose: ${purpose}, code: ${otpCode}`);
       // Find user by phone number (same logic as sendPhoneOTP for consistency)
       let user = await this.userRepository.findOne({
         where: [
@@ -292,6 +294,16 @@ export class PhoneOtpService {
         };
       }
 
+      // Check if OTP is already used to prevent double verification
+      if (otpRecord.isUsed) {
+        this.logger.warn(`⚠️ Attempted to use already verified OTP for ${phoneNumber}`);
+        return {
+          success: false,
+          verified: false,
+          error: 'This OTP code has already been used. Please request a new code.'
+        };
+      }
+
       // Mark OTP as used
       otpRecord.isUsed = true;
       await this.otpVerificationRepository.save(otpRecord);
@@ -299,16 +311,23 @@ export class PhoneOtpService {
       // Update user phone verification status if this is registration
       if (purpose === 'registration') {
         user.phoneVerified = true;
+        // For mobile registration flow, user should be considered verified after phone verification
+        // This allows them to proceed to location setup and complete registration
+        user.isVerified = true;
         await this.userRepository.save(user);
       }
 
-      this.logger.log(`Phone OTP verified successfully for ${phoneNumber}`);
+      this.logger.log(`📞 Phone OTP verified successfully for ${phoneNumber}`);
 
-      return {
+      const result = {
         success: true,
         verified: true,
         carrier: user.phoneCarrier
       };
+
+      this.logger.log(`📤 Phone OTP service returning:`, result);
+
+      return result;
 
     } catch (error) {
       this.logger.error('Failed to verify phone OTP:', error);

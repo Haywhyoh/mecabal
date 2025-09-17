@@ -206,21 +206,52 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current user profile' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'User profile retrieved successfully' 
+  @ApiResponse({
+    status: 200,
+    description: 'User profile retrieved successfully'
   })
   async getProfile(@CurrentUser() user: User) {
-    return {
-      id: user.id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      email: user.email,
-      phoneNumber: user.phoneNumber,
-      isVerified: user.isVerified,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-    };
+    return this.authService.getUserProfile(user.id);
+  }
+
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get current authenticated user' })
+  @ApiResponse({
+    status: 200,
+    description: 'Current user retrieved successfully'
+  })
+  async getCurrentUser(@CurrentUser() user: User) {
+    return this.authService.getUserProfile(user.id);
+  }
+
+  @Post('profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Update user profile' })
+  @ApiResponse({
+    status: 200,
+    description: 'Profile updated successfully'
+  })
+  async updateProfile(
+    @CurrentUser() user: User,
+    @Body() updateData: {
+      phone_number?: string;
+      verification_level?: number;
+      state?: string;
+      city?: string;
+      estate?: string;
+      location?: string;
+      landmark?: string;
+      address?: string;
+      phoneVerified?: boolean;
+      addressVerified?: boolean;
+      isVerified?: boolean;
+    }
+  ) {
+    return this.authService.updateUserProfile(user.id, updateData);
   }
 
   @Get('health')
@@ -600,12 +631,55 @@ export class AuthController {
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Set user location (Nigerian context)' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Location set successfully' 
+  @ApiResponse({
+    status: 200,
+    description: 'Location set successfully'
   })
-  async setupLocation(@CurrentUser() user: User, @Body() dto: LocationSetupDto) {
-    throw new Error('Method not implemented yet');
+  async setupLocation(
+    @CurrentUser() user: User,
+    @Body() locationData: {
+      state?: string;
+      city?: string;
+      estate?: string;
+      location?: string;
+      landmark?: string;
+      address?: string;
+      latitude?: number;
+      longitude?: number;
+      completeRegistration?: boolean;
+    }
+  ) {
+    // Format location string if coordinates provided
+    let locationString = locationData.location;
+    if (locationData.latitude && locationData.longitude) {
+      locationString = `POINT(${locationData.longitude} ${locationData.latitude})`;
+    }
+
+    // If completing registration, use the complete registration method
+    if (locationData.completeRegistration) {
+      return this.authService.completeRegistrationWithLocation(user.id, {
+        state: locationData.state,
+        city: locationData.city,
+        estate: locationData.estate,
+        location: locationString,
+        landmark: locationData.landmark,
+        address: locationData.address
+      });
+    }
+
+    // Otherwise, just update the profile
+    const updateData = {
+      state: locationData.state,
+      city: locationData.city,
+      estate: locationData.estate,
+      location: locationString,
+      landmark: locationData.landmark,
+      address: locationData.address,
+      addressVerified: true, // Mark address as verified when location is set up
+      isVerified: true // Mark user as fully verified after location setup
+    };
+
+    return this.authService.updateUserProfile(user.id, updateData);
   }
 
   @Get('location/landmarks')
@@ -778,18 +852,42 @@ export class AuthController {
     description: 'Too many verification attempts. Please try again later.'
   })
   async verifyPhoneOTP(@Body() body: { phoneNumber: string; otpCode: string; purpose?: 'registration' | 'login' | 'password_reset' }) {
+    // Validate that this is a phone number (Nigerian format check)
+    if (!body.phoneNumber || !body.phoneNumber.includes('+234')) {
+      return {
+        success: false,
+        verified: false,
+        error: 'Invalid phone number format. Expected Nigerian phone number.',
+        method: 'phone'
+      };
+    }
+
+    // Add debug logging
+    console.log('🔍 Phone OTP Verification Request:', {
+      phoneNumber: body.phoneNumber,
+      otpCode: body.otpCode,
+      purpose: body.purpose || 'registration',
+      timestamp: new Date().toISOString(),
+      endpoint: '/auth/phone/verify-otp'
+    });
+
     const result = await this.phoneOtpService.verifyPhoneOTP(
       body.phoneNumber,
       body.otpCode,
       body.purpose || 'registration'
     );
 
-    return {
+    const response = {
       success: result.success,
       verified: result.verified,
       error: result.error,
-      method: 'phone',
+      method: 'phone', // Explicitly set to phone
       carrier: result.carrier
     };
+
+    // Add debug logging for response
+    console.log('📤 Phone OTP Verification Response:', response);
+
+    return response;
   }
 }

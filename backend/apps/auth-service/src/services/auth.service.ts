@@ -34,8 +34,15 @@ export class AuthService {
       let savedUser: any;
 
       if (existingUser) {
-        // Check if user is already fully verified/registered
-        if (existingUser.isVerified && existingUser.firstName && existingUser.lastName) {
+        this.logger.log(`Found existing user: ${existingUser.email}`);
+        this.logger.log(`User status - isVerified: ${existingUser.isVerified}, phoneVerified: ${existingUser.phoneVerified}, firstName: ${existingUser.firstName}, lastName: ${existingUser.lastName}`);
+        this.logger.log(`User created: ${existingUser.createdAt}, updated: ${existingUser.updatedAt}`);
+
+        // Check if user is already fully registered with complete profile AND phone verified
+        // Only reject if user has completed the full registration flow including phone verification
+        if (existingUser.isVerified && existingUser.firstName && existingUser.lastName &&
+            existingUser.phoneVerified && existingUser.phoneNumber) {
+          this.logger.log(`User is fully registered - rejecting duplicate registration attempt`);
           if (existingUser.email === registerDto.email) {
             return {
               success: false,
@@ -48,9 +55,12 @@ export class AuthService {
               error: 'User already exists with this phone number'
             };
           }
+        } else {
+          this.logger.log(`User exists but not fully registered - will update existing record`);
         }
 
         // User exists but is unverified (created during OTP sending) - update it
+        this.logger.log(`Updating existing user ${existingUser.email} with phone number ${registerDto.phoneNumber}`);
         const saltRounds = 12;
         const passwordHash = await bcrypt.hash(registerDto.password, saltRounds);
 
@@ -677,7 +687,7 @@ export class AuthService {
   async testEmailService(email: string): Promise<AuthResponseDto> {
     try {
       const otpResult = await this.emailOtpService.sendEmailOTP(email, 'registration');
-      
+
       if (!otpResult.success) {
         return {
           success: false,
@@ -696,6 +706,191 @@ export class AuthService {
       return {
         success: false,
         error: 'Failed to send test email. Please try again.'
+      };
+    }
+  }
+
+  async updateUserProfile(
+    userId: string,
+    updates: {
+      phone_number?: string;
+      verification_level?: number;
+      state?: string;
+      city?: string;
+      estate?: string;
+      location?: string;
+      landmark?: string;
+      address?: string;
+      phoneVerified?: boolean;
+      addressVerified?: boolean;
+      isVerified?: boolean;
+    }
+  ): Promise<AuthResponseDto> {
+    try {
+      const user = await this.userRepository.findOne({ where: { id: userId } });
+
+      if (!user) {
+        return {
+          success: false,
+          error: 'User not found'
+        };
+      }
+
+      // Update user fields
+      if (updates.phone_number !== undefined) user.phoneNumber = updates.phone_number;
+      if (updates.state !== undefined) user.state = updates.state;
+      if (updates.city !== undefined) user.city = updates.city;
+      if (updates.estate !== undefined) user.estate = updates.estate;
+      if (updates.location !== undefined) user.location = updates.location;
+      if (updates.landmark !== undefined) user.landmark = updates.landmark;
+      if (updates.address !== undefined) user.address = updates.address;
+      if (updates.phoneVerified !== undefined) user.phoneVerified = updates.phoneVerified;
+      if (updates.addressVerified !== undefined) user.addressVerified = updates.addressVerified;
+
+      // Update overall verification status based on completion
+      if (updates.isVerified !== undefined) {
+        user.isVerified = updates.isVerified;
+      } else if (updates.verification_level !== undefined) {
+        // Auto-update isVerified based on verification level
+        user.isVerified = updates.verification_level >= 2; // Email + Phone verified
+      }
+
+      // Update timestamp
+      user.updatedAt = new Date();
+
+      const savedUser = await this.userRepository.save(user);
+
+      this.logger.log(`User profile updated successfully: ${userId}`);
+
+      return {
+        success: true,
+        message: 'Profile updated successfully',
+        user: {
+          id: savedUser.id,
+          email: savedUser.email,
+          firstName: savedUser.firstName,
+          lastName: savedUser.lastName,
+          phoneNumber: savedUser.phoneNumber,
+          phoneVerified: savedUser.phoneVerified,
+          isVerified: savedUser.isVerified,
+          verificationLevel: savedUser.getVerificationLevel(),
+          state: savedUser.state,
+          city: savedUser.city,
+          estate: savedUser.estate,
+          location: savedUser.location,
+          address: savedUser.address,
+          addressVerified: savedUser.addressVerified
+        }
+      };
+
+    } catch (error) {
+      this.logger.error('Update profile error:', error);
+      return {
+        success: false,
+        error: 'Failed to update profile'
+      };
+    }
+  }
+
+  async getUserProfile(userId: string): Promise<AuthResponseDto> {
+    try {
+      const user = await this.userRepository.findOne({ where: { id: userId } });
+
+      if (!user) {
+        return {
+          success: false,
+          error: 'User not found'
+        };
+      }
+
+      return {
+        success: true,
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          phoneNumber: user.phoneNumber,
+          phoneVerified: user.phoneVerified,
+          isVerified: user.isVerified,
+          verificationLevel: user.getVerificationLevel(),
+          state: user.state,
+          city: user.city,
+          estate: user.estate,
+          location: user.location,
+          address: user.address,
+          addressVerified: user.addressVerified,
+          preferredLanguage: user.preferredLanguage,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt
+        }
+      };
+
+    } catch (error) {
+      this.logger.error('Get profile error:', error);
+      return {
+        success: false,
+        error: 'Failed to get profile'
+      };
+    }
+  }
+
+  async completeRegistrationWithLocation(
+    userId: string,
+    locationData: {
+      state?: string;
+      city?: string;
+      estate?: string;
+      location?: string;
+      landmark?: string;
+      address?: string;
+      phoneNumber?: string;
+    }
+  ): Promise<AuthResponseDto> {
+    try {
+      const user = await this.userRepository.findOne({ where: { id: userId } });
+
+      if (!user) {
+        return {
+          success: false,
+          error: 'User not found'
+        };
+      }
+
+      // Update location fields
+      if (locationData.state) user.state = locationData.state;
+      if (locationData.city) user.city = locationData.city;
+      if (locationData.estate) user.estate = locationData.estate;
+      if (locationData.location) user.location = locationData.location;
+      if (locationData.landmark) user.landmark = locationData.landmark;
+      if (locationData.address) user.address = locationData.address;
+      if (locationData.phoneNumber) user.phoneNumber = locationData.phoneNumber;
+
+      // Mark as fully verified after location setup
+      user.addressVerified = true;
+      user.isVerified = true;
+
+      // Set member since date
+      if (!user.memberSince) {
+        user.memberSince = new Date();
+      }
+
+      user.updatedAt = new Date();
+
+      const savedUser = await this.userRepository.save(user);
+
+      // Generate tokens for the completed registration
+      const tokenPair = await this.tokenService.generateTokenPair(savedUser);
+
+      this.logger.log(`Registration completed with location for user: ${userId}`);
+
+      return this.tokenService.generateUserResponse(savedUser, tokenPair);
+
+    } catch (error) {
+      this.logger.error('Complete registration with location error:', error);
+      return {
+        success: false,
+        error: 'Failed to complete registration'
       };
     }
   }

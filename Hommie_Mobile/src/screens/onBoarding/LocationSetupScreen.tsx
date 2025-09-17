@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ScrollView, Alert } from 'react-native';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../../constants';
 import { contextAwareGoBack } from '../../utils/navigationUtils';
-import { MeCabalLocation } from '../../services';
+import { MeCabalLocation, MeCabalAuth } from '../../services';
 import { useAuth } from '../../contexts/AuthContext';
 
 const LOCATION_OPTIONS = [
@@ -53,8 +53,32 @@ export default function LocationSetupScreen({ navigation, route }: any) {
   const userDetails = route.params?.userDetails;
 
   // Function to complete location setup and authenticate user
-  const completeLocationSetup = async () => {
+  const completeLocationSetup = async (locationData?: {
+    state?: string;
+    city?: string;
+    estate?: string;
+    location?: string;
+    landmark?: string;
+    address?: string;
+    latitude?: number;
+    longitude?: number;
+  }) => {
     try {
+      // Save location data to backend if provided
+      if (locationData) {
+        const locationResult = await MeCabalAuth.setupLocation({
+          ...locationData,
+          completeRegistration: true
+        });
+
+        if (!locationResult.success) {
+          Alert.alert('Error', locationResult.error || 'Failed to save location');
+          return;
+        }
+
+        console.log('Location saved successfully to backend');
+      }
+
       if (userDetails) {
         // Authenticate the user with the context
         await register(userDetails);
@@ -179,7 +203,14 @@ export default function LocationSetupScreen({ navigation, route }: any) {
                 Alert.alert(
                   'Location Verified!',
                   `Welcome to ${verification.neighborhood.name}!\n\nAddress: ${location.data.address || 'Location detected'}\nAccuracy: ${Math.round(location.data.accuracy)}m`,
-                  [{ text: 'Continue', onPress: completeLocationSetup }]
+                  [{ text: 'Continue', onPress: () => completeLocationSetup({
+                    state: verification.neighborhood.state,
+                    city: verification.neighborhood.city,
+                    estate: verification.neighborhood.name,
+                    latitude: location.data.latitude,
+                    longitude: location.data.longitude,
+                    address: location.data.address
+                  }) }]
                 );
               } else {
                 Alert.alert(
@@ -225,7 +256,14 @@ export default function LocationSetupScreen({ navigation, route }: any) {
             [
               {
                 text: 'Continue',
-                onPress: completeLocationSetup
+                onPress: () => completeLocationSetup({
+                  state: result.neighborhood.state,
+                  city: result.neighborhood.city,
+                  estate: result.neighborhood.name,
+                  latitude: result.latitude,
+                  longitude: result.longitude,
+                  address: result.address
+                })
               }
             ]
           );
@@ -236,7 +274,11 @@ export default function LocationSetupScreen({ navigation, route }: any) {
             [
               {
                 text: 'Continue',
-                onPress: completeLocationSetup
+                onPress: () => completeLocationSetup({
+                  latitude: result.latitude,
+                  longitude: result.longitude,
+                  address: result.address
+                })
               }
             ]
           );
@@ -261,7 +303,14 @@ export default function LocationSetupScreen({ navigation, route }: any) {
         Alert.alert(
           'Location Verified!',
           `Welcome to ${verification.neighborhood.name}! Your location has been verified based on ${landmark.name}.`,
-          [{ text: 'Continue', onPress: completeLocationSetup }]
+          [{ text: 'Continue', onPress: () => completeLocationSetup({
+            state: verification.neighborhood.state,
+            city: verification.neighborhood.city,
+            estate: verification.neighborhood.name,
+            landmark: landmark.name,
+            latitude: landmark.latitude,
+            longitude: landmark.longitude
+          }) }]
         );
       } else {
         Alert.alert(
@@ -280,7 +329,12 @@ export default function LocationSetupScreen({ navigation, route }: any) {
     if (selectedOption === 'landmark' && selectedLandmark) {
       // TODO: Save landmark selection and proceed
       Alert.alert('Location Set', `You've selected ${selectedLandmark.name}. Welcome to MeCabal!`, [
-        { text: 'Continue', onPress: completeLocationSetup }
+        { text: 'Continue', onPress: () => completeLocationSetup({
+          landmark: selectedLandmark.name,
+          latitude: selectedLandmark.latitude,
+          longitude: selectedLandmark.longitude,
+          address: selectedLandmark.address
+        }) }
       ]);
     } else if (selectedOption === 'gps') {
       // GPS already handled
@@ -295,7 +349,9 @@ export default function LocationSetupScreen({ navigation, route }: any) {
       'Enter your address manually. If your estate/compound doesn\'t exist, we\'ll create a pending place for review.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Continue', onPress: completeLocationSetup }
+        { text: 'Continue', onPress: () => completeLocationSetup({
+          address: 'Manual entry - pending verification'
+        }) }
       ]
     );
   };

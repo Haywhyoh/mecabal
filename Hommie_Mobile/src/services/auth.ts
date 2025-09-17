@@ -168,12 +168,23 @@ export class MeCabalAuth {
     purpose: 'registration' | 'login' | 'password_reset' = 'registration'
   ): Promise<VerifyOTPResponse> {
     try {
+      // Debug logging
+      console.log('🔍 Frontend calling phone OTP verification:', {
+        phoneNumber,
+        otpCode,
+        purpose,
+        endpoint: '/auth/phone/verify-otp'
+      });
+
       // Call new backend API endpoint
       const result = await ApiClient.post<any>('/auth/phone/verify-otp', {
         phoneNumber: phoneNumber,
         otpCode: otpCode,
         purpose
       });
+
+      // Debug the response
+      console.log('📤 Frontend received phone OTP response:', result);
 
       if (!result.success) {
         return {
@@ -516,6 +527,41 @@ export class MeCabalAuth {
       return `+234 ${phone.substring(4, 7)} ${phone.substring(7, 10)} ${phone.substring(10)}`;
     }
     return phone;
+  }
+
+  // Location Setup - Save user location data to backend
+  static async setupLocation(locationData: {
+    state?: string;
+    city?: string;
+    estate?: string;
+    location?: string;
+    landmark?: string;
+    address?: string;
+    latitude?: number;
+    longitude?: number;
+    completeRegistration?: boolean;
+  }): Promise<ApiResponse<any>> {
+    try {
+      const result = await ApiClient.post<any>('/auth/location/setup', locationData);
+
+      if (!result.success) {
+        return {
+          success: false,
+          error: result.error || 'Failed to save location'
+        };
+      }
+
+      return {
+        success: true,
+        data: result.data,
+        message: result.message || 'Location saved successfully'
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Failed to save location'
+      };
+    }
   }
 
   // Email Authentication Methods (Using Supabase Built-in Auth)
