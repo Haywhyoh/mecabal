@@ -142,13 +142,14 @@ export class MeCabalAuth {
       const carrierInfo = data.carrier ? {
         name: data.carrier.name,
         color: data.carrier.color || '#00A651'
-      } : null;
+      } : undefined;
 
       return {
         success: true,
         message: data.message || 'SMS OTP sent successfully to your phone',
         expires_at: data.expires_at || new Date(Date.now() + 5 * 60 * 1000).toISOString(),
-        carrier: carrierInfo
+        carrier: carrierInfo?.name,
+        carrier_color: carrierInfo?.color
       };
     } catch (error: any) {
       return {
@@ -282,13 +283,10 @@ export class MeCabalAuth {
   }
 
   // Complete login after OTP verification
-  static async completeLogin(phoneNumber: string, otpCode: string): Promise<AuthResponse> {
+  static async completeLogin(phoneNumber: string): Promise<AuthResponse> {
     try {
-      // Verify OTP and complete login in one step
-      const result = await ApiClient.post<any>('/auth/login', {
-        phone: phoneNumber,
-        otp_code: otpCode
-      });
+      // Get current user after OTP verification
+      const result = await ApiClient.get<any>('/auth/me');
 
       if (!result.success) {
         return {
@@ -353,6 +351,7 @@ export class MeCabalAuth {
 
   // Update user profile
   static async updateProfile(
+    userId: string,
     updates: Partial<NigerianUser>
   ): Promise<ApiResponse<NigerianUser>> {
     try {
@@ -736,5 +735,44 @@ export class MeCabalAuth {
   private static isValidEmail(email: string): boolean {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
+  }
+
+  // Auth state change listener (simplified implementation)
+  static onAuthStateChange(callback: (event: string, session: any) => void) {
+    // For now, we'll implement a simple polling mechanism
+    // In a real implementation, you might want to use WebSockets or Server-Sent Events
+    let isListening = true;
+    
+    const checkAuthState = async () => {
+      if (!isListening) return;
+      
+      try {
+        const token = await AsyncStorage.getItem('auth_token');
+        const currentUser = await this.getCurrentUser();
+        
+        if (token && currentUser) {
+          callback('SIGNED_IN', { user: currentUser });
+        } else {
+          callback('SIGNED_OUT', null);
+        }
+      } catch (error) {
+        callback('SIGNED_OUT', null);
+      }
+      
+      // Check again in 5 seconds
+      setTimeout(checkAuthState, 5000);
+    };
+    
+    // Start checking
+    checkAuthState();
+    
+    // Return subscription object
+    return {
+      subscription: {
+        unsubscribe: () => {
+          isListening = false;
+        }
+      }
+    };
   }
 }

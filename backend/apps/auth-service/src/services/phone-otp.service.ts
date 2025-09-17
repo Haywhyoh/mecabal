@@ -139,8 +139,8 @@ export class PhoneOtpService {
         otpResult = await this.sendWhatsAppOTP(phoneNumber);
         otpMethod = 'WhatsApp';
       } else {
-        this.logger.log('Sending SMS OTP via SmartSMS');
-        otpResult = await this.sendSmartSMSOTP(phoneNumber);
+        this.logger.log('Using hardcoded SMS OTP for testing');
+        otpResult = '2398'; // Hardcoded OTP for testing
         otpMethod = 'SMS';
       }
 
@@ -299,10 +299,13 @@ export class PhoneOtpService {
     ) || null;
   }
 
+  // COMMENTED OUT: SmartSMS implementation - using hardcoded OTP '2398' for testing
+  // TODO: Re-enable when SMS service is ready
+  /*
   private async sendSmartSMSOTP(phoneNumber: string): Promise<string | false> {
     try {
       const apiToken = this.configService.get<string>('SMARTSMS_API_TOKEN');
-      
+
       if (!apiToken) {
         this.logger.error('SmartSMS API token not configured');
         return false;
@@ -310,14 +313,14 @@ export class PhoneOtpService {
 
       // Generate 4-digit OTP
       const otpCode = Math.floor(1000 + Math.random() * 9000).toString();
-      
+
       // Format phone number for SmartSMS (remove country code +234, ensure starts with 0)
       let formattedPhone = phoneNumber.replace(/^\+234/, '');
-      
+
       if (formattedPhone.startsWith('234')) {
         formattedPhone = formattedPhone.substring(3);
       }
-      
+
       if (!formattedPhone.startsWith('0')) {
         formattedPhone = '0' + formattedPhone;
       }
@@ -368,7 +371,7 @@ export class PhoneOtpService {
           unitsUsed: responseData.units_used,
           refId: responseData.ref_id
         });
-        
+
         return otpCode;
       } else {
         this.logger.error('SmartSMS delivery failed:', {
@@ -384,6 +387,7 @@ export class PhoneOtpService {
       return false;
     }
   }
+  */
 
   private async sendWhatsAppOTP(phoneNumber: string): Promise<string | false> {
     try {

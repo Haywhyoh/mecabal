@@ -241,6 +241,10 @@ export interface AuthResponse {
   success: boolean;
   user?: NigerianUser;
   session?: any;
+  access_token?: string;
+  refresh_token?: string;
+  message?: string;
+  needsProfileCompletion?: boolean;
   error?: string;
 }
 
@@ -411,11 +415,11 @@ export type SubscriptionStatus = 'SUBSCRIBED' | 'TIMED_OUT' | 'CLOSED' | 'CHANNE
 // Export all types as a namespace for easier importing
 export namespace MeCabalTypes {
   export type User = NigerianUser;
-  export type Neighborhood = Neighborhood;
-  export type Post = Post;
-  export type Event = Event;
-  export type MarketplaceListing = MarketplaceListing;
-  export type Message = Message;
-  export type SafetyAlert = SafetyAlert;
-  export type PaymentTransaction = PaymentTransaction;
+  export type NeighborhoodType = Neighborhood;
+  export type PostType = Post;
+  export type EventType = Event;
+  export type MarketplaceListingType = MarketplaceListing;
+  export type MessageType = Message;
+  export type SafetyAlertType = SafetyAlert;
+  export type PaymentTransactionType = PaymentTransaction;
 }
