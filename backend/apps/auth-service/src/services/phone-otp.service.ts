@@ -152,9 +152,41 @@ export class PhoneOtpService {
 
         // Update user with phone number and carrier info if not set
         if (!user!.phoneNumber) {
-          user!.phoneNumber = phoneNumber;
-          user!.phoneCarrier = carrierInfo.name;
-          await this.userRepository.save(user!);
+          try {
+            // Check if phone number already exists for another user
+            const existingPhoneUser = await this.userRepository.findOne({
+              where: { phoneNumber },
+            });
+
+            if (existingPhoneUser && existingPhoneUser.id !== user!.id) {
+              this.logger.error(`Phone number ${phoneNumber} already registered to another user: ${existingPhoneUser.id}`);
+              return {
+                success: false,
+                error: 'Phone number is already registered to another account. Please use a different number.',
+              };
+            }
+
+            // Update phone number and carrier if no conflict
+            user!.phoneNumber = phoneNumber;
+            user!.phoneCarrier = carrierInfo.name;
+            await this.userRepository.save(user!);
+            this.logger.log(`Updated user ${user!.id} with phone number ${phoneNumber}`);
+          } catch (error) {
+            this.logger.error(`Failed to update user with phone number: ${error.message}`);
+
+            // Handle specific constraint violation
+            if (error.code === '23505' && error.constraint === 'UQ_17d1817f241f10a3dbafb169fd2') {
+              return {
+                success: false,
+                error: 'Phone number is already registered to another account. Please use a different number.',
+              };
+            }
+
+            return {
+              success: false,
+              error: 'Failed to update phone number. Please try again.',
+            };
+          }
         }
       }
 
