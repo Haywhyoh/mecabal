@@ -1,13 +1,13 @@
-import { 
-  Entity, 
-  PrimaryGeneratedColumn, 
-  Column, 
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
   CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
   OneToMany,
   JoinColumn,
-  Index
+  Index,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Post } from './post.entity';
@@ -30,7 +30,10 @@ export class PostComment {
   @Column({ name: 'user_id' })
   userId: string;
 
-  @ApiProperty({ description: 'Parent comment ID for replies', required: false })
+  @ApiProperty({
+    description: 'Parent comment ID for replies',
+    required: false,
+  })
   @Column({ name: 'parent_comment_id', nullable: true })
   parentCommentId?: string;
 
@@ -51,7 +54,7 @@ export class PostComment {
   updatedAt: Date;
 
   // Relations
-  @ManyToOne(() => Post, post => post.comments, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Post, (post) => post.comments, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'post_id' })
   post: Post;
 
@@ -59,11 +62,13 @@ export class PostComment {
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @ManyToOne(() => PostComment, comment => comment.replies, { nullable: true })
+  @ManyToOne(() => PostComment, (comment) => comment.replies, {
+    nullable: true,
+  })
   @JoinColumn({ name: 'parent_comment_id' })
   parentComment?: PostComment;
 
-  @OneToMany(() => PostComment, comment => comment.parentComment)
+  @OneToMany(() => PostComment, (comment) => comment.parentComment)
   replies: PostComment[];
 
   // Helper methods

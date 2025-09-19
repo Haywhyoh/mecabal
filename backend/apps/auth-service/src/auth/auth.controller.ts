@@ -1,31 +1,37 @@
-import { 
-  Controller, 
-  Post, 
-  Body, 
-  UseGuards, 
+import {
+  Controller,
+  Post,
+  Put,
+  Body,
+  UseGuards,
   Request,
   Get,
   HttpStatus,
-  HttpCode
+  HttpCode,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
-import { 
-  LocalAuthGuard, 
+import {
+  LocalAuthGuard,
   JwtAuthGuard,
   RolesGuard,
   Public,
   CurrentUser,
   Roles,
-  RequirePermissions
+  RequirePermissions,
 } from '@app/auth';
 import { AuthService } from '../services/auth.service';
 import { EmailOtpService } from '../services/email-otp.service';
 import { PhoneOtpService } from '../services/phone-otp.service';
-import { 
-  RegisterDto, 
-  LoginDto, 
-  VerifyOtpDto, 
+import {
+  RegisterDto,
+  LoginDto,
+  VerifyOtpDto,
   RefreshTokenDto,
   ResetPasswordDto,
   ConfirmPasswordResetDto,
@@ -43,7 +49,7 @@ import {
   LandmarkSearchDto,
   EstateSearchDto,
   EnhancedRegisterDto,
-  UpdateOnboardingStepDto
+  UpdateOnboardingStepDto,
 } from '../dto/auth.dto';
 import { MobileRegisterDto } from '../dto/mobile-register.dto';
 import { User } from '@app/database';
@@ -55,20 +61,20 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly emailOtpService: EmailOtpService,
-    private readonly phoneOtpService: PhoneOtpService
+    private readonly phoneOtpService: PhoneOtpService,
   ) {}
 
   @Post('register')
   @Public()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Register a new user' })
-  @ApiResponse({ 
-    status: 201, 
-    description: 'User registered successfully. OTP sent for verification.' 
+  @ApiResponse({
+    status: 201,
+    description: 'User registered successfully. OTP sent for verification.',
   })
-  @ApiResponse({ 
-    status: 409, 
-    description: 'User already exists with this email or phone number' 
+  @ApiResponse({
+    status: 409,
+    description: 'User already exists with this email or phone number',
   })
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.registerUser(registerDto);
@@ -78,13 +84,13 @@ export class AuthController {
   @Public()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Register a new user (Mobile App)' })
-  @ApiResponse({ 
-    status: 201, 
-    description: 'User registered successfully. OTP sent for verification.' 
+  @ApiResponse({
+    status: 201,
+    description: 'User registered successfully. OTP sent for verification.',
   })
-  @ApiResponse({ 
-    status: 409, 
-    description: 'User already exists with this email or phone number' 
+  @ApiResponse({
+    status: 409,
+    description: 'User already exists with this email or phone number',
   })
   async registerMobile(@Body() registerDto: MobileRegisterDto) {
     // Convert mobile DTO to internal format
@@ -97,7 +103,7 @@ export class AuthController {
       state: registerDto.state_of_origin,
       city: undefined,
       estate: undefined,
-      preferredLanguage: registerDto.preferred_language || 'en'
+      preferredLanguage: registerDto.preferred_language || 'en',
     };
 
     return this.authService.registerUserMobile(internalDto);
@@ -108,23 +114,23 @@ export class AuthController {
   @Throttle({ 'otp-verify': { limit: 10, ttl: 300000 } }) // 10 attempts per 5 minutes
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verify OTP code' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'OTP verified successfully' 
+  @ApiResponse({
+    status: 200,
+    description: 'OTP verified successfully',
   })
-  @ApiResponse({ 
-    status: 400, 
-    description: 'Invalid or expired OTP' 
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid or expired OTP',
   })
-  @ApiResponse({ 
-    status: 429, 
-    description: 'Too many verification attempts. Please try again later.' 
+  @ApiResponse({
+    status: 429,
+    description: 'Too many verification attempts. Please try again later.',
   })
   async verifyOtp(@Body() verifyOtpDto: VerifyOtpDto) {
     return this.authService.authenticateWithOTP(
       verifyOtpDto.email,
       verifyOtpDto.otpCode,
-      verifyOtpDto.purpose
+      verifyOtpDto.purpose,
     );
   }
 
@@ -133,8 +139,8 @@ export class AuthController {
   @UseGuards(LocalAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login user' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'User logged in successfully',
     schema: {
       type: 'object',
@@ -149,15 +155,15 @@ export class AuthController {
             lastName: { type: 'string' },
             email: { type: 'string' },
             phoneNumber: { type: 'string' },
-            isVerified: { type: 'boolean' }
-          }
-        }
-      }
-    }
+            isVerified: { type: 'boolean' },
+          },
+        },
+      },
+    },
   })
-  @ApiResponse({ 
-    status: 401, 
-    description: 'Invalid credentials or account not verified' 
+  @ApiResponse({
+    status: 401,
+    description: 'Invalid credentials or account not verified',
   })
   async login(@Body() loginDto: LoginDto, @Request() req: any) {
     const deviceInfo = {
@@ -174,13 +180,13 @@ export class AuthController {
   @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Refresh access token' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Tokens refreshed successfully' 
+  @ApiResponse({
+    status: 200,
+    description: 'Tokens refreshed successfully',
   })
-  @ApiResponse({ 
-    status: 401, 
-    description: 'Invalid refresh token' 
+  @ApiResponse({
+    status: 401,
+    description: 'Invalid refresh token',
   })
   async refresh(@Body() refreshTokenDto: RefreshTokenDto) {
     return this.authService.refreshTokens(refreshTokenDto.refreshToken);
@@ -191,13 +197,13 @@ export class AuthController {
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Logout user' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'User logged out successfully' 
+  @ApiResponse({
+    status: 200,
+    description: 'User logged out successfully',
   })
   async logout(
     @CurrentUser() user: User,
-    @Body() body?: { refreshToken?: string }
+    @Body() body?: { refreshToken?: string },
   ) {
     return this.authService.logoutUser(user.id);
   }
@@ -208,7 +214,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Get current user profile' })
   @ApiResponse({
     status: 200,
-    description: 'User profile retrieved successfully'
+    description: 'User profile retrieved successfully',
   })
   async getProfile(@CurrentUser() user: User) {
     return this.authService.getUserProfile(user.id);
@@ -220,24 +226,25 @@ export class AuthController {
   @ApiOperation({ summary: 'Get current authenticated user' })
   @ApiResponse({
     status: 200,
-    description: 'Current user retrieved successfully'
+    description: 'Current user retrieved successfully',
   })
   async getCurrentUser(@CurrentUser() user: User) {
     return this.authService.getUserProfile(user.id);
   }
 
-  @Post('profile')
+  @Put('profile')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update user profile' })
   @ApiResponse({
     status: 200,
-    description: 'Profile updated successfully'
+    description: 'Profile updated successfully',
   })
   async updateProfile(
     @CurrentUser() user: User,
-    @Body() updateData: {
+    @Body()
+    updateData: {
       phone_number?: string;
       verification_level?: number;
       state?: string;
@@ -249,7 +256,7 @@ export class AuthController {
       phoneVerified?: boolean;
       addressVerified?: boolean;
       isVerified?: boolean;
-    }
+    },
   ) {
     return this.authService.updateUserProfile(user.id, updateData);
   }
@@ -257,9 +264,9 @@ export class AuthController {
   @Get('health')
   @Public()
   @ApiOperation({ summary: 'Health check for auth service' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Service is healthy' 
+  @ApiResponse({
+    status: 200,
+    description: 'Service is healthy',
   })
   getHealth() {
     return {
@@ -273,9 +280,9 @@ export class AuthController {
   @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Initiate password reset' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Password reset code sent to email (if email exists)' 
+  @ApiResponse({
+    status: 200,
+    description: 'Password reset code sent to email (if email exists)',
   })
   async initiatePasswordReset(@Body() resetPasswordDto: ResetPasswordDto) {
     return this.authService.initiatePasswordReset(resetPasswordDto);
@@ -285,13 +292,13 @@ export class AuthController {
   @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Confirm password reset with OTP' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Password reset successfully' 
+  @ApiResponse({
+    status: 200,
+    description: 'Password reset successfully',
   })
-  @ApiResponse({ 
-    status: 400, 
-    description: 'Invalid or expired reset code' 
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid or expired reset code',
   })
   async confirmPasswordReset(@Body() confirmResetDto: ConfirmPasswordResetDto) {
     return this.authService.confirmPasswordReset(confirmResetDto);
@@ -302,13 +309,13 @@ export class AuthController {
   @Throttle({ 'otp-send': { limit: 3, ttl: 60000 } }) // 3 sends per minute
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Initiate OTP login via email' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'OTP login code sent to email (if email exists)' 
+  @ApiResponse({
+    status: 200,
+    description: 'OTP login code sent to email (if email exists)',
   })
-  @ApiResponse({ 
-    status: 429, 
-    description: 'Too many OTP requests. Please try again later.' 
+  @ApiResponse({
+    status: 429,
+    description: 'Too many OTP requests. Please try again later.',
   })
   async initiateOtpLogin(@Body() initiateOtpDto: InitiateOtpLoginDto) {
     return this.authService.initiateOtpLogin(initiateOtpDto);
@@ -319,8 +326,8 @@ export class AuthController {
   @Throttle({ 'otp-verify': { limit: 10, ttl: 300000 } }) // 10 attempts per 5 minutes
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verify OTP login code' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Login successful with JWT tokens',
     schema: {
       type: 'object',
@@ -335,15 +342,15 @@ export class AuthController {
             lastName: { type: 'string' },
             email: { type: 'string' },
             phoneNumber: { type: 'string' },
-            isVerified: { type: 'boolean' }
-          }
-        }
-      }
-    }
+            isVerified: { type: 'boolean' },
+          },
+        },
+      },
+    },
   })
-  @ApiResponse({ 
-    status: 401, 
-    description: 'Invalid or expired OTP code' 
+  @ApiResponse({
+    status: 401,
+    description: 'Invalid or expired OTP code',
   })
   async verifyOtpLogin(@Body() verifyOtpDto: VerifyOtpLoginDto) {
     return this.authService.verifyOtpLogin(verifyOtpDto);
@@ -355,41 +362,47 @@ export class AuthController {
   @ApiOperation({ summary: 'Complete email login with OTP' })
   @ApiResponse({
     status: 200,
-    description: 'Login completed successfully'
+    description: 'Login completed successfully',
   })
   @ApiResponse({
     status: 401,
-    description: 'Invalid OTP or user not found'
+    description: 'Invalid OTP or user not found',
   })
   async completeEmailLogin(@Body() body: { email: string; otpCode: string }) {
     return this.authService.authenticateWithOTP(
       body.email,
       body.otpCode,
-      'login'
+      'login',
     );
   }
 
   @Post('complete-email-verification')
   @Public()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Complete email verification and registration in one atomic operation' })
+  @ApiOperation({
+    summary:
+      'Complete email verification and registration in one atomic operation',
+  })
   @ApiResponse({
     status: 200,
-    description: 'Email verified and user registered successfully'
+    description: 'Email verified and user registered successfully',
   })
   @ApiResponse({
     status: 401,
-    description: 'Invalid OTP or verification failed'
+    description: 'Invalid OTP or verification failed',
   })
-  async completeEmailVerification(@Body() body: {
-    email: string;
-    otpCode: string;
-    first_name: string;
-    last_name: string;
-    phone_number?: string;
-    state_of_origin?: string;
-    preferred_language?: string;
-  }) {
+  async completeEmailVerification(
+    @Body()
+    body: {
+      email: string;
+      otpCode: string;
+      first_name: string;
+      last_name: string;
+      phone_number?: string;
+      state_of_origin?: string;
+      preferred_language?: string;
+    },
+  ) {
     return this.authService.authenticateWithOTP(
       body.email,
       body.otpCode,
@@ -399,8 +412,8 @@ export class AuthController {
         last_name: body.last_name,
         phone_number: body.phone_number,
         state_of_origin: body.state_of_origin,
-        preferred_language: body.preferred_language
-      }
+        preferred_language: body.preferred_language,
+      },
     );
   }
 
@@ -408,9 +421,9 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current user roles and permissions' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'User roles and permissions retrieved successfully' 
+  @ApiResponse({
+    status: 200,
+    description: 'User roles and permissions retrieved successfully',
   })
   async getUserRoles(@CurrentUser() user: User) {
     return {
@@ -424,13 +437,13 @@ export class AuthController {
   @Roles('admin', 'super_admin')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Test admin-only endpoint' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Admin access confirmed' 
+  @ApiResponse({
+    status: 200,
+    description: 'Admin access confirmed',
   })
-  @ApiResponse({ 
-    status: 403, 
-    description: 'Insufficient permissions' 
+  @ApiResponse({
+    status: 403,
+    description: 'Insufficient permissions',
   })
   async adminTest(@CurrentUser() user: User) {
     return {
@@ -444,9 +457,9 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Test email service functionality' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Test email sent successfully' 
+  @ApiResponse({
+    status: 200,
+    description: 'Test email sent successfully',
   })
   async testEmail(@CurrentUser() user: User) {
     return this.authService.testEmailService(user.email);
@@ -457,13 +470,13 @@ export class AuthController {
   @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Initiate Nigerian phone number verification' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'OTP sent to phone number. Carrier auto-detected.' 
+  @ApiResponse({
+    status: 200,
+    description: 'OTP sent to phone number. Carrier auto-detected.',
   })
-  @ApiResponse({ 
-    status: 400, 
-    description: 'Invalid Nigerian phone number or rate limit exceeded' 
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid Nigerian phone number or rate limit exceeded',
   })
   async initiatePhoneVerification(@Body() dto: InitiatePhoneVerificationDto) {
     throw new Error('Method not implemented yet');
@@ -473,13 +486,13 @@ export class AuthController {
   @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verify Nigerian phone OTP code' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Phone number verified successfully' 
+  @ApiResponse({
+    status: 200,
+    description: 'Phone number verified successfully',
   })
-  @ApiResponse({ 
-    status: 400, 
-    description: 'Invalid or expired OTP code' 
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid or expired OTP code',
   })
   async verifyPhoneOtp(@Body() dto: VerifyPhoneOtpDto) {
     throw new Error('Method not implemented yet');
@@ -489,13 +502,13 @@ export class AuthController {
   @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Resend phone verification OTP' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'New OTP sent successfully' 
+  @ApiResponse({
+    status: 200,
+    description: 'New OTP sent successfully',
   })
-  @ApiResponse({ 
-    status: 429, 
-    description: 'Too many resend attempts. Please wait.' 
+  @ApiResponse({
+    status: 429,
+    description: 'Too many resend attempts. Please wait.',
   })
   async resendPhoneOtp(@Body() dto: ResendPhoneOtpDto) {
     throw new Error('Method not implemented yet');
@@ -505,9 +518,9 @@ export class AuthController {
   @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Use alternative phone verification (Call/USSD)' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Alternative verification initiated' 
+  @ApiResponse({
+    status: 200,
+    description: 'Alternative verification initiated',
   })
   async alternativeVerification(@Body() dto: AlternativeVerificationDto) {
     throw new Error('Method not implemented yet');
@@ -518,8 +531,8 @@ export class AuthController {
   @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login or register with social provider' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Social authentication successful',
     schema: {
       type: 'object',
@@ -535,15 +548,15 @@ export class AuthController {
             email: { type: 'string' },
             socialProvider: { type: 'string' },
             isNewUser: { type: 'boolean' },
-            onboardingStep: { type: 'string' }
-          }
-        }
-      }
-    }
+            onboardingStep: { type: 'string' },
+          },
+        },
+      },
+    },
   })
-  @ApiResponse({ 
-    status: 401, 
-    description: 'Invalid social token or provider error' 
+  @ApiResponse({
+    status: 401,
+    description: 'Invalid social token or provider error',
   })
   async socialAuth(@Body() dto: SocialAuthWithPhoneDto) {
     throw new Error('Method not implemented yet');
@@ -554,15 +567,18 @@ export class AuthController {
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Link social account to existing user' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Social account linked successfully' 
+  @ApiResponse({
+    status: 200,
+    description: 'Social account linked successfully',
   })
-  @ApiResponse({ 
-    status: 409, 
-    description: 'Social account already linked to another user' 
+  @ApiResponse({
+    status: 409,
+    description: 'Social account already linked to another user',
   })
-  async linkSocialAccount(@CurrentUser() user: User, @Body() dto: LinkSocialAccountDto) {
+  async linkSocialAccount(
+    @CurrentUser() user: User,
+    @Body() dto: LinkSocialAccountDto,
+  ) {
     throw new Error('Method not implemented yet');
   }
 
@@ -571,15 +587,18 @@ export class AuthController {
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Unlink social account from user' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Social account unlinked successfully' 
+  @ApiResponse({
+    status: 200,
+    description: 'Social account unlinked successfully',
   })
-  @ApiResponse({ 
-    status: 400, 
-    description: 'Cannot unlink last authentication method' 
+  @ApiResponse({
+    status: 400,
+    description: 'Cannot unlink last authentication method',
   })
-  async unlinkSocialAccount(@CurrentUser() user: User, @Body() dto: UnlinkSocialAccountDto) {
+  async unlinkSocialAccount(
+    @CurrentUser() user: User,
+    @Body() dto: UnlinkSocialAccountDto,
+  ) {
     throw new Error('Method not implemented yet');
   }
 
@@ -587,14 +606,17 @@ export class AuthController {
   @Post('register/enhanced')
   @Public()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Enhanced registration with Nigerian context and onboarding tracking' })
-  @ApiResponse({ 
-    status: 201, 
-    description: 'User registered successfully. Returns next onboarding step.' 
+  @ApiOperation({
+    summary:
+      'Enhanced registration with Nigerian context and onboarding tracking',
   })
-  @ApiResponse({ 
-    status: 409, 
-    description: 'User already exists with this email or phone number' 
+  @ApiResponse({
+    status: 201,
+    description: 'User registered successfully. Returns next onboarding step.',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'User already exists with this email or phone number',
   })
   async enhancedRegister(@Body() dto: EnhancedRegisterDto) {
     throw new Error('Method not implemented yet');
@@ -605,11 +627,14 @@ export class AuthController {
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update user onboarding step' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Onboarding step updated successfully' 
+  @ApiResponse({
+    status: 200,
+    description: 'Onboarding step updated successfully',
   })
-  async updateOnboardingStep(@CurrentUser() user: User, @Body() dto: UpdateOnboardingStepDto) {
+  async updateOnboardingStep(
+    @CurrentUser() user: User,
+    @Body() dto: UpdateOnboardingStepDto,
+  ) {
     throw new Error('Method not implemented yet');
   }
 
@@ -617,9 +642,9 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get user onboarding status' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Onboarding status retrieved successfully' 
+  @ApiResponse({
+    status: 200,
+    description: 'Onboarding status retrieved successfully',
   })
   async getOnboardingStatus(@CurrentUser() user: User) {
     throw new Error('Method not implemented yet');
@@ -633,11 +658,12 @@ export class AuthController {
   @ApiOperation({ summary: 'Set user location (Nigerian context)' })
   @ApiResponse({
     status: 200,
-    description: 'Location set successfully'
+    description: 'Location set successfully',
   })
   async setupLocation(
     @CurrentUser() user: User,
-    @Body() locationData: {
+    @Body()
+    locationData: {
       state?: string;
       city?: string;
       estate?: string;
@@ -647,7 +673,7 @@ export class AuthController {
       latitude?: number;
       longitude?: number;
       completeRegistration?: boolean;
-    }
+    },
   ) {
     // Format location string if coordinates provided
     let locationString = locationData.location;
@@ -663,7 +689,7 @@ export class AuthController {
         estate: locationData.estate,
         location: locationString,
         landmark: locationData.landmark,
-        address: locationData.address
+        address: locationData.address,
       });
     }
 
@@ -676,7 +702,7 @@ export class AuthController {
       landmark: locationData.landmark,
       address: locationData.address,
       addressVerified: true, // Mark address as verified when location is set up
-      isVerified: true // Mark user as fully verified after location setup
+      isVerified: true, // Mark user as fully verified after location setup
     };
 
     return this.authService.updateUserProfile(user.id, updateData);
@@ -685,9 +711,9 @@ export class AuthController {
   @Get('location/landmarks')
   @Public()
   @ApiOperation({ summary: 'Search Nigerian landmarks by state and city' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Landmarks retrieved successfully' 
+  @ApiResponse({
+    status: 200,
+    description: 'Landmarks retrieved successfully',
   })
   async searchLandmarks(@Body() dto: LandmarkSearchDto) {
     throw new Error('Method not implemented yet');
@@ -696,9 +722,9 @@ export class AuthController {
   @Get('location/estates')
   @Public()
   @ApiOperation({ summary: 'Search Nigerian estates by state and city' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Estates retrieved successfully' 
+  @ApiResponse({
+    status: 200,
+    description: 'Estates retrieved successfully',
   })
   async searchEstates(@Body() dto: EstateSearchDto) {
     throw new Error('Method not implemented yet');
@@ -709,7 +735,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Get all Nigerian states and major cities' })
   @ApiResponse({
     status: 200,
-    description: 'Nigerian states and cities retrieved successfully'
+    description: 'Nigerian states and cities retrieved successfully',
   })
   async getNigerianStates() {
     throw new Error('Method not implemented yet');
@@ -723,20 +749,26 @@ export class AuthController {
   @ApiOperation({ summary: 'Send email verification OTP' })
   @ApiResponse({
     status: 200,
-    description: 'OTP sent successfully'
+    description: 'OTP sent successfully',
   })
   @ApiResponse({
     status: 400,
-    description: 'Bad request'
+    description: 'Bad request',
   })
   @ApiResponse({
     status: 429,
-    description: 'Too many OTP requests. Please try again later.'
+    description: 'Too many OTP requests. Please try again later.',
   })
-  async sendEmailOTP(@Body() body: { email: string; purpose?: 'registration' | 'login' | 'password_reset' }) {
+  async sendEmailOTP(
+    @Body()
+    body: {
+      email: string;
+      purpose?: 'registration' | 'login' | 'password_reset';
+    },
+  ) {
     const result = await this.emailOtpService.sendEmailOTP(
       body.email,
-      body.purpose || 'registration'
+      body.purpose || 'registration',
     );
 
     return {
@@ -745,7 +777,7 @@ export class AuthController {
       error: result.error,
       expiresAt: result.expiresAt,
       method: 'email',
-      ...(result.otpCode && { otpCode: result.otpCode })
+      ...(result.otpCode && { otpCode: result.otpCode }),
     };
   }
 
@@ -756,43 +788,49 @@ export class AuthController {
   @ApiOperation({ summary: 'Verify email OTP code' })
   @ApiResponse({
     status: 200,
-    description: 'OTP verified successfully'
+    description: 'OTP verified successfully',
   })
   @ApiResponse({
     status: 400,
-    description: 'Invalid or expired OTP'
+    description: 'Invalid or expired OTP',
   })
   @ApiResponse({
     status: 429,
-    description: 'Too many verification attempts. Please try again later.'
+    description: 'Too many verification attempts. Please try again later.',
   })
-  async verifyEmailOTP(@Body() body: {
-    email: string;
-    otpCode: string;
-    purpose?: 'registration' | 'login' | 'password_reset';
-    firstName?: string;
-    lastName?: string;
-    preferredLanguage?: string;
-  }) {
-    const userDetails = (body.purpose === 'registration' && (body.firstName || body.lastName)) ? {
-      firstName: body.firstName,
-      lastName: body.lastName,
-      preferredLanguage: body.preferredLanguage
-    } : undefined;
+  async verifyEmailOTP(
+    @Body()
+    body: {
+      email: string;
+      otpCode: string;
+      purpose?: 'registration' | 'login' | 'password_reset';
+      firstName?: string;
+      lastName?: string;
+      preferredLanguage?: string;
+    },
+  ) {
+    const userDetails =
+      body.purpose === 'registration' && (body.firstName || body.lastName)
+        ? {
+            firstName: body.firstName,
+            lastName: body.lastName,
+            preferredLanguage: body.preferredLanguage,
+          }
+        : undefined;
 
     const result = await this.emailOtpService.verifyEmailOTP(
       body.email,
       body.otpCode,
       body.purpose || 'registration',
       true, // markAsUsed
-      userDetails
+      userDetails,
     );
 
     return {
       success: result.success,
       verified: result.verified,
       error: result.error,
-      method: 'email'
+      method: 'email',
     };
   }
 
@@ -804,22 +842,30 @@ export class AuthController {
   @ApiOperation({ summary: 'Send phone verification OTP' })
   @ApiResponse({
     status: 200,
-    description: 'OTP sent successfully'
+    description: 'OTP sent successfully',
   })
   @ApiResponse({
     status: 400,
-    description: 'Bad request'
+    description: 'Bad request',
   })
   @ApiResponse({
     status: 429,
-    description: 'Too many OTP requests. Please try again later.'
+    description: 'Too many OTP requests. Please try again later.',
   })
-  async sendPhoneOTP(@Body() body: { phone: string; purpose?: 'registration' | 'login' | 'password_reset'; method?: 'sms' | 'whatsapp'; email?: string }) {
+  async sendPhoneOTP(
+    @Body()
+    body: {
+      phone: string;
+      purpose?: 'registration' | 'login' | 'password_reset';
+      method?: 'sms' | 'whatsapp';
+      email?: string;
+    },
+  ) {
     const result = await this.phoneOtpService.sendPhoneOTP(
       body.phone,
       body.purpose || 'registration',
       body.method || 'sms',
-      body.email
+      body.email,
     );
 
     return {
@@ -830,7 +876,7 @@ export class AuthController {
       method: 'phone',
       carrier: result.carrier,
       carrier_color: result.carrierColor,
-      ...(result.otpCode && { otpCode: result.otpCode })
+      ...(result.otpCode && { otpCode: result.otpCode }),
     };
   }
 
@@ -841,24 +887,31 @@ export class AuthController {
   @ApiOperation({ summary: 'Verify phone OTP code' })
   @ApiResponse({
     status: 200,
-    description: 'OTP verified successfully'
+    description: 'OTP verified successfully',
   })
   @ApiResponse({
     status: 400,
-    description: 'Invalid or expired OTP'
+    description: 'Invalid or expired OTP',
   })
   @ApiResponse({
     status: 429,
-    description: 'Too many verification attempts. Please try again later.'
+    description: 'Too many verification attempts. Please try again later.',
   })
-  async verifyPhoneOTP(@Body() body: { phoneNumber: string; otpCode: string; purpose?: 'registration' | 'login' | 'password_reset' }) {
+  async verifyPhoneOTP(
+    @Body()
+    body: {
+      phoneNumber: string;
+      otpCode: string;
+      purpose?: 'registration' | 'login' | 'password_reset';
+    },
+  ) {
     // Validate that this is a phone number (Nigerian format check)
     if (!body.phoneNumber || !body.phoneNumber.includes('+234')) {
       return {
         success: false,
         verified: false,
         error: 'Invalid phone number format. Expected Nigerian phone number.',
-        method: 'phone'
+        method: 'phone',
       };
     }
 
@@ -868,13 +921,13 @@ export class AuthController {
       otpCode: body.otpCode,
       purpose: body.purpose || 'registration',
       timestamp: new Date().toISOString(),
-      endpoint: '/auth/phone/verify-otp'
+      endpoint: '/auth/phone/verify-otp',
     });
 
     const result = await this.phoneOtpService.verifyPhoneOTP(
       body.phoneNumber,
       body.otpCode,
-      body.purpose || 'registration'
+      body.purpose || 'registration',
     );
 
     const response = {
@@ -882,7 +935,7 @@ export class AuthController {
       verified: result.verified,
       error: result.error,
       method: 'phone', // Explicitly set to phone
-      carrier: result.carrier
+      carrier: result.carrier,
     };
 
     // Add debug logging for response

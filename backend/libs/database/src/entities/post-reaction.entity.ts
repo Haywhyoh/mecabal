@@ -1,12 +1,12 @@
-import { 
-  Entity, 
-  PrimaryGeneratedColumn, 
-  Column, 
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
   CreateDateColumn,
   ManyToOne,
   JoinColumn,
   Index,
-  Unique
+  Unique,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Post } from './post.entity';
@@ -29,10 +29,10 @@ export class PostReaction {
   @Column({ name: 'user_id' })
   userId: string;
 
-  @ApiProperty({ 
-    description: 'Type of reaction', 
+  @ApiProperty({
+    description: 'Type of reaction',
     enum: ['like', 'love', 'laugh', 'angry', 'sad'],
-    example: 'like'
+    example: 'like',
   })
   @Column({ name: 'reaction_type', length: 20, default: 'like' })
   reactionType: string;
@@ -42,7 +42,7 @@ export class PostReaction {
   createdAt: Date;
 
   // Relations
-  @ManyToOne(() => Post, post => post.reactions, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Post, (post) => post.reactions, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'post_id' })
   post: Post;
 

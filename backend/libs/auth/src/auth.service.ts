@@ -9,6 +9,8 @@ export class AuthService {
   async validateUser(login: string, password: string): Promise<any> {
     // This is a placeholder method
     // The actual implementation should be in the auth-service app
-    throw new Error('validateUser method should be implemented in the auth-service app');
+    throw new Error(
+      'validateUser method should be implemented in the auth-service app',
+    );
   }
 }

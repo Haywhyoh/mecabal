@@ -1,11 +1,17 @@
-import { IsEmail, IsOptional, IsString, MinLength, Matches } from 'class-validator';
+import {
+  IsEmail,
+  IsOptional,
+  IsString,
+  MinLength,
+  Matches,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 
 export class MobileRegisterDto {
   @ApiProperty({
     description: 'User email address',
-    example: 'user@example.com'
+    example: 'user@example.com',
   })
   @IsEmail({}, { message: 'Please provide a valid email address' })
   email: string;
@@ -13,25 +19,25 @@ export class MobileRegisterDto {
   @ApiProperty({
     description: 'Nigerian phone number in international format',
     example: '+2348123456789',
-    required: false
+    required: false,
   })
   @IsOptional()
   @Matches(/^\+234[0-9]{10}$/, {
-    message: 'Phone number must be in Nigerian format (+234XXXXXXXXXX)'
+    message: 'Phone number must be in Nigerian format (+234XXXXXXXXXX)',
   })
   phone_number?: string;
 
   @ApiProperty({
     description: 'User first name',
-    example: 'John'
+    example: 'John',
   })
   @IsString()
   @MinLength(2, { message: 'First name must be at least 2 characters long' })
   first_name: string;
 
   @ApiProperty({
-    description: 'User last name', 
-    example: 'Doe'
+    description: 'User last name',
+    example: 'Doe',
   })
   @IsString()
   @MinLength(2, { message: 'Last name must be at least 2 characters long' })
@@ -40,7 +46,7 @@ export class MobileRegisterDto {
   @ApiProperty({
     description: 'Nigerian state',
     example: 'Lagos',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsString()
@@ -50,7 +56,7 @@ export class MobileRegisterDto {
     description: 'Preferred language',
     example: 'en',
     default: 'en',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsString()
@@ -58,9 +64,8 @@ export class MobileRegisterDto {
 
   @ApiProperty({
     description: 'Carrier information',
-    required: false
+    required: false,
   })
   @IsOptional()
   carrier_info?: any;
 }
-

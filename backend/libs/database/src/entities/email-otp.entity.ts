@@ -1,9 +1,9 @@
-import { 
-  Entity, 
-  PrimaryGeneratedColumn, 
-  Column, 
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
   CreateDateColumn,
-  Index
+  Index,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -23,7 +23,10 @@ export class EmailOtp {
   @Column({ name: 'otp_code', length: 6 })
   otpCode: string;
 
-  @ApiProperty({ description: 'Purpose of OTP', enum: ['registration', 'login', 'password_reset'] })
+  @ApiProperty({
+    description: 'Purpose of OTP',
+    enum: ['registration', 'login', 'password_reset'],
+  })
   @Column({ length: 50 })
   purpose: string;
 

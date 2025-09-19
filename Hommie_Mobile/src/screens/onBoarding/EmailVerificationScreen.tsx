@@ -87,19 +87,19 @@ export default function EmailVerificationScreen({ navigation, route }: any) {
       const code = verificationCode.join('');
 
       if (isSignup) {
-        // For signup flow, verify the email OTP and save user details
-        const verifyResult = await MeCabalAuth.verifyEmailOTP(
+        // For signup flow, complete email verification and create user account
+        const authResult = await MeCabalAuth.authenticateWithOTP(
           email,
           code,
           'registration',
           {
-            firstName,
-            lastName,
-            preferredLanguage: 'en'
+            first_name: firstName,
+            last_name: lastName,
+            preferred_language: 'en'
           }
         );
 
-        if (verifyResult.success && verifyResult.verified) {
+        if (authResult.success && authResult.user) {
           Alert.alert(
             'Email Verified!',
             'Your email has been verified successfully. Now let\'s verify your phone number.',
@@ -110,12 +110,13 @@ export default function EmailVerificationScreen({ navigation, route }: any) {
                 isSignup: true,
                 userDetails: { firstName, lastName, email },
                 emailVerified: true,
-                // Don't pass userId yet since user isn't fully registered
+                userId: authResult.user.id, // Pass the user ID from email verification
+                existingUser: authResult.user // Pass the full user object
               });
             }}]
           );
         } else {
-          Alert.alert('Verification Failed', verifyResult.error || 'Invalid verification code. Please try again.');
+          Alert.alert('Verification Failed', authResult.error || 'Invalid verification code. Please try again.');
         }
       } else {
         // For login flow, complete the login process

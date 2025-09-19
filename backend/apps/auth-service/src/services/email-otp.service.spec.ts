@@ -59,7 +59,7 @@ describe('EmailOtpService', () => {
     it('should send OTP for registration', async () => {
       const email = 'test@example.com';
       const purpose = 'registration';
-      
+
       // Mock user creation for registration
       const mockUser = { id: 'user-123', email };
       mockUserRepository.create.mockReturnValue(mockUser);
@@ -77,7 +77,7 @@ describe('EmailOtpService', () => {
     it('should handle login OTP for existing user', async () => {
       const email = 'existing@example.com';
       const purpose = 'login';
-      
+
       // Mock existing user
       const mockUser = { id: 'user-123', email, isActive: true };
       mockUserRepository.findOne.mockResolvedValue(mockUser);
@@ -93,7 +93,7 @@ describe('EmailOtpService', () => {
     it('should return error for login OTP with non-existent user', async () => {
       const email = 'nonexistent@example.com';
       const purpose = 'login';
-      
+
       mockUserRepository.findOne.mockResolvedValue(null);
 
       const result = await service.sendEmailOTP(email, purpose);
@@ -108,7 +108,7 @@ describe('EmailOtpService', () => {
       const email = 'test@example.com';
       const otpCode = '123456';
       const purpose = 'registration';
-      
+
       const mockUser = { id: 'user-123', email };
       const mockOtpRecord = {
         id: 'otp-123',
@@ -131,7 +131,7 @@ describe('EmailOtpService', () => {
       const email = 'test@example.com';
       const otpCode = '123456';
       const purpose = 'registration';
-      
+
       const mockUser = { id: 'user-123', email };
       const mockOtpRecord = {
         id: 'otp-123',
@@ -154,7 +154,7 @@ describe('EmailOtpService', () => {
       const email = 'test@example.com';
       const otpCode = '123456';
       const purpose = 'registration';
-      
+
       const mockUser = { id: 'user-123', email };
       const mockOtpRecord = {
         id: 'otp-123',
@@ -171,8 +171,9 @@ describe('EmailOtpService', () => {
 
       expect(result.success).toBe(false);
       expect(result.verified).toBe(false);
-      expect(result.error).toBe('OTP code has expired. Please request a new code.');
+      expect(result.error).toBe(
+        'OTP code has expired. Please request a new code.',
+      );
     });
   });
 });
-

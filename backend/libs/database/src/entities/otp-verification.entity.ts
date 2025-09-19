@@ -1,11 +1,11 @@
-import { 
-  Entity, 
-  PrimaryGeneratedColumn, 
-  Column, 
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
   CreateDateColumn,
   ManyToOne,
   JoinColumn,
-  Index
+  Index,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { User } from './user.entity';
@@ -19,8 +19,8 @@ export class OtpVerification {
   id: string;
 
   @ApiProperty({ description: 'User ID this OTP belongs to' })
-  @Column({ name: 'user_id' })
-  userId: string;
+  @Column({ name: 'user_id', nullable: true })
+  userId: string | null;
 
   @ApiProperty({ description: 'Contact method used', enum: ['phone', 'email'] })
   @Column({ name: 'contact_method', length: 50 })
@@ -33,7 +33,10 @@ export class OtpVerification {
   @Column({ name: 'otp_code', length: 6 })
   otpCode: string;
 
-  @ApiProperty({ description: 'Purpose of OTP', enum: ['registration', 'login', 'password_reset'] })
+  @ApiProperty({
+    description: 'Purpose of OTP',
+    enum: ['registration', 'login', 'password_reset'],
+  })
   @Column({ length: 50 })
   purpose: string;
 
@@ -50,9 +53,12 @@ export class OtpVerification {
   createdAt: Date;
 
   // Relations
-  @ManyToOne(() => User, user => user.otpVerifications, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, (user) => user.otpVerifications, {
+    onDelete: 'CASCADE',
+    nullable: true,
+  })
   @JoinColumn({ name: 'user_id' })
-  user: User;
+  user: User | null;
 
   // Helper methods
   isExpired(): boolean {

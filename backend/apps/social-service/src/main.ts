@@ -8,21 +8,29 @@ async function bootstrap() {
 
   // Enable CORS for API testing
   app.enableCors({
-    origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:8080'],
+    origin: [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://localhost:8080',
+    ],
     credentials: true,
   });
 
   // Global validation pipe
-  app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,
-    forbidNonWhitelisted: true,
-    transform: true,
-  }));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
 
   // Swagger Configuration
   const config = new DocumentBuilder()
     .setTitle('MeCabal Social Service API')
-    .setDescription('Community posts, feeds, and social interactions for MeCabal - Nigerian community platform')
+    .setDescription(
+      'Community posts, feeds, and social interactions for MeCabal - Nigerian community platform',
+    )
     .setVersion('1.0')
     .addTag('Posts', 'Community posts and content management')
     .addTag('Feed', 'Social feed and timeline endpoints')

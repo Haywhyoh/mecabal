@@ -31,7 +31,7 @@ import { AuthController } from './auth.controller';
         name: 'auth-strict',
         ttl: 900000, // 15 minutes
         limit: 5, // 5 login attempts per 15 minutes per IP
-      }
+      },
     ]),
     DatabaseModule,
     SharedAuthModule,

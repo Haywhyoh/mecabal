@@ -8,21 +8,29 @@ async function bootstrap() {
 
   // Enable CORS for API testing
   app.enableCors({
-    origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:8080'],
+    origin: [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://localhost:8080',
+    ],
     credentials: true,
   });
 
   // Global validation pipe
-  app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,
-    forbidNonWhitelisted: true,
-    transform: true,
-  }));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
 
   // Swagger Configuration
   const config = new DocumentBuilder()
     .setTitle('MeCabal API Gateway')
-    .setDescription('Main API Gateway for MeCabal - Nigerian community platform. Routes requests to microservices.')
+    .setDescription(
+      'Main API Gateway for MeCabal - Nigerian community platform. Routes requests to microservices.',
+    )
     .setVersion('1.0')
     .addTag('Gateway', 'API Gateway endpoints and routing')
     .addBearerAuth(

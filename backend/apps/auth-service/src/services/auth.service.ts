@@ -1,4 +1,10 @@
-import { Injectable, Logger, ConflictException, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  ConflictException,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
@@ -27,59 +33,117 @@ export class AuthService {
       const existingUser = await this.userRepository.findOne({
         where: [
           { email: registerDto.email },
-          ...(registerDto.phoneNumber ? [{ phoneNumber: registerDto.phoneNumber }] : [])
-        ]
+          ...(registerDto.phoneNumber
+            ? [{ phoneNumber: registerDto.phoneNumber }]
+            : []),
+        ],
       });
 
       let savedUser: any;
 
       if (existingUser) {
         this.logger.log(`Found existing user: ${existingUser.email}`);
-        this.logger.log(`User status - isVerified: ${existingUser.isVerified}, phoneVerified: ${existingUser.phoneVerified}, firstName: ${existingUser.firstName}, lastName: ${existingUser.lastName}`);
-        this.logger.log(`User created: ${existingUser.createdAt}, updated: ${existingUser.updatedAt}`);
+        this.logger.log(
+          `User status - isVerified: ${existingUser.isVerified}, phoneVerified: ${existingUser.phoneVerified}, firstName: ${existingUser.firstName}, lastName: ${existingUser.lastName}`,
+        );
+        this.logger.log(
+          `User created: ${existingUser.createdAt}, updated: ${existingUser.updatedAt}`,
+        );
 
         // Check if user is already fully registered with complete profile AND phone verified
         // Only reject if user has completed the full registration flow including phone verification
-        if (existingUser.isVerified && existingUser.firstName && existingUser.lastName &&
-            existingUser.phoneVerified && existingUser.phoneNumber) {
-          this.logger.log(`User is fully registered - rejecting duplicate registration attempt`);
+        if (
+          existingUser.isVerified &&
+          existingUser.firstName &&
+          existingUser.lastName &&
+          existingUser.phoneVerified &&
+          existingUser.phoneNumber
+        ) {
+          this.logger.log(
+            `User is fully registered - rejecting duplicate registration attempt`,
+          );
+
+          // Return appropriate error message based on what field conflicts
           if (existingUser.email === registerDto.email) {
             return {
               success: false,
-              error: 'User already exists with this email address'
+              error:
+                'An account with this email address already exists. Please try logging in instead.',
             };
           }
           if (existingUser.phoneNumber === registerDto.phoneNumber) {
             return {
               success: false,
-              error: 'User already exists with this phone number'
+              error:
+                'An account with this phone number already exists. Please try logging in instead.',
             };
           }
-        } else {
-          this.logger.log(`User exists but not fully registered - will update existing record`);
         }
 
-        // User exists but is unverified (created during OTP sending) - update it
-        this.logger.log(`Updating existing user ${existingUser.email} with phone number ${registerDto.phoneNumber}`);
-        const saltRounds = 12;
-        const passwordHash = await bcrypt.hash(registerDto.password, saltRounds);
+        // Check if there's a different conflict (same email but different phone, or vice versa)
+        if (
+          existingUser.email === registerDto.email &&
+          existingUser.phoneNumber &&
+          registerDto.phoneNumber &&
+          existingUser.phoneNumber !== registerDto.phoneNumber
+        ) {
+          return {
+            success: false,
+            error:
+              'This email is already registered with a different phone number. Please use the correct phone number or contact support.',
+          };
+        }
 
-        existingUser.phoneNumber = registerDto.phoneNumber || existingUser.phoneNumber;
-        existingUser.firstName = registerDto.firstName || existingUser.firstName;
+        if (
+          existingUser.phoneNumber === registerDto.phoneNumber &&
+          existingUser.email !== registerDto.email
+        ) {
+          return {
+            success: false,
+            error:
+              'This phone number is already registered with a different email address. Please use the correct email or contact support.',
+          };
+        }
+
+        // User exists but is not fully registered - update it with new information
+        this.logger.log(
+          `User exists but not fully registered - will update existing record`,
+        );
+        this.logger.log(
+          `Updating existing user ${existingUser.email} with phone number ${registerDto.phoneNumber}`,
+        );
+
+        const saltRounds = 12;
+        const passwordHash = await bcrypt.hash(
+          registerDto.password,
+          saltRounds,
+        );
+
+        existingUser.phoneNumber =
+          registerDto.phoneNumber || existingUser.phoneNumber;
+        existingUser.firstName =
+          registerDto.firstName || existingUser.firstName;
         existingUser.lastName = registerDto.lastName || existingUser.lastName;
         existingUser.passwordHash = passwordHash;
         existingUser.state = registerDto.state || existingUser.state;
         existingUser.city = registerDto.city || existingUser.city;
         existingUser.estate = registerDto.estate || existingUser.estate;
-        existingUser.preferredLanguage = registerDto.preferredLanguage || existingUser.preferredLanguage || 'en';
+        existingUser.preferredLanguage =
+          registerDto.preferredLanguage ||
+          existingUser.preferredLanguage ||
+          'en';
         existingUser.phoneVerified = false;
         existingUser.isVerified = false; // Will be set to true after email verification
 
         savedUser = await this.userRepository.save(existingUser);
       } else {
         // Create new user
+        this.logger.log(`Creating new user with email: ${registerDto.email}`);
         const saltRounds = 12;
-        const passwordHash = await bcrypt.hash(registerDto.password, saltRounds);
+        const passwordHash = await bcrypt.hash(
+          registerDto.password,
+          saltRounds,
+        );
 
         const newUser = this.userRepository.create({
           email: registerDto.email,
@@ -102,7 +166,8 @@ export class AuthService {
 
       return {
         success: true,
-        message: 'User registered successfully. Please verify your email and/or phone number.',
+        message:
+          'User registered successfully. Please verify your email and/or phone number.',
         user: {
           id: savedUser.id,
           email: savedUser.email,
@@ -111,15 +176,45 @@ export class AuthService {
           phoneNumber: savedUser.phoneNumber,
           phoneVerified: savedUser.phoneVerified,
           isVerified: savedUser.isVerified,
-          verificationLevel: 'unverified'
-        }
+          verificationLevel: 'unverified',
+        },
       };
-
     } catch (error) {
       this.logger.error('Registration error:', error);
+
+      // Handle database constraint violations
+      if (error.code === '23505' || error.message?.includes('duplicate key')) {
+        this.logger.error(
+          'Database constraint violation:',
+          error.detail || error.message,
+        );
+
+        if (error.detail?.includes('phone_number')) {
+          return {
+            success: false,
+            error:
+              'This phone number is already registered. Please try logging in or use a different phone number.',
+          };
+        }
+
+        if (error.detail?.includes('email')) {
+          return {
+            success: false,
+            error:
+              'This email address is already registered. Please try logging in or use a different email address.',
+          };
+        }
+
+        return {
+          success: false,
+          error:
+            'An account with these details already exists. Please try logging in instead.',
+        };
+      }
+
       return {
         success: false,
-        error: 'Registration failed. Please try again.'
+        error: 'Registration failed. Please try again.',
       };
     }
   }
@@ -130,21 +225,29 @@ export class AuthService {
       const existingUser = await this.userRepository.findOne({
         where: [
           { email: registerDto.email },
-          ...(registerDto.phoneNumber ? [{ phoneNumber: registerDto.phoneNumber }] : [])
-        ]
+          ...(registerDto.phoneNumber
+            ? [{ phoneNumber: registerDto.phoneNumber }]
+            : []),
+        ],
       });
 
       if (existingUser) {
+        this.logger.log(
+          `Found existing user during registration: ${existingUser.email}`,
+        );
+
         if (existingUser.email === registerDto.email) {
           return {
             success: false,
-            error: 'A user with this email address already exists'
+            error:
+              'An account with this email address already exists. Please try logging in instead.',
           };
         }
         if (existingUser.phoneNumber === registerDto.phoneNumber) {
           return {
             success: false,
-            error: 'A user with this phone number already exists'
+            error:
+              'An account with this phone number already exists. Please try logging in instead.',
           };
         }
       }
@@ -154,6 +257,7 @@ export class AuthService {
       const passwordHash = await bcrypt.hash(registerDto.password, saltRounds);
 
       // Create user
+      this.logger.log(`Creating new user with email: ${registerDto.email}`);
       const user = this.userRepository.create({
         email: registerDto.email,
         phoneNumber: registerDto.phoneNumber,
@@ -175,7 +279,8 @@ export class AuthService {
 
       return {
         success: true,
-        message: 'User registered successfully. Please verify your email and/or phone number.',
+        message:
+          'User registered successfully. Please verify your email and/or phone number.',
         user: {
           id: savedUser.id,
           email: savedUser.email,
@@ -185,14 +290,44 @@ export class AuthService {
           phoneVerified: savedUser.phoneVerified,
           isVerified: savedUser.isVerified,
           verificationLevel: savedUser.getVerificationLevel(),
-        }
+        },
       };
-
     } catch (error) {
       this.logger.error('Registration error:', error);
+
+      // Handle database constraint violations
+      if (error.code === '23505' || error.message?.includes('duplicate key')) {
+        this.logger.error(
+          'Database constraint violation:',
+          error.detail || error.message,
+        );
+
+        if (error.detail?.includes('phone_number')) {
+          return {
+            success: false,
+            error:
+              'This phone number is already registered. Please try logging in or use a different phone number.',
+          };
+        }
+
+        if (error.detail?.includes('email')) {
+          return {
+            success: false,
+            error:
+              'This email address is already registered. Please try logging in or use a different email address.',
+          };
+        }
+
+        return {
+          success: false,
+          error:
+            'An account with these details already exists. Please try logging in instead.',
+        };
+      }
+
       return {
         success: false,
-        error: 'Registration failed. Please try again.'
+        error: 'Registration failed. Please try again.',
       };
     }
   }
@@ -204,30 +339,33 @@ export class AuthService {
       deviceType?: string;
       ipAddress?: string;
       userAgent?: string;
-    }
+    },
   ): Promise<AuthResponseDto> {
     try {
       // Find user by email or phone
       const user = await this.userRepository.findOne({
         where: [
           { email: loginDto.identifier },
-          { phoneNumber: loginDto.identifier }
-        ]
+          { phoneNumber: loginDto.identifier },
+        ],
       });
 
       if (!user) {
         return {
           success: false,
-          error: 'Invalid credentials'
+          error: 'Invalid credentials',
         };
       }
 
       // Verify password
-      const passwordValid = await bcrypt.compare(loginDto.password, user.passwordHash);
+      const passwordValid = await bcrypt.compare(
+        loginDto.password,
+        user.passwordHash,
+      );
       if (!passwordValid) {
         return {
           success: false,
-          error: 'Invalid credentials'
+          error: 'Invalid credentials',
         };
       }
 
@@ -235,7 +373,7 @@ export class AuthService {
       if (!user.isActive) {
         return {
           success: false,
-          error: 'Account is deactivated. Please contact support.'
+          error: 'Account is deactivated. Please contact support.',
         };
       }
 
@@ -244,17 +382,19 @@ export class AuthService {
       await this.userRepository.save(user);
 
       // Generate tokens
-      const tokenPair = await this.tokenService.generateTokenPair(user, deviceInfo);
+      const tokenPair = await this.tokenService.generateTokenPair(
+        user,
+        deviceInfo,
+      );
 
       this.logger.log(`User logged in successfully: ${user.id}`);
 
       return this.tokenService.generateUserResponse(user, tokenPair);
-
     } catch (error) {
       this.logger.error('Login error:', error);
       return {
         success: false,
-        error: 'Login failed. Please try again.'
+        error: 'Login failed. Please try again.',
       };
     }
   }
@@ -275,36 +415,45 @@ export class AuthService {
       deviceType?: string;
       ipAddress?: string;
       userAgent?: string;
-    }
+    },
   ): Promise<AuthResponseDto> {
     try {
       // Verify email OTP first (don't mark as used yet for registration)
       const markAsUsed = purpose !== 'registration';
-      const verifyResult = await this.emailOtpService.verifyEmailOTP(email, otpCode, purpose, markAsUsed);
+      const verifyResult = await this.emailOtpService.verifyEmailOTP(
+        email,
+        otpCode,
+        purpose,
+        markAsUsed,
+      );
 
       if (!verifyResult.success || !verifyResult.verified) {
         return {
           success: false,
-          error: verifyResult.error || 'Invalid or expired OTP code'
+          error: verifyResult.error || 'Invalid or expired OTP code',
         };
       }
 
       if (purpose === 'registration') {
-        return await this.handleOTPRegistration(email, userMetadata, deviceInfo, verifyResult.otpId);
+        return await this.handleOTPRegistration(
+          email,
+          userMetadata,
+          deviceInfo,
+          verifyResult.otpId,
+        );
       } else if (purpose === 'login') {
         return await this.handleOTPLogin(email, deviceInfo);
       }
 
       return {
         success: false,
-        error: 'Invalid purpose'
+        error: 'Invalid purpose',
       };
-
     } catch (error) {
       this.logger.error('OTP authentication error:', error);
       return {
         success: false,
-        error: 'Authentication failed'
+        error: 'Authentication failed',
       };
     }
   }
@@ -318,15 +467,15 @@ export class AuthService {
       state?: string;
       city?: string;
       estate?: string;
-    }
+    },
   ): Promise<AuthResponseDto> {
     try {
       const user = await this.userRepository.findOne({ where: { id: userId } });
-      
+
       if (!user) {
         return {
           success: false,
-          error: 'User not found'
+          error: 'User not found',
         };
       }
 
@@ -357,14 +506,13 @@ export class AuthService {
           phoneVerified: savedUser.phoneVerified,
           isVerified: savedUser.isVerified,
           verificationLevel: savedUser.getVerificationLevel(),
-        }
+        },
       };
-
     } catch (error) {
       this.logger.error('Complete registration error:', error);
       return {
         success: false,
-        error: 'Failed to complete registration'
+        error: 'Failed to complete registration',
       };
     }
   }
@@ -372,75 +520,88 @@ export class AuthService {
   async refreshTokens(refreshToken: string): Promise<AuthResponseDto> {
     try {
       const tokenPair = await this.tokenService.refreshTokens(refreshToken);
-      
+
       if (!tokenPair) {
         return {
           success: false,
-          error: 'Invalid refresh token'
+          error: 'Invalid refresh token',
         };
       }
 
       // Get user for response
-      const payload = await this.tokenService.validateAccessToken(tokenPair.accessToken);
+      const payload = await this.tokenService.validateAccessToken(
+        tokenPair.accessToken,
+      );
       if (!payload) {
         return {
           success: false,
-          error: 'Invalid token payload'
+          error: 'Invalid token payload',
         };
       }
 
-      const user = await this.userRepository.findOne({ where: { id: payload.userId } });
+      const user = await this.userRepository.findOne({
+        where: { id: payload.userId },
+      });
       if (!user) {
         return {
           success: false,
-          error: 'User not found'
+          error: 'User not found',
         };
       }
 
       return this.tokenService.generateUserResponse(user, tokenPair);
-
     } catch (error) {
       this.logger.error('Refresh token error:', error);
       return {
         success: false,
-        error: 'Failed to refresh token'
+        error: 'Failed to refresh token',
       };
     }
   }
 
-  async logoutUser(sessionId: string): Promise<{ success: boolean; message?: string }> {
+  async logoutUser(
+    sessionId: string,
+  ): Promise<{ success: boolean; message?: string }> {
     try {
       const invalidated = await this.tokenService.invalidateSession(sessionId);
-      
+
       return {
         success: invalidated,
-        message: invalidated ? 'Logged out successfully' : 'Session not found'
+        message: invalidated ? 'Logged out successfully' : 'Session not found',
       };
-
     } catch (error) {
       this.logger.error('Logout error:', error);
       return {
         success: false,
-        message: 'Logout failed'
+        message: 'Logout failed',
       };
     }
   }
 
-  async logoutAllDevices(userId: string, exceptSessionId?: string): Promise<{ success: boolean; message?: string; loggedOutSessions?: number }> {
+  async logoutAllDevices(
+    userId: string,
+    exceptSessionId?: string,
+  ): Promise<{
+    success: boolean;
+    message?: string;
+    loggedOutSessions?: number;
+  }> {
     try {
-      const loggedOutCount = await this.tokenService.invalidateUserSessions(userId, exceptSessionId);
-      
+      const loggedOutCount = await this.tokenService.invalidateUserSessions(
+        userId,
+        exceptSessionId,
+      );
+
       return {
         success: true,
         message: `Logged out from ${loggedOutCount} devices`,
-        loggedOutSessions: loggedOutCount
+        loggedOutSessions: loggedOutCount,
       };
-
     } catch (error) {
       this.logger.error('Logout all devices error:', error);
       return {
         success: false,
-        message: 'Failed to logout from all devices'
+        message: 'Failed to logout from all devices',
       };
     }
   }
@@ -449,16 +610,18 @@ export class AuthService {
     email: string,
     userMetadata?: any,
     deviceInfo?: any,
-    otpId?: string
+    otpId?: string,
   ): Promise<AuthResponseDto> {
     try {
       // Find existing user by email
-      const existingUser = await this.userRepository.findOne({ where: { email } });
+      const existingUser = await this.userRepository.findOne({
+        where: { email },
+      });
 
       if (existingUser && existingUser.isVerified) {
         return {
           success: false,
-          error: 'User with this email already exists and is verified'
+          error: 'User with this email already exists and is verified',
         };
       }
 
@@ -466,11 +629,18 @@ export class AuthService {
 
       if (existingUser) {
         // Update existing user with proper information (EMAIL VERIFICATION STEP)
-        existingUser.firstName = userMetadata?.first_name || existingUser.firstName;
-        existingUser.lastName = userMetadata?.last_name || existingUser.lastName;
-        existingUser.phoneNumber = userMetadata?.phone_number || existingUser.phoneNumber;
-        existingUser.state = userMetadata?.state_of_origin || existingUser.state;
-        existingUser.preferredLanguage = userMetadata?.preferred_language || existingUser.preferredLanguage || 'en';
+        existingUser.firstName =
+          userMetadata?.first_name || existingUser.firstName;
+        existingUser.lastName =
+          userMetadata?.last_name || existingUser.lastName;
+        existingUser.phoneNumber =
+          userMetadata?.phone_number || existingUser.phoneNumber;
+        existingUser.state =
+          userMetadata?.state_of_origin || existingUser.state;
+        existingUser.preferredLanguage =
+          userMetadata?.preferred_language ||
+          existingUser.preferredLanguage ||
+          'en';
         // Note: Email is verified through OTP, but don't set isVerified = true yet
         // User still needs: phone verification + location setup before being fully verified
         existingUser.isVerified = false;
@@ -488,44 +658,69 @@ export class AuthService {
           await this.emailOtpService.markOTPAsUsed(otpId);
         }
       } else {
-        // This shouldn't happen if OTP verification worked, but handle it
-        return {
-          success: false,
-          error: 'User record not found after OTP verification'
-        };
+        // Create new user record after successful email OTP verification
+        this.logger.log(`Creating new user for email: ${email}`);
+
+        const tempPassword = Math.random().toString(36).slice(-8);
+        const passwordHash = await bcrypt.hash(tempPassword, 12);
+
+        const newUser = this.userRepository.create({
+          email,
+          firstName: userMetadata?.first_name || '',
+          lastName: userMetadata?.last_name || '',
+          phoneNumber: userMetadata?.phone_number || null,
+          passwordHash,
+          state: userMetadata?.state_of_origin || null,
+          preferredLanguage: userMetadata?.preferred_language || 'en',
+          phoneVerified: false,
+          isVerified: false, // Will be set to true after phone verification + location setup
+        });
+
+        user = await this.userRepository.save(newUser);
+        this.logger.log(`New user created with ID: ${user.id}`);
+
+        // Mark OTP as used after successful registration
+        if (otpId) {
+          await this.emailOtpService.markOTPAsUsed(otpId);
+        }
       }
 
       // Generate tokens
-      const tokenPair = await this.tokenService.generateTokenPair(user, deviceInfo);
+      const tokenPair = await this.tokenService.generateTokenPair(
+        user,
+        deviceInfo,
+      );
 
       this.logger.log(`OTP registration completed for: ${user.id}`);
 
       return this.tokenService.generateUserResponse(user, tokenPair);
-
     } catch (error) {
       this.logger.error('OTP registration error:', error);
       return {
         success: false,
-        error: 'Registration failed'
+        error: 'Registration failed',
       };
     }
   }
 
-  private async handleOTPLogin(email: string, deviceInfo?: any): Promise<AuthResponseDto> {
+  private async handleOTPLogin(
+    email: string,
+    deviceInfo?: any,
+  ): Promise<AuthResponseDto> {
     try {
       const user = await this.userRepository.findOne({ where: { email } });
-      
+
       if (!user) {
         return {
           success: false,
-          error: 'User not found. Please register first.'
+          error: 'User not found. Please register first.',
         };
       }
 
       if (!user.isActive) {
         return {
           success: false,
-          error: 'Account is deactivated. Please contact support.'
+          error: 'Account is deactivated. Please contact support.',
         };
       }
 
@@ -534,84 +729,106 @@ export class AuthService {
       await this.userRepository.save(user);
 
       // Generate tokens
-      const tokenPair = await this.tokenService.generateTokenPair(user, deviceInfo);
+      const tokenPair = await this.tokenService.generateTokenPair(
+        user,
+        deviceInfo,
+      );
 
       this.logger.log(`OTP login completed for: ${user.id}`);
 
       return this.tokenService.generateUserResponse(user, tokenPair);
-
     } catch (error) {
       this.logger.error('OTP login error:', error);
       return {
         success: false,
-        error: 'Login failed'
+        error: 'Login failed',
       };
     }
   }
 
   // Additional methods for the auth controller
-  async initiatePasswordReset(resetPasswordDto: { email: string }): Promise<AuthResponseDto> {
+  async initiatePasswordReset(resetPasswordDto: {
+    email: string;
+  }): Promise<AuthResponseDto> {
     try {
-      const user = await this.userRepository.findOne({ where: { email: resetPasswordDto.email } });
-      
+      const user = await this.userRepository.findOne({
+        where: { email: resetPasswordDto.email },
+      });
+
       if (!user) {
         // Don't reveal if user exists for security
         return {
           success: true,
-          message: 'If an account with this email exists, a password reset code has been sent.'
+          message:
+            'If an account with this email exists, a password reset code has been sent.',
         };
       }
 
       // Send password reset OTP
-      const otpResult = await this.emailOtpService.sendEmailOTP(resetPasswordDto.email, 'password_reset');
-      
+      const otpResult = await this.emailOtpService.sendEmailOTP(
+        resetPasswordDto.email,
+        'password_reset',
+      );
+
       if (!otpResult.success) {
         return {
           success: false,
-          error: otpResult.error || 'Failed to send reset code'
+          error: otpResult.error || 'Failed to send reset code',
         };
       }
 
       return {
         success: true,
         message: 'Password reset code sent to your email.',
-        expiresAt: otpResult.expiresAt
+        expiresAt: otpResult.expiresAt,
       };
-
     } catch (error) {
       this.logger.error('Password reset initiation error:', error);
       return {
         success: false,
-        error: 'Failed to initiate password reset. Please try again.'
+        error: 'Failed to initiate password reset. Please try again.',
       };
     }
   }
 
-  async confirmPasswordReset(confirmResetDto: { email: string; resetCode: string; newPassword: string }): Promise<AuthResponseDto> {
+  async confirmPasswordReset(confirmResetDto: {
+    email: string;
+    resetCode: string;
+    newPassword: string;
+  }): Promise<AuthResponseDto> {
     try {
-      const user = await this.userRepository.findOne({ where: { email: confirmResetDto.email } });
-      
+      const user = await this.userRepository.findOne({
+        where: { email: confirmResetDto.email },
+      });
+
       if (!user) {
         return {
           success: false,
-          error: 'User not found'
+          error: 'User not found',
         };
       }
 
       // Verify OTP
-      const otpResult = await this.emailOtpService.verifyEmailOTP(confirmResetDto.email, confirmResetDto.resetCode, 'password_reset');
-      
+      const otpResult = await this.emailOtpService.verifyEmailOTP(
+        confirmResetDto.email,
+        confirmResetDto.resetCode,
+        'password_reset',
+      );
+
       if (!otpResult.success) {
         return {
           success: false,
-          error: otpResult.error || 'Invalid or expired reset code'
+          error: otpResult.error || 'Invalid or expired reset code',
         };
       }
 
       // Hash new password
       const saltRounds = 12;
-      const passwordHash = await bcrypt.hash(confirmResetDto.newPassword, saltRounds);
-      
+      const passwordHash = await bcrypt.hash(
+        confirmResetDto.newPassword,
+        saltRounds,
+      );
+
       // Update password
       user.passwordHash = passwordHash;
       user.updatedAt = new Date();
@@ -621,27 +838,31 @@ export class AuthService {
 
       return {
         success: true,
-        message: 'Password reset successfully. You can now login with your new password.'
+        message:
+          'Password reset successfully. You can now login with your new password.',
       };
-
     } catch (error) {
       this.logger.error('Password reset confirmation error:', error);
       return {
         success: false,
-        error: 'Failed to reset password. Please try again.'
+        error: 'Failed to reset password. Please try again.',
       };
     }
   }
 
-  async initiateOtpLogin(initiateOtpDto: { email: string }): Promise<AuthResponseDto> {
+  async initiateOtpLogin(initiateOtpDto: {
+    email: string;
+  }): Promise<AuthResponseDto> {
     try {
       // Check if user exists
-      const user = await this.userRepository.findOne({ where: { email: initiateOtpDto.email } });
-      
+      const user = await this.userRepository.findOne({
+        where: { email: initiateOtpDto.email },
+      });
+
       if (!user) {
         return {
           success: false,
-          error: 'User not found. Please register first.'
+          error: 'User not found. Please register first.',
         };
       }
 
@@ -649,17 +870,20 @@ export class AuthService {
       if (!user.isActive) {
         return {
           success: false,
-          error: 'Account is deactivated. Please contact support.'
+          error: 'Account is deactivated. Please contact support.',
         };
       }
 
       // Send OTP
-      const otpResult = await this.emailOtpService.sendEmailOTP(initiateOtpDto.email, 'login');
-      
+      const otpResult = await this.emailOtpService.sendEmailOTP(
+        initiateOtpDto.email,
+        'login',
+      );
+
       if (!otpResult.success) {
         return {
           success: false,
-          error: otpResult.error || 'Failed to send OTP'
+          error: otpResult.error || 'Failed to send OTP',
         };
       }
 
@@ -668,44 +892,52 @@ export class AuthService {
       return {
         success: true,
         message: 'OTP sent to your email. Please check and enter the code.',
-        expiresAt: otpResult.expiresAt
+        expiresAt: otpResult.expiresAt,
       };
-
     } catch (error) {
       this.logger.error('OTP login initiation error:', error);
       return {
         success: false,
-        error: 'Failed to initiate OTP login. Please try again.'
+        error: 'Failed to initiate OTP login. Please try again.',
       };
     }
   }
 
-  async verifyOtpLogin(verifyOtpDto: { email: string; otpCode: string }): Promise<AuthResponseDto> {
-    return this.authenticateWithOTP(verifyOtpDto.email, verifyOtpDto.otpCode, 'login');
+  async verifyOtpLogin(verifyOtpDto: {
+    email: string;
+    otpCode: string;
+  }): Promise<AuthResponseDto> {
+    return this.authenticateWithOTP(
+      verifyOtpDto.email,
+      verifyOtpDto.otpCode,
+      'login',
+    );
   }
 
   async testEmailService(email: string): Promise<AuthResponseDto> {
     try {
-      const otpResult = await this.emailOtpService.sendEmailOTP(email, 'registration');
+      const otpResult = await this.emailOtpService.sendEmailOTP(
+        email,
+        'registration',
+      );
 
       if (!otpResult.success) {
         return {
           success: false,
-          error: otpResult.error || 'Failed to send test email'
+          error: otpResult.error || 'Failed to send test email',
         };
       }
 
       return {
         success: true,
         message: 'Test email sent successfully',
-        expiresAt: otpResult.expiresAt
+        expiresAt: otpResult.expiresAt,
       };
-
     } catch (error) {
       this.logger.error('Test email error:', error);
       return {
         success: false,
-        error: 'Failed to send test email. Please try again.'
+        error: 'Failed to send test email. Please try again.',
       };
     }
   }
@@ -724,7 +956,7 @@ export class AuthService {
       phoneVerified?: boolean;
       addressVerified?: boolean;
       isVerified?: boolean;
-    }
+    },
   ): Promise<AuthResponseDto> {
     try {
       const user = await this.userRepository.findOne({ where: { id: userId } });
@@ -732,20 +964,23 @@ export class AuthService {
       if (!user) {
         return {
           success: false,
-          error: 'User not found'
+          error: 'User not found',
         };
       }
 
       // Update user fields
-      if (updates.phone_number !== undefined) user.phoneNumber = updates.phone_number;
+      if (updates.phone_number !== undefined)
+        user.phoneNumber = updates.phone_number;
       if (updates.state !== undefined) user.state = updates.state;
       if (updates.city !== undefined) user.city = updates.city;
       if (updates.estate !== undefined) user.estate = updates.estate;
       if (updates.location !== undefined) user.location = updates.location;
       if (updates.landmark !== undefined) user.landmark = updates.landmark;
       if (updates.address !== undefined) user.address = updates.address;
-      if (updates.phoneVerified !== undefined) user.phoneVerified = updates.phoneVerified;
-      if (updates.addressVerified !== undefined) user.addressVerified = updates.addressVerified;
+      if (updates.phoneVerified !== undefined)
+        user.phoneVerified = updates.phoneVerified;
+      if (updates.addressVerified !== undefined)
+        user.addressVerified = updates.addressVerified;
 
       // Update overall verification status based on completion
       if (updates.isVerified !== undefined) {
@@ -779,15 +1014,14 @@ export class AuthService {
           estate: savedUser.estate,
           location: savedUser.location,
           address: savedUser.address,
-          addressVerified: savedUser.addressVerified
-        }
+          addressVerified: savedUser.addressVerified,
+        },
       };
-
     } catch (error) {
       this.logger.error('Update profile error:', error);
       return {
         success: false,
-        error: 'Failed to update profile'
+        error: 'Failed to update profile',
       };
     }
   }
@@ -799,7 +1033,7 @@ export class AuthService {
       if (!user) {
         return {
           success: false,
-          error: 'User not found'
+          error: 'User not found',
         };
       }
 
@@ -822,15 +1056,14 @@ export class AuthService {
           addressVerified: user.addressVerified,
           preferredLanguage: user.preferredLanguage,
           createdAt: user.createdAt,
-          updatedAt: user.updatedAt
-        }
+          updatedAt: user.updatedAt,
+        },
       };
-
     } catch (error) {
       this.logger.error('Get profile error:', error);
       return {
         success: false,
-        error: 'Failed to get profile'
+        error: 'Failed to get profile',
       };
     }
   }
@@ -845,7 +1078,7 @@ export class AuthService {
       landmark?: string;
       address?: string;
       phoneNumber?: string;
-    }
+    },
   ): Promise<AuthResponseDto> {
     try {
       const user = await this.userRepository.findOne({ where: { id: userId } });
@@ -853,7 +1086,7 @@ export class AuthService {
       if (!user) {
         return {
           success: false,
-          error: 'User not found'
+          error: 'User not found',
         };
       }
 
@@ -882,15 +1115,16 @@ export class AuthService {
       // Generate tokens for the completed registration
       const tokenPair = await this.tokenService.generateTokenPair(savedUser);
 
-      this.logger.log(`Registration completed with location for user: ${userId}`);
+      this.logger.log(
+        `Registration completed with location for user: ${userId}`,
+      );
 
       return this.tokenService.generateUserResponse(savedUser, tokenPair);
-
     } catch (error) {
       this.logger.error('Complete registration with location error:', error);
       return {
         success: false,
-        error: 'Failed to complete registration'
+        error: 'Failed to complete registration',
       };
     }
   }

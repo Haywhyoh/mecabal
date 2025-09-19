@@ -1,11 +1,11 @@
-import { 
-  Entity, 
-  PrimaryGeneratedColumn, 
-  Column, 
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
   CreateDateColumn,
   ManyToOne,
   JoinColumn,
-  Index
+  Index,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Post } from './post.entity';
@@ -21,10 +21,10 @@ export class PostMedia {
   @Column({ name: 'post_id' })
   postId: string;
 
-  @ApiProperty({ 
-    description: 'Type of media', 
+  @ApiProperty({
+    description: 'Type of media',
     enum: ['image', 'video', 'audio', 'document'],
-    example: 'image'
+    example: 'image',
   })
   @Column({ name: 'media_type', length: 20 })
   mediaType: string;
@@ -33,7 +33,10 @@ export class PostMedia {
   @Column({ name: 'file_url', type: 'text' })
   fileUrl: string;
 
-  @ApiProperty({ description: 'URL to thumbnail (for videos/images)', required: false })
+  @ApiProperty({
+    description: 'URL to thumbnail (for videos/images)',
+    required: false,
+  })
   @Column({ name: 'thumbnail_url', type: 'text', nullable: true })
   thumbnailUrl?: string;
 
@@ -45,11 +48,17 @@ export class PostMedia {
   @Column({ name: 'mime_type', length: 100, nullable: true })
   mimeType?: string;
 
-  @ApiProperty({ description: 'Duration in seconds (for video/audio)', required: false })
+  @ApiProperty({
+    description: 'Duration in seconds (for video/audio)',
+    required: false,
+  })
   @Column({ name: 'duration_seconds', nullable: true })
   durationSeconds?: number;
 
-  @ApiProperty({ description: 'Media dimensions (width/height)', required: false })
+  @ApiProperty({
+    description: 'Media dimensions (width/height)',
+    required: false,
+  })
   @Column({ type: 'jsonb', nullable: true })
   dimensions?: { width: number; height: number };
 
@@ -62,7 +71,7 @@ export class PostMedia {
   createdAt: Date;
 
   // Relations
-  @ManyToOne(() => Post, post => post.media, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Post, (post) => post.media, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'post_id' })
   post: Post;
 
@@ -77,11 +86,15 @@ export class PostMedia {
 
   getFormattedFileSize(): string {
     if (!this.fileSize) return 'Unknown';
-    
+
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     if (this.fileSize === 0) return '0 Bytes';
-    
+
     const i = Math.floor(Math.log(this.fileSize) / Math.log(1024));
-    return Math.round(this.fileSize / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+    return (
+      Math.round((this.fileSize / Math.pow(1024, i)) * 100) / 100 +
+      ' ' +
+      sizes[i]
+    );
   }
 }

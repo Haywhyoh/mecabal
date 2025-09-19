@@ -18,12 +18,12 @@ export class SeederService {
 
   async seedAll(): Promise<void> {
     this.logger.log('Starting database seeding...');
-    
+
     try {
       await this.seedStates();
       await this.seedLgas();
       await this.seedPostCategories();
-      
+
       this.logger.log('Database seeding completed successfully');
     } catch (error) {
       this.logger.error('Database seeding failed', error);
@@ -33,7 +33,7 @@ export class SeederService {
 
   private async seedStates(): Promise<void> {
     this.logger.log('Seeding Nigerian states...');
-    
+
     const existingStates = await this.stateRepository.count();
     if (existingStates > 0) {
       this.logger.log('States already exist, skipping...');
@@ -86,7 +86,7 @@ export class SeederService {
 
   private async seedLgas(): Promise<void> {
     this.logger.log('Seeding Lagos LGAs...');
-    
+
     const existingLgas = await this.lgaRepository.count();
     if (existingLgas > 0) {
       this.logger.log('LGAs already exist, skipping...');
@@ -94,7 +94,9 @@ export class SeederService {
     }
 
     // Get Lagos state
-    const lagosState = await this.stateRepository.findOne({ where: { code: 'LA' } });
+    const lagosState = await this.stateRepository.findOne({
+      where: { code: 'LA' },
+    });
     if (!lagosState) {
       this.logger.error('Lagos state not found');
       return;
@@ -121,7 +123,7 @@ export class SeederService {
       'Oshodi-Isolo',
       'Shomolu',
       'Surulere',
-    ].map(name => ({ name, stateId: lagosState.id }));
+    ].map((name) => ({ name, stateId: lagosState.id }));
 
     await this.lgaRepository.save(lagosLgas);
     this.logger.log(`Seeded ${lagosLgas.length} Lagos LGAs`);
@@ -129,7 +131,7 @@ export class SeederService {
 
   private async seedPostCategories(): Promise<void> {
     this.logger.log('Seeding post categories...');
-    
+
     const existingCategories = await this.postCategoryRepository.count();
     if (existingCategories > 0) {
       this.logger.log('Post categories already exist, skipping...');

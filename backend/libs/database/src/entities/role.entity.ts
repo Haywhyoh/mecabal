@@ -1,11 +1,11 @@
-import { 
-  Entity, 
-  PrimaryGeneratedColumn, 
-  Column, 
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
   CreateDateColumn,
   UpdateDateColumn,
   ManyToMany,
-  Index
+  Index,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { User } from './user.entity';
@@ -50,7 +50,7 @@ export class Role {
   updatedAt: Date;
 
   // Relations
-  @ManyToMany(() => User, user => user.roles)
+  @ManyToMany(() => User, (user) => user.roles)
   users: User[];
 
   // Helper methods
@@ -59,10 +59,14 @@ export class Role {
   }
 
   hasAnyPermission(permissions: string[]): boolean {
-    return permissions.some(permission => this.permissions.includes(permission));
+    return permissions.some((permission) =>
+      this.permissions.includes(permission),
+    );
   }
 
   hasAllPermissions(permissions: string[]): boolean {
-    return permissions.every(permission => this.permissions.includes(permission));
+    return permissions.every((permission) =>
+      this.permissions.includes(permission),
+    );
   }
 }

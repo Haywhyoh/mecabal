@@ -5,11 +5,7 @@ import { State, LocalGovernmentArea, PostCategory } from '../entities';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      State,
-      LocalGovernmentArea,
-      PostCategory,
-    ]),
+    TypeOrmModule.forFeature([State, LocalGovernmentArea, PostCategory]),
   ],
   providers: [SeederService],
   exports: [SeederService],

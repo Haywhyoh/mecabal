@@ -1,11 +1,19 @@
-import { IsEmail, IsOptional, IsString, MinLength, Matches, IsEnum, IsBoolean } from 'class-validator';
+import {
+  IsEmail,
+  IsOptional,
+  IsString,
+  MinLength,
+  Matches,
+  IsEnum,
+  IsBoolean,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 // Basic Auth DTOs
 export class RegisterDto {
   @ApiProperty({
     description: 'User email address',
-    example: 'user@example.com'
+    example: 'user@example.com',
   })
   @IsEmail({}, { message: 'Please provide a valid email address' })
   email: string;
@@ -13,25 +21,25 @@ export class RegisterDto {
   @ApiProperty({
     description: 'Nigerian phone number in international format',
     example: '+2348123456789',
-    required: false
+    required: false,
   })
   @IsOptional()
   @Matches(/^\+234[0-9]{10}$/, {
-    message: 'Phone number must be in Nigerian format (+234XXXXXXXXXX)'
+    message: 'Phone number must be in Nigerian format (+234XXXXXXXXXX)',
   })
   phoneNumber?: string;
 
   @ApiProperty({
     description: 'User first name',
-    example: 'John'
+    example: 'John',
   })
   @IsString()
   @MinLength(2, { message: 'First name must be at least 2 characters long' })
   firstName: string;
 
   @ApiProperty({
-    description: 'User last name', 
-    example: 'Doe'
+    description: 'User last name',
+    example: 'Doe',
   })
   @IsString()
   @MinLength(2, { message: 'Last name must be at least 2 characters long' })
@@ -40,12 +48,13 @@ export class RegisterDto {
   @ApiProperty({
     description: 'User password',
     example: 'SecurePassword123!',
-    minLength: 8
+    minLength: 8,
   })
   @IsString()
   @MinLength(8, { message: 'Password must be at least 8 characters long' })
   @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, {
-    message: 'Password must contain at least one lowercase letter, one uppercase letter, and one number'
+    message:
+      'Password must contain at least one lowercase letter, one uppercase letter, and one number',
   })
   password: string;
 }
@@ -53,14 +62,14 @@ export class RegisterDto {
 export class LoginDto {
   @ApiProperty({
     description: 'Email or phone number for login',
-    example: 'user@example.com or +2348123456789'
+    example: 'user@example.com or +2348123456789',
   })
   @IsString()
   identifier: string;
 
   @ApiProperty({
     description: 'User password',
-    example: 'SecurePassword123!'
+    example: 'SecurePassword123!',
   })
   @IsString()
   password: string;
@@ -69,7 +78,7 @@ export class LoginDto {
 export class VerifyOtpDto {
   @ApiProperty({
     description: 'Email address the OTP was sent to',
-    example: 'user@example.com'
+    example: 'user@example.com',
   })
   @IsEmail({}, { message: 'Please provide a valid email address' })
   email: string;
@@ -78,7 +87,7 @@ export class VerifyOtpDto {
     description: '6-digit OTP code',
     example: '123456',
     minLength: 6,
-    maxLength: 6
+    maxLength: 6,
   })
   @IsString()
   otpCode: string;
@@ -86,7 +95,7 @@ export class VerifyOtpDto {
   @ApiProperty({
     description: 'Purpose of the OTP verification',
     enum: ['registration', 'login', 'password_reset'],
-    example: 'registration'
+    example: 'registration',
   })
   @IsEnum(['registration', 'login', 'password_reset'])
   purpose: 'registration' | 'login' | 'password_reset';
@@ -96,7 +105,7 @@ export class VerifyOtpDto {
 export class ResetPasswordDto {
   @ApiProperty({
     description: 'Email address to send reset code to',
-    example: 'user@example.com'
+    example: 'user@example.com',
   })
   @IsEmail({}, { message: 'Please provide a valid email address' })
   email: string;
@@ -105,14 +114,14 @@ export class ResetPasswordDto {
 export class ConfirmPasswordResetDto {
   @ApiProperty({
     description: 'Email address',
-    example: 'user@example.com'
+    example: 'user@example.com',
   })
   @IsEmail({}, { message: 'Please provide a valid email address' })
   email: string;
 
   @ApiProperty({
     description: 'Reset code sent to email',
-    example: '123456'
+    example: '123456',
   })
   @IsString()
   resetCode: string;
@@ -120,12 +129,13 @@ export class ConfirmPasswordResetDto {
   @ApiProperty({
     description: 'New password',
     example: 'NewSecurePassword123!',
-    minLength: 8
+    minLength: 8,
   })
   @IsString()
   @MinLength(8, { message: 'Password must be at least 8 characters long' })
   @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, {
-    message: 'Password must contain at least one lowercase letter, one uppercase letter, and one number'
+    message:
+      'Password must contain at least one lowercase letter, one uppercase letter, and one number',
   })
   newPassword: string;
 }
@@ -134,7 +144,7 @@ export class ConfirmPasswordResetDto {
 export class InitiateOtpLoginDto {
   @ApiProperty({
     description: 'Email address for OTP login',
-    example: 'user@example.com'
+    example: 'user@example.com',
   })
   @IsEmail({}, { message: 'Please provide a valid email address' })
   email: string;
@@ -143,14 +153,14 @@ export class InitiateOtpLoginDto {
 export class VerifyOtpLoginDto {
   @ApiProperty({
     description: 'Email address',
-    example: 'user@example.com'
+    example: 'user@example.com',
   })
   @IsEmail({}, { message: 'Please provide a valid email address' })
   email: string;
 
   @ApiProperty({
     description: 'OTP code sent to email',
-    example: '123456'
+    example: '123456',
   })
   @IsString()
   otpCode: string;
@@ -160,10 +170,10 @@ export class VerifyOtpLoginDto {
 export class InitiatePhoneVerificationDto {
   @ApiProperty({
     description: 'Nigerian phone number in international format',
-    example: '+2348123456789'
+    example: '+2348123456789',
   })
   @Matches(/^\+234[0-9]{10}$/, {
-    message: 'Phone number must be in Nigerian format (+234XXXXXXXXXX)'
+    message: 'Phone number must be in Nigerian format (+234XXXXXXXXXX)',
   })
   phoneNumber: string;
 }
@@ -171,10 +181,10 @@ export class InitiatePhoneVerificationDto {
 export class VerifyPhoneOtpDto {
   @ApiProperty({
     description: 'Nigerian phone number in international format',
-    example: '+2348123456789'
+    example: '+2348123456789',
   })
   @Matches(/^\+234[0-9]{10}$/, {
-    message: 'Phone number must be in Nigerian format (+234XXXXXXXXXX)'
+    message: 'Phone number must be in Nigerian format (+234XXXXXXXXXX)',
   })
   phoneNumber: string;
 
@@ -182,7 +192,7 @@ export class VerifyPhoneOtpDto {
     description: '4-digit OTP code',
     example: '1234',
     minLength: 4,
-    maxLength: 6
+    maxLength: 6,
   })
   @IsString()
   otpCode: string;
@@ -191,10 +201,10 @@ export class VerifyPhoneOtpDto {
 export class ResendPhoneOtpDto {
   @ApiProperty({
     description: 'Nigerian phone number in international format',
-    example: '+2348123456789'
+    example: '+2348123456789',
   })
   @Matches(/^\+234[0-9]{10}$/, {
-    message: 'Phone number must be in Nigerian format (+234XXXXXXXXXX)'
+    message: 'Phone number must be in Nigerian format (+234XXXXXXXXXX)',
   })
   phoneNumber: string;
 }
@@ -202,17 +212,17 @@ export class ResendPhoneOtpDto {
 export class AlternativeVerificationDto {
   @ApiProperty({
     description: 'Nigerian phone number in international format',
-    example: '+2348123456789'
+    example: '+2348123456789',
   })
   @Matches(/^\+234[0-9]{10}$/, {
-    message: 'Phone number must be in Nigerian format (+234XXXXXXXXXX)'
+    message: 'Phone number must be in Nigerian format (+234XXXXXXXXXX)',
   })
   phoneNumber: string;
 
   @ApiProperty({
     description: 'Alternative verification method',
     enum: ['call', 'ussd'],
-    example: 'call'
+    example: 'call',
   })
   @IsEnum(['call', 'ussd'])
   method: 'call' | 'ussd';
@@ -223,14 +233,14 @@ export class SocialAuthDto {
   @ApiProperty({
     description: 'Social provider',
     enum: ['google', 'facebook', 'apple'],
-    example: 'google'
+    example: 'google',
   })
   @IsEnum(['google', 'facebook', 'apple'])
   provider: 'google' | 'facebook' | 'apple';
 
   @ApiProperty({
     description: 'Social provider access token',
-    example: 'ya29.a0AfH6SMC...'
+    example: 'ya29.a0AfH6SMC...',
   })
   @IsString()
   accessToken: string;
@@ -240,11 +250,11 @@ export class SocialAuthWithPhoneDto extends SocialAuthDto {
   @ApiProperty({
     description: 'Nigerian phone number in international format',
     example: '+2348123456789',
-    required: false
+    required: false,
   })
   @IsOptional()
   @Matches(/^\+234[0-9]{10}$/, {
-    message: 'Phone number must be in Nigerian format (+234XXXXXXXXXX)'
+    message: 'Phone number must be in Nigerian format (+234XXXXXXXXXX)',
   })
   phoneNumber?: string;
 }
@@ -253,14 +263,14 @@ export class LinkSocialAccountDto {
   @ApiProperty({
     description: 'Social provider',
     enum: ['google', 'facebook', 'apple'],
-    example: 'google'
+    example: 'google',
   })
   @IsEnum(['google', 'facebook', 'apple'])
   provider: 'google' | 'facebook' | 'apple';
 
   @ApiProperty({
     description: 'Social provider access token',
-    example: 'ya29.a0AfH6SMC...'
+    example: 'ya29.a0AfH6SMC...',
   })
   @IsString()
   accessToken: string;
@@ -270,7 +280,7 @@ export class UnlinkSocialAccountDto {
   @ApiProperty({
     description: 'Social provider to unlink',
     enum: ['google', 'facebook', 'apple'],
-    example: 'google'
+    example: 'google',
   })
   @IsEnum(['google', 'facebook', 'apple'])
   provider: 'google' | 'facebook' | 'apple';
@@ -281,7 +291,7 @@ export class EnhancedRegisterDto extends RegisterDto {
   @ApiProperty({
     description: 'Nigerian state',
     example: 'Lagos',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsString()
@@ -290,7 +300,7 @@ export class EnhancedRegisterDto extends RegisterDto {
   @ApiProperty({
     description: 'City within state',
     example: 'Ikeja',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsString()
@@ -299,7 +309,7 @@ export class EnhancedRegisterDto extends RegisterDto {
   @ApiProperty({
     description: 'Estate or compound name',
     example: 'Victoria Island Estate',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsString()
@@ -309,7 +319,7 @@ export class EnhancedRegisterDto extends RegisterDto {
     description: 'Preferred language',
     example: 'en',
     default: 'en',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsString()
@@ -319,14 +329,14 @@ export class EnhancedRegisterDto extends RegisterDto {
 export class UpdateOnboardingStepDto {
   @ApiProperty({
     description: 'Current onboarding step',
-    example: 'location_setup'
+    example: 'location_setup',
   })
   @IsString()
   step: string;
 
   @ApiProperty({
     description: 'Step completion status',
-    example: true
+    example: true,
   })
   @IsBoolean()
   completed: boolean;
@@ -334,7 +344,7 @@ export class UpdateOnboardingStepDto {
   @ApiProperty({
     description: 'Additional step data',
     example: { location: 'Lagos, Nigeria' },
-    required: false
+    required: false,
   })
   @IsOptional()
   data?: any;
@@ -344,14 +354,14 @@ export class UpdateOnboardingStepDto {
 export class LocationSetupDto {
   @ApiProperty({
     description: 'Nigerian state',
-    example: 'Lagos'
+    example: 'Lagos',
   })
   @IsString()
   state: string;
 
   @ApiProperty({
     description: 'City within state',
-    example: 'Ikeja'
+    example: 'Ikeja',
   })
   @IsString()
   city: string;
@@ -359,7 +369,7 @@ export class LocationSetupDto {
   @ApiProperty({
     description: 'Estate or compound name',
     example: 'Victoria Island Estate',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsString()
@@ -368,7 +378,7 @@ export class LocationSetupDto {
   @ApiProperty({
     description: 'Landmark or street address',
     example: 'Near Ikeja City Mall',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsString()
@@ -378,14 +388,14 @@ export class LocationSetupDto {
 export class LandmarkSearchDto {
   @ApiProperty({
     description: 'Nigerian state',
-    example: 'Lagos'
+    example: 'Lagos',
   })
   @IsString()
   state: string;
 
   @ApiProperty({
     description: 'City within state',
-    example: 'Ikeja'
+    example: 'Ikeja',
   })
   @IsString()
   city: string;
@@ -393,7 +403,7 @@ export class LandmarkSearchDto {
   @ApiProperty({
     description: 'Search query for landmarks',
     example: 'mall',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsString()
@@ -403,14 +413,14 @@ export class LandmarkSearchDto {
 export class EstateSearchDto {
   @ApiProperty({
     description: 'Nigerian state',
-    example: 'Lagos'
+    example: 'Lagos',
   })
   @IsString()
   state: string;
 
   @ApiProperty({
     description: 'City within state',
-    example: 'Ikeja'
+    example: 'Ikeja',
   })
   @IsString()
   city: string;
@@ -418,7 +428,7 @@ export class EstateSearchDto {
   @ApiProperty({
     description: 'Search query for estates',
     example: 'gated',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsString()
@@ -428,7 +438,7 @@ export class EstateSearchDto {
 export class RefreshTokenDto {
   @ApiProperty({
     description: 'Refresh token to exchange for new access token',
-    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
   })
   refreshToken: string;
 }

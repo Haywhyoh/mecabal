@@ -1,12 +1,12 @@
-import { 
-  Entity, 
-  PrimaryGeneratedColumn, 
-  Column, 
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
   CreateDateColumn,
   ManyToOne,
   OneToMany,
   JoinColumn,
-  Index
+  Index,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { State } from './state.entity';
@@ -32,10 +32,10 @@ export class LocalGovernmentArea {
   createdAt: Date;
 
   // Relations
-  @ManyToOne(() => State, state => state.localGovernmentAreas)
+  @ManyToOne(() => State, (state) => state.localGovernmentAreas)
   @JoinColumn({ name: 'state_id' })
   state: State;
 
-  @OneToMany(() => Neighborhood, neighborhood => neighborhood.lga)
+  @OneToMany(() => Neighborhood, (neighborhood) => neighborhood.lga)
   neighborhoods: Neighborhood[];
 }

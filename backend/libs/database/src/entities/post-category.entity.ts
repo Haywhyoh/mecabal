@@ -1,9 +1,4 @@
-import { 
-  Entity, 
-  PrimaryGeneratedColumn, 
-  Column, 
-  OneToMany
-} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Post } from './post.entity';
 
@@ -25,7 +20,10 @@ export class PostCategory {
   @Column({ name: 'icon_url', type: 'text', nullable: true })
   iconUrl?: string;
 
-  @ApiProperty({ description: 'Color code for the category', example: '#FF5733' })
+  @ApiProperty({
+    description: 'Color code for the category',
+    example: '#FF5733',
+  })
   @Column({ name: 'color_code', length: 7, nullable: true })
   colorCode?: string;
 
@@ -34,6 +32,6 @@ export class PostCategory {
   isActive: boolean;
 
   // Relations
-  @OneToMany(() => Post, post => post.category)
+  @OneToMany(() => Post, (post) => post.category)
   posts: Post[];
 }

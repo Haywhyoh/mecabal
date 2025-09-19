@@ -8,9 +8,9 @@ import { AuthModule } from '@app/auth';
 import { AuthController } from './auth/auth.controller';
 
 // Import entities
-import { 
-  User, 
-  OtpVerification, 
+import {
+  User,
+  OtpVerification,
   EmailOtp,
   UserSession,
   Role,
@@ -22,7 +22,7 @@ import {
   PostComment,
   State,
   LocalGovernmentArea,
-  Neighborhood
+  Neighborhood,
 } from '@app/database/entities';
 
 // Import services
@@ -36,10 +36,12 @@ import { TokenService } from './services/token.service';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    ThrottlerModule.forRoot([{
-      ttl: 60000, // 1 minute
-      limit: 10, // 10 requests per minute
-    }]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000, // 1 minute
+        limit: 10, // 10 requests per minute
+      },
+    ]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     AuthModule,
     TypeOrmModule.forRootAsync({
@@ -52,9 +54,9 @@ import { TokenService } from './services/token.service';
         password: configService.get('DATABASE_PASSWORD', 'MeCabal_password'),
         database: configService.get('DATABASE_NAME', 'MeCabal_dev'),
         entities: [
-          User, 
-          OtpVerification, 
-          EmailOtp, 
+          User,
+          OtpVerification,
+          EmailOtp,
           UserSession,
           Role,
           UserNeighborhood,
@@ -65,13 +67,16 @@ import { TokenService } from './services/token.service';
           PostComment,
           State,
           LocalGovernmentArea,
-          Neighborhood
+          Neighborhood,
         ],
         synchronize: configService.get('NODE_ENV') !== 'production',
         logging: configService.get('NODE_ENV') === 'development',
-        ssl: configService.get('NODE_ENV') === 'production' ? {
-          rejectUnauthorized: false
-        } : false,
+        ssl:
+          configService.get('NODE_ENV') === 'production'
+            ? {
+                rejectUnauthorized: false,
+              }
+            : false,
       }),
       inject: [ConfigService],
     }),
@@ -94,17 +99,7 @@ import { TokenService } from './services/token.service';
     ]),
   ],
   controllers: [AuthController],
-  providers: [
-    AuthService,
-    EmailOtpService,
-    PhoneOtpService,
-    TokenService,
-  ],
-  exports: [
-    AuthService,
-    EmailOtpService,
-    PhoneOtpService,
-    TokenService,
-  ],
+  providers: [AuthService, EmailOtpService, PhoneOtpService, TokenService],
+  exports: [AuthService, EmailOtpService, PhoneOtpService, TokenService],
 })
 export class AuthServiceModule {}

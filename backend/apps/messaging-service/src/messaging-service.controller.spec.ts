@@ -11,7 +11,9 @@ describe('MessagingServiceController', () => {
       providers: [MessagingServiceService],
     }).compile();
 
-    messagingServiceController = app.get<MessagingServiceController>(MessagingServiceController);
+    messagingServiceController = app.get<MessagingServiceController>(
+      MessagingServiceController,
+    );
   });
 
   describe('root', () => {

@@ -1,13 +1,13 @@
-import { 
-  Entity, 
-  PrimaryGeneratedColumn, 
-  Column, 
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
   CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
   OneToMany,
   JoinColumn,
-  Index
+  Index,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { LocalGovernmentArea } from './local-government-area.entity';
@@ -44,7 +44,12 @@ export class Neighborhood {
   centerLatitude: number;
 
   @ApiProperty({ description: 'Center longitude', example: 3.4219 })
-  @Column({ name: 'center_longitude', type: 'decimal', precision: 11, scale: 8 })
+  @Column({
+    name: 'center_longitude',
+    type: 'decimal',
+    precision: 11,
+    scale: 8,
+  })
   centerLongitude: number;
 
   @ApiProperty({ description: 'Radius in meters', example: 1000 })
@@ -68,7 +73,7 @@ export class Neighborhood {
   updatedAt: Date;
 
   // Relations
-  @ManyToOne(() => LocalGovernmentArea, lga => lga.neighborhoods)
+  @ManyToOne(() => LocalGovernmentArea, (lga) => lga.neighborhoods)
   @JoinColumn({ name: 'lga_id' })
   lga: LocalGovernmentArea;
 
@@ -76,10 +81,13 @@ export class Neighborhood {
   @JoinColumn({ name: 'created_by' })
   creator: User;
 
-  @OneToMany(() => UserNeighborhood, userNeighborhood => userNeighborhood.neighborhood)
+  @OneToMany(
+    () => UserNeighborhood,
+    (userNeighborhood) => userNeighborhood.neighborhood,
+  )
   userNeighborhoods: UserNeighborhood[];
 
-  @OneToMany(() => Post, post => post.neighborhood)
+  @OneToMany(() => Post, (post) => post.neighborhood)
   posts: Post[];
 
   // Helper methods
@@ -90,9 +98,9 @@ export class Neighborhood {
     const Δφ = ((lat - this.centerLatitude) * Math.PI) / 180;
     const Δλ = ((lng - this.centerLongitude) * Math.PI) / 180;
 
-    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-      Math.cos(φ1) * Math.cos(φ2) *
-      Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const a =
+      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
     return R * c;

@@ -99,10 +99,7 @@ const adminPermissions = [
   PERMISSIONS.USER_DELETE,
 ];
 
-const superAdminPermissions = [
-  ...adminPermissions,
-  PERMISSIONS.ADMIN_SYSTEM,
-];
+const superAdminPermissions = [...adminPermissions, PERMISSIONS.ADMIN_SYSTEM];
 
 export const ROLE_PERMISSIONS: Record<string, string[]> = {
   [ROLES.USER]: userPermissions,

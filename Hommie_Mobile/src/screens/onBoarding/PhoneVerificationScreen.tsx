@@ -22,6 +22,8 @@ export default function PhoneVerificationScreen({ navigation, route }: any) {
   const language = route.params?.language || 'en';
   const isSignup = route.params?.isSignup || false;
   const userDetails = route.params?.userDetails; // Get user details including email
+  const userId = route.params?.userId; // Get user ID if user was created during email verification
+  const existingUser = route.params?.existingUser; // Get existing user object
 
 
   // Detect carrier based on phone number prefix
@@ -63,12 +65,14 @@ export default function PhoneVerificationScreen({ navigation, route }: any) {
           'Verification Code Sent',
           message,
           [{ text: 'OK', onPress: () => {
-            navigation.navigate('OTPVerification', { 
+            navigation.navigate('OTPVerification', {
               phoneNumber: fullPhoneNumber,
               carrier: result.carrier || detectedCarrier,
               language,
               isSignup,
-              userDetails // Pass through the user details including email
+              userDetails, // Pass through the user details including email
+              userId, // Pass the user ID if user was created during email verification
+              existingUser // Pass the existing user object
             });
           }}]
         );
@@ -89,7 +93,7 @@ export default function PhoneVerificationScreen({ navigation, route }: any) {
       'Phone verification helps keep our community safe. You can still proceed, but some features may be limited.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Skip', onPress: () => navigation.navigate('LocationSetup', { language, phoneNumber: '', isSignup, userDetails }) }
+        { text: 'Skip', onPress: () => navigation.navigate('LocationSetup', { language, phoneNumber: '', isSignup, userDetails, userId, existingUser }) }
       ]
     );
   };

@@ -11,7 +11,9 @@ describe('MarketplaceServiceController', () => {
       providers: [MarketplaceServiceService],
     }).compile();
 
-    marketplaceServiceController = app.get<MarketplaceServiceController>(MarketplaceServiceController);
+    marketplaceServiceController = app.get<MarketplaceServiceController>(
+      MarketplaceServiceController,
+    );
   });
 
   describe('root', () => {

@@ -37,13 +37,13 @@ export class TokenService {
   ) {}
 
   async generateTokenPair(
-    user: User, 
+    user: User,
     deviceInfo?: {
       deviceId?: string;
       deviceType?: string;
       ipAddress?: string;
       userAgent?: string;
-    }
+    },
   ): Promise<TokenPair> {
     // Create user session
     const expiresAt = new Date();
@@ -80,8 +80,11 @@ export class TokenService {
       { ...payload, type: 'refresh' },
       {
         secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-        expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d'),
-      }
+        expiresIn: this.configService.get<string>(
+          'JWT_REFRESH_EXPIRES_IN',
+          '7d',
+        ),
+      },
     );
 
     // Hash and store refresh token
@@ -89,7 +92,9 @@ export class TokenService {
     session.refreshTokenHash = refreshTokenHash;
     await this.sessionRepository.save(session);
 
-    this.logger.log(`Tokens generated for user ${user.id}, session ${savedSession.id}`);
+    this.logger.log(
+      `Tokens generated for user ${user.id}, session ${savedSession.id}`,
+    );
 
     return {
       accessToken,
@@ -104,7 +109,7 @@ export class TokenService {
       // Verify refresh token
       const payload = this.jwtService.verify(refreshToken, {
         secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-      }) as TokenPayload & { type: string };
+      });
 
       if (payload.type !== 'refresh') {
         this.logger.warn('Invalid token type for refresh');
@@ -113,12 +118,12 @@ export class TokenService {
 
       // Get session
       const session = await this.sessionRepository.findOne({
-        where: { 
+        where: {
           id: payload.sessionId,
           userId: payload.userId,
-          isActive: true 
+          isActive: true,
         },
-        relations: ['user']
+        relations: ['user'],
       });
 
       if (!session || !session.isValidSession()) {
@@ -148,7 +153,6 @@ export class TokenService {
 
       this.logger.log(`Tokens refreshed for user ${payload.userId}`);
       return newTokenPair;
-
     } catch (error) {
       this.logger.error('Error refreshing tokens:', error);
       return null;
@@ -159,24 +163,25 @@ export class TokenService {
     try {
       const payload = this.jwtService.verify(token, {
         secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
-      }) as TokenPayload;
+      });
 
       // Check if session is still valid
       const session = await this.sessionRepository.findOne({
-        where: { 
+        where: {
           id: payload.sessionId,
           userId: payload.userId,
-          isActive: true 
-        }
+          isActive: true,
+        },
       });
 
       if (!session || !session.isValidSession()) {
-        this.logger.warn(`Invalid session ${payload.sessionId} for user ${payload.userId}`);
+        this.logger.warn(
+          `Invalid session ${payload.sessionId} for user ${payload.userId}`,
+        );
         return null;
       }
 
       return payload;
-
     } catch (error) {
       this.logger.debug('Invalid access token:', error.message);
       return null;
@@ -187,10 +192,10 @@ export class TokenService {
     try {
       const result = await this.sessionRepository.update(
         { id: sessionId },
-        { 
+        {
           isActive: false,
-          refreshTokenHash: null as any
-        }
+          refreshTokenHash: null as any,
+        },
       );
 
       const invalidated = (result.affected || 0) > 0;
@@ -199,21 +204,23 @@ export class TokenService {
       }
 
       return invalidated;
-
     } catch (error) {
       this.logger.error('Error invalidating session:', error);
       return false;
     }
   }
 
-  async invalidateUserSessions(userId: string, exceptSessionId?: string): Promise<number> {
+  async invalidateUserSessions(
+    userId: string,
+    exceptSessionId?: string,
+  ): Promise<number> {
     try {
       const queryBuilder = this.sessionRepository
         .createQueryBuilder()
         .update(UserSession)
-        .set({ 
+        .set({
           isActive: false,
-          refreshTokenHash: null as any
+          refreshTokenHash: null as any,
         })
         .where('userId = :userId', { userId })
         .andWhere('isActive = true');
@@ -225,9 +232,10 @@ export class TokenService {
       const result = await queryBuilder.execute();
       const invalidatedCount = result.affected || 0;
 
-      this.logger.log(`Invalidated ${invalidatedCount} sessions for user ${userId}`);
+      this.logger.log(
+        `Invalidated ${invalidatedCount} sessions for user ${userId}`,
+      );
       return invalidatedCount;
-
     } catch (error) {
       this.logger.error('Error invalidating user sessions:', error);
       return 0;
@@ -236,11 +244,11 @@ export class TokenService {
 
   async getUserActiveSessions(userId: string): Promise<UserSession[]> {
     return this.sessionRepository.find({
-      where: { 
-        userId, 
-        isActive: true 
+      where: {
+        userId,
+        isActive: true,
       },
-      order: { createdAt: 'DESC' }
+      order: { createdAt: 'DESC' },
     });
   }
 
@@ -255,13 +263,12 @@ export class TokenService {
         .execute();
 
       const deletedCount = result.affected || 0;
-      
+
       if (deletedCount > 0) {
         this.logger.log(`Cleaned up ${deletedCount} expired/inactive sessions`);
       }
 
       return deletedCount;
-
     } catch (error) {
       this.logger.error('Error cleaning up expired sessions:', error);
       return 0;
@@ -270,7 +277,11 @@ export class TokenService {
 
   private hashToken(token: string): string {
     return crypto
-      .createHmac('sha256', this.configService.get<string>('JWT_REFRESH_SECRET') || 'fallback-secret')
+      .createHmac(
+        'sha256',
+        this.configService.get<string>('JWT_REFRESH_SECRET') ||
+          'fallback-secret',
+      )
       .update(token)
       .digest('hex');
   }

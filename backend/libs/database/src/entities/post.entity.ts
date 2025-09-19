@@ -1,13 +1,13 @@
-import { 
-  Entity, 
-  PrimaryGeneratedColumn, 
-  Column, 
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
   CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
   OneToMany,
   JoinColumn,
-  Index
+  Index,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { User } from './user.entity';
@@ -38,7 +38,10 @@ export class Post {
   @Column({ name: 'category_id', nullable: true })
   categoryId?: number;
 
-  @ApiProperty({ description: 'Post title', example: 'Community BBQ This Weekend' })
+  @ApiProperty({
+    description: 'Post title',
+    example: 'Community BBQ This Weekend',
+  })
   @Column({ length: 200, nullable: true })
   title?: string;
 
@@ -46,18 +49,18 @@ export class Post {
   @Column({ type: 'text' })
   content: string;
 
-  @ApiProperty({ 
-    description: 'Type of post', 
+  @ApiProperty({
+    description: 'Type of post',
     enum: ['general', 'event', 'alert', 'marketplace', 'lost_found'],
-    example: 'general'
+    example: 'general',
   })
   @Column({ name: 'post_type', length: 20, default: 'general' })
   postType: string;
 
-  @ApiProperty({ 
-    description: 'Privacy level of the post', 
+  @ApiProperty({
+    description: 'Privacy level of the post',
     enum: ['neighborhood', 'group', 'public'],
-    example: 'neighborhood'
+    example: 'neighborhood',
   })
   @Column({ name: 'privacy_level', length: 20, default: 'neighborhood' })
   privacyLevel: string;
@@ -70,15 +73,18 @@ export class Post {
   @Column({ name: 'is_approved', default: true })
   isApproved: boolean;
 
-  @ApiProperty({ 
-    description: 'Moderation status', 
+  @ApiProperty({
+    description: 'Moderation status',
     enum: ['pending', 'approved', 'rejected'],
-    example: 'approved'
+    example: 'approved',
   })
   @Column({ name: 'moderation_status', length: 20, default: 'approved' })
   moderationStatus: string;
 
-  @ApiProperty({ description: 'User ID who moderated the post', required: false })
+  @ApiProperty({
+    description: 'User ID who moderated the post',
+    required: false,
+  })
   @Column({ name: 'moderated_by', nullable: true })
   moderatedBy?: string;
 
@@ -99,15 +105,19 @@ export class Post {
   updatedAt: Date;
 
   // Relations
-  @ManyToOne(() => User, user => user.posts, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, (user) => user.posts, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @ManyToOne(() => Neighborhood, neighborhood => neighborhood.posts, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Neighborhood, (neighborhood) => neighborhood.posts, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'neighborhood_id' })
   neighborhood: Neighborhood;
 
-  @ManyToOne(() => PostCategory, category => category.posts, { nullable: true })
+  @ManyToOne(() => PostCategory, (category) => category.posts, {
+    nullable: true,
+  })
   @JoinColumn({ name: 'category_id' })
   category?: PostCategory;
 
@@ -115,13 +125,13 @@ export class Post {
   @JoinColumn({ name: 'moderated_by' })
   moderator?: User;
 
-  @OneToMany(() => PostMedia, media => media.post)
+  @OneToMany(() => PostMedia, (media) => media.post)
   media: PostMedia[];
 
-  @OneToMany(() => PostReaction, reaction => reaction.post)
+  @OneToMany(() => PostReaction, (reaction) => reaction.post)
   reactions: PostReaction[];
 
-  @OneToMany(() => PostComment, comment => comment.post)
+  @OneToMany(() => PostComment, (comment) => comment.post)
   comments: PostComment[];
 
   // Helper methods
@@ -130,6 +140,10 @@ export class Post {
   }
 
   isVisible(): boolean {
-    return this.isApproved && this.moderationStatus === 'approved' && !this.isExpired();
+    return (
+      this.isApproved &&
+      this.moderationStatus === 'approved' &&
+      !this.isExpired()
+    );
   }
 }

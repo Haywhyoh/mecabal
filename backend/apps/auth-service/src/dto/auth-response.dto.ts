@@ -7,10 +7,16 @@ export class AuthResponseDto {
   @ApiProperty({ description: 'Response message', required: false })
   message?: string;
 
-  @ApiProperty({ description: 'Error message if operation failed', required: false })
+  @ApiProperty({
+    description: 'Error message if operation failed',
+    required: false,
+  })
   error?: string;
 
-  @ApiProperty({ description: 'User data if operation successful', required: false })
+  @ApiProperty({
+    description: 'User data if operation successful',
+    required: false,
+  })
   user?: {
     id: string;
     email: string;
@@ -20,6 +26,15 @@ export class AuthResponseDto {
     phoneVerified: boolean;
     isVerified: boolean;
     verificationLevel: 'unverified' | 'phone' | 'identity' | 'full';
+    state?: string;
+    city?: string;
+    estate?: string;
+    location?: any;
+    address?: string;
+    addressVerified?: boolean;
+    preferredLanguage?: string;
+    createdAt?: Date;
+    updatedAt?: Date;
   };
 
   @ApiProperty({ description: 'JWT access token', required: false })
@@ -39,7 +54,10 @@ export class OtpResponseDto {
   @ApiProperty({ description: 'Response message', required: false })
   message?: string;
 
-  @ApiProperty({ description: 'Error message if operation failed', required: false })
+  @ApiProperty({
+    description: 'Error message if operation failed',
+    required: false,
+  })
   error?: string;
 
   @ApiProperty({ description: 'Nigerian carrier detected', required: false })
@@ -54,7 +72,10 @@ export class OtpResponseDto {
   @ApiProperty({ description: 'Delivery method used', required: false })
   method?: 'sms' | 'whatsapp' | 'email';
 
-  @ApiProperty({ description: 'Whether OTP was verified successfully', required: false })
+  @ApiProperty({
+    description: 'Whether OTP was verified successfully',
+    required: false,
+  })
   verified?: boolean;
 
   // For development purposes only - remove in production
@@ -65,7 +86,7 @@ export class OtpResponseDto {
 export class RefreshTokenDto {
   @ApiProperty({
     description: 'Refresh token to exchange for new access token',
-    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
   })
   refreshToken: string;
 }
