@@ -1128,4 +1128,28 @@ export class AuthService {
       };
     }
   }
+
+  async findUserByPhoneNumber(phoneNumber: string): Promise<User | null> {
+    try {
+      return await this.userRepository.findOne({
+        where: { phoneNumber },
+        relations: ['userNeighborhoods', 'userNeighborhoods.neighborhood'],
+      });
+    } catch (error) {
+      this.logger.error('Find user by phone number error:', error);
+      return null;
+    }
+  }
+
+  async generateTokensForUser(
+    user: User,
+    deviceInfo?: {
+      deviceId?: string;
+      deviceType?: string;
+      ipAddress?: string;
+      userAgent?: string;
+    },
+  ) {
+    return await this.tokenService.generateTokenPair(user, deviceInfo);
+  }
 }

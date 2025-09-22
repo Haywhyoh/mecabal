@@ -903,6 +903,12 @@ export class AuthController {
       phoneNumber: string;
       otpCode: string;
       purpose?: 'registration' | 'login' | 'password_reset';
+      deviceInfo?: {
+        deviceId?: string;
+        deviceType?: string;
+        ipAddress?: string;
+        userAgent?: string;
+      };
     },
   ) {
     // Validate that this is a phone number (Nigerian format check)
@@ -930,11 +936,42 @@ export class AuthController {
       body.purpose || 'registration',
     );
 
+    if (result.success && result.verified) {
+      // For successful verification, find the user and generate tokens
+      const user = await this.authService.findUserByPhoneNumber(body.phoneNumber);
+      
+      if (user) {
+        // Generate JWT tokens for authenticated access
+        const tokenPair = await this.authService.generateTokensForUser(user, body.deviceInfo);
+        
+        const response = {
+          success: true,
+          verified: true,
+          method: 'phone',
+          carrier: result.carrier,
+          user: {
+            id: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            phoneNumber: user.phoneNumber,
+            phoneVerified: user.phoneVerified,
+            isVerified: user.isVerified,
+            verificationLevel: user.getVerificationLevel(),
+          },
+          tokens: tokenPair,
+        };
+
+        console.log('📤 Phone OTP Verification Response with tokens:', response);
+        return response;
+      }
+    }
+
     const response = {
       success: result.success,
       verified: result.verified,
       error: result.error,
-      method: 'phone', // Explicitly set to phone
+      method: 'phone',
       carrier: result.carrier,
     };
 

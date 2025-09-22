@@ -15,6 +15,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   updateProfile: (updates: Partial<NigerianUser>) => Promise<boolean>;
+  setUser: (user: NigerianUser | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -150,6 +151,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Method to directly set user (for immediate auth state updates)
+  const setUserDirectly = (userData: NigerianUser | null) => {
+    setUser(userData);
+  };
+
   const value: AuthContextType = {
     user,
     isLoading,
@@ -160,6 +166,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     refreshUser,
     updateProfile,
+    setUser: setUserDirectly,
   };
 
   return (

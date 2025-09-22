@@ -263,6 +263,23 @@ export interface VerifyOTPResponse {
   carrier?: string;
   message?: string;
   error?: string;
+  user?: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    phoneNumber: string;
+    phoneVerified: boolean;
+    isVerified: boolean;
+    verificationLevel: string;
+  };
+  tokens?: {
+    accessToken: string;
+    refreshToken: string;
+    expiresAt: string;
+    sessionId: string;
+  };
+  method?: string;
 }
 
 // Location Types

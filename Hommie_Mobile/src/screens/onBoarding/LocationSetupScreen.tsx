@@ -42,7 +42,7 @@ export default function LocationSetupScreen({ navigation, route }: any) {
   const [landmarks, setLandmarks] = useState<any[]>([]);
   const [landmarksLoading, setLandmarksLoading] = useState(false);
 
-  const { register } = useAuth();
+  const { register, setUser } = useAuth();
 
   const language = route.params?.language || 'en';
   const phoneNumber = route.params?.phoneNumber || '';
@@ -66,6 +66,13 @@ export default function LocationSetupScreen({ navigation, route }: any) {
     try {
       // Save location data to backend if provided
       if (locationData) {
+        console.log('Saving location data for authenticated user');
+
+        // First test if JWT authentication works with a simpler endpoint
+        console.log('Testing JWT authentication with /auth/me endpoint...');
+        const testAuthResult = await MeCabalAuth.getCurrentUser();
+        console.log('Auth test result:', testAuthResult ? 'Success' : 'Failed');
+
         const locationResult = await MeCabalAuth.setupLocation({
           ...locationData,
           completeRegistration: true
@@ -80,9 +87,9 @@ export default function LocationSetupScreen({ navigation, route }: any) {
       }
 
       if (userDetails) {
-        // Authenticate the user with the context
-        await register(userDetails);
-        console.log('User authenticated successfully after location setup');
+        // Now set user as fully authenticated after location setup is complete
+        setUser(userDetails);
+        console.log('✅ Location setup completed - user now fully authenticated:', userDetails.id);
       } else if (onSetupComplete) {
         // Fallback to callback if no userDetails
         onSetupComplete();

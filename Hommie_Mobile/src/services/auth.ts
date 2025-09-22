@@ -26,7 +26,14 @@ class ApiClient {
     
     try {
       const token = await AsyncStorage.getItem('auth_token');
-      
+
+      // Debug token retrieval
+      if (token) {
+        console.log(`🔐 Retrieved token for ${endpoint}:`, token.substring(0, 50) + '...');
+      } else {
+        console.log(`❌ No token found for ${endpoint}`);
+      }
+
       const config: RequestInit = {
         method: 'GET',
         headers: {
@@ -53,7 +60,14 @@ class ApiClient {
         const errorData = await response.json().catch(() => ({
           message: `HTTP ${response.status}: ${response.statusText}`,
         }));
-        
+
+        console.log(`❌ API Error for ${endpoint}:`, {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+          tokenPresent: !!token
+        });
+
         return {
           success: false,
           error: errorData.message || `Request failed with status ${response.status}`,
@@ -205,18 +219,34 @@ export class MeCabalAuth {
       }
 
       // Store authentication tokens if provided
-      if (data.access_token) {
+      if (data.tokens?.accessToken) {
+        await AsyncStorage.setItem('auth_token', data.tokens.accessToken);
+        if (data.tokens.refreshToken) {
+          await AsyncStorage.setItem('refresh_token', data.tokens.refreshToken);
+        }
+        console.log('✅ Tokens stored successfully (new format)');
+
+        // Small delay to ensure tokens are fully persisted
+        await new Promise(resolve => setTimeout(resolve, 50));
+      } else if (data.access_token) {
+        // Fallback for old format
         await AsyncStorage.setItem('auth_token', data.access_token);
         if (data.refresh_token) {
           await AsyncStorage.setItem('refresh_token', data.refresh_token);
         }
+        console.log('✅ Tokens stored successfully (legacy format)');
+
+        // Small delay to ensure tokens are fully persisted
+        await new Promise(resolve => setTimeout(resolve, 50));
       }
 
       return {
         success: true,
         verified: true,
         message: data.message || 'Phone number verified successfully',
-        carrier: data.carrier
+        carrier: data.carrier,
+        user: data.user,
+        tokens: data.tokens
       };
     } catch (error: any) {
       return {
@@ -457,11 +487,23 @@ export class MeCabalAuth {
       }
 
       const { data } = result;
-      
-      // Store new tokens
-      await AsyncStorage.setItem('auth_token', data.access_token);
-      if (data.refresh_token) {
-        await AsyncStorage.setItem('refresh_token', data.refresh_token);
+
+      // Store new tokens - handle both old and new format
+      if (data.tokens?.accessToken) {
+        // New format with tokens object
+        await AsyncStorage.setItem('auth_token', data.tokens.accessToken);
+        if (data.tokens.refreshToken) {
+          await AsyncStorage.setItem('refresh_token', data.tokens.refreshToken);
+        }
+      } else if (data.access_token) {
+        // Old format with direct properties
+        await AsyncStorage.setItem('auth_token', data.access_token);
+        if (data.refresh_token) {
+          await AsyncStorage.setItem('refresh_token', data.refresh_token);
+        }
+      } else {
+        console.error('Unexpected token format in refresh response:', data);
+        return false;
       }
 
       return true;

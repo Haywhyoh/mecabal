@@ -271,47 +271,10 @@ export class PhoneOtpService {
       this.logger.log(
         `🔍 Starting phone OTP verification: ${phoneNumber}, purpose: ${purpose}, code: ${otpCode}`,
       );
-      // Find user by phone number (same logic as sendPhoneOTP for consistency)
-      let user = await this.userRepository.findOne({
-        where: [
-          { phoneNumber },
-          // For registration, also look for users with this phone number that might have been just updated
-          ...(purpose === 'registration' ? [{ phoneNumber }] : []),
-        ],
-        order: { updatedAt: 'DESC' },
-      });
 
-      // Fallback: If not found, try to find OTP record first and then find user
-      if (!user && purpose === 'registration') {
-        const otpRecord = await this.otpVerificationRepository.findOne({
-          where: {
-            contactMethod: 'phone',
-            contactValue: phoneNumber,
-            purpose,
-            isUsed: false,
-          },
-          order: { createdAt: 'DESC' },
-        });
-
-        if (otpRecord && otpRecord.userId) {
-          user = await this.userRepository.findOne({
-            where: { id: otpRecord.userId },
-          });
-        }
-      }
-
-      if (!user) {
-        return {
-          success: false,
-          verified: false,
-          error: 'User not found',
-        };
-      }
-
-      // Find valid OTP record
+      // Find OTP record first - this is the primary lookup
       const otpRecord = await this.otpVerificationRepository.findOne({
         where: {
-          userId: user.id,
           contactMethod: 'phone',
           contactValue: phoneNumber,
           purpose,
@@ -325,6 +288,31 @@ export class PhoneOtpService {
           success: false,
           verified: false,
           error: 'Invalid or expired OTP',
+        };
+      }
+
+      // Find user by OTP record's userId or by phone number
+      let user = null;
+      if (otpRecord.userId) {
+        user = await this.userRepository.findOne({
+          where: { id: otpRecord.userId },
+        });
+      }
+
+      // Fallback: find user by phone number if not found by userId
+      if (!user) {
+        user = await this.userRepository.findOne({
+          where: { phoneNumber },
+          order: { updatedAt: 'DESC' },
+        });
+      }
+
+      // For non-registration purposes, user must exist
+      if (!user && purpose !== 'registration') {
+        return {
+          success: false,
+          verified: false,
+          error: 'User not found',
         };
       }
 
@@ -381,7 +369,7 @@ export class PhoneOtpService {
       await this.otpVerificationRepository.save(otpRecord);
 
       // Update user phone verification status if this is registration
-      if (purpose === 'registration') {
+      if (purpose === 'registration' && user) {
         user.phoneVerified = true;
         // For mobile registration flow, user should be considered verified after phone verification
         // This allows them to proceed to location setup and complete registration
@@ -394,7 +382,7 @@ export class PhoneOtpService {
       const result = {
         success: true,
         verified: true,
-        carrier: user.phoneCarrier,
+        carrier: user?.phoneCarrier,
       };
 
       this.logger.log(`📤 Phone OTP service returning:`, result);

@@ -42,26 +42,22 @@ export class EmailOtpService {
       );
     }
 
+
     // Create transporter with better configuration
     this.transporter = nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
       port: Number(process.env.EMAIL_PORT),
-      secure: false, // true for 465, false for other ports
+      secure: true, // true for 465, false for other ports
       auth: {
         user: process.env.EMAIL_HOST_USER,
         pass: process.env.EMAIL_HOST_PASSWORD,
       },
       tls: {
         rejectUnauthorized: false, // Allow self-signed certificates
-        ciphers: 'SSLv3',
       },
-      connectionTimeout: 30000, // 30 seconds
-      greetingTimeout: 15000, // 15 seconds
-      socketTimeout: 30000, // 30 seconds
-      pool: true,
-      maxConnections: 5,
-      maxMessages: 100,
-      rateLimit: 10, // max 10 messages per second
+      connectionTimeout: 60000, // 60 seconds
+      greetingTimeout: 30000, // 30 seconds
+      socketTimeout: 60000, // 60 seconds
     });
 
     // Verify connection on startup
@@ -70,8 +66,29 @@ export class EmailOtpService {
 
   private async verifyConnection(): Promise<void> {
     try {
-      await this.transporter.verify();
-      this.logger.log('Email service connection verified successfully');
+      // Add retry logic for DNS resolution issues
+      let retries = 3;
+      let lastError;
+      
+      while (retries > 0) {
+        try {
+          await this.transporter.verify();
+          this.logger.log('Email service connection verified successfully');
+          return;
+        } catch (error) {
+          lastError = error;
+          retries--;
+          
+          if (error.code === 'ENOTFOUND' || error.code === 'EDNS') {
+            this.logger.warn(`DNS resolution failed, retrying... (${retries} attempts left)`);
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+          } else {
+            throw error; // Re-throw non-DNS errors
+          }
+        }
+      }
+      
+      throw lastError;
     } catch (error) {
       this.logger.error('Email service connection verification failed:', error);
       // Don't throw error here to allow service to start, but log the issue

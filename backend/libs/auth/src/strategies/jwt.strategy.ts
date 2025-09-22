@@ -8,6 +8,7 @@ import { User } from '@app/database';
 
 export interface JwtPayload {
   sub: string;
+  userId?: string; // For backward compatibility
   email: string;
   phoneNumber?: string;
   roles?: string[];
@@ -38,7 +39,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     const user = await this.userRepository.findOne({
-      where: { id: payload.sub },
+      where: { id: payload.sub || payload.userId }, // Support both sub and userId
       relations: ['userNeighborhoods', 'userNeighborhoods.neighborhood'],
     });
 

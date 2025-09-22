@@ -8,10 +8,12 @@ import { UserSession } from '@app/database/entities/user-session.entity';
 import { User } from '@app/database/entities/user.entity';
 
 export interface TokenPayload {
-  userId: string;
+  sub: string; // User ID (JWT standard)
+  userId: string; // Keep for backward compatibility
   email: string;
   phoneNumber?: string;
   sessionId: string;
+  type: string; // 'access' or 'refresh'
   iat?: number;
   exp?: number;
 }
@@ -63,10 +65,12 @@ export class TokenService {
 
     // Generate tokens
     const payload: TokenPayload = {
+      sub: user.id, // JWT standard user ID field
       userId: user.id,
       email: user.email,
       phoneNumber: user.phoneNumber,
       sessionId: savedSession.id,
+      type: 'access', // Required by JWT strategy
     };
 
     // Access token (15 minutes)
@@ -120,7 +124,7 @@ export class TokenService {
       const session = await this.sessionRepository.findOne({
         where: {
           id: payload.sessionId,
-          userId: payload.userId,
+          userId: payload.sub || payload.userId, // Support both sub and userId
           isActive: true,
         },
         relations: ['user'],
@@ -151,7 +155,7 @@ export class TokenService {
       // Invalidate old session
       await this.invalidateSession(session.id);
 
-      this.logger.log(`Tokens refreshed for user ${payload.userId}`);
+      this.logger.log(`Tokens refreshed for user ${payload.sub || payload.userId}`);
       return newTokenPair;
     } catch (error) {
       this.logger.error('Error refreshing tokens:', error);
@@ -169,14 +173,14 @@ export class TokenService {
       const session = await this.sessionRepository.findOne({
         where: {
           id: payload.sessionId,
-          userId: payload.userId,
+          userId: payload.sub || payload.userId, // Support both sub and userId
           isActive: true,
         },
       });
 
       if (!session || !session.isValidSession()) {
         this.logger.warn(
-          `Invalid session ${payload.sessionId} for user ${payload.userId}`,
+          `Invalid session ${payload.sessionId} for user ${payload.sub || payload.userId}`,
         );
         return null;
       }

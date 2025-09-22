@@ -10,8 +10,11 @@ export default function OTPVerificationScreen({ navigation, route }: any) {
   const [timeLeft, setTimeLeft] = useState(30);
   const [canResend, setCanResend] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
-  
-  const { register, loginWithEmail } = useAuth();
+
+  const { register, loginWithEmail, setUser } = useAuth();
+
+  // Use ref to prevent duplicate calls
+  const verificationInProgress = useRef(false);
 
   const phoneNumber = route.params?.phoneNumber || '08012345678';
   const carrier = route.params?.carrier || 'Unknown';
@@ -30,16 +33,16 @@ export default function OTPVerificationScreen({ navigation, route }: any) {
     }
   }, [timeLeft]);
 
-  // Check if OTP is complete
-  useEffect(() => {
-    const otpString = otp.join('');
-    if (otpString.length === 4) {
-      // Auto-verify when all 4 digits are entered
-      setTimeout(() => {
-        handleVerify();
-      }, 500);
-    }
-  }, [otp]);
+  // Check if OTP is complete - DISABLED to prevent duplicate verification calls
+  // useEffect(() => {
+  //   const otpString = otp.join('');
+  //   if (otpString.length === 4) {
+  //     // Auto-verify when all 4 digits are entered
+  //     setTimeout(() => {
+  //       handleVerify();
+  //     }, 500);
+  //   }
+  // }, [otp]);
 
   const handleOtpChange = (value: string, index: number) => {
     // Only allow single digits
@@ -63,107 +66,81 @@ export default function OTPVerificationScreen({ navigation, route }: any) {
   };
 
   const handleVerify = async () => {
+    console.log('📱 handleVerify called, isVerifying:', isVerifying, 'verificationInProgress:', verificationInProgress.current);
+
+    // Prevent duplicate calls with both state and ref
+    if (verificationInProgress.current || isVerifying) {
+      console.log('📱 Verification already in progress, skipping...');
+      return;
+    }
+
     const otpString = otp.join('');
     if (otpString.length === 4) {
       setIsVerifying(true);
-      
+      verificationInProgress.current = true;
+
       try {
         // Use SMS-based OTP verification with Nigerian phone number
         const purpose = isSignup ? 'registration' : 'login';
         
         if (isSignup) {
-          // For signup, first verify the OTP
+          // Add debug logging
+          console.log('📱 Starting OTP verification:', { phoneNumber, otpCode: otpString, purpose: 'registration' });
+
+          // Single verification call - backend handles everything
           const verifyResult = await MeCabalAuth.verifyOTP(phoneNumber, otpString, 'registration');
-          
+
+          console.log('📱 OTP verification result:', verifyResult);
+
           if (!verifyResult.success) {
             Alert.alert('Verification Failed', verifyResult.error || 'Invalid verification code. Please try again.');
             return;
           }
-          
-          // Check if user already exists (from email verification)
-          const existingUserId = route.params?.userId;
-          const userDetails = route.params?.userDetails;
-          
-          if (existingUserId) {
-            // User already exists from email verification, just update phone number
-            const updateResult = await MeCabalAuth.updateProfile(existingUserId, {
-              phone_number: phoneNumber,
-              verification_level: 2 // Both email and phone verified
-            });
-            
-            if (updateResult.success) {
-              Alert.alert(
-                'Phone Verified!',
-                'Your phone number has been verified successfully.',
-                [{ text: 'Continue', onPress: () => {
-                  navigation.navigate('LocationSetup', {
-                    language,
-                    phoneNumber,
-                    isSignup,
-                    userId: existingUserId,
-                    userDetails: userDetails // Pass user details for final authentication
-                  });
-                }}]
-              );
-            } else {
-              Alert.alert('Update Failed', updateResult.error || 'Failed to update phone number.');
-            }
-          } else {
-            // Create new user account after successful OTP verification
-            const authResult = await MeCabalAuth.createUserAfterVerification({
-              email: userDetails?.email || route.params?.email || `${phoneNumber.replace(/^\+234/, '0').replace(/^234/, '0')}@mecabal.temp`,
-              phone_number: phoneNumber,
-              first_name: userDetails?.firstName || route.params?.firstName || '',
-              last_name: userDetails?.lastName || route.params?.lastName || '',
-              state_of_origin: route.params?.stateOfOrigin,
-              preferred_language: language
-            });
-            
-            if (authResult.success && authResult.user) {
-              // Don't authenticate yet - wait for location setup completion
-              Alert.alert(
-                'Phone Verified!',
-                'Your phone number has been verified successfully. Let\'s set up your location.',
-                [{ text: 'Continue', onPress: () => {
-                  navigation.navigate('LocationSetup', {
-                    language,
-                    phoneNumber,
-                    isSignup,
-                    userId: authResult.user?.id,
-                    userDetails: authResult.user // Pass user details for final authentication
-                  });
-                }}]
-              );
-            } else {
-              Alert.alert('Registration Failed', authResult.error || 'Failed to create account.');
-            }
-          }
+
+          // Don't set user in context yet - wait until location setup is complete
+          // This prevents the navigation from switching to MainStack prematurely
+          console.log('✅ User verified but not authenticated until location setup:', verifyResult.user?.id);
+
+          // Verification successful - proceed to location setup
+          Alert.alert(
+            'Phone Verified!',
+            'Your phone number has been verified successfully. Let\'s set up your location.',
+            [{ text: 'Continue', onPress: () => {
+              navigation.navigate('LocationSetup', {
+                language,
+                phoneNumber,
+                isSignup,
+                userId: verifyResult.user?.id,
+                userDetails: verifyResult.user
+              });
+            }}]
+          );
         } else {
-          // For login, verify OTP with phone number
+          // Add debug logging
+          console.log('📱 Starting login OTP verification:', { phoneNumber, otpCode: otpString, purpose: 'login' });
+
+          // Single verification call for login
           const verifyResult = await MeCabalAuth.verifyOTP(phoneNumber, otpString, 'login');
-          
-          if (verifyResult.success) {
-            // Complete login after successful OTP verification
-            const loginResult = await MeCabalAuth.completeLogin(phoneNumber);
-            
-            if (loginResult.success && loginResult.user) {
-              // Don't authenticate yet - wait for location setup completion
-              Alert.alert(
-                'Welcome Back!',
-                'Your phone number has been verified successfully. Let\'s confirm your location.',
-                [{ text: 'Continue', onPress: () => {
-                  navigation.navigate('LocationSetup', {
-                    language,
-                    phoneNumber,
-                    isSignup,
-                    userId: loginResult.user?.id,
-                    userDetails: loginResult.user // Pass user details for final authentication
-                  });
-                }}]
-              );
-            } else {
-              Alert.alert('Login Failed', loginResult.error || 'Failed to complete login process.');
-            }
+
+          console.log('📱 Login OTP verification result:', verifyResult);
+
+          if (verifyResult.success && verifyResult.verified) {
+            // Don't set user in context yet - wait until location setup is complete
+            console.log('✅ Login user verified but not authenticated until location setup:', verifyResult.user?.id);
+
+            Alert.alert(
+              'Welcome Back!',
+              'Your phone number has been verified successfully. Let\'s confirm your location.',
+              [{ text: 'Continue', onPress: () => {
+                navigation.navigate('LocationSetup', {
+                  language,
+                  phoneNumber,
+                  isSignup,
+                  userId: verifyResult.user?.id,
+                  userDetails: verifyResult.user
+                });
+              }}]
+            );
           } else {
             Alert.alert('Login Failed', verifyResult.error || 'Invalid verification code. Please try again.');
           }
@@ -173,6 +150,7 @@ export default function OTPVerificationScreen({ navigation, route }: any) {
         Alert.alert('Error', 'Failed to verify OTP. Please check your connection and try again.');
       } finally {
         setIsVerifying(false);
+        verificationInProgress.current = false;
       }
     } else {
       Alert.alert('Error', 'Please enter the complete 4-digit OTP');
