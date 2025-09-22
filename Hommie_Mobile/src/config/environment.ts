@@ -13,6 +13,15 @@ export const ENV = {
     API_KEY: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || '',
   },
   
+  // DigitalOcean Spaces Configuration
+  DO_SPACES: {
+    ACCESS_KEY: process.env.EXPO_PUBLIC_DO_SPACES_KEY || '',
+    SECRET_KEY: process.env.EXPO_PUBLIC_DO_SPACES_SECRET || '',
+    BUCKET: process.env.EXPO_PUBLIC_DO_SPACES_BUCKET || '',
+    REGION: process.env.EXPO_PUBLIC_DO_SPACES_REGION || 'nyc3',
+    ENDPOINT: process.env.EXPO_PUBLIC_DO_SPACES_ENDPOINT || 'https://nyc3.digitaloceanspaces.com',
+  },
+  
   // Development/Production flags
   DEV: {
     IS_DEVELOPMENT: __DEV__,
@@ -65,6 +74,39 @@ export const API_ENDPOINTS = {
     ME: '/auth/me',
     PROFILE: '/auth/profile',
     VERIFY: '/auth/verify',
+  },
+  POSTS: {
+    CREATE: '/posts',
+    GET_ALL: '/posts',
+    GET_BY_ID: '/posts',
+    UPDATE: '/posts',
+    DELETE: '/posts',
+    PIN: '/posts',
+  },
+  REACTIONS: {
+    ADD: '/posts',
+    REMOVE: '/posts',
+    GET_STATS: '/posts',
+  },
+  COMMENTS: {
+    CREATE: '/posts',
+    GET_ALL: '/posts',
+    UPDATE: '/posts',
+    DELETE: '/posts',
+  },
+  CATEGORIES: {
+    GET_ALL: '/categories',
+    GET_BY_ID: '/categories',
+    CREATE: '/categories',
+    UPDATE: '/categories',
+    DELETE: '/categories',
+    STATS: '/categories/stats',
+  },
+  MODERATION: {
+    REPORT: '/moderation/report',
+    MODERATE: '/moderation/moderate',
+    QUEUE: '/moderation/queue',
+    STATS: '/moderation/stats',
   },
 } as const;
 
