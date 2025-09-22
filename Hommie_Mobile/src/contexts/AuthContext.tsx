@@ -37,10 +37,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const initializeAuth = async () => {
     try {
+      console.log('🔄 Initializing authentication...');
+
+      // Check if tokens exist first
+      const hasToken = await MeCabalAuth.getAuthToken();
+      console.log('🔄 Token check:', hasToken ? 'Token exists' : 'No token');
+
+      if (!hasToken) {
+        console.log('🔄 No stored token - user not authenticated');
+        setIsLoading(false);
+        return;
+      }
+
       const currentUser = await MeCabalAuth.getCurrentUser();
-      setUser(currentUser);
+      console.log('🔄 Auth initialization result:', currentUser ? `User found: ${currentUser.firstName} ${currentUser.lastName}` : 'No user');
+
+      // Only set user if we actually got one - don't clear existing user state
+      if (currentUser) {
+        setUser(currentUser);
+      } else {
+        console.log('🔄 No user found during initialization - keeping existing state');
+      }
     } catch (error) {
       console.error('Auth initialization error:', error);
+      // Don't clear user state on initialization errors
     } finally {
       setIsLoading(false);
     }
@@ -70,15 +90,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const loginWithEmail = async (email: string, otpCode: string): Promise<boolean> => {
     try {
       setIsLoading(true);
-      
+
       // Complete email login with OTP verification
       const loginResult = await MeCabalAuth.completeEmailLogin(email, otpCode);
-      
+
       if (loginResult.success && loginResult.user) {
+        console.log('✅ Email login successful, setting user:', loginResult.user.firstName, loginResult.user.lastName);
         setUser(loginResult.user);
         return true;
       }
-      
+
+      console.log('❌ Email login failed:', loginResult.error);
       return false;
     } catch (error) {
       console.error('Email login error:', error);

@@ -4,22 +4,35 @@
 // Core Database Types
 export interface NigerianUser {
   id: string;
-  phone_number: string;
+  phoneNumber: string;
   email?: string;
-  first_name: string;
-  last_name: string;
-  profile_picture_url?: string;
-  state_of_origin?: string;
-  preferred_language: string;
-  carrier_info?: {
+  firstName: string;
+  lastName: string;
+  profilePictureUrl?: string;
+  state?: string;
+  city?: string;
+  estate?: string;
+  location?: string;
+  landmark?: string;
+  address?: string;
+  culturalBackground?: string;
+  nativeLanguages?: string;
+  bio?: string;
+  professionalSkills?: string;
+  occupation?: string;
+  phoneVerified: boolean;
+  identityVerified: boolean;
+  addressVerified: boolean;
+  preferredLanguage: string;
+  carrierInfo?: {
     name: string;
     prefix: string;
     color: string;
   };
-  is_verified: boolean;
-  verification_level: number;
-  created_at: string;
-  updated_at: string;
+  isVerified: boolean;
+  verificationLevel: number;
+  createdAt: string;
+  updatedAt: string;  
 }
 
 export interface Neighborhood {
@@ -348,8 +361,8 @@ export interface PaymentVerifyResponse {
     channel: string;
     customer: {
       email: string;
-      first_name: string;
-      last_name: string;
+      firstName: string;
+      lastName: string;
     };
   };
   message?: string;

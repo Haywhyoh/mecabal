@@ -31,7 +31,14 @@ class ApiClient {
       if (token) {
         console.log(`🔐 Retrieved token for ${endpoint}:`, token.substring(0, 50) + '...');
       } else {
-        console.log(`❌ No token found for ${endpoint}`);
+        // Only log as warning for endpoints that likely need auth
+        const publicEndpoints = ['/auth/send-otp', '/auth/complete-email-login', '/auth/refresh', '/auth/verify-otp'];
+        const isPublicEndpoint = publicEndpoints.some(pe => endpoint.includes(pe));
+        if (!isPublicEndpoint) {
+          console.log(`⚠️ No token found for ${endpoint} (may require authentication)`);
+        } else {
+          console.log(`🔓 Public endpoint ${endpoint} (no token needed)`);
+        }
       }
 
       const config: RequestInit = {
@@ -218,23 +225,13 @@ export class MeCabalAuth {
         };
       }
 
-      // Store authentication tokens if provided
-      if (data.tokens?.accessToken) {
-        await AsyncStorage.setItem('auth_token', data.tokens.accessToken);
-        if (data.tokens.refreshToken) {
-          await AsyncStorage.setItem('refresh_token', data.tokens.refreshToken);
+      // Store authentication tokens if provided (camelCase format only)
+      if (data.accessToken) {
+        await AsyncStorage.setItem('auth_token', data.accessToken);
+        if (data.refreshToken) {
+          await AsyncStorage.setItem('refresh_token', data.refreshToken);
         }
-        console.log('✅ Tokens stored successfully (new format)');
-
-        // Small delay to ensure tokens are fully persisted
-        await new Promise(resolve => setTimeout(resolve, 50));
-      } else if (data.access_token) {
-        // Fallback for old format
-        await AsyncStorage.setItem('auth_token', data.access_token);
-        if (data.refresh_token) {
-          await AsyncStorage.setItem('refresh_token', data.refresh_token);
-        }
-        console.log('✅ Tokens stored successfully (legacy format)');
+        console.log('✅ Tokens stored successfully');
 
         // Small delay to ensure tokens are fully persisted
         await new Promise(resolve => setTimeout(resolve, 50));
@@ -288,19 +285,19 @@ export class MeCabalAuth {
 
       const { data } = result;
       
-      // Store authentication tokens
-      if (data.access_token) {
-        await AsyncStorage.setItem('auth_token', data.access_token);
-        if (data.refresh_token) {
-          await AsyncStorage.setItem('refresh_token', data.refresh_token);
+      // Store authentication tokens (camelCase format only)
+      if (data.accessToken) {
+        await AsyncStorage.setItem('auth_token', data.accessToken);
+        if (data.refreshToken) {
+          await AsyncStorage.setItem('refresh_token', data.refreshToken);
         }
       }
 
       return {
         success: true,
         user: data.user as NigerianUser,
-        access_token: data.access_token,
-        refresh_token: data.refresh_token,
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
         message: data.message
       };
     } catch (error: any) {
@@ -344,19 +341,19 @@ export class MeCabalAuth {
 
       const { data } = result;
       
-      // Store authentication tokens
-      if (data.access_token) {
-        await AsyncStorage.setItem('auth_token', data.access_token);
-        if (data.refresh_token) {
-          await AsyncStorage.setItem('refresh_token', data.refresh_token);
+      // Store authentication tokens (camelCase format only)
+      if (data.accessToken) {
+        await AsyncStorage.setItem('auth_token', data.accessToken);
+        if (data.refreshToken) {
+          await AsyncStorage.setItem('refresh_token', data.refreshToken);
         }
       }
 
       return {
         success: true,
         user: data.user as NigerianUser,
-        access_token: data.access_token,
-        refresh_token: data.refresh_token,
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
         message: data.message
       };
     } catch (error: any) {
@@ -371,25 +368,50 @@ export class MeCabalAuth {
   static async getCurrentUser(): Promise<NigerianUser | null> {
     try {
       const token = await AsyncStorage.getItem('auth_token');
-      
+
       if (!token) {
         return null;
+      }
+
+      // Debug: Log token format to understand structure
+      try {
+        const tokenParts = token.split('.');
+        if (tokenParts.length === 3) {
+          const payload = JSON.parse(atob(tokenParts[1]));
+          console.log('🔍 Token payload:', {
+            hasType: 'type' in payload,
+            hasSub: 'sub' in payload,
+            hasUserId: 'userId' in payload,
+            type: payload.type,
+            sub: payload.sub,
+            userId: payload.userId
+          });
+        }
+      } catch (debugError) {
+        console.log('🔍 Could not decode token for debugging');
       }
 
       const result = await ApiClient.get<NigerianUser>('/auth/me');
 
       if (!result.success) {
-        // Token might be expired, try to refresh
+        console.log('❌ /auth/me failed, attempting token refresh...');
+
+        // Token might be expired or incompatible format, try to refresh
         const refreshResult = await this.refreshToken();
         if (refreshResult) {
+          console.log('✅ Token refreshed, retrying /auth/me...');
           // Retry with new token
           const retryResult = await ApiClient.get<NigerianUser>('/auth/me');
-          return retryResult.success ? retryResult.data! : null;
+          return retryResult.success ? (retryResult.data?.user || retryResult.data!) : null;
         }
+
+        console.log('❌ Token refresh failed, clearing tokens...');
+        // Clear incompatible tokens
+        await AsyncStorage.multiRemove(['auth_token', 'refresh_token']);
         return null;
       }
 
-      return result.data!;
+      return result.data?.user || result.data!;
     } catch (error) {
       console.error('Error getting current user:', error);
       return null;
@@ -477,7 +499,7 @@ export class MeCabalAuth {
       }
 
       const result = await ApiClient.post<any>('/auth/refresh', {
-        refresh_token: refreshToken
+        refreshToken: refreshToken
       });
 
       if (!result.success) {
@@ -488,18 +510,11 @@ export class MeCabalAuth {
 
       const { data } = result;
 
-      // Store new tokens - handle both old and new format
-      if (data.tokens?.accessToken) {
-        // New format with tokens object
-        await AsyncStorage.setItem('auth_token', data.tokens.accessToken);
-        if (data.tokens.refreshToken) {
-          await AsyncStorage.setItem('refresh_token', data.tokens.refreshToken);
-        }
-      } else if (data.access_token) {
-        // Old format with direct properties
-        await AsyncStorage.setItem('auth_token', data.access_token);
-        if (data.refresh_token) {
-          await AsyncStorage.setItem('refresh_token', data.refresh_token);
+      // Store new tokens (camelCase format only)
+      if (data.accessToken) {
+        await AsyncStorage.setItem('auth_token', data.accessToken);
+        if (data.refreshToken) {
+          await AsyncStorage.setItem('refresh_token', data.refreshToken);
         }
       } else {
         console.error('Unexpected token format in refresh response:', data);
@@ -680,12 +695,13 @@ export class MeCabalAuth {
 
       const { data } = result;
 
-      // Store authentication tokens if provided
-      if (data.access_token) {
-        await AsyncStorage.setItem('auth_token', data.access_token);
-        if (data.refresh_token) {
-          await AsyncStorage.setItem('refresh_token', data.refresh_token);
+      // Store authentication tokens if provided (camelCase format only)
+      if (data.accessToken) {
+        await AsyncStorage.setItem('auth_token', data.accessToken);
+        if (data.refreshToken) {
+          await AsyncStorage.setItem('refresh_token', data.refreshToken);
         }
+        console.log('✅ OTP verification tokens stored successfully');
       }
 
       return {
@@ -760,20 +776,23 @@ export class MeCabalAuth {
       }
 
       const { data } = result;
-      
-      // Store authentication tokens
-      if (data.access_token) {
-        await AsyncStorage.setItem('auth_token', data.access_token);
-        if (data.refresh_token) {
-          await AsyncStorage.setItem('refresh_token', data.refresh_token);
+
+      // Store authentication tokens (camelCase format only)
+      if (data.accessToken) {
+        await AsyncStorage.setItem('auth_token', data.accessToken);
+        if (data.refreshToken) {
+          await AsyncStorage.setItem('refresh_token', data.refreshToken);
         }
+        console.log('✅ Email login tokens stored successfully');
+      } else {
+        console.log('⚠️ No tokens found in email login response:', Object.keys(data));
       }
 
       return {
         success: true,
         user: data.user as NigerianUser,
-        access_token: data.access_token,
-        refresh_token: data.refresh_token,
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
         message: data.message,
         needsProfileCompletion: data.needs_profile_completion || false
       };
@@ -820,19 +839,19 @@ export class MeCabalAuth {
 
         const { data } = result;
 
-        // Store authentication tokens
-        if (data.access_token) {
-          await AsyncStorage.setItem('auth_token', data.access_token);
-          if (data.refresh_token) {
-            await AsyncStorage.setItem('refresh_token', data.refresh_token);
+        // Store authentication tokens (camelCase format only)
+        if (data.accessToken) {
+          await AsyncStorage.setItem('auth_token', data.accessToken);
+          if (data.refreshToken) {
+            await AsyncStorage.setItem('refresh_token', data.refreshToken);
           }
         }
 
         return {
           success: true,
           user: data.user as NigerianUser,
-          access_token: data.access_token,
-          refresh_token: data.refresh_token,
+          accessToken: data.accessToken,
+          refreshToken: data.refreshToken,
           message: data.message || 'Registration completed successfully'
         };
       } else {

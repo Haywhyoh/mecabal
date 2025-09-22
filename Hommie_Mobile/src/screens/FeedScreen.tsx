@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, SafeAreaView, TouchableOpacity, TextInput, Alert } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useAuth } from '../contexts/AuthContext';
+import { UserAvatar } from '../components/UserAvatar';
 
 export default function FeedScreen() {
   const [searchText, setSearchText] = useState('');
+  const { user } = useAuth();
 
-  // Mock user data - would come from authentication context
+  // Get user data from authentication context
   const currentUser = {
-    firstName: 'Adebayo',
-    lastName: 'Ogundimu',
-    profileImage: null, // null means we'll show initials
-    hasBusinessProfile: true,
+    firstName: user?.firstName || 'User',
+    lastName: user?.lastName || '',
+    profileImage: user?.profilePictureUrl || null,
+    hasBusinessProfile: true, // TODO: Get from user profile
   };
 
   const dummyPosts = [
@@ -49,9 +52,6 @@ export default function FeedScreen() {
     Alert.alert('Notifications', 'Navigate to notifications screen');
   };
 
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-  };
 
   const renderPost = ({ item }: { item: any }) => (
     <View style={styles.postCard}>
@@ -97,22 +97,11 @@ export default function FeedScreen() {
 
           {/* Profile Entry Point */}
           <TouchableOpacity style={styles.profileButton} onPress={handleProfilePress}>
-            {currentUser.profileImage ? (
-              <View style={styles.profileImage}>
-                {/* Would show actual image here */}
-              </View>
-            ) : (
-              <View style={styles.profileInitials}>
-                <Text style={styles.initialsText}>
-                  {getInitials(currentUser.firstName, currentUser.lastName)}
-                </Text>
-              </View>
-            )}
-            {currentUser.hasBusinessProfile && (
-              <View style={styles.businessIndicator}>
-                <MaterialCommunityIcons name="store" size={12} color="#FFFFFF" />
-              </View>
-            )}
+            <UserAvatar
+              user={user}
+              size="small"
+              showBadge={currentUser.hasBusinessProfile}
+            />
           </TouchableOpacity>
         </View>
       </View>

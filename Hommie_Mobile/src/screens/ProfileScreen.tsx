@@ -1,13 +1,15 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Alert, Image } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import { contextAwareGoBack } from '../utils/navigationUtils';
 import { useAuth } from '../contexts/AuthContext';
+import { UserProfile } from '../components/UserProfile';
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+
 
   const handleSignOut = async () => {
     Alert.alert(
@@ -50,28 +52,25 @@ export default function ProfileScreen() {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Profile Section */}
         <View style={styles.profileSection}>
-          <View style={styles.avatarContainer}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>A</Text>
-            </View>
-            <TouchableOpacity style={styles.cameraButton}>
-              <MaterialCommunityIcons name="camera" size={16} color="#2C2C2C" />
-            </TouchableOpacity>
-          </View>
-          
-          <Text style={styles.userName}>Adebayo Ogundimu</Text>
+          <UserProfile
+            user={user}
+            size="large"
+            showLocation={true}
+            showJoinDate={true}
+            showVerificationBadge={true}
+            showCameraButton={true}
+            onCameraPress={() => {
+              // TODO: Implement camera/photo picker
+              Alert.alert('Change Photo', 'Photo upload feature coming soon!');
+            }}
+          />
+
           <TouchableOpacity style={styles.locationContainer} onPress={() => navigation.navigate('EstateManager' as never)}>
             <MaterialCommunityIcons name="map-marker" size={16} color="#8E8E8E" />
             <Text style={styles.userLocation}>Victoria Island, Lagos</Text>
             <Text style={styles.estateCount}>• 3 estates</Text>
             <MaterialCommunityIcons name="chevron-right" size={16} color="#8E8E8E" style={styles.chevron} />
           </TouchableOpacity>
-          
-          <Text style={styles.joinDate}>Member since August 2024</Text>
-          <View style={styles.verificationBadge}>
-            <MaterialCommunityIcons name="check-circle" size={16} color="#00A651" />
-            <Text style={styles.verifiedText}>Verified Estate Resident</Text>
-          </View>
         </View>
 
         {/* Find Neighbors CTA */}
@@ -239,51 +238,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
-  avatarContainer: {
-    position: 'relative',
-    marginBottom: 16,
-  },
-  avatar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#00A651',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000000',
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
-  },
-  avatarText: {
-    fontSize: 48,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  cameraButton: {
-    position: 'absolute',
-    bottom: 8,
-    right: 8,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000000',
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
-  },
-  userName: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#2C2C2C',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
   locationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -304,25 +258,6 @@ const styles = StyleSheet.create({
   userLocation: {
     fontSize: 16,
     color: '#8E8E8E',
-    marginLeft: 4,
-  },
-  joinDate: {
-    fontSize: 14,
-    color: '#8E8E8E',
-    marginBottom: 12,
-  },
-  verificationBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E8F5E8',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-  },
-  verifiedText: {
-    fontSize: 14,
-    color: '#00A651',
-    fontWeight: '600',
     marginLeft: 4,
   },
   findNeighborsCard: {

@@ -27,7 +27,7 @@ export default function EmailVerificationScreen({ navigation, route }: any) {
   const otpRefs = useRef<Array<TextInput | null>>([]);
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastRequestTimeRef = useRef<number>(0);
-  const { register } = useAuth();
+  const { register, loginWithEmail } = useAuth();
 
   const { email, firstName, lastName, isSignup, onLoginSuccess } = route.params || {};
 
@@ -119,36 +119,22 @@ export default function EmailVerificationScreen({ navigation, route }: any) {
           Alert.alert('Verification Failed', authResult.error || 'Invalid verification code. Please try again.');
         }
       } else {
-        // For login flow, complete the login process
-        const loginResult = await MeCabalAuth.completeEmailLogin(email, code);
+        // For login flow, use AuthContext to properly authenticate
+        const success = await loginWithEmail(email, code);
 
-        if (loginResult.success) {
-          if (loginResult.needsProfileCompletion) {
-            // User exists but needs to complete profile
-            Alert.alert(
-              'Welcome Back!',
-              'Please complete your profile setup.',
-              [{ text: 'Continue', onPress: () => {
-                navigation.navigate('ProfileSetup', {
-                  user: loginResult.user
-                });
-              }}]
-            );
-          } else {
-            Alert.alert(
-              'Welcome Back!',
-              'Your email has been verified successfully.',
-              [{ text: 'Continue', onPress: () => {
-                if (onLoginSuccess) {
-                  onLoginSuccess();
-                } else {
-                  navigation.navigate('MainTabs');
-                }
-              }}]
-            );
-          }
+        if (success) {
+          Alert.alert(
+            'Welcome Back!',
+            'Your email has been verified successfully.',
+            [{ text: 'Continue', onPress: () => {
+              if (onLoginSuccess) {
+                onLoginSuccess();
+              }
+              // AuthContext will handle navigation automatically when user state changes
+            }}]
+          );
         } else {
-          Alert.alert('Error', loginResult.error || 'Login failed. Please try again.');
+          Alert.alert('Error', 'Login failed. Please try again.');
         }
       }
     } catch (error: any) {

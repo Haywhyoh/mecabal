@@ -5,6 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import NotificationService from '../services/NotificationService';
 import MessagingService from '../services/MessagingService';
 import { FloatingActionButton } from '../components/FloatingActionButton';
+import { useAuth } from '../contexts/AuthContext';
 
 const { width } = Dimensions.get('window');
 
@@ -14,7 +15,8 @@ export default function HomeScreen() {
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const navigation = useNavigation();
-  
+  const { user } = useAuth();
+
   const notificationService = NotificationService.getInstance();
   const messagingService = MessagingService.getInstance();
 
@@ -50,13 +52,13 @@ export default function HomeScreen() {
     };
   }, []);
 
-  // Mock user data - would come from authentication context
+  // Get user data from authentication context
   const currentUser = {
-    firstName: 'Adebayo',
-    lastName: 'Ogundimu',
-    profileImage: null, // null means we'll show initials
-    hasBusinessProfile: true,
-    pendingConnectionRequests: 3, // Mock pending requests count
+    firstName: user?.firstName || 'User',
+    lastName: user?.lastName || '',
+    profileImage: user?.profilePictureUrl || null,
+    hasBusinessProfile: true, // TODO: Get from user profile
+    pendingConnectionRequests: 3, // TODO: Get from API
   };
 
   const handleProfilePress = () => {
