@@ -32,6 +32,7 @@ export { MeCabalData } from './data';
 // Post services
 export { default as PostsService } from './postsService';
 export { default as MediaService } from './mediaService';
+export { default as OfflineService } from './offlineService';
 
 // Type exports for convenience
 export type {

@@ -6,6 +6,8 @@ export { UserProfile } from './UserProfile';
 export { default as PostCreator } from './PostCreator';
 export { default as PostCard } from './PostCard';
 export { default as RichTextEditor } from './RichTextEditor';
+export { default as FeedList } from './FeedList';
+export { default as PostFilter } from './PostFilter';
 
 // Existing components
 export { default as ErrorBanner } from './ErrorBanner';

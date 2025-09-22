@@ -1,250 +1,320 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, SafeAreaView, TouchableOpacity, TextInput, Alert } from 'react-native';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { useAuth } from '../contexts/AuthContext';
-import { UserAvatar } from '../components/UserAvatar';
+import React, { useState, useCallback, useMemo } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  TouchableOpacity,
+  TextInput,
+  Alert,
+  StatusBar,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
+import { useFeed } from '../hooks/useFeed';
+import { Post } from '../services/postsService';
+import FeedList from '../components/FeedList';
+import PostFilter from '../components/PostFilter';
+import PostCreator from '../components/PostCreator';
+import { AuthContext } from '../contexts/AuthContext';
 
-export default function FeedScreen() {
-  const [searchText, setSearchText] = useState('');
-  const { user } = useAuth();
+interface FeedScreenProps {
+  navigation: any;
+}
 
-  // Get user data from authentication context
-  const currentUser = {
-    firstName: user?.firstName || 'User',
-    lastName: user?.lastName || '',
-    profileImage: user?.profilePictureUrl || null,
-    hasBusinessProfile: true, // TODO: Get from user profile
-  };
+export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
+  const [showFilter, setShowFilter] = useState(false);
+  const [showPostCreator, setShowPostCreator] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
-  const dummyPosts = [
-    { id: '1', text: 'Community meeting this Saturday at 3 PM!', author: 'John D.', time: '2 hours ago' },
-    { id: '2', text: 'Lost dog found near the park. Please contact if it\'s yours.', author: 'Sarah M.', time: '4 hours ago' },
-    { id: '3', text: 'Great plumber recommendation: Mike from ABC Plumbing', author: 'David K.', time: '1 day ago' },
-  ];
+  // Initialize feed with auto-refresh
+  const {
+    posts,
+    loading,
+    refreshing,
+    hasMore,
+    error,
+    filter,
+    loadMore,
+    refreshFeed,
+    updateFilter,
+    clearFilter,
+    searchPosts,
+    likePost,
+    commentOnPost,
+    sharePost,
+    reportPost,
+    editPost,
+    deletePost,
+  } = useFeed({
+    autoRefresh: true,
+    refreshInterval: 30000, // 30 seconds
+  });
 
-  const handleProfilePress = () => {
-    // This will navigate to the ProfileScreen
-    Alert.alert(
-      'Profile Menu',
-      'Choose profile to view',
-      [
-        {
-          text: 'Personal Profile',
-          onPress: () => Alert.alert('Navigate to ProfileScreen')
-        },
-        ...(currentUser.hasBusinessProfile ? [{
-          text: 'Business Profile',
-          onPress: () => Alert.alert('Navigate to BusinessProfileScreen')
-        }] : []),
-        {
-          text: 'Cancel',
-          style: 'cancel'
+  // Get current user
+  useFocusEffect(
+    useCallback(() => {
+      const getUser = async () => {
+        try {
+          const authContext = AuthContext;
+          const user = await authContext.getCurrentUser();
+          setCurrentUser(user);
+        } catch (error) {
+          console.error('Error getting current user:', error);
         }
+      };
+      getUser();
+    }, [])
+  );
+
+  // Handle search
+  const handleSearch = useCallback(async (query: string) => {
+    setSearchQuery(query);
+    setIsSearching(true);
+    
+    try {
+      if (query.trim()) {
+        await searchPosts(query);
+      } else {
+        // Clear search and refresh feed
+        clearFilter();
+        refreshFeed();
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  }, [searchPosts, clearFilter, refreshFeed]);
+
+  // Handle post actions
+  const handlePostPress = useCallback((post: Post) => {
+    // Navigate to post detail screen
+    navigation.navigate('PostDetail', { postId: post.id });
+  }, [navigation]);
+
+  const handleReaction = useCallback(async (postId: string, reactionType: string) => {
+    try {
+      await likePost(postId);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to react to post');
+    }
+  }, [likePost]);
+
+  const handleComment = useCallback((postId: string) => {
+    // Navigate to post detail screen with comment focus
+    navigation.navigate('PostDetail', { postId, focusComment: true });
+  }, [navigation]);
+
+  const handleShare = useCallback(async (post: Post) => {
+    try {
+      await sharePost(post);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to share post');
+    }
+  }, [sharePost]);
+
+  const handleReport = useCallback(async (postId: string) => {
+    Alert.alert(
+      'Report Post',
+      'Why are you reporting this post?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Spam', onPress: () => reportPost(postId, 'spam') },
+        { text: 'Inappropriate', onPress: () => reportPost(postId, 'inappropriate') },
+        { text: 'Harassment', onPress: () => reportPost(postId, 'harassment') },
+        { text: 'Other', onPress: () => reportPost(postId, 'other') },
       ]
     );
-  };
+  }, [reportPost]);
 
-  const handleSearch = () => {
-    Alert.alert('Search', `Searching for: "${searchText}"`);
-  };
+  const handleEdit = useCallback((post: Post) => {
+    // Navigate to edit post screen
+    navigation.navigate('EditPost', { post });
+  }, [navigation]);
 
-  const handleNotifications = () => {
-    Alert.alert('Notifications', 'Navigate to notifications screen');
-  };
+  const handleDelete = useCallback(async (postId: string) => {
+    Alert.alert(
+      'Delete Post',
+      'Are you sure you want to delete this post?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deletePost(postId);
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete post');
+            }
+          },
+        },
+      ]
+    );
+  }, [deletePost]);
 
+  const handlePostCreated = useCallback((newPost: Post) => {
+    // Refresh feed to show new post
+    refreshFeed();
+  }, [refreshFeed]);
 
-  const renderPost = ({ item }: { item: any }) => (
-    <View style={styles.postCard}>
-      <View style={styles.postHeader}>
-        <Text style={styles.author}>{item.author}</Text>
-        <Text style={styles.time}>{item.time}</Text>
+  const handleFilterApply = useCallback((newFilter: any) => {
+    updateFilter(newFilter);
+  }, [updateFilter]);
+
+  // Memoize the header component
+  const renderHeader = useMemo(() => (
+    <View style={styles.header}>
+      <View style={styles.searchContainer}>
+        <Ionicons name="search" size={20} color="#7f8c8d" style={styles.searchIcon} />
+        <TextInput
+          style={styles.searchInput}
+          value={searchQuery}
+          onChangeText={handleSearch}
+          placeholder="Search posts..."
+          placeholderTextColor="#bdc3c7"
+          returnKeyType="search"
+          onSubmitEditing={() => handleSearch(searchQuery)}
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity
+            onPress={() => handleSearch('')}
+            style={styles.clearButton}
+          >
+            <Ionicons name="close-circle" size={20} color="#7f8c8d" />
+          </TouchableOpacity>
+        )}
       </View>
-      <Text style={styles.postText}>{item.text}</Text>
+      
+      <TouchableOpacity
+        style={styles.filterButton}
+        onPress={() => setShowFilter(true)}
+      >
+        <Ionicons name="filter" size={20} color="#3498db" />
+      </TouchableOpacity>
     </View>
-  );
+  ), [searchQuery, handleSearch]);
+
+  // Memoize the floating action button
+  const renderFAB = useMemo(() => (
+    <TouchableOpacity
+      style={styles.fab}
+      onPress={() => setShowPostCreator(true)}
+    >
+      <Ionicons name="add" size={24} color="#fff" />
+    </TouchableOpacity>
+  ), []);
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header with Search and Profile */}
-      <View style={styles.header}>
-        <View style={styles.searchContainer}>
-          <View style={styles.searchInputContainer}>
-            <MaterialCommunityIcons name="magnify" size={20} color="#8E8E8E" />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search your community..."
-              placeholderTextColor="#8E8E8E"
-              value={searchText}
-              onChangeText={setSearchText}
-              onSubmitEditing={handleSearch}
-            />
-            {searchText.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchText('')}>
-                <MaterialCommunityIcons name="close-circle" size={20} color="#8E8E8E" />
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      
+      {/* Header */}
+      {renderHeader}
 
-        <View style={styles.headerActions}>
-          {/* Notifications */}
-          <TouchableOpacity style={styles.notificationButton} onPress={handleNotifications}>
-            <MaterialCommunityIcons name="bell-outline" size={24} color="#2C2C2C" />
-            <View style={styles.notificationBadge}>
-              <Text style={styles.badgeText}>3</Text>
-            </View>
-          </TouchableOpacity>
+      {/* Feed List */}
+      <FeedList
+        posts={posts}
+        loading={loading}
+        refreshing={refreshing}
+        hasMore={hasMore}
+        error={error}
+        onRefresh={refreshFeed}
+        onLoadMore={loadMore}
+        onPostPress={handlePostPress}
+        onReaction={handleReaction}
+        onComment={handleComment}
+        onShare={handleShare}
+        onReport={handleReport}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        currentUserId={currentUser?.id}
+      />
 
-          {/* Profile Entry Point */}
-          <TouchableOpacity style={styles.profileButton} onPress={handleProfilePress}>
-            <UserAvatar
-              user={user}
-              size="small"
-              showBadge={currentUser.hasBusinessProfile}
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
+      {/* Floating Action Button */}
+      {renderFAB}
 
-      {/* Feed Content */}
-      <FlatList
-        data={dummyPosts}
-        renderItem={renderPost}
-        keyExtractor={(item) => item.id}
-        style={styles.feedList}
-        showsVerticalScrollIndicator={false}
+      {/* Post Filter Modal */}
+      <PostFilter
+        visible={showFilter}
+        onClose={() => setShowFilter(false)}
+        onApply={handleFilterApply}
+        currentFilter={filter}
+      />
+
+      {/* Post Creator Modal */}
+      <PostCreator
+        visible={showPostCreator}
+        onClose={() => setShowPostCreator(false)}
+        onPostCreated={handlePostCreated}
       />
     </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#f8f9fa',
   },
   header: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e1e8ed',
   },
   searchContainer: {
     flex: 1,
-    marginRight: 12,
-  },
-  searchInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-    borderRadius: 20,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingVertical: 8,
+    marginRight: 12,
+    borderRadius: 20,
+    backgroundColor: '#f8f9fa',
+    borderWidth: 1,
+    borderColor: '#e1e8ed',
+  },
+  searchIcon: {
+    marginRight: 8,
   },
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: '#2C2C2C',
+    color: '#2c3e50',
+  },
+  clearButton: {
     marginLeft: 8,
-    marginRight: 8,
   },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  filterButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#f8f9fa',
+    borderWidth: 1,
+    borderColor: '#e1e8ed',
   },
-  notificationButton: {
-    position: 'relative',
-    marginRight: 12,
-    padding: 4,
-  },
-  notificationBadge: {
+  fab: {
     position: 'absolute',
-    top: 0,
-    right: 0,
-    backgroundColor: '#E74C3C',
-    borderRadius: 8,
-    minWidth: 16,
-    height: 16,
+    bottom: 20,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#3498db',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  badgeText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  profileButton: {
-    position: 'relative',
-  },
-  profileImage: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#E0E0E0',
-  },
-  profileInitials: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#00A651',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  initialsText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  businessIndicator: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#228B22',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-  },
-  feedList: {
-    flex: 1,
-  },
-  postCard: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginTop: 12,
-    padding: 16,
-    borderRadius: 12,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  postHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  author: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#2C2C2C',
-  },
-  time: {
-    fontSize: 12,
-    color: '#8E8E8E',
-  },
-  postText: {
-    fontSize: 16,
-    color: '#2C2C2C',
-    lineHeight: 22,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
 });
+
+export default FeedScreen;
