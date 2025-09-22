@@ -2,6 +2,11 @@
 export { UserAvatar } from './UserAvatar';
 export { UserProfile } from './UserProfile';
 
+// Post Components
+export { default as PostCreator } from './PostCreator';
+export { default as PostCard } from './PostCard';
+export { default as RichTextEditor } from './RichTextEditor';
+
 // Existing components
 export { default as ErrorBanner } from './ErrorBanner';
 export { default as ActivityTrackingComponent } from './ActivityTrackingComponent';

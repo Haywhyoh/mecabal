@@ -29,6 +29,10 @@ export { MeCabalRealtime } from './realtime';
 // Data management services
 export { MeCabalData } from './data';
 
+// Post services
+export { default as PostsService } from './postsService';
+export { default as MediaService } from './mediaService';
+
 // Type exports for convenience
 export type {
   NigerianUser,

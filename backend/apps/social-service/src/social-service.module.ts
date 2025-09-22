@@ -6,9 +6,10 @@ import { ReactionsModule } from './reactions/reactions.module';
 import { CommentsModule } from './comments/comments.module';
 import { ModerationModule } from './moderation/moderation.module';
 import { CategoriesModule } from './categories/categories.module';
+import { MediaModule } from './media/media.module';
 
 @Module({
-  imports: [PostsModule, ReactionsModule, CommentsModule, ModerationModule, CategoriesModule],
+  imports: [PostsModule, ReactionsModule, CommentsModule, ModerationModule, CategoriesModule, MediaModule],
   controllers: [SocialServiceController],
   providers: [SocialServiceService],
 })

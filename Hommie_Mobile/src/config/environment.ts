@@ -108,6 +108,14 @@ export const API_ENDPOINTS = {
     QUEUE: '/moderation/queue',
     STATS: '/moderation/stats',
   },
+  MEDIA: {
+    UPLOAD: '/media/upload',
+    GET_ALL: '/media',
+    GET_BY_ID: '/media',
+    DELETE: '/media',
+    MY_MEDIA: '/media/my-media',
+    STATS: '/media/stats',
+  },
 } as const;
 
 export default ENV;
