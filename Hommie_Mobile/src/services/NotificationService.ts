@@ -103,7 +103,9 @@ export class NotificationService {
         return;
       }
 
-      const token = await Notifications.getExpoPushTokenAsync();
+      const token = await Notifications.getExpoPushTokenAsync({
+        projectId: 'jjmuogczhcunpehsocly',
+      });
       this.expoPushToken = token.data;
       console.log('Expo Push Token:', this.expoPushToken);
 
