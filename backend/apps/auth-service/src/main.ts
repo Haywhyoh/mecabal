@@ -57,7 +57,7 @@ async function bootstrap() {
     customSiteTitle: 'MeCabal Auth API Docs',
   });
 
-  const port = process.env.PORT ?? 3001;
+  const port = 3001; // Force port 3001 for auth service
   await app.listen(port);
 
   console.log(`🚀 Auth Service running on: http://localhost:${port}`);

@@ -57,7 +57,7 @@ async function bootstrap() {
     customSiteTitle: 'MeCabal Gateway API Docs',
   });
 
-  const port = process.env.PORT ?? 3000;
+  const port = 3000; // Force port 3000 for API gateway
   await app.listen(port);
 
   console.log(`🚀 API Gateway running on: http://localhost:${port}`);
