@@ -34,9 +34,6 @@ const PostCreator: React.FC<PostCreatorProps> = ({
   initialPostType = 'general',
 }) => {
   const [content, setContent] = useState('');
-  const [title, setTitle] = useState('');
-  const [postType, setPostType] = useState(initialPostType);
-  const [privacyLevel, setPrivacyLevel] = useState<'neighborhood' | 'group' | 'public'>('neighborhood');
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [uploadedMedia, setUploadedMedia] = useState<UploadedMedia[]>([]);
@@ -130,10 +127,9 @@ const PostCreator: React.FC<PostCreatorProps> = ({
 
       // Prepare post data
       const postData: CreatePostRequest = {
-        title: title.trim() || undefined,
         content: content.trim(),
-        postType,
-        privacyLevel,
+        postType: initialPostType,
+        privacyLevel: 'neighborhood',
         categoryId: selectedCategory?.id,
         media: uploadedMedia.map(media => ({
           url: media.url,
@@ -147,7 +143,6 @@ const PostCreator: React.FC<PostCreatorProps> = ({
 
       // Reset form
       setContent('');
-      setTitle('');
       setMediaFiles([]);
       setUploadedMedia([]);
       setSelectedCategory(null);
@@ -167,19 +162,6 @@ const PostCreator: React.FC<PostCreatorProps> = ({
     }
   };
 
-  const postTypes = [
-    { id: 'general', label: 'General', icon: 'chatbubble-outline', color: '#3498db' },
-    { id: 'event', label: 'Event', icon: 'calendar-outline', color: '#e74c3c' },
-    { id: 'alert', label: 'Alert', icon: 'warning-outline', color: '#f39c12' },
-    { id: 'marketplace', label: 'Marketplace', icon: 'storefront-outline', color: '#2ecc71' },
-    { id: 'lost_found', label: 'Lost & Found', icon: 'search-outline', color: '#9b59b6' },
-  ];
-
-  const privacyLevels = [
-    { id: 'neighborhood', label: 'Neighborhood', icon: 'people-outline' },
-    { id: 'group', label: 'Group', icon: 'people-circle-outline' },
-    { id: 'public', label: 'Public', icon: 'globe-outline' },
-  ];
 
   return (
     <Modal
@@ -209,126 +191,72 @@ const PostCreator: React.FC<PostCreatorProps> = ({
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* Post Type Selection */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Post Type</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {postTypes.map((type) => (
-                <TouchableOpacity
-                  key={type.id}
-                  style={[
-                    styles.postTypeButton,
-                    postType === type.id && styles.postTypeButtonActive,
-                    { borderColor: type.color },
-                  ]}
-                  onPress={() => setPostType(type.id as any)}
-                >
-                  <Ionicons
-                    name={type.icon as any}
-                    size={20}
-                    color={postType === type.id ? '#fff' : type.color}
-                  />
-                  <Text
-                    style={[
-                      styles.postTypeButtonText,
-                      postType === type.id && styles.postTypeButtonTextActive,
-                    ]}
-                  >
-                    {type.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
+          {/* Main Content Area - Twitter-like */}
+          <View style={styles.mainContentContainer}>
+            {/* Post Type Indicator */}
+            {initialPostType !== 'general' && (
+              <View style={styles.postTypeIndicator}>
+                <Ionicons name="bookmark-outline" size={16} color="#00A651" />
+                <Text style={styles.postTypeIndicatorText}>
+                  {initialPostType.charAt(0).toUpperCase() + initialPostType.slice(1)} Post
+                </Text>
+              </View>
+            )}
 
-          {/* Privacy Level */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Privacy</Text>
-            <View style={styles.privacyContainer}>
-              {privacyLevels.map((level) => (
-                <TouchableOpacity
-                  key={level.id}
-                  style={[
-                    styles.privacyButton,
-                    privacyLevel === level.id && styles.privacyButtonActive,
-                  ]}
-                  onPress={() => setPrivacyLevel(level.id as any)}
-                >
-                  <Ionicons
-                    name={level.icon as any}
-                    size={16}
-                    color={privacyLevel === level.id ? '#fff' : '#7f8c8d'}
-                  />
-                  <Text
-                    style={[
-                      styles.privacyButtonText,
-                      privacyLevel === level.id && styles.privacyButtonTextActive,
-                    ]}
-                  >
-                    {level.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+            {/* Large Text Input */}
+            <View style={styles.textInputContainer}>
+              <TextInput
+                style={styles.mainTextInput}
+                value={content}
+                onChangeText={setContent}
+                placeholder="What's happening in your neighborhood?"
+                placeholderTextColor="#bdc3c7"
+                multiline
+                numberOfLines={8}
+                maxLength={2800}
+                textAlignVertical="top"
+              />
+
+              {/* Character Count */}
+              <View style={styles.characterCountContainer}>
+                <Text style={[
+                  styles.characterCount,
+                  content.length > 2500 && styles.characterCountWarning,
+                  content.length > 2700 && styles.characterCountDanger,
+                ]}>
+                  {content.length}/2800
+                </Text>
+              </View>
             </View>
-          </View>
 
-          {/* Category Selection */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Category (Optional)</Text>
-            <TouchableOpacity
-              style={styles.categoryButton}
-              onPress={() => setShowCategoryModal(true)}
-            >
-              <Text style={styles.categoryButtonText}>
-                {selectedCategory ? selectedCategory.name : 'Select Category'}
-              </Text>
-              <Ionicons name="chevron-down" size={20} color="#7f8c8d" />
-            </TouchableOpacity>
-          </View>
-
-          {/* Title Input */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Title (Optional)</Text>
-            <TextInput
-              style={styles.titleInput}
-              value={title}
-              onChangeText={setTitle}
-              placeholder="Enter a title for your post"
-              placeholderTextColor="#bdc3c7"
-              maxLength={200}
-            />
-          </View>
-
-          {/* Content Editor */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Content</Text>
-            <RichTextEditor
-              value={content}
-              onChange={setContent}
-              placeholder="What's happening in your neighborhood?"
-              maxLength={5000}
-              showCharacterCount={true}
-            />
-          </View>
-
-          {/* Media Upload */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Media (Optional)</Text>
-            <View style={styles.mediaContainer}>
+            {/* Inline Media Controls */}
+            <View style={styles.inlineMediaControls}>
               <TouchableOpacity
-                style={styles.mediaButton}
+                style={styles.inlineMediaButton}
                 onPress={handleImagePicker}
               >
-                <Ionicons name="image-outline" size={24} color="#3498db" />
-                <Text style={styles.mediaButtonText}>Photo</Text>
+                <Ionicons name="image-outline" size={20} color="#00A651" />
               </TouchableOpacity>
+
               <TouchableOpacity
-                style={styles.mediaButton}
+                style={styles.inlineMediaButton}
                 onPress={handleVideoPicker}
               >
-                <Ionicons name="videocam-outline" size={24} color="#e74c3c" />
-                <Text style={styles.mediaButtonText}>Video</Text>
+                <Ionicons name="videocam-outline" size={20} color="#00A651" />
               </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.inlineMediaButton}
+                onPress={() => setShowCategoryModal(true)}
+              >
+                <Ionicons name="pricetag-outline" size={20} color="#00A651" />
+              </TouchableOpacity>
+
+              {/* Privacy Indicator */}
+              <View style={styles.privacyIndicator}>
+                <Ionicons name="people-outline" size={16} color="#7f8c8d" />
+                <Text style={styles.privacyText}>Neighborhood</Text>
+              </View>
             </View>
 
             {/* Media Preview */}
@@ -336,12 +264,19 @@ const PostCreator: React.FC<PostCreatorProps> = ({
               <View style={styles.mediaPreview}>
                 {mediaFiles.map((file, index) => (
                   <View key={index} style={styles.mediaItem}>
-                    <Text style={styles.mediaItemText}>{file.name}</Text>
+                    <View style={styles.mediaItemContent}>
+                      <Ionicons
+                        name={file.type === 'image' ? "image-outline" : "videocam-outline"}
+                        size={16}
+                        color="#7f8c8d"
+                      />
+                      <Text style={styles.mediaItemText}>{file.name}</Text>
+                    </View>
                     <TouchableOpacity
                       style={styles.removeMediaButton}
                       onPress={() => removeMediaFile(index)}
                     >
-                      <Ionicons name="close" size={16} color="#e74c3c" />
+                      <Ionicons name="close-circle" size={20} color="#e74c3c" />
                     </TouchableOpacity>
                   </View>
                 ))}
@@ -440,127 +375,118 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
   },
-  section: {
-    marginVertical: 16,
+  mainContentContainer: {
+    flex: 1,
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+  postTypeIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginBottom: 16,
+    backgroundColor: '#E8F5E8',
+    borderRadius: 16,
+    alignSelf: 'flex-start',
+  },
+  postTypeIndicatorText: {
+    marginLeft: 6,
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#00A651',
+  },
+  textInputContainer: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  mainTextInput: {
+    fontSize: 18,
+    lineHeight: 24,
     color: '#2c3e50',
-    marginBottom: 8,
+    minHeight: 120,
+    maxHeight: 200,
+    paddingVertical: 12,
+    paddingHorizontal: 0,
+    textAlignVertical: 'top',
   },
-  postTypeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    marginRight: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    backgroundColor: '#f8f9fa',
+  characterCountContainer: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
   },
-  postTypeButtonActive: {
-    backgroundColor: '#3498db',
-  },
-  postTypeButtonText: {
-    marginLeft: 4,
-    fontSize: 14,
-    fontWeight: '500',
+  characterCount: {
+    fontSize: 12,
     color: '#7f8c8d',
-  },
-  postTypeButtonTextActive: {
-    color: '#fff',
-  },
-  privacyContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  privacyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: '#f8f9fa',
-  },
-  privacyButtonActive: {
-    backgroundColor: '#3498db',
-  },
-  privacyButtonText: {
-    marginLeft: 4,
-    fontSize: 14,
     fontWeight: '500',
-    color: '#7f8c8d',
   },
-  privacyButtonTextActive: {
-    color: '#fff',
+  characterCountWarning: {
+    color: '#f39c12',
   },
-  categoryButton: {
+  characterCountDanger: {
+    color: '#e74c3c',
+  },
+  inlineMediaControls: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e1e8ed',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  },
+  inlineMediaButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#f8f9fa',
-  },
-  categoryButtonText: {
-    fontSize: 16,
-    color: '#2c3e50',
-  },
-  titleInput: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e1e8ed',
-    backgroundColor: '#f8f9fa',
-    fontSize: 16,
-    color: '#2c3e50',
-  },
-  mediaContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  mediaButton: {
     alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e1e8ed',
-    backgroundColor: '#f8f9fa',
+    justifyContent: 'center',
+    marginRight: 12,
   },
-  mediaButtonText: {
-    marginTop: 4,
-    fontSize: 14,
+  privacyIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  privacyText: {
+    marginLeft: 6,
+    fontSize: 13,
+    color: '#7f8c8d',
     fontWeight: '500',
-    color: '#2c3e50',
   },
   mediaPreview: {
-    marginTop: 12,
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
   },
   mediaItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    marginBottom: 4,
-    borderRadius: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginBottom: 8,
+    borderRadius: 12,
     backgroundColor: '#f8f9fa',
+    borderWidth: 1,
+    borderColor: '#e1e8ed',
+  },
+  mediaItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   mediaItemText: {
-    flex: 1,
+    marginLeft: 8,
     fontSize: 14,
     color: '#2c3e50',
+    fontWeight: '500',
   },
   removeMediaButton: {
-    padding: 4,
+    padding: 2,
   },
   modalContainer: {
     flex: 1,

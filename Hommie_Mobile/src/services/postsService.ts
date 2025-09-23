@@ -1,5 +1,5 @@
 import { ENV, API_ENDPOINTS } from '../config/environment';
-import { AuthContext } from '../contexts/AuthContext';
+import { MeCabalAuth } from './auth';
 
 // Types
 export interface Post {
@@ -133,9 +133,11 @@ export class PostsService {
    * Get authentication headers
    */
   private async getAuthHeaders(): Promise<HeadersInit> {
-    const authContext = AuthContext;
-    const token = await authContext.getToken();
-    
+    console.log('🔧 PostsService: Getting auth headers...');
+    console.log('🔧 MeCabalAuth object:', MeCabalAuth);
+    const token = await MeCabalAuth.getAuthToken();
+    console.log('🔧 Retrieved token:', token ? 'Token exists' : 'No token');
+
     return {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
@@ -335,12 +337,4 @@ export class PostsService {
         userId: 'me', // This will be handled by the backend
       };
 
-      return await this.getPosts(myPostsFilter);
-    } catch (error) {
-      console.error('Error fetching my posts:', error);
-      throw new Error('Failed to fetch my posts');
-    }
-  }
-}
-
-export default PostsService;
+      return await this.ge

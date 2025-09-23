@@ -24,36 +24,19 @@ export const CreatePostScreen: React.FC<CreatePostScreenProps> = ({
   navigation,
   route,
 }) => {
-  const [showPostCreator, setShowPostCreator] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
-
   const handlePostCreated = (post: Post) => {
     // Navigate back to previous screen with the new post
     navigation.goBack();
-    
-    // You can also pass the post data back to the previous screen
-    // navigation.navigate('FeedScreen', { newPost: post });
   };
 
   const handleClose = () => {
-    if (showPostCreator) {
-      Alert.alert(
-        'Discard Post',
-        'Are you sure you want to discard this post?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Discard', style: 'destructive', onPress: () => navigation.goBack() },
-        ]
-      );
-    } else {
-      navigation.goBack();
-    }
+    navigation.goBack();
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <PostCreator
-        visible={showPostCreator}
+        visible={true}
         onClose={handleClose}
         onPostCreated={handlePostCreated}
         initialPostType={route?.params?.postType || 'general'}

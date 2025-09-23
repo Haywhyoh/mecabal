@@ -1,7 +1,7 @@
 import { ENV, API_ENDPOINTS } from '../config/environment';
 import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
-import { AuthContext } from '../contexts/AuthContext';
+import { MeCabalAuth } from './auth';
 
 export interface MediaFile {
   uri: string;
@@ -49,9 +49,8 @@ export class MediaService {
    * Get authentication headers
    */
   private async getAuthHeaders(): Promise<HeadersInit> {
-    const authContext = AuthContext;
-    const token = await authContext.getToken();
-    
+    const token = await MeCabalAuth.getAuthToken();
+
     return {
       'Authorization': `Bearer ${token}`,
     };
