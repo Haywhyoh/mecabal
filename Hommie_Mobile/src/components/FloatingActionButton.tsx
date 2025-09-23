@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Modal,
   Animated,
   Dimensions,
 } from 'react-native';
@@ -152,12 +151,17 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ navigation 
   const PostTypeButton: React.FC<{ postType: PostType; index: number }> = ({ postType, index }) => {
     const buttonTranslateY = animation.interpolate({
       inputRange: [0, 1],
-      outputRange: [0, -(70 * (index + 1))],
+      outputRange: [0, -(65 * (index + 1))], // Slightly tighter spacing for 6 icons
     });
 
     const buttonOpacity = animation.interpolate({
-      inputRange: [0, 0.5, 1],
-      outputRange: [0, 0.5, 1],
+      inputRange: [0, 0.3, 1],
+      outputRange: [0, 0.7, 1], // Faster fade-in for better UX
+    });
+
+    const buttonScale = animation.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0.3, 1], // Scale animation for more dynamic effect
     });
 
     return (
@@ -165,17 +169,24 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ navigation 
         style={[
           styles.postTypeButton,
           {
-            transform: [{ translateY: buttonTranslateY }],
+            transform: [
+              { translateY: buttonTranslateY },
+              { scale: buttonScale }
+            ],
             opacity: buttonOpacity,
           },
         ]}
       >
         <TouchableOpacity
-          style={[styles.postTypeButtonInner, { borderColor: postType.color }]}
+          style={[
+            styles.postTypeButtonInner,
+            { borderColor: postType.color }
+          ]}
           onPress={postType.onPress}
+          activeOpacity={0.8}
         >
           <MaterialCommunityIcons
-            name={postType.icon}
+            name={postType.icon as any}
             size={24}
             color={postType.color}
           />
@@ -186,84 +197,37 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ navigation 
 
   return (
     <>
-      {/* Backdrop */}
-      <Modal
-        visible={isExpanded}
-        transparent
-        animationType="none"
-        onRequestClose={closeModal}
-      >
+      {/* Floating Icons Backdrop */}
+      {isExpanded && (
         <TouchableOpacity
-          style={styles.backdrop}
+          style={styles.floatingBackdrop}
           activeOpacity={1}
           onPress={closeModal}
         >
-          <Animated.View 
+          <Animated.View
             style={[
-              styles.modalContent,
+              styles.backdropOverlay,
               {
-                transform: [{
-                  scale: animation.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.8, 1],
-                  }),
-                }],
                 opacity: animation.interpolate({
                   inputRange: [0, 1],
                   outputRange: [0, 1],
                 }),
               },
             ]}
-          >
-            <Text style={styles.modalTitle}>What would you like to share?</Text>
-            <View style={styles.postTypesGrid}>
-              {postTypes.map((postType, index) => (
-                <TouchableOpacity
-                  key={postType.id}
-                  style={styles.postTypeCard}
-                  onPress={postType.onPress}
-                >
-                  <View style={[styles.postTypeIcon, { backgroundColor: `${postType.color}15` }]}>
-                    <MaterialCommunityIcons
-                      name={postType.icon}
-                      size={28}
-                      color={postType.color}
-                    />
-                  </View>
-                  <Text style={styles.postTypeTitle}>{postType.title}</Text>
-                  <Text style={styles.postTypeDescription}>{postType.description}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </Animated.View>
+          />
         </TouchableOpacity>
-      </Modal>
-
-      {/* Floating Icons Backdrop */}
-      {isExpanded && (
-        <Animated.View 
-          style={[
-            styles.floatingBackdrop,
-            {
-              opacity: animation.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, 1],
-              }),
-            },
-          ]}
-        />
       )}
 
       {/* Main FAB */}
       <View style={styles.fabContainer}>
         {isExpanded && (
           <View style={styles.postTypeContainer}>
-            {postTypes.slice(0, 4).map((postType, index) => (
+            {postTypes.map((postType, index) => (
               <PostTypeButton key={postType.id} postType={postType} index={index} />
             ))}
           </View>
         )}
-        
+
         <Animated.View
           style={[
             styles.fab,
@@ -301,7 +265,7 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 28,
     backgroundColor: colors.primary,
-    shadowColor: colors.neutral.deepBlack,
+    shadowColor: colors.neutral.darkGray,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -339,69 +303,24 @@ const styles = StyleSheet.create({
   },
   floatingBackdrop: {
     position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'flex-end',
+    alignItems: 'flex-end',
+  },
+  backdropOverlay: {
+    position: 'absolute',
     bottom: 80, // Above tab bar but below FAB
     right: spacing.lg - 20,
     width: 100,
-    height: 320, // Enough to cover all floating buttons
+    height: 420, // Enough to cover all 6 floating buttons
     backgroundColor: 'rgba(0, 166, 81, 0.05)',
     borderRadius: 50,
     borderWidth: 1,
     borderColor: 'rgba(0, 166, 81, 0.1)',
-  },
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: colors.neutral.pureWhite,
-    borderRadius: 20,
-    padding: spacing.xl,
-    margin: spacing.lg,
-    maxWidth: screenWidth - spacing.lg * 2,
-    width: '100%',
-  },
-  modalTitle: {
-    fontSize: typography.sizes.xl,
-    fontWeight: '600',
-    color: colors.neutral.richCharcoal,
-    textAlign: 'center',
-    marginBottom: spacing.xl,
-  },
-  postTypesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  postTypeCard: {
-    width: '48%',
-    backgroundColor: colors.neutral.warmOffWhite,
-    borderRadius: 12,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    alignItems: 'center',
-  },
-  postTypeIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.sm,
-  },
-  postTypeTitle: {
-    fontSize: typography.sizes.sm,
-    fontWeight: '600',
-    color: colors.neutral.richCharcoal,
-    textAlign: 'center',
-    marginBottom: spacing.xs,
-  },
-  postTypeDescription: {
-    fontSize: typography.sizes.xs,
-    color: colors.neutral.friendlyGray,
-    textAlign: 'center',
-    lineHeight: 16,
   },
 });
 

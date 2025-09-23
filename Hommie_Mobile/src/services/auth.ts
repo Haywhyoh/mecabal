@@ -370,50 +370,47 @@ export class MeCabalAuth {
       const token = await AsyncStorage.getItem('auth_token');
 
       if (!token) {
+        console.log('🔍 No auth token found, user not authenticated');
         return null;
       }
 
-      // Debug: Log token format to understand structure
-      try {
-        const tokenParts = token.split('.');
-        if (tokenParts.length === 3) {
-          const payload = JSON.parse(atob(tokenParts[1]));
-          console.log('🔍 Token payload:', {
-            hasType: 'type' in payload,
-            hasSub: 'sub' in payload,
-            hasUserId: 'userId' in payload,
-            type: payload.type,
-            sub: payload.sub,
-            userId: payload.userId
-          });
-        }
-      } catch (debugError) {
-        console.log('🔍 Could not decode token for debugging');
-      }
+      console.log('🔍 Attempting to get current user with token:', token.substring(0, 50) + '...');
 
       const result = await ApiClient.get<NigerianUser>('/auth/me');
 
       if (!result.success) {
-        console.log('❌ /auth/me failed, attempting token refresh...');
+        console.log('❌ /auth/me failed:', result.error);
 
-        // Token might be expired or incompatible format, try to refresh
-        const refreshResult = await this.refreshToken();
-        if (refreshResult) {
-          console.log('✅ Token refreshed, retrying /auth/me...');
-          // Retry with new token
-          const retryResult = await ApiClient.get<NigerianUser>('/auth/me');
-          return retryResult.success ? (retryResult.data?.user || retryResult.data!) : null;
+        // Only attempt refresh if the error suggests token expiration
+        if (result.error?.includes('401') || result.error?.includes('Unauthorized') || result.error?.includes('expired')) {
+          console.log('🔄 Token appears expired, attempting refresh...');
+
+          const refreshResult = await this.refreshToken();
+          if (refreshResult) {
+            console.log('✅ Token refreshed successfully, retrying /auth/me...');
+
+            // Retry with new token
+            const retryResult = await ApiClient.get<NigerianUser>('/auth/me');
+            if (retryResult.success) {
+              console.log('✅ Successfully retrieved user after token refresh');
+              return retryResult.data?.user || retryResult.data!;
+            } else {
+              console.log('❌ Still failed after token refresh:', retryResult.error);
+            }
+          } else {
+            console.log('❌ Token refresh failed');
+          }
+        } else {
+          console.log('❌ Non-auth error, not attempting refresh:', result.error);
         }
 
-        console.log('❌ Token refresh failed, clearing tokens...');
-        // Clear incompatible tokens
-        await AsyncStorage.multiRemove(['auth_token', 'refresh_token']);
         return null;
       }
 
+      console.log('✅ Successfully retrieved current user');
       return result.data?.user || result.data!;
     } catch (error) {
-      console.error('Error getting current user:', error);
+      console.error('💥 Error getting current user:', error);
       return null;
     }
   }
@@ -493,38 +490,53 @@ export class MeCabalAuth {
   static async refreshToken(): Promise<boolean> {
     try {
       const refreshToken = await AsyncStorage.getItem('refresh_token');
-      
+
       if (!refreshToken) {
+        console.log('🔄 No refresh token found, cannot refresh');
         return false;
       }
+
+      console.log('🔄 Attempting token refresh with token:', refreshToken.substring(0, 50) + '...');
 
       const result = await ApiClient.post<any>('/auth/refresh', {
         refreshToken: refreshToken
       });
 
       if (!result.success) {
-        // Refresh failed, clear tokens
-        await AsyncStorage.multiRemove(['auth_token', 'refresh_token']);
+        console.log('❌ Token refresh failed:', result.error);
+        // Don't clear tokens immediately - might be temporary network issue
+        // Only clear on specific authentication errors
+        if (result.error?.includes('Invalid') || result.error?.includes('expired')) {
+          console.log('🧹 Clearing invalid/expired tokens');
+          await AsyncStorage.multiRemove(['auth_token', 'refresh_token']);
+        }
         return false;
       }
 
       const { data } = result;
+      console.log('✅ Token refresh successful, data keys:', Object.keys(data || {}));
 
-      // Store new tokens (camelCase format only)
-      if (data.accessToken) {
-        await AsyncStorage.setItem('auth_token', data.accessToken);
-        if (data.refreshToken) {
-          await AsyncStorage.setItem('refresh_token', data.refreshToken);
+      // Handle both camelCase and snake_case token formats
+      const accessToken = data.accessToken || data.access_token;
+      const newRefreshToken = data.refreshToken || data.refresh_token;
+
+      if (accessToken) {
+        await AsyncStorage.setItem('auth_token', accessToken);
+        console.log('✅ Stored new access token');
+
+        if (newRefreshToken) {
+          await AsyncStorage.setItem('refresh_token', newRefreshToken);
+          console.log('✅ Stored new refresh token');
         }
       } else {
-        console.error('Unexpected token format in refresh response:', data);
+        console.error('❌ Unexpected token format in refresh response:', data);
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error('Token refresh failed:', error);
-      await AsyncStorage.multiRemove(['auth_token', 'refresh_token']);
+      console.error('💥 Token refresh failed with error:', error);
+      // Don't clear tokens on network errors, only on auth errors
       return false;
     }
   }
@@ -870,6 +882,65 @@ export class MeCabalAuth {
   private static isValidEmail(email: string): boolean {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
+  }
+
+  // Clear all stored tokens (useful for debugging and logout)
+  static async clearTokens(): Promise<void> {
+    try {
+      await AsyncStorage.multiRemove(['auth_token', 'refresh_token']);
+      console.log('🧹 All authentication tokens cleared');
+    } catch (error) {
+      console.error('Error clearing tokens:', error);
+    }
+  }
+
+  // Get token status for debugging
+  static async getTokenStatus(): Promise<{
+    hasAccessToken: boolean;
+    hasRefreshToken: boolean;
+    accessTokenPreview?: string;
+    refreshTokenPreview?: string;
+  }> {
+    try {
+      const accessToken = await AsyncStorage.getItem('auth_token');
+      const refreshToken = await AsyncStorage.getItem('refresh_token');
+
+      return {
+        hasAccessToken: !!accessToken,
+        hasRefreshToken: !!refreshToken,
+        accessTokenPreview: accessToken ? accessToken.substring(0, 50) + '...' : undefined,
+        refreshTokenPreview: refreshToken ? refreshToken.substring(0, 50) + '...' : undefined,
+      };
+    } catch (error) {
+      console.error('Error checking token status:', error);
+      return {
+        hasAccessToken: false,
+        hasRefreshToken: false,
+      };
+    }
+  }
+
+  // Sign out user and clear all tokens
+  static async signOut(): Promise<void> {
+    try {
+      // Try to call logout endpoint if we have a token
+      const token = await AsyncStorage.getItem('auth_token');
+      if (token) {
+        try {
+          await ApiClient.post('/auth/logout', {});
+        } catch (error) {
+          console.log('Logout endpoint failed (expected if token expired):', error);
+        }
+      }
+
+      // Always clear local tokens
+      await this.clearTokens();
+      console.log('✅ User signed out successfully');
+    } catch (error) {
+      console.error('Error during sign out:', error);
+      // Still clear tokens even if logout failed
+      await this.clearTokens();
+    }
   }
 
 }

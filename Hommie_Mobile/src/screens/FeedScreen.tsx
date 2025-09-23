@@ -183,15 +183,6 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
     </View>
   ), [searchQuery, handleSearch]);
 
-  // Memoize the floating action button
-  const renderFAB = useMemo(() => (
-    <TouchableOpacity
-      style={styles.fab}
-      onPress={() => setShowPostCreator(true)}
-    >
-      <Ionicons name="add" size={24} color="#fff" />
-    </TouchableOpacity>
-  ), []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -219,8 +210,6 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
         currentUserId={currentUser?.id}
       />
 
-      {/* Floating Action Button */}
-      {renderFAB}
 
       {/* Post Filter Modal */}
       <PostFilter
@@ -283,22 +272,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f9fa',
     borderWidth: 1,
     borderColor: '#e1e8ed',
-  },
-  fab: {
-    position: 'absolute',
-    bottom: 20,
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#3498db',
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
   },
 });
 
