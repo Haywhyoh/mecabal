@@ -27,7 +27,7 @@ interface FloatingActionButtonProps {
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
-export const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ navigation }) => {
+const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ navigation }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [animation] = useState(new Animated.Value(0));
 
@@ -97,12 +97,10 @@ export const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ navi
     
     switch (type) {
       case 'general':
-        console.log('Navigate to General Post creation');
-        // navigation?.navigate('CreatePost', { type: 'general' });
+        navigation?.navigate('CreatePost', { type: 'general' });
         break;
       case 'safety':
-        console.log('Navigate to Safety Alert creation');
-        // navigation?.navigate('CreateSafetyAlert');
+        navigation?.navigate('CreatePost', { type: 'safety' });
         break;
       case 'marketplace':
         navigation?.navigate('Market', { 
@@ -114,12 +112,10 @@ export const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ navi
         navigation?.navigate('CreateEvent');
         break;
       case 'recommendation':
-        console.log('Navigate to Recommendation Post creation');
-        // navigation?.navigate('CreatePost', { type: 'recommendation' });
+        navigation?.navigate('CreatePost', { type: 'recommendation' });
         break;
       case 'civic':
-        console.log('Navigate to Civic Report creation');
-        // navigation?.navigate('CreateCivicReport');
+        navigation?.navigate('CreatePost', { type: 'civic' });
         break;
     }
   };
@@ -408,3 +404,5 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
 });
+
+export default FloatingActionButton;

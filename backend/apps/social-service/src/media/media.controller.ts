@@ -14,7 +14,7 @@ import {
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiConsumes, ApiParam } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@mecabal/auth';
+import { JwtAuthGuard } from '@app/auth';
 import { MediaService } from './media.service';
 import {
   UploadMediaDto,
@@ -76,9 +76,9 @@ export class MediaController {
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getMyMedia(
+    @Request() req: any,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
-    @Request() req: any,
   ): Promise<MediaResponseDto[]> {
     const userId = req.user.id;
     const limitNum = limit ? parseInt(limit, 10) : 20;

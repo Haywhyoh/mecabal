@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PostsController } from './posts.controller';
 import { PostsService } from './posts.service';
-import { Post, PostCategory, PostMedia, PostReaction, PostComment, User } from '@mecabal/database';
+import { Post, PostCategory, PostMedia, PostReaction, PostComment, User } from '@app/database';
 
 @Module({
   imports: [

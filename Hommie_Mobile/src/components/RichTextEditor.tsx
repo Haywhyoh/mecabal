@@ -112,15 +112,6 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     }
   };
 
-  // Check if formatting is active at cursor position
-  const isFormatActive = (prefix: string, suffix: string): boolean => {
-    const { start, end } = selection;
-    const beforeCursor = value.substring(Math.max(0, start - prefix.length), start);
-    const afterCursor = value.substring(end, Math.min(value.length, end + suffix.length));
-    
-    return beforeCursor === prefix && afterCursor === suffix;
-  };
-
   // Insert emoji
   const insertEmoji = (emoji: string) => {
     const { start } = selection;

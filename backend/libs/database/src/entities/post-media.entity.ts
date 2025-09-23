@@ -29,9 +29,31 @@ export class PostMedia {
   @Column({ name: 'media_type', length: 20 })
   mediaType: string;
 
+  // Alias for compatibility
+  get type(): string {
+    return this.mediaType;
+  }
+
+  set type(value: string) {
+    this.mediaType = value;
+  }
+
   @ApiProperty({ description: 'URL to the media file' })
   @Column({ name: 'file_url', type: 'text' })
   fileUrl: string;
+
+  @ApiProperty({ description: 'Media caption', required: false })
+  @Column({ type: 'text', nullable: true })
+  caption?: string;
+
+  // Alias for compatibility
+  get url(): string {
+    return this.fileUrl;
+  }
+
+  set url(value: string) {
+    this.fileUrl = value;
+  }
 
   @ApiProperty({
     description: 'URL to thumbnail (for videos/images)',

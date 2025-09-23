@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
-import { PostCategory, Post } from '@mecabal/database';
+import { PostCategory, Post } from '@app/database';
 import {
   CreateCategoryDto,
   UpdateCategoryDto,

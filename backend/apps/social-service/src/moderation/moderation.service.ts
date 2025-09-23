@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
-import { Post, PostComment, User } from '@mecabal/database';
+import { Post, PostComment, User } from '@app/database';
 import {
   ReportContentDto,
   ModerateContentDto,
@@ -41,7 +41,9 @@ export class ModerationService {
     console.log(`Content ${contentId} reported by ${reporterId}:`, reportDto);
 
     // Update content moderation status if needed
-    if (content.moderationStatus === 'approved') {
+    if (contentType === 'post' && (content as any).moderationStatus === 'approved') {
+      await this.updateContentModerationStatus(contentId, contentType, ModerationStatus.PENDING);
+    } else if (contentType === 'comment' && (content as any).isApproved) {
       await this.updateContentModerationStatus(contentId, contentType, ModerationStatus.PENDING);
     }
   }

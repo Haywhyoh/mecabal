@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ReactionsController } from './reactions.controller';
 import { ReactionsService } from './reactions.service';
-import { PostReaction, Post, User } from '@mecabal/database';
+import { PostReaction, Post, User } from '@app/database';
 
 @Module({
   imports: [

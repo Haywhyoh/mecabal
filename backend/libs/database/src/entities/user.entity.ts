@@ -72,6 +72,10 @@ export class User {
   @Column({ name: 'is_verified', default: false })
   isVerified: boolean;
 
+  @ApiProperty({ description: 'User trust score (0-100)', example: 85 })
+  @Column({ name: 'trust_score', default: 0 })
+  trustScore: number;
+
   @ApiProperty({ description: 'Whether user account is active' })
   @Column({ name: 'is_active', default: true })
   isActive: boolean;

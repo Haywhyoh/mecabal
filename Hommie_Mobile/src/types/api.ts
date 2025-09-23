@@ -39,15 +39,15 @@ export interface LoginApiResponse extends ApiResponse {
   data?: {
     user: {
       id: string;
-      phone_number: string;
-      first_name: string;
+      phoneNumber: string;
+      firstName: string;
       last_name: string;
-      verification_level: number;
+      verificationLevel: number;
     };
     session: {
       access_token: string;
-      refresh_token: string;
-      expires_at: string;
+      refreshToken: string;
+      expiresAt: string;
     };
   };
 }

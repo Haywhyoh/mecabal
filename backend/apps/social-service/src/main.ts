@@ -1,10 +1,10 @@
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
-import { SocialServiceModule } from './social-service.module';
+import { SimpleSocialServiceModule } from './simple-social-service.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(SocialServiceModule);
+  const app = await NestFactory.create(SimpleSocialServiceModule);
 
   // Enable CORS for API testing
   app.enableCors({
@@ -59,7 +59,7 @@ async function bootstrap() {
     customSiteTitle: 'MeCabal Social API Docs',
   });
 
-  const port = process.env.PORT ?? 3003;
+  const port = 3003; // Force port 3003 for social service
   await app.listen(port);
 
   console.log(`🚀 Social Service running on: http://localhost:${port}`);

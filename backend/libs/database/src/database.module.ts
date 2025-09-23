@@ -16,6 +16,7 @@ import {
   PostReaction,
   PostCategory,
   UserNeighborhood,
+  Media,
 } from './entities';
 
 @Module({
@@ -44,8 +45,8 @@ import {
           PostReaction,
           PostCategory,
           UserNeighborhood,
+          Media,
         ],
-        migrations: ['libs/database/src/migrations/*{.ts,.js}'],
         synchronize: configService.get('NODE_ENV') === 'development',
         logging: configService.get('NODE_ENV') === 'development',
         ssl:
@@ -71,6 +72,7 @@ import {
       PostReaction,
       PostCategory,
       UserNeighborhood,
+      Media,
     ]),
   ],
   providers: [DatabaseService],

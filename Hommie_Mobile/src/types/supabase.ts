@@ -255,7 +255,7 @@ export interface AuthResponse {
   user?: NigerianUser;
   session?: any;
   access_token?: string;
-  refresh_token?: string;
+  refreshToken?: string;
   message?: string;
   needsProfileCompletion?: boolean;
   error?: string;

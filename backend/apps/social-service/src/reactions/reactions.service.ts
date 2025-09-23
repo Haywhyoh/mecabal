@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { PostReaction, Post, User } from '@mecabal/database';
+import { PostReaction, Post, User } from '@app/database';
 import { CreateReactionDto, ReactionResponseDto, ReactionStatsDto, ReactionType } from './dto';
 
 @Injectable()
@@ -96,9 +96,9 @@ export class ReactionsService {
     let userReaction: ReactionType | undefined;
 
     reactions.forEach(reaction => {
-      byType[reaction.reactionType]++;
+      byType[reaction.reactionType as ReactionType]++;
       if (userId && reaction.userId === userId) {
-        userReaction = reaction.reactionType;
+        userReaction = reaction.reactionType as ReactionType;
       }
     });
 
@@ -132,7 +132,7 @@ export class ReactionsService {
         id: reaction.user.id,
         firstName: reaction.user.firstName,
         lastName: reaction.user.lastName,
-        profilePicture: reaction.user.profilePicture,
+        profilePicture: reaction.user.profilePictureUrl,
       },
     };
   }

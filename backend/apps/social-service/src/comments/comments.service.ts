@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
-import { PostComment, Post, User } from '@mecabal/database';
+import { PostComment, Post, User } from '@app/database';
 import {
   CreateCommentDto,
   UpdateCommentDto,
@@ -214,7 +214,7 @@ export class CommentsService {
         id: comment.user.id,
         firstName: comment.user.firstName,
         lastName: comment.user.lastName,
-        profilePicture: comment.user.profilePicture,
+        profilePicture: comment.user.profilePictureUrl,
         isVerified: comment.user.isVerified || false,
         trustScore: comment.user.trustScore || 0,
       },

@@ -58,6 +58,9 @@ import NotificationsScreen from './src/screens/NotificationsScreen';
 import MessagingScreen from './src/screens/MessagingScreen';
 import ChatScreen from './src/screens/ChatScreen';
 
+// Community Posts
+import CreatePostScreen from './src/screens/CreatePostScreen';
+
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
@@ -154,6 +157,9 @@ function MainStackNavigator() {
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="Messaging" component={MessagingScreen} />
       <Stack.Screen name="Chat" component={ChatScreen} />
+      
+      {/* Community Posts */}
+      <Stack.Screen name="CreatePost" component={CreatePostScreen} />
       
       {/* Development & Testing */}
       <Stack.Screen name="LocationTest" component={LocationTestScreen} />

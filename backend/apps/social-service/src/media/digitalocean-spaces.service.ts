@@ -78,7 +78,7 @@ export class DigitalOceanSpacesService {
 
       // Upload to DigitalOcean Spaces
       const uploadParams = {
-        Bucket: this.configService.get<string>('DO_SPACES_BUCKET'),
+        Bucket: this.configService.get<string>('DO_SPACES_BUCKET') || 'mecabal-uploads',
         Key: key,
         Body: processedBuffer,
         ContentType: processedMimeType,
@@ -112,7 +112,7 @@ export class DigitalOceanSpacesService {
       }
 
       const deleteParams = {
-        Bucket: this.configService.get<string>('DO_SPACES_BUCKET'),
+        Bucket: this.configService.get<string>('DO_SPACES_BUCKET') || 'mecabal-uploads',
         Key: key,
       };
 
@@ -180,7 +180,7 @@ export class DigitalOceanSpacesService {
       }
 
       const listParams = {
-        Bucket: this.configService.get<string>('DO_SPACES_BUCKET'),
+        Bucket: this.configService.get<string>('DO_SPACES_BUCKET') || 'mecabal-uploads',
         MaxKeys: 1000,
       };
 

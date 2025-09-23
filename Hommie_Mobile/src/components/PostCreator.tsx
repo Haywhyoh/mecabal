@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Modal,
   Dimensions,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -21,12 +22,12 @@ interface PostCreatorProps {
   visible: boolean;
   onClose: () => void;
   onPostCreated?: (post: any) => void;
-  initialPostType?: 'general' | 'event' | 'alert' | 'marketplace' | 'lost_found';
+  initialPostType?: 'general' | 'safety' | 'marketplace' | 'event' | 'recommendation' | 'civic';
 }
 
 const { width } = Dimensions.get('window');
 
-export const PostCreator: React.FC<PostCreatorProps> = ({
+const PostCreator: React.FC<PostCreatorProps> = ({
   visible,
   onClose,
   onPostCreated,

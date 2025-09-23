@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Post } from '../services/postsService';
-import UserAvatar from './UserAvatar';
+import { UserAvatar } from './UserAvatar';
 
 interface PostCardProps {
   post: Post;

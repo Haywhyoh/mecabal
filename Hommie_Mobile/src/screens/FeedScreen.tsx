@@ -11,12 +11,12 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { useFeed } from '../hooks/useFeed';
+import useFeed from '../hooks/useFeed';
 import { Post } from '../services/postsService';
 import FeedList from '../components/FeedList';
 import PostFilter from '../components/PostFilter';
 import PostCreator from '../components/PostCreator';
-import { AuthContext } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 
 interface FeedScreenProps {
   navigation: any;
@@ -27,7 +27,7 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
   const [showPostCreator, setShowPostCreator] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const { user: currentUser } = useAuth();
 
   // Initialize feed with auto-refresh
   const {
@@ -53,21 +53,6 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
     refreshInterval: 30000, // 30 seconds
   });
 
-  // Get current user
-  useFocusEffect(
-    useCallback(() => {
-      const getUser = async () => {
-        try {
-          const authContext = AuthContext;
-          const user = await authContext.getCurrentUser();
-          setCurrentUser(user);
-        } catch (error) {
-          console.error('Error getting current user:', error);
-        }
-      };
-      getUser();
-    }, [])
-  );
 
   // Handle search
   const handleSearch = useCallback(async (query: string) => {
@@ -317,4 +302,5 @@ const styles = StyleSheet.create({
   },
 });
 
+export { FeedScreen };
 export default FeedScreen;

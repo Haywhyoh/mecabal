@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
+import Constants from 'expo-constants';
 
 export interface NotificationData {
   id: string;
@@ -103,11 +104,15 @@ export class NotificationService {
         return;
       }
 
-      const token = await Notifications.getExpoPushTokenAsync({
-        projectId: 'jjmuogczhcunpehsocly',
-      });
-      this.expoPushToken = token.data;
-      console.log('Expo Push Token:', this.expoPushToken);
+      // Get push token - let Expo handle projectId automatically
+      try {
+        const token = await Notifications.getExpoPushTokenAsync();
+        this.expoPushToken = token.data;
+        console.log('Expo Push Token obtained successfully');
+      } catch (tokenError) {
+        console.log('Failed to get push token:', tokenError);
+        // Continue without push token for now
+      }
 
       if (Platform.OS === 'android') {
         Notifications.setNotificationChannelAsync('default', {

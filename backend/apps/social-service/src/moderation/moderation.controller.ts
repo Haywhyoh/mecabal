@@ -12,7 +12,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@mecabal/auth';
+import { JwtAuthGuard } from '@app/auth';
 import { ModerationService } from './moderation.service';
 import {
   ReportContentDto,

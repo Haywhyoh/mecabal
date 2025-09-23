@@ -12,7 +12,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@mecabal/auth';
+import { JwtAuthGuard } from '@app/auth';
 import { ReactionsService } from './reactions.service';
 import { CreateReactionDto, ReactionResponseDto, ReactionStatsDto } from './dto';
 
@@ -104,9 +104,9 @@ export class ReactionsController {
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getUserReactions(
+    @Request() req: any,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
-    @Request() req: any,
   ): Promise<ReactionResponseDto[]> {
     const userId = req.user.id;
     const limitNum = limit ? parseInt(limit, 10) : 20;

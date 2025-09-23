@@ -4,7 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { MediaController } from './media.controller';
 import { MediaService } from './media.service';
 import { DigitalOceanSpacesService } from './digitalocean-spaces.service';
-import { Media, User } from '@mecabal/database';
+import { Media, User } from '@app/database';
 
 @Module({
   imports: [

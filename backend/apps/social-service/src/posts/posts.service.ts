@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder, In } from 'typeorm';
-import { Post, PostCategory, PostMedia, PostReaction, PostComment, User } from '@mecabal/database';
+import { Post, PostCategory, PostMedia, PostReaction, PostComment, User } from '@app/database';
 import {
   CreatePostDto,
   UpdatePostDto,
@@ -47,7 +47,7 @@ export class PostsService {
       ...createPostDto,
       userId,
       neighborhoodId,
-      expiresAt: createPostDto.expiresAt ? new Date(createPostDto.expiresAt) : null,
+      expiresAt: createPostDto.expiresAt ? new Date(createPostDto.expiresAt) : undefined,
     });
 
     const savedPost = await this.postRepository.save(post);
@@ -56,16 +56,16 @@ export class PostsService {
     if (createPostDto.media && createPostDto.media.length > 0) {
       const mediaEntities = createPostDto.media.map(media => 
         this.mediaRepository.create({
-          postId: savedPost.id,
-          url: media.url,
-          type: media.type,
+          postId: (savedPost as any).id,
+          fileUrl: media.url,
+          mediaType: media.type,
           caption: media.caption,
         })
       );
       await this.mediaRepository.save(mediaEntities);
     }
 
-    return this.formatPostResponse(savedPost);
+    return this.formatPostResponse(savedPost as any);
   }
 
   async getPosts(filterDto: PostFilterDto, neighborhoodId: string, userId: string): Promise<PaginatedPostsDto> {
@@ -151,8 +151,8 @@ export class PostsService {
         const mediaEntities = updatePostDto.media.map(media => 
           this.mediaRepository.create({
             postId: id,
-            url: media.url,
-            type: media.type,
+            fileUrl: media.url,
+            mediaType: media.type,
             caption: media.caption,
           })
         );
@@ -271,7 +271,7 @@ export class PostsService {
       id: post.user.id,
       firstName: post.user.firstName,
       lastName: post.user.lastName,
-      profilePicture: post.user.profilePicture,
+      profilePicture: post.user.profilePictureUrl,
       isVerified: post.user.isVerified || false,
       trustScore: post.user.trustScore || 0,
     };
@@ -287,7 +287,7 @@ export class PostsService {
     const media: MediaInfoDto[] = post.media?.map(m => ({
       id: m.id,
       url: m.url,
-      type: m.type,
+      type: m.type as 'image' | 'video',
       caption: m.caption,
     })) || [];
 

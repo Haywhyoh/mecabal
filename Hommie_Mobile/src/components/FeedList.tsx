@@ -11,8 +11,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Post } from '../services/postsService';
-import PostCard from './PostCard';
-import EmptyState from './EmptyState';
+import { PostCard } from './PostCard';
+import { EmptyState } from './EmptyState';
 
 interface FeedListProps {
   posts: Post[];

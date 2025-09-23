@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
-import { Media, User } from '@mecabal/database';
+import { Media, User } from '@app/database';
 import { DigitalOceanSpacesService } from './digitalocean-spaces.service';
 import {
   UploadMediaDto,
