@@ -95,12 +95,12 @@ export const API_ENDPOINTS = {
     DELETE: '/posts',
   },
   CATEGORIES: {
-    GET_ALL: '/categories',
-    GET_BY_ID: '/categories',
-    CREATE: '/categories',
-    UPDATE: '/categories',
-    DELETE: '/categories',
-    STATS: '/categories/stats',
+    GET_ALL: '/posts/categories',
+    GET_BY_ID: '/posts/categories',
+    CREATE: '/posts/categories',
+    UPDATE: '/posts/categories',
+    DELETE: '/posts/categories',
+    STATS: '/posts/categories/stats',
   },
   MODERATION: {
     REPORT: '/moderation/report',

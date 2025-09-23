@@ -49,7 +49,10 @@ export class MediaService {
    * Get authentication headers
    */
   private async getAuthHeaders(): Promise<HeadersInit> {
+    console.log('🔧 MediaService: Getting auth headers...');
+    console.log('🔧 MeCabalAuth object:', MeCabalAuth);
     const token = await MeCabalAuth.getAuthToken();
+    console.log('🔧 Retrieved token:', token ? 'Token exists' : 'No token');
 
     return {
       'Authorization': `Bearer ${token}`,

@@ -337,4 +337,12 @@ export class PostsService {
         userId: 'me', // This will be handled by the backend
       };
 
-      return await this.ge
+      return await this.getPosts(myPostsFilter);
+    } catch (error) {
+      console.error('Error fetching my posts:', error);
+      throw new Error('Failed to fetch my posts');
+    }
+  }
+}
+
+export default PostsService;
