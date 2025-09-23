@@ -15,6 +15,18 @@ export class ApiGatewayController {
     return this.apiGatewayService.getHello();
   }
 
+  @Get('test')
+  @ApiOperation({ summary: 'Test social service connection' })
+  @ApiResponse({ status: 200, description: 'Social service test successful' })
+  async testSocialService(@Res() res: Response) {
+    try {
+      const result = await this.apiGatewayService.proxyToSocialService('/test', 'GET');
+      res.status(HttpStatus.OK).json(result);
+    } catch (error) {
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: error.message });
+    }
+  }
+
   // Posts endpoints
   @Get('posts')
   @ApiOperation({ summary: 'Get all posts' })

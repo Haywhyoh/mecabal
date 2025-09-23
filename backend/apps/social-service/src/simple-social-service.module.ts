@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from '@app/database';
 import { SocialServiceController } from './social-service.controller';
 import { SocialServiceService } from './social-service.service';
+import { PostsModule } from './posts/posts.module';
 
 @Module({
   imports: [
@@ -10,6 +11,7 @@ import { SocialServiceService } from './social-service.service';
       isGlobal: true,
     }),
     DatabaseModule,
+    PostsModule,
   ],
   controllers: [SocialServiceController],
   providers: [SocialServiceService],
