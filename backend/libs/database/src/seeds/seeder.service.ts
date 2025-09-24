@@ -184,4 +184,5 @@ export class SeederService {
     await this.postCategoryRepository.save(categories);
     this.logger.log(`Seeded ${categories.length} post categories`);
   }
+
 }

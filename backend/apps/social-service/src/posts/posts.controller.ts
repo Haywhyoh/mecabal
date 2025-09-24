@@ -15,6 +15,7 @@ import {
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@app/auth';
 import { PostsService } from './posts.service';
+import { CategoriesService } from '../categories/categories.service';
 import {
   CreatePostDto,
   UpdatePostDto,
@@ -28,7 +29,10 @@ import {
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class PostsController {
-  constructor(private readonly postsService: PostsService) {}
+  constructor(
+    private readonly postsService: PostsService,
+    private readonly categoriesService: CategoriesService,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a new post' })
@@ -44,13 +48,17 @@ export class PostsController {
     @Request() req: any,
   ): Promise<PostResponseDto> {
     const userId = req.user.id;
-    const neighborhoodId = req.user.neighborhoodId; // Assuming user has neighborhoodId
     
-    if (!neighborhoodId) {
+    // Get user's primary neighborhood
+    const primaryNeighborhood = req.user.userNeighborhoods?.find(
+      (un: any) => un.isPrimary
+    );
+    
+    if (!primaryNeighborhood) {
       throw new Error('User must be associated with a neighborhood to create posts');
     }
 
-    return this.postsService.createPost(createPostDto, userId, neighborhoodId);
+    return this.postsService.createPost(createPostDto, userId, primaryNeighborhood.neighborhoodId);
   }
 
   @Get()
@@ -66,13 +74,17 @@ export class PostsController {
     @Request() req: any,
   ): Promise<PaginatedPostsDto> {
     const userId = req.user.id;
-    const neighborhoodId = req.user.neighborhoodId;
     
-    if (!neighborhoodId) {
+    // Get user's primary neighborhood
+    const primaryNeighborhood = req.user.userNeighborhoods?.find(
+      (un: any) => un.isPrimary
+    );
+    
+    if (!primaryNeighborhood) {
       throw new Error('User must be associated with a neighborhood to view posts');
     }
 
-    return this.postsService.getPosts(filterDto, neighborhoodId, userId);
+    return this.postsService.getPosts(filterDto, primaryNeighborhood.neighborhoodId, userId);
   }
 
   @Get(':id')
@@ -149,5 +161,16 @@ export class PostsController {
     const userId = req.user.id;
     const pinStatus = isPinned === 'true';
     return this.postsService.pinPost(id, userId, pinStatus);
+  }
+
+  @Get('categories')
+  @ApiOperation({ summary: 'Get all post categories' })
+  @ApiResponse({
+    status: 200,
+    description: 'Categories retrieved successfully',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getPostCategories(): Promise<any[]> {
+    return this.categoriesService.getCategories({});
   }
 }
