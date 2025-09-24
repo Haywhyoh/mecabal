@@ -3,7 +3,7 @@ import { User } from '@app/database';
 
 export const CurrentUser = createParamDecorator(
   (data: unknown, ctx: ExecutionContext): User => {
-    const request = ctx.switchToHttp().getRequest() as { user: User };
+    const request = ctx.switchToHttp().getRequest();
     return request.user;
   },
 );

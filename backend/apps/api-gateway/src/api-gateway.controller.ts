@@ -43,7 +43,7 @@ export class ApiGatewayController {
       const result = await this.apiGatewayService.proxyToSocialService(
         '/test',
         'GET',
-      );
+      ) as any;
       res.status(HttpStatus.OK).json(result);
     } catch (error) {
       const errorMessage =
@@ -135,11 +135,19 @@ export class ApiGatewayController {
       }
 
       // Add other form fields
-      if (req.body.type) formData.append('type', req.body.type);
-      if (req.body.caption) formData.append('caption', req.body.caption);
-      if (req.body.quality) formData.append('quality', req.body.quality);
-      if (req.body.maxWidth) formData.append('maxWidth', req.body.maxWidth);
-      if (req.body.maxHeight) formData.append('maxHeight', req.body.maxHeight);
+      if ((req.body as Record<string, any>).type)
+        formData.append('type', (req.body as Record<string, any>).type);
+      if ((req.body as Record<string, any>).caption)
+        formData.append('caption', (req.body as Record<string, any>).caption);
+      if ((req.body as Record<string, any>).quality)
+        formData.append('quality', (req.body as Record<string, any>).quality);
+      if ((req.body as Record<string, any>).maxWidth)
+        formData.append('maxWidth', (req.body as Record<string, any>).maxWidth);
+      if ((req.body as Record<string, any>).maxHeight)
+        formData.append(
+          'maxHeight',
+          (req.body as Record<string, any>).maxHeight,
+        );
 
       // Create headers without Content-Type (let FormData set it)
       const headers = {
@@ -213,11 +221,19 @@ export class ApiGatewayController {
       }
 
       // Add other form fields
-      if (req.body.type) formData.append('type', req.body.type);
-      if (req.body.caption) formData.append('caption', req.body.caption);
-      if (req.body.quality) formData.append('quality', req.body.quality);
-      if (req.body.maxWidth) formData.append('maxWidth', req.body.maxWidth);
-      if (req.body.maxHeight) formData.append('maxHeight', req.body.maxHeight);
+      if ((req.body as Record<string, any>).type)
+        formData.append('type', (req.body as Record<string, any>).type);
+      if ((req.body as Record<string, any>).caption)
+        formData.append('caption', (req.body as Record<string, any>).caption);
+      if ((req.body as Record<string, any>).quality)
+        formData.append('quality', (req.body as Record<string, any>).quality);
+      if ((req.body as Record<string, any>).maxWidth)
+        formData.append('maxWidth', (req.body as Record<string, any>).maxWidth);
+      if ((req.body as Record<string, any>).maxHeight)
+        formData.append(
+          'maxHeight',
+          (req.body as Record<string, any>).maxHeight,
+        );
 
       // Create headers without Content-Type (let FormData set it)
       const headers = {
