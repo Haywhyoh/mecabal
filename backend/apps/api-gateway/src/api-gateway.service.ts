@@ -35,7 +35,7 @@ export class ApiGatewayService {
       console.log('  - Method:', method);
       console.log(
         '  - User:',
-        user ? { id: user.id, email: user.email } : 'No user',
+        user ? { id: (user as { id: string; email: string }).id, email: (user as { id: string; email: string }).email } : 'No user',
       );
       console.log('  - Data type:', data?.constructor?.name);
       console.log('  - Headers:', Object.keys(headers || {}));
@@ -44,7 +44,7 @@ export class ApiGatewayService {
       // Check if data is FormData
       const isFormData = data && typeof (data as any).getHeaders === 'function';
 
-      const baseHeaders = {
+      const baseHeaders: Record<string, string> = {
         // Don't set Content-Type for FormData, let axios handle it
         ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
         // Add cache-busting headers to prevent 304 responses
@@ -54,9 +54,9 @@ export class ApiGatewayService {
         // Pass user information to social service - fix UUID format
         ...(user && {
           'X-User-Id':
-            user.id.length === 37 && user.id.endsWith('f')
-              ? user.id.slice(0, -1)
-              : user.id,
+            (user as { id: string }).id.length === 37 && (user as { id: string }).id.endsWith('f')
+              ? (user as { id: string }).id.slice(0, -1)
+              : (user as { id: string }).id,
         }),
       };
 
@@ -65,7 +65,7 @@ export class ApiGatewayService {
         Object.assign(baseHeaders, (data as any).getHeaders());
       }
 
-      const config = {
+      const config: Record<string, unknown> = {
         headers: baseHeaders,
         // Add timeout and other options
         timeout: 300000, // 5 minutes timeout for media uploads

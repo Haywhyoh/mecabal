@@ -40,10 +40,10 @@ export class ApiGatewayController {
   @ApiResponse({ status: 200, description: 'Social service test successful' })
   async testSocialService(@Res() res: Response) {
     try {
-      const result = await this.apiGatewayService.proxyToSocialService(
+      const result: unknown = await this.apiGatewayService.proxyToSocialService(
         '/test',
         'GET',
-      ) as any;
+      );
       res.status(HttpStatus.OK).json(result);
     } catch (error) {
       const errorMessage =
@@ -62,7 +62,7 @@ export class ApiGatewayController {
     try {
       // Extract the path after /auth
       const path = req.url.replace('/auth', '/auth');
-      const result = await this.apiGatewayService.proxyToAuthService(
+      const result: unknown = await this.apiGatewayService.proxyToAuthService(
         path,
         req.method,
         req.body,
@@ -166,7 +166,7 @@ export class ApiGatewayController {
         userNeighborhoods: [],
       };
 
-      const result = await this.apiGatewayService.proxyToSocialService(
+      const result: unknown = await this.apiGatewayService.proxyToSocialService(
         '/media/upload',
         req.method,
         formData,
@@ -242,7 +242,7 @@ export class ApiGatewayController {
       delete headers['content-type'];
       delete headers['Content-Type'];
 
-      const result = await this.apiGatewayService.proxyToSocialService(
+      const result: unknown = await this.apiGatewayService.proxyToSocialService(
         '/media/upload',
         req.method,
         formData,
@@ -272,7 +272,7 @@ export class ApiGatewayController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async proxyIndividualPost(@Req() req: Request, @Res() res: Response) {
     try {
-      const result = await this.apiGatewayService.proxyToSocialService(
+      const result: unknown = await this.apiGatewayService.proxyToSocialService(
         req.url,
         req.method,
         req.body,
@@ -319,7 +319,7 @@ export class ApiGatewayController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async proxySocial(@Req() req: Request, @Res() res: Response) {
     try {
-      const result = await this.apiGatewayService.proxyToSocialService(
+      const result: unknown = await this.apiGatewayService.proxyToSocialService(
         req.url,
         req.method,
         req.body,
