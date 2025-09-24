@@ -76,6 +76,39 @@ export interface UpdatePostRequest {
   isPinned?: boolean;
 }
 
+export interface Comment {
+  id: string;
+  postId: string;
+  content: string;
+  author: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    profilePicture?: string;
+    isVerified: boolean;
+  };
+  createdAt: string;
+  updatedAt: string;
+  isEdited: boolean;
+  parentCommentId?: string;
+  replies?: Comment[];
+  likesCount: number;
+  userLiked: boolean;
+}
+
+export interface CreateCommentRequest {
+  content: string;
+  parentCommentId?: string;
+}
+
+export interface Reaction {
+  id: string;
+  postId: string;
+  userId: string;
+  type: 'like' | 'love' | 'laugh' | 'angry' | 'sad' | 'wow';
+  createdAt: string;
+}
+
 export interface PostFilter {
   page?: number;
   limit?: number;
@@ -341,6 +374,228 @@ export class PostsService {
     } catch (error) {
       console.error('Error fetching my posts:', error);
       throw new Error('Failed to fetch my posts');
+    }
+  }
+
+  /**
+   * Get comments for a post
+   */
+  async getComments(postId: string, page: number = 1, limit: number = 20): Promise<{ data: Comment[]; hasNext: boolean; total: number }> {
+    try {
+      const response = await fetch(`${this.baseUrl}${API_ENDPOINTS.COMMENTS.GET_ALL}/${postId}?page=${page}&limit=${limit}`, {
+        method: 'GET',
+        headers: await this.getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to fetch comments');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+      throw new Error('Failed to fetch comments');
+    }
+  }
+
+  /**
+   * Create a comment
+   */
+  async createComment(postId: string, commentData: CreateCommentRequest): Promise<Comment> {
+    try {
+      const response = await fetch(`${this.baseUrl}${API_ENDPOINTS.COMMENTS.CREATE}/${postId}`, {
+        method: 'POST',
+        headers: {
+          ...await this.getAuthHeaders(),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(commentData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create comment');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error creating comment:', error);
+      throw new Error('Failed to create comment');
+    }
+  }
+
+  /**
+   * Update a comment
+   */
+  async updateComment(commentId: string, content: string): Promise<Comment> {
+    try {
+      const response = await fetch(`${this.baseUrl}${API_ENDPOINTS.COMMENTS.UPDATE}/${commentId}`, {
+        method: 'PUT',
+        headers: {
+          ...await this.getAuthHeaders(),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update comment');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error updating comment:', error);
+      throw new Error('Failed to update comment');
+    }
+  }
+
+  /**
+   * Delete a comment
+   */
+  async deleteComment(commentId: string): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}${API_ENDPOINTS.COMMENTS.DELETE}/${commentId}`, {
+        method: 'DELETE',
+        headers: await this.getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete comment');
+      }
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      throw new Error('Failed to delete comment');
+    }
+  }
+
+  /**
+   * Like a post
+   */
+  async likePost(postId: string, reactionType: string = 'like'): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}${API_ENDPOINTS.REACTIONS.ADD}/${postId}`, {
+        method: 'POST',
+        headers: {
+          ...await this.getAuthHeaders(),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ type: reactionType }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to like post');
+      }
+    } catch (error) {
+      console.error('Error liking post:', error);
+      throw new Error('Failed to like post');
+    }
+  }
+
+  /**
+   * Unlike a post
+   */
+  async unlikePost(postId: string): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}${API_ENDPOINTS.REACTIONS.REMOVE}/${postId}`, {
+        method: 'DELETE',
+        headers: await this.getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to unlike post');
+      }
+    } catch (error) {
+      console.error('Error unliking post:', error);
+      throw new Error('Failed to unlike post');
+    }
+  }
+
+  /**
+   * Get post reactions
+   */
+  async getPostReactions(postId: string): Promise<Reaction[]> {
+    try {
+      const response = await fetch(`${this.baseUrl}${API_ENDPOINTS.REACTIONS.GET_STATS}/${postId}`, {
+        method: 'GET',
+        headers: await this.getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to fetch reactions');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching reactions:', error);
+      throw new Error('Failed to fetch reactions');
+    }
+  }
+
+  /**
+   * Bookmark a post
+   */
+  async bookmarkPost(postId: string): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/posts/${postId}/bookmark`, {
+        method: 'POST',
+        headers: await this.getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to bookmark post');
+      }
+    } catch (error) {
+      console.error('Error bookmarking post:', error);
+      throw new Error('Failed to bookmark post');
+    }
+  }
+
+  /**
+   * Remove bookmark from a post
+   */
+  async unbookmarkPost(postId: string): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/posts/${postId}/bookmark`, {
+        method: 'DELETE',
+        headers: await this.getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to unbookmark post');
+      }
+    } catch (error) {
+      console.error('Error unbookmarking post:', error);
+      throw new Error('Failed to unbookmark post');
+    }
+  }
+
+  /**
+   * Get bookmarked posts
+   */
+  async getBookmarkedPosts(page: number = 1, limit: number = 20): Promise<PaginatedPosts> {
+    try {
+      const response = await fetch(`${this.baseUrl}/posts/bookmarked?page=${page}&limit=${limit}`, {
+        method: 'GET',
+        headers: await this.getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to fetch bookmarked posts');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching bookmarked posts:', error);
+      throw new Error('Failed to fetch bookmarked posts');
     }
   }
 }

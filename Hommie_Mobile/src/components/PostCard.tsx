@@ -45,6 +45,7 @@ export const PostCard: React.FC<PostCardProps> = ({
 }) => {
   const [showFullContent, setShowFullContent] = useState(false);
   const [isLiked, setIsLiked] = useState(post.engagement.userReaction === 'like');
+  const [isBookmarked, setIsBookmarked] = useState(false);
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const menuButtonRef = useRef<any>(null);
@@ -92,9 +93,15 @@ export const PostCard: React.FC<PostCardProps> = ({
     return icons[level as keyof typeof icons] || 'people-outline';
   };
 
-  const handleReaction = (reactionType: string) => {
-    setIsLiked(!isLiked);
-    onReaction?.(post.id, reactionType);
+  const handleReaction = async (reactionType: string) => {
+    try {
+      setIsLiked(!isLiked);
+      await onReaction?.(post.id, reactionType);
+    } catch (error) {
+      // Revert the like state if the API call fails
+      setIsLiked(!isLiked);
+      console.error('Error reacting to post:', error);
+    }
   };
 
   const handleMenuPress = () => {
@@ -119,7 +126,7 @@ export const PostCard: React.FC<PostCardProps> = ({
       };
       
       await Share.share(shareContent);
-      onShare?.(post);
+      await onShare?.(post);
     } catch (error) {
       console.error('Error sharing post:', error);
     }
@@ -149,6 +156,18 @@ export const PostCard: React.FC<PostCardProps> = ({
         { text: 'Delete', style: 'destructive', onPress: () => onDelete?.(post.id) },
       ]
     );
+  };
+
+  const handleBookmark = async () => {
+    try {
+      setIsBookmarked(!isBookmarked);
+      // TODO: Implement bookmark API call
+      console.log('Bookmarking post:', post.id);
+    } catch (error) {
+      // Revert the bookmark state if the API call fails
+      setIsBookmarked(!isBookmarked);
+      console.error('Error bookmarking post:', error);
+    }
   };
 
   const shouldTruncateContent = post.content.length > 200;
@@ -334,9 +353,13 @@ export const PostCard: React.FC<PostCardProps> = ({
 
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => {/* Share/Save functionality */}}
+            onPress={handleBookmark}
           >
-            <Ionicons name="bookmark-outline" size={20} color="#8E8E8E" />
+            <Ionicons 
+              name={isBookmarked ? "bookmark" : "bookmark-outline"} 
+              size={20} 
+              color={isBookmarked ? "#00A651" : "#8E8E8E"} 
+            />
           </TouchableOpacity>
         </View>
       )}

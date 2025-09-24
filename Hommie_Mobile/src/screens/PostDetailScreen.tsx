@@ -10,6 +10,7 @@ import {
   Share,
   Dimensions,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { VideoView, useVideoPlayer } from 'expo-video';
@@ -17,6 +18,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Post } from '../services/postsService';
 import { UserAvatar } from '../components/UserAvatar';
 import { PostActionMenu } from '../components/PostActionMenu';
+import { CommentsList } from '../components/CommentsList';
 import { useAuth } from '../contexts/AuthContext';
 import useFeed from '../hooks/useFeed';
 
@@ -45,6 +47,7 @@ export const PostDetailScreen: React.FC<PostDetailScreenProps> = ({
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const [isLiked, setIsLiked] = useState(false);
+  const [isBookmarked, setIsBookmarked] = useState(false);
   const [showFullContent, setShowFullContent] = useState(true);
 
   const {
@@ -55,6 +58,8 @@ export const PostDetailScreen: React.FC<PostDetailScreenProps> = ({
     editPost,
     deletePost,
     getPostById,
+    bookmarkPost,
+    unbookmarkPost,
   } = useFeed();
 
   // Load post data
@@ -133,11 +138,22 @@ export const PostDetailScreen: React.FC<PostDetailScreenProps> = ({
     if (!post) return;
     
     try {
+      const wasLiked = isLiked;
       setIsLiked(!isLiked);
-      await likePost(post.id);
+      
+      if (wasLiked) {
+        // Unlike the post
+        await likePost(post.id); // This will handle the unlike logic
+      } else {
+        // Like the post
+        await likePost(post.id);
+      }
+      
       // Refresh post data to get updated counts
       loadPost();
     } catch (error) {
+      // Revert the like state if the API call fails
+      setIsLiked(!isLiked);
       console.error('Error reacting to post:', error);
       Alert.alert('Error', 'Failed to react to post');
     }
@@ -159,6 +175,9 @@ export const PostDetailScreen: React.FC<PostDetailScreenProps> = ({
       
       await Share.share(shareContent);
       await sharePost(post);
+      
+      // Refresh post data to get updated share count
+      loadPost();
     } catch (error) {
       console.error('Error sharing post:', error);
     }
@@ -172,14 +191,15 @@ export const PostDetailScreen: React.FC<PostDetailScreenProps> = ({
       'Are you sure you want to report this post?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Report', style: 'destructive', onPress: () => reportPost(post.id) },
+        { text: 'Report', style: 'destructive', onPress: () => reportPost(post.id, 'Inappropriate content') },
       ]
     );
   };
 
   const handleEdit = () => {
     if (!post) return;
-    onEdit?.(post);
+    // TODO: Navigate to edit post screen
+    console.log('Edit post:', post.id);
   };
 
   const handleDelete = () => {
@@ -193,6 +213,26 @@ export const PostDetailScreen: React.FC<PostDetailScreenProps> = ({
         { text: 'Delete', style: 'destructive', onPress: () => deletePost(post.id) },
       ]
     );
+  };
+
+  const handleBookmark = async () => {
+    if (!post) return;
+    
+    try {
+      const wasBookmarked = isBookmarked;
+      setIsBookmarked(!isBookmarked);
+      
+      if (wasBookmarked) {
+        await unbookmarkPost(post.id);
+      } else {
+        await bookmarkPost(post.id);
+      }
+    } catch (error) {
+      // Revert the bookmark state if the API call fails
+      setIsBookmarked(!isBookmarked);
+      console.error('Error bookmarking post:', error);
+      Alert.alert('Error', 'Failed to bookmark post');
+    }
   };
 
   const handleMenuPress = (event: any) => {
@@ -415,9 +455,13 @@ export const PostDetailScreen: React.FC<PostDetailScreenProps> = ({
 
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={() => {/* Bookmark functionality */}}
+              onPress={handleBookmark}
             >
-              <Ionicons name="bookmark-outline" size={20} color="#8E8E8E" />
+              <Ionicons 
+                name={isBookmarked ? "bookmark" : "bookmark-outline"} 
+                size={20} 
+                color={isBookmarked ? "#00A651" : "#8E8E8E"} 
+              />
             </TouchableOpacity>
           </View>
 
@@ -430,14 +474,16 @@ export const PostDetailScreen: React.FC<PostDetailScreenProps> = ({
           )}
         </View>
 
-        {/* Comments Section - Placeholder for now */}
+        {/* Comments Section */}
         <View style={styles.commentsContainer}>
           <Text style={styles.commentsTitle}>Comments</Text>
-          <View style={styles.commentsPlaceholder}>
-            <Text style={styles.commentsPlaceholderText}>
-              Comments feature coming soon!
-            </Text>
-          </View>
+          <CommentsList 
+            postId={post.id} 
+            onCommentAdded={() => {
+              // Refresh post data to update comment count
+              loadPost();
+            }} 
+          />
         </View>
       </ScrollView>
 
@@ -447,9 +493,9 @@ export const PostDetailScreen: React.FC<PostDetailScreenProps> = ({
         onClose={() => setShowActionMenu(false)}
         post={post}
         isOwner={isOwner}
-        onReport={onReport}
-        onEdit={onEdit}
-        onDelete={onDelete}
+        onReport={handleReport}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
         position={menuPosition}
       />
     </SafeAreaView>
@@ -626,27 +672,19 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginVertical: 8,
     borderRadius: 12,
-    padding: 16,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
+    flex: 1,
   },
   commentsTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#2C2C2C',
-    marginBottom: 12,
-  },
-  commentsPlaceholder: {
-    padding: 20,
-    alignItems: 'center',
-  },
-  commentsPlaceholderText: {
-    fontSize: 14,
-    color: '#8E8E8E',
-    fontStyle: 'italic',
+    padding: 16,
+    paddingBottom: 0,
   },
   loadingContainer: {
     flex: 1,

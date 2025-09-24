@@ -182,9 +182,31 @@ export class ApiGatewayController {
     }
   }
 
+  // Specific route for individual posts
+  @All('posts/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Proxy individual post requests to social service' })
+  @ApiResponse({ status: 200, description: 'Request proxied to social service' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async proxyIndividualPost(@Req() req: Request, @Res() res: Response) {
+    try {
+      const result = await this.apiGatewayService.proxyToSocialService(req.url, req.method, req.body, req.headers, req.user);
+
+      // Set appropriate status code based on method
+      let statusCode = HttpStatus.OK;
+      if (req.method === 'POST') {
+        statusCode = HttpStatus.CREATED;
+      }
+
+      res.status(statusCode).json(result);
+    } catch (error) {
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: error.message });
+    }
+  }
+
   // Dynamic routing for social service - handles ALL social-related routes EXCEPT media uploads
   @All('posts')
-  @All('posts/*')
   @All('posts/categories')
   @All('posts/categories/*')
   @All('categories')

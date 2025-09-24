@@ -214,7 +214,7 @@ export default function HomeScreen() {
 
       {/* Content with SafeAreaView */}
       <SafeAreaView style={styles.contentContainer}>
-        <FeedScreen />
+        <FeedScreen navigation={navigation} />
       </SafeAreaView>
 
       {/* Profile Sidebar */}

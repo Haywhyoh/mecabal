@@ -256,26 +256,82 @@ export const useFeed = (options: FeedOptions = {}) => {
 
   const likePost = useCallback(async (postId: string) => {
     try {
-      // TODO: Implement like functionality
-      console.log('Liking post:', postId);
+      await postsService.likePost(postId);
+      
+      if (!isMountedRef.current) return;
+
+      // Update the post in the state
+      setState(prev => ({
+        ...prev,
+        posts: prev.posts.map(post => 
+          post.id === postId 
+            ? {
+                ...post,
+                engagement: {
+                  ...post.engagement,
+                  reactionsCount: post.engagement.reactionsCount + 1,
+                  userReaction: 'like'
+                }
+              }
+            : post
+        )
+      }));
     } catch (error) {
       console.error('Error liking post:', error);
+      setState(prev => ({
+        ...prev,
+        error: error instanceof Error ? error.message : 'Failed to like post',
+      }));
     }
-  }, []);
+  }, [postsService]);
 
   const commentOnPost = useCallback(async (postId: string, content: string) => {
     try {
-      // TODO: Implement comment functionality
-      console.log('Commenting on post:', postId, content);
+      await postsService.createComment(postId, { content });
+      
+      if (!isMountedRef.current) return;
+
+      // Update the post's comment count
+      setState(prev => ({
+        ...prev,
+        posts: prev.posts.map(post => 
+          post.id === postId 
+            ? {
+                ...post,
+                engagement: {
+                  ...post.engagement,
+                  commentsCount: post.engagement.commentsCount + 1
+                }
+              }
+            : post
+        )
+      }));
     } catch (error) {
       console.error('Error commenting on post:', error);
+      setState(prev => ({
+        ...prev,
+        error: error instanceof Error ? error.message : 'Failed to comment on post',
+      }));
     }
-  }, []);
+  }, [postsService]);
 
   const sharePost = useCallback(async (post: Post) => {
     try {
-      // TODO: Implement share functionality
-      console.log('Sharing post:', post.id);
+      // Update the post's share count
+      setState(prev => ({
+        ...prev,
+        posts: prev.posts.map(p => 
+          p.id === post.id 
+            ? {
+                ...p,
+                engagement: {
+                  ...p.engagement,
+                  sharesCount: p.engagement.sharesCount + 1
+                }
+              }
+            : p
+        )
+      }));
     } catch (error) {
       console.error('Error sharing post:', error);
     }
@@ -283,8 +339,9 @@ export const useFeed = (options: FeedOptions = {}) => {
 
   const reportPost = useCallback(async (postId: string, reason: string) => {
     try {
-      // TODO: Implement report functionality
+      // TODO: Implement report API call when backend is ready
       console.log('Reporting post:', postId, reason);
+      // For now, just log the report
     } catch (error) {
       console.error('Error reporting post:', error);
     }
@@ -327,6 +384,24 @@ export const useFeed = (options: FeedOptions = {}) => {
     }
   }, [postsService]);
 
+  const bookmarkPost = useCallback(async (postId: string): Promise<void> => {
+    try {
+      await postsService.bookmarkPost(postId);
+    } catch (error) {
+      console.error('Error bookmarking post:', error);
+      throw error;
+    }
+  }, [postsService]);
+
+  const unbookmarkPost = useCallback(async (postId: string): Promise<void> => {
+    try {
+      await postsService.unbookmarkPost(postId);
+    } catch (error) {
+      console.error('Error unbookmarking post:', error);
+      throw error;
+    }
+  }, [postsService]);
+
   return {
     // State
     posts: state.posts,
@@ -349,6 +424,8 @@ export const useFeed = (options: FeedOptions = {}) => {
     editPost,
     deletePost,
     getPostById,
+    bookmarkPost,
+    unbookmarkPost,
   };
 };
 
