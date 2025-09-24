@@ -71,6 +71,10 @@ export class PostsService {
       relations: ['user', 'category', 'media', 'reactions', 'comments'],
     });
 
+    if (!postWithRelations) {
+      throw new NotFoundException('Post not found after creation');
+    }
+
     return this.formatPostResponse(postWithRelations);
   }
 

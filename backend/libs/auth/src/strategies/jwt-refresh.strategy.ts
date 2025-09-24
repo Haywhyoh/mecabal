@@ -6,19 +6,19 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '@app/database';
 
-export interface JwtPayload {
+export interface JwtRefreshPayload {
   sub: string;
   userId?: string; // For backward compatibility
   email: string;
   phoneNumber?: string;
-  roles?: string[];
-  type: 'access' | 'refresh';
+  sessionId: string;
+  type: 'refresh';
   iat?: number;
   exp?: number;
 }
 
 @Injectable()
-export class JwtStrategy extends PassportStrategy(Strategy) {
+export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
   constructor(
     private configService: ConfigService,
     @InjectRepository(User)
@@ -27,24 +27,18 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET'),
+      secretOrKey: configService.get<string>('JWT_REFRESH_SECRET') || 'your-super-secret-refresh-key-change-this-in-production',
     });
   }
 
-  async validate(payload: JwtPayload): Promise<User> {
-    // Only validate access tokens for regular requests
-    if (payload.type !== 'access') {
-      throw new UnauthorizedException('Invalid token type');
-    }
-
-    // Fix UUID format if it has an extra character (common issue with JWT tokens)
-    let userId = payload.sub || payload.userId;
-    if (userId && userId.length === 37 && userId.endsWith('f')) {
-      userId = userId.slice(0, -1); // Remove the trailing 'f'
+  async validate(payload: JwtRefreshPayload): Promise<User> {
+    // Only validate refresh tokens
+    if (payload.type !== 'refresh') {
+      throw new UnauthorizedException('Invalid token type - refresh token required');
     }
 
     const user = await this.userRepository.findOne({
-      where: { id: userId },
+      where: { id: payload.sub || payload.userId }, // Support both sub and userId
       relations: ['userNeighborhoods', 'userNeighborhoods.neighborhood'],
     });
 

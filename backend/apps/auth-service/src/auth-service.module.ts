@@ -83,9 +83,9 @@ import { TokenService } from './services/token.service';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get('JWT_SECRET', 'your-secret-key'),
+        secret: configService.get('JWT_SECRET'),
         signOptions: {
-          expiresIn: configService.get('JWT_EXPIRES_IN', '1h'),
+          expiresIn: configService.get('JWT_EXPIRES_IN', '24h'),
         },
       }),
       inject: [ConfigService],

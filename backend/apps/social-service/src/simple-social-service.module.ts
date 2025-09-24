@@ -5,6 +5,7 @@ import { AuthModule } from '@app/auth';
 import { SocialServiceController } from './social-service.controller';
 import { SocialServiceService } from './social-service.service';
 import { PostsModule } from './posts/posts.module';
+import { MediaModule } from './media/media.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { PostsModule } from './posts/posts.module';
     DatabaseModule,
     AuthModule,
     PostsModule,
+    MediaModule,
   ],
   controllers: [SocialServiceController],
   providers: [SocialServiceService],

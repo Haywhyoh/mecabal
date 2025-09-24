@@ -4,7 +4,10 @@ import { ValidationPipe } from '@nestjs/common';
 import { ApiGatewayModule } from './api-gateway.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(ApiGatewayModule);
+  const app = await NestFactory.create(ApiGatewayModule, {
+    bodyParser: true,
+    rawBody: true,
+  });
 
   // Enable CORS for API testing
   app.enableCors({

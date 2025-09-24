@@ -9,7 +9,10 @@ import { DatabaseModule } from '@app/database';
 
 @Module({
   imports: [
-    HttpModule,
+    HttpModule.register({
+      timeout: 300000, // 5 minutes timeout for large file uploads
+      maxRedirects: 5,
+    }),
     ConfigModule.forRoot({
       isGlobal: true,
     }),

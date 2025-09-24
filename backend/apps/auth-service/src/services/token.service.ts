@@ -75,7 +75,7 @@ export class TokenService {
 
     // Access token (15 minutes)
     const accessToken = this.jwtService.sign(payload, {
-      secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
+      secret: this.configService.get<string>('JWT_SECRET'),
       expiresIn: this.configService.get<string>('JWT_ACCESS_EXPIRES_IN', '15m'),
     });
 
@@ -166,7 +166,7 @@ export class TokenService {
   async validateAccessToken(token: string): Promise<TokenPayload | null> {
     try {
       const payload = this.jwtService.verify(token, {
-        secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
+        secret: this.configService.get<string>('JWT_SECRET'),
       });
 
       // Check if session is still valid

@@ -5,6 +5,7 @@ import {
   Delete,
   Param,
   Query,
+  Body,
   UseGuards,
   Request,
   UseInterceptors,
@@ -14,7 +15,7 @@ import {
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiConsumes, ApiParam } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@app/auth';
+import { SocialAuthGuard } from '../guards/social-auth.guard';
 import { MediaService } from './media.service';
 import {
   UploadMediaDto,
@@ -26,7 +27,7 @@ import {
 
 @ApiTags('Media')
 @Controller('media')
-@UseGuards(JwtAuthGuard)
+@UseGuards(SocialAuthGuard)
 @ApiBearerAuth()
 export class MediaController {
   constructor(private readonly mediaService: MediaService) {}
@@ -44,9 +45,28 @@ export class MediaController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async uploadMedia(
     @UploadedFiles() files: Express.Multer.File[],
-    @Query() uploadDto: UploadMediaDto,
+    @Query() queryDto: any,
+    @Body() bodyDto: any,
     @Request() req: any,
   ): Promise<MediaUploadResponseDto> {
+    // Debug logging
+    console.log('🔧 Social Service - Media upload received:');
+    console.log('  - Files count:', files?.length || 0);
+    console.log('  - Query params:', queryDto);
+    console.log('  - Body params:', bodyDto);
+    console.log('  - User:', req.user);
+
+    // Merge query and body parameters
+    const uploadDto = {
+      type: queryDto.type || bodyDto.type,
+      caption: queryDto.caption || bodyDto.caption,
+      quality: queryDto.quality || bodyDto.quality,
+      maxWidth: queryDto.maxWidth || bodyDto.maxWidth,
+      maxHeight: queryDto.maxHeight || bodyDto.maxHeight,
+    };
+
+    console.log('🔧 Merged upload DTO:', uploadDto);
+
     const userId = req.user.id;
     return this.mediaService.uploadMedia(files, uploadDto, userId);
   }

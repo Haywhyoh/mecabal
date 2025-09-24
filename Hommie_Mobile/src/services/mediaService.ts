@@ -163,13 +163,25 @@ export class MediaService {
     } = {}
   ): Promise<UploadedMedia> {
     try {
+      console.log('🔧 MediaService: Starting media upload...');
+      console.log('🔧 MediaService: Media file:', {
+        uri: mediaFile.uri,
+        name: mediaFile.name,
+        type: mediaFile.type,
+        size: mediaFile.size
+      });
+
       // Convert file to FormData
       const formData = new FormData();
       
-      // Read file as blob
-      const fileBlob = await this.uriToBlob(mediaFile.uri);
+      // For React Native, we need to create a proper file object
+      const fileObj = {
+        uri: mediaFile.uri,
+        type: mediaFile.type === 'image' ? 'image/jpeg' : 'video/mp4',
+        name: mediaFile.name,
+      };
       
-      formData.append('files', fileBlob, mediaFile.name);
+      formData.append('files', fileObj as any);
       formData.append('type', mediaFile.type);
       
       if (options.caption) {
@@ -185,22 +197,40 @@ export class MediaService {
         formData.append('maxHeight', options.maxHeight.toString());
       }
 
-      // Upload to backend
+      console.log('🔧 MediaService: FormData prepared, sending request...');
+
+      // Upload to backend with increased timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutes timeout
+      
       const response = await fetch(`${this.baseUrl}/media/upload`, {
         method: 'POST',
-        headers: await this.getAuthHeaders(),
+        headers: {
+          ...await this.getAuthHeaders(),
+          'Content-Type': 'multipart/form-data',
+        },
         body: formData,
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
+
+      console.log('🔧 MediaService: Response status:', response.status);
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('🔧 MediaService: Upload failed:', errorData);
         throw new Error(errorData.message || 'Failed to upload media');
       }
 
       const result: MediaUploadResponse = await response.json();
+      console.log('🔧 MediaService: Upload successful:', result);
       return result.media[0];
     } catch (error) {
       console.error('Error uploading media:', error);
+      if (error.name === 'AbortError') {
+        throw new Error('Upload timeout - please try again with a smaller file');
+      }
       throw new Error('Failed to upload media');
     }
   }
@@ -218,12 +248,20 @@ export class MediaService {
     } = {}
   ): Promise<UploadedMedia[]> {
     try {
+      console.log('🔧 MediaService: Starting multiple media upload...');
+      console.log('🔧 MediaService: Media files count:', mediaFiles.length);
+
       // Convert files to FormData
       const formData = new FormData();
       
       for (const mediaFile of mediaFiles) {
-        const fileBlob = await this.uriToBlob(mediaFile.uri);
-        formData.append('files', fileBlob, mediaFile.name);
+        const fileObj = {
+          uri: mediaFile.uri,
+          type: mediaFile.type === 'image' ? 'image/jpeg' : 'video/mp4',
+          name: mediaFile.name,
+        };
+        
+        formData.append('files', fileObj as any);
       }
       
       formData.append('type', mediaFiles[0].type);
@@ -241,22 +279,40 @@ export class MediaService {
         formData.append('maxHeight', options.maxHeight.toString());
       }
 
-      // Upload to backend
+      console.log('🔧 MediaService: FormData prepared for multiple files, sending request...');
+
+      // Upload to backend with increased timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutes timeout
+      
       const response = await fetch(`${this.baseUrl}/media/upload`, {
         method: 'POST',
-        headers: await this.getAuthHeaders(),
+        headers: {
+          ...await this.getAuthHeaders(),
+          'Content-Type': 'multipart/form-data',
+        },
         body: formData,
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
+
+      console.log('🔧 MediaService: Multiple upload response status:', response.status);
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('🔧 MediaService: Multiple upload failed:', errorData);
         throw new Error(errorData.message || 'Failed to upload media');
       }
 
       const result: MediaUploadResponse = await response.json();
+      console.log('🔧 MediaService: Multiple upload successful:', result);
       return result.media;
     } catch (error) {
       console.error('Error uploading multiple media:', error);
+      if (error.name === 'AbortError') {
+        throw new Error('Upload timeout - please try again with smaller files');
+      }
       throw new Error('Failed to upload media files');
     }
   }
@@ -343,6 +399,22 @@ export class MediaService {
       return await response.blob();
     } catch (error) {
       console.error('Error converting URI to blob:', error);
+      throw new Error('Failed to process file');
+    }
+  }
+
+  /**
+   * Convert URI to File for FormData (React Native compatible)
+   */
+  private async uriToFile(uri: string, name: string, type: string): Promise<File> {
+    try {
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      
+      // Create a File object from the blob
+      return new File([blob], name, { type });
+    } catch (error) {
+      console.error('Error converting URI to file:', error);
       throw new Error('Failed to process file');
     }
   }
