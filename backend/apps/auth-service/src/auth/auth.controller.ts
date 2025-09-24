@@ -163,11 +163,14 @@ export class AuthController {
     description: 'Invalid credentials or account not verified',
   })
   async login(@Body() loginDto: LoginDto, @Request() req: any) {
+    const headers = (
+      req as { headers: Record<string, string | string[] | undefined> }
+    ).headers;
     const deviceInfo = {
-      deviceId: req.headers?.['x-device-id'] as string,
-      deviceType: req.headers?.['x-device-type'] as string,
-      ipAddress: req.ip as string,
-      userAgent: req.headers?.['user-agent'] as string,
+      deviceId: headers?.['x-device-id'] as string,
+      deviceType: headers?.['x-device-type'] as string,
+      ipAddress: (req as { ip: string }).ip,
+      userAgent: headers?.['user-agent'] as string,
     };
 
     return this.authService.loginUser(loginDto, deviceInfo);
@@ -200,7 +203,6 @@ export class AuthController {
   })
   async logout(
     @CurrentUser() user: User,
-    @Body() body?: { refreshToken?: string },
   ) {
     return this.authService.logoutUser(user.id);
   }
@@ -227,9 +229,15 @@ export class AuthController {
   })
   async getCurrentUser(@CurrentUser() user: User, @Request() req: any) {
     // Add cache control headers to prevent 304 responses
-    req.res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    req.res.setHeader('Pragma', 'no-cache');
-    req.res.setHeader('Expires', '0');
+    (
+      req as { res: { setHeader: (key: string, value: string) => void } }
+    ).res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    (
+      req as { res: { setHeader: (key: string, value: string) => void } }
+    ).res.setHeader('Pragma', 'no-cache');
+    (
+      req as { res: { setHeader: (key: string, value: string) => void } }
+    ).res.setHeader('Expires', '0');
 
     return this.authService.getUserProfile(user.id);
   }
@@ -480,7 +488,7 @@ export class AuthController {
     status: 400,
     description: 'Invalid Nigerian phone number or rate limit exceeded',
   })
-  initiatePhoneVerification(@Body() _dto: InitiatePhoneVerificationDto) {
+  initiatePhoneVerification() {
     throw new Error('Method not implemented yet');
   }
 
@@ -496,7 +504,7 @@ export class AuthController {
     status: 400,
     description: 'Invalid or expired OTP code',
   })
-  verifyPhoneOtp(@Body() _dto: VerifyPhoneOtpDto) {
+  verifyPhoneOtp() {
     throw new Error('Method not implemented yet');
   }
 
@@ -512,7 +520,7 @@ export class AuthController {
     status: 429,
     description: 'Too many resend attempts. Please wait.',
   })
-  resendPhoneOtp(@Body() _dto: ResendPhoneOtpDto) {
+  resendPhoneOtp() {
     throw new Error('Method not implemented yet');
   }
 
@@ -524,7 +532,7 @@ export class AuthController {
     status: 200,
     description: 'Alternative verification initiated',
   })
-  alternativeVerification(@Body() _dto: AlternativeVerificationDto) {
+  alternativeVerification() {
     throw new Error('Method not implemented yet');
   }
 
@@ -560,7 +568,7 @@ export class AuthController {
     status: 401,
     description: 'Invalid social token or provider error',
   })
-  socialAuth(@Body() _dto: SocialAuthWithPhoneDto) {
+  socialAuth() {
     throw new Error('Method not implemented yet');
   }
 
@@ -577,10 +585,7 @@ export class AuthController {
     status: 409,
     description: 'Social account already linked to another user',
   })
-  linkSocialAccount(
-    @CurrentUser() _user: User,
-    @Body() _dto: LinkSocialAccountDto,
-  ) {
+  linkSocialAccount() {
     throw new Error('Method not implemented yet');
   }
 
@@ -597,10 +602,7 @@ export class AuthController {
     status: 400,
     description: 'Cannot unlink last authentication method',
   })
-  unlinkSocialAccount(
-    @CurrentUser() _user: User,
-    @Body() _dto: UnlinkSocialAccountDto,
-  ) {
+  unlinkSocialAccount() {
     throw new Error('Method not implemented yet');
   }
 
@@ -620,7 +622,7 @@ export class AuthController {
     status: 409,
     description: 'User already exists with this email or phone number',
   })
-  enhancedRegister(@Body() _dto: EnhancedRegisterDto) {
+  enhancedRegister() {
     throw new Error('Method not implemented yet');
   }
 
@@ -633,10 +635,7 @@ export class AuthController {
     status: 200,
     description: 'Onboarding step updated successfully',
   })
-  updateOnboardingStep(
-    @CurrentUser() _user: User,
-    @Body() _dto: UpdateOnboardingStepDto,
-  ) {
+  updateOnboardingStep() {
     throw new Error('Method not implemented yet');
   }
 
@@ -648,7 +647,7 @@ export class AuthController {
     status: 200,
     description: 'Onboarding status retrieved successfully',
   })
-  getOnboardingStatus(@CurrentUser() _user: User) {
+  getOnboardingStatus() {
     throw new Error('Method not implemented yet');
   }
 
@@ -717,7 +716,7 @@ export class AuthController {
     status: 200,
     description: 'Landmarks retrieved successfully',
   })
-  searchLandmarks(@Body() _dto: LandmarkSearchDto) {
+  searchLandmarks() {
     throw new Error('Method not implemented yet');
   }
 
@@ -728,7 +727,7 @@ export class AuthController {
     status: 200,
     description: 'Estates retrieved successfully',
   })
-  searchEstates(@Body() _dto: EstateSearchDto) {
+  searchEstates() {
     throw new Error('Method not implemented yet');
   }
 

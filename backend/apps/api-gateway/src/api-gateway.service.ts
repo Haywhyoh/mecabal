@@ -35,18 +35,27 @@ export class ApiGatewayService {
       console.log('  - Method:', method);
       console.log(
         '  - User:',
-        user ? { id: (user as { id: string; email: string }).id, email: (user as { id: string; email: string }).email } : 'No user',
+        user
+          ? {
+              id: (user as { id: string; email: string }).id,
+              email: (user as { id: string; email: string }).email,
+            }
+          : 'No user',
       );
       console.log('  - Data type:', data?.constructor?.name);
       console.log('  - Headers:', Object.keys(headers || {}));
       console.log('  - Social Service URL:', this.socialServiceUrl);
 
       // Check if data is FormData
-      const isFormData = data && typeof (data as any).getHeaders === 'function';
+      const isFormData =
+        data &&
+        typeof (data as { getHeaders?: () => any }).getHeaders === 'function';
 
       const baseHeaders: Record<string, string> = {
         // Don't set Content-Type for FormData, let axios handle it
-        ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+        ...(isFormData
+          ? {}
+          : ({ 'Content-Type': 'application/json' } as Record<string, string>)),
         // Add cache-busting headers to prevent 304 responses
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         Pragma: 'no-cache',
@@ -54,7 +63,8 @@ export class ApiGatewayService {
         // Pass user information to social service - fix UUID format
         ...(user && {
           'X-User-Id':
-            (user as { id: string }).id.length === 37 && (user as { id: string }).id.endsWith('f')
+            (user as { id: string }).id.length === 37 &&
+            (user as { id: string }).id.endsWith('f')
               ? (user as { id: string }).id.slice(0, -1)
               : (user as { id: string }).id,
         }),
@@ -62,7 +72,10 @@ export class ApiGatewayService {
 
       // If FormData, merge its headers (important for boundary)
       if (isFormData) {
-        Object.assign(baseHeaders, (data as any).getHeaders());
+        Object.assign(
+          baseHeaders,
+          (data as { getHeaders: () => Record<string, string> }).getHeaders(),
+        );
       }
 
       const config: Record<string, unknown> = {
@@ -104,7 +117,7 @@ export class ApiGatewayService {
         return { message: 'Not Modified' };
       }
 
-      return response.data;
+      return response.data as unknown;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
@@ -112,7 +125,9 @@ export class ApiGatewayService {
 
       // Handle specific error cases
       if (error && typeof error === 'object' && 'response' in error) {
-        const response = error.response;
+        const response = (
+          error as { response: { status: number; statusText: string } }
+        ).response;
         const status = response.status;
         const statusText = response.statusText;
 
@@ -189,7 +204,7 @@ export class ApiGatewayService {
         return { message: 'Not Modified' };
       }
 
-      return response.data;
+      return response.data as unknown;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
@@ -197,7 +212,9 @@ export class ApiGatewayService {
 
       // Handle specific error cases
       if (error && typeof error === 'object' && 'response' in error) {
-        const response = error.response;
+        const response = (
+          error as { response: { status: number; statusText: string } }
+        ).response;
         const status = response.status;
         const statusText = response.statusText;
 
