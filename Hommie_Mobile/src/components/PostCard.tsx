@@ -28,7 +28,7 @@ interface PostCardProps {
 }
 
 const { width } = Dimensions.get('window');
-const imageWidth = width - 32; // Account for padding
+const imageWidth = width - 64; // Account for marginHorizontal (16*2) + padding (16*2)
 
 export const PostCard: React.FC<PostCardProps> = ({
   post,
@@ -455,10 +455,12 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   mediaContainer: {
-    marginBottom: 12,
+    // marginBottom: 12,
   },
+
+
   mediaItem: {
-    marginBottom: 8,
+    // marginBottom: 8,
   },
   mediaImage: {
     width: imageWidth,
@@ -490,13 +492,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 8,
     marginTop: 8,
-    paddingHorizontal: 8,
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 8,
-    paddingHorizontal: 8,
+    paddingHorizontal: 0,
     borderRadius: 20,
     minWidth: 60,
   },

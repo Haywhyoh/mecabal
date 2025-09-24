@@ -107,11 +107,22 @@ export class ApiGatewayService {
   async proxyToAuthService(path: string, method: string, data?: any, headers?: any) {
     try {
       const url = `${this.authServiceUrl}${path}`;
+
+      console.log('🌐 API Gateway - Proxying to auth service:');
+      console.log('  - URL:', url);
+      console.log('  - Method:', method);
+      console.log('  - Headers:', Object.keys(headers || {}));
+
       const config = {
         headers: {
           'Content-Type': 'application/json',
+          // Add cache-busting headers to prevent 304 responses
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
           ...headers,
         },
+        timeout: 30000, // 30 seconds timeout for auth requests
       };
 
       let response;
@@ -132,9 +143,29 @@ export class ApiGatewayService {
           throw new Error(`Unsupported HTTP method: ${method}`);
       }
 
+      // Handle 304 Not Modified responses
+      if (response.status === 304) {
+        console.log('Auth service returned 304 Not Modified, returning empty response');
+        return { message: 'Not Modified' };
+      }
+
       return response.data;
     } catch (error) {
       console.error(`Error proxying to auth service: ${error.message}`);
+
+      // Handle specific error cases
+      if (error.response) {
+        const status = error.response.status;
+        const statusText = error.response.statusText;
+
+        if (status === 304) {
+          console.log('Auth service 304 Not Modified received, returning appropriate response');
+          return { message: 'Not Modified' };
+        }
+
+        throw new Error(`Auth request failed with status code ${status}: ${statusText}`);
+      }
+
       throw error;
     }
   }
