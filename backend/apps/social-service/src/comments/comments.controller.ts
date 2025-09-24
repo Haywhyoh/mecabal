@@ -11,7 +11,12 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { SocialAuthGuard } from '../guards/social-auth.guard';
 import { CommentsService } from './comments.service';
 import { CreateCommentDto, UpdateCommentDto, CommentResponseDto } from './dto';
@@ -124,9 +129,7 @@ export class CommentsController {
     description: 'User comments retrieved successfully',
     type: [CommentResponseDto],
   })
-  async getUserComments(
-    @Request() req: any,
-  ): Promise<CommentResponseDto[]> {
+  async getUserComments(@Request() req: any): Promise<CommentResponseDto[]> {
     return this.commentsService.getUserComments(req.user.id);
   }
 
@@ -144,9 +147,7 @@ export class CommentsController {
       },
     },
   })
-  async getCommentStats(
-    @Param('postId') postId: string,
-  ): Promise<{
+  async getCommentStats(@Param('postId') postId: string): Promise<{
     totalComments: number;
     topLevelComments: number;
     replies: number;

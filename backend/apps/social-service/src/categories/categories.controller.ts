@@ -11,7 +11,14 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '@app/auth';
 import { CategoriesService } from './categories.service';
 import {
@@ -36,9 +43,14 @@ export class CategoriesController {
     description: 'Category created successfully',
     type: CategoryResponseDto,
   })
-  @ApiResponse({ status: 400, description: 'Bad request - category name already exists' })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - category name already exists',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async createCategory(@Body() createCategoryDto: CreateCategoryDto): Promise<CategoryResponseDto> {
+  async createCategory(
+    @Body() createCategoryDto: CreateCategoryDto,
+  ): Promise<CategoryResponseDto> {
     return this.categoriesService.createCategory(createCategoryDto);
   }
 
@@ -50,7 +62,9 @@ export class CategoriesController {
     type: [CategoryResponseDto],
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async getCategories(@Query() filterDto: CategoryFilterDto): Promise<CategoryResponseDto[]> {
+  async getCategories(
+    @Query() filterDto: CategoryFilterDto,
+  ): Promise<CategoryResponseDto[]> {
     return this.categoriesService.getCategories(filterDto);
   }
 
@@ -90,7 +104,10 @@ export class CategoriesController {
     type: CategoryResponseDto,
   })
   @ApiResponse({ status: 404, description: 'Category not found' })
-  @ApiResponse({ status: 400, description: 'Bad request - category name already exists' })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - category name already exists',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async updateCategory(
     @Param('id') id: string,
@@ -106,7 +123,10 @@ export class CategoriesController {
   @ApiParam({ name: 'id', description: 'Category ID' })
   @ApiResponse({ status: 204, description: 'Category deleted successfully' })
   @ApiResponse({ status: 404, description: 'Category not found' })
-  @ApiResponse({ status: 400, description: 'Bad request - category has existing posts' })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - category has existing posts',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async deleteCategory(@Param('id') id: string): Promise<void> {
     const categoryId = parseInt(id, 10);
@@ -115,7 +135,10 @@ export class CategoriesController {
 
   @Post('seed')
   @ApiOperation({ summary: 'Seed default categories (admin only)' })
-  @ApiResponse({ status: 201, description: 'Default categories seeded successfully' })
+  @ApiResponse({
+    status: 201,
+    description: 'Default categories seeded successfully',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async seedDefaultCategories(): Promise<{ message: string }> {
     await this.categoriesService.seedDefaultCategories();

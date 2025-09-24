@@ -1,4 +1,9 @@
-import { Injectable, ExecutionContext, UnauthorizedException, CanActivate } from '@nestjs/common';
+import {
+  Injectable,
+  ExecutionContext,
+  UnauthorizedException,
+  CanActivate,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
 import { IS_PUBLIC_KEY } from '@app/auth';
@@ -26,17 +31,17 @@ export class SocialAuthGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest();
-    
+
     // Check if request is coming from API Gateway with user ID in headers
     const userIdFromGateway = request.headers['x-user-id'];
-    
+
     if (userIdFromGateway) {
       // Fix UUID format if it has an extra character (common issue with JWT tokens)
       let fixedUserId = userIdFromGateway;
       if (userIdFromGateway.length === 37 && userIdFromGateway.endsWith('f')) {
         fixedUserId = userIdFromGateway.slice(0, -1); // Remove the trailing 'f'
       }
-      
+
       // Request is coming from API Gateway, load user from database
       const user = await this.userRepository.findOne({
         where: { id: fixedUserId },
@@ -52,7 +57,7 @@ export class SocialAuthGuard implements CanActivate {
             firstName: 'Ayo',
             lastName: 'User',
             isActive: true,
-            userNeighborhoods: []
+            userNeighborhoods: [],
           };
           request.user = mockUser;
           return true;

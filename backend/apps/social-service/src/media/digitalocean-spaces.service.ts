@@ -31,7 +31,10 @@ export class DigitalOceanSpacesService {
     const secretAccessKey = this.configService.get<string>('DO_SPACES_SECRET');
     const bucket = this.configService.get<string>('DO_SPACES_BUCKET');
     const region = this.configService.get<string>('DO_SPACES_REGION', 'nyc3');
-    const endpoint = this.configService.get<string>('DO_SPACES_ENDPOINT', `https://${region}.digitaloceanspaces.com`);
+    const endpoint = this.configService.get<string>(
+      'DO_SPACES_ENDPOINT',
+      `https://${region}.digitaloceanspaces.com`,
+    );
 
     this.logger.log('🔧 DigitalOcean Spaces Configuration:');
     this.logger.log(`  - Access Key: ${accessKeyId ? 'SET' : 'NOT SET'}`);
@@ -41,7 +44,9 @@ export class DigitalOceanSpacesService {
     this.logger.log(`  - Endpoint: ${endpoint}`);
 
     if (!accessKeyId || !secretAccessKey || !bucket) {
-      this.logger.warn('❌ DigitalOcean Spaces credentials not configured - will use fallback');
+      this.logger.warn(
+        '❌ DigitalOcean Spaces credentials not configured - will use fallback',
+      );
       return;
     }
 
@@ -51,10 +56,10 @@ export class DigitalOceanSpacesService {
       endpoint,
       region,
       s3ForcePathStyle: false,
-        httpOptions: {
-          timeout: 300000, // 5 minutes timeout for large files
-          connectTimeout: 60000, // 1 minute connection timeout
-        },
+      httpOptions: {
+        timeout: 300000, // 5 minutes timeout for large files
+        connectTimeout: 60000, // 1 minute connection timeout
+      },
     });
 
     this.logger.log('✅ DigitalOcean Spaces S3 client initialized');
@@ -67,7 +72,7 @@ export class DigitalOceanSpacesService {
       quality?: number;
       maxWidth?: number;
       maxHeight?: number;
-    }
+    },
   ): Promise<UploadResult> {
     this.logger.log('🔧 DigitalOcean Spaces uploadFile called:');
     this.logger.log(`  - File name: ${file.originalName}`);
@@ -78,12 +83,14 @@ export class DigitalOceanSpacesService {
 
     try {
       if (!this.s3) {
-        this.logger.warn('❌ DigitalOcean Spaces not configured, using fallback');
+        this.logger.warn(
+          '❌ DigitalOcean Spaces not configured, using fallback',
+        );
         throw new Error('DigitalOcean Spaces not configured');
       }
 
       this.logger.log('🚀 Starting DigitalOcean Spaces upload...');
-      
+
       // Add timeout wrapper
       const uploadPromise = this.performUpload(file, folder, options);
       const timeoutPromise = new Promise<never>((_, reject) => {
@@ -97,12 +104,15 @@ export class DigitalOceanSpacesService {
       this.logger.log('✅ DigitalOcean Spaces upload successful:', result);
       return result;
     } catch (error) {
-      this.logger.error('❌ Error uploading file to DigitalOcean Spaces:', error);
+      this.logger.error(
+        '❌ Error uploading file to DigitalOcean Spaces:',
+        error,
+      );
       this.logger.error('❌ Error details:', {
         message: error.message,
         code: error.code,
         statusCode: error.statusCode,
-        name: error.name
+        name: error.name,
       });
       throw new Error('Failed to upload file');
     }
@@ -115,15 +125,15 @@ export class DigitalOceanSpacesService {
       quality?: number;
       maxWidth?: number;
       maxHeight?: number;
-    }
+    },
   ): Promise<UploadResult> {
     this.logger.log('🔧 performUpload called:');
-    
+
     // Generate unique filename
     const fileExtension = this.getFileExtension(file.originalName);
     const fileName = `${uuidv4()}.${fileExtension}`;
     const key = `${folder}/${fileName}`;
-    
+
     this.logger.log(`  - Generated filename: ${fileName}`);
     this.logger.log(`  - Generated key: ${key}`);
 
@@ -136,11 +146,14 @@ export class DigitalOceanSpacesService {
       const processed = await this.processImage(file.buffer, options);
       processedBuffer = processed.buffer;
       processedMimeType = processed.mimeType;
-      this.logger.log(`  - Processed buffer size: ${processedBuffer.length} bytes`);
+      this.logger.log(
+        `  - Processed buffer size: ${processedBuffer.length} bytes`,
+      );
     }
 
     // Upload to DigitalOcean Spaces
-    const bucket = this.configService.get<string>('DO_SPACES_BUCKET') || 'mecabal-uploads';
+    const bucket =
+      this.configService.get<string>('DO_SPACES_BUCKET') || 'mecabal-uploads';
     const uploadParams = {
       Bucket: bucket,
       Key: key,
@@ -166,7 +179,7 @@ export class DigitalOceanSpacesService {
       Location: result.Location,
       ETag: result.ETag,
       Bucket: result.Bucket,
-      Key: result.Key
+      Key: result.Key,
     });
 
     return {
@@ -184,7 +197,9 @@ export class DigitalOceanSpacesService {
       }
 
       const deleteParams = {
-        Bucket: this.configService.get<string>('DO_SPACES_BUCKET') || 'mecabal-uploads',
+        Bucket:
+          this.configService.get<string>('DO_SPACES_BUCKET') ||
+          'mecabal-uploads',
         Key: key,
       };
 
@@ -206,7 +221,7 @@ export class DigitalOceanSpacesService {
 
       const region = this.configService.get<string>('DO_SPACES_REGION', 'nyc3');
       const bucket = this.configService.get<string>('DO_SPACES_BUCKET');
-      
+
       return `https://${bucket}.${region}.digitaloceanspaces.com/${key}`;
     } catch (error) {
       this.logger.error('Error getting file URL:', error);
@@ -224,13 +239,13 @@ export class DigitalOceanSpacesService {
       quality?: number;
       maxWidth?: number;
       maxHeight?: number;
-    }
+    },
   ): Promise<{ buffer: Buffer; mimeType: string }> {
     try {
       // For now, return the original buffer
       // In production, implement proper image processing using sharp or similar
       this.logger.log('Image processing not implemented, returning original');
-      
+
       return {
         buffer,
         mimeType: 'image/jpeg',
@@ -252,14 +267,17 @@ export class DigitalOceanSpacesService {
       }
 
       const listParams = {
-        Bucket: this.configService.get<string>('DO_SPACES_BUCKET') || 'mecabal-uploads',
+        Bucket:
+          this.configService.get<string>('DO_SPACES_BUCKET') ||
+          'mecabal-uploads',
         MaxKeys: 1000,
       };
 
       const result = await this.s3.listObjectsV2(listParams).promise();
-      
+
       const totalFiles = result.Contents?.length || 0;
-      const totalSize = result.Contents?.reduce((sum, obj) => sum + (obj.Size || 0), 0) || 0;
+      const totalSize =
+        result.Contents?.reduce((sum, obj) => sum + (obj.Size || 0), 0) || 0;
       const lastModified = result.Contents?.[0]?.LastModified || new Date();
 
       return {

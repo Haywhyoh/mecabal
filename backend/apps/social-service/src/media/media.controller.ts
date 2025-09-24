@@ -14,7 +14,14 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiConsumes, ApiParam } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiConsumes,
+  ApiParam,
+} from '@nestjs/swagger';
 import { SocialAuthGuard } from '../guards/social-auth.guard';
 import { MediaService } from './media.service';
 import {
@@ -41,7 +48,10 @@ export class MediaController {
     description: 'Media uploaded successfully',
     type: MediaUploadResponseDto,
   })
-  @ApiResponse({ status: 400, description: 'Bad request - invalid file or parameters' })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - invalid file or parameters',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async uploadMedia(
     @UploadedFiles() files: Express.Multer.File[],
@@ -88,7 +98,7 @@ export class MediaController {
   }
 
   @Get('my-media')
-  @ApiOperation({ summary: 'Get current user\'s media files' })
+  @ApiOperation({ summary: "Get current user's media files" })
   @ApiResponse({
     status: 200,
     description: 'User media retrieved successfully',
@@ -107,7 +117,7 @@ export class MediaController {
   }
 
   @Get('stats')
-  @ApiOperation({ summary: 'Get current user\'s media statistics' })
+  @ApiOperation({ summary: "Get current user's media statistics" })
   @ApiResponse({
     status: 200,
     description: 'Media statistics retrieved successfully',
@@ -142,7 +152,10 @@ export class MediaController {
   @ApiParam({ name: 'id', description: 'Media ID' })
   @ApiResponse({ status: 204, description: 'Media deleted successfully' })
   @ApiResponse({ status: 404, description: 'Media not found' })
-  @ApiResponse({ status: 403, description: 'Forbidden - can only delete own media' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - can only delete own media',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async deleteMedia(
     @Param('id') id: string,

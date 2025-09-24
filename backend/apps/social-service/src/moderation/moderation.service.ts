@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { Post, PostComment, User } from '@app/database';
@@ -41,10 +45,21 @@ export class ModerationService {
     console.log(`Content ${contentId} reported by ${reporterId}:`, reportDto);
 
     // Update content moderation status if needed
-    if (contentType === 'post' && (content as any).moderationStatus === 'approved') {
-      await this.updateContentModerationStatus(contentId, contentType, ModerationStatus.PENDING);
+    if (
+      contentType === 'post' &&
+      (content as any).moderationStatus === 'approved'
+    ) {
+      await this.updateContentModerationStatus(
+        contentId,
+        contentType,
+        ModerationStatus.PENDING,
+      );
     } else if (contentType === 'comment' && (content as any).isApproved) {
-      await this.updateContentModerationStatus(contentId, contentType, ModerationStatus.PENDING);
+      await this.updateContentModerationStatus(
+        contentId,
+        contentType,
+        ModerationStatus.PENDING,
+      );
     }
   }
 
@@ -60,10 +75,17 @@ export class ModerationService {
     }
 
     // Update content moderation status
-    await this.updateContentModerationStatus(contentId, contentType, moderationDto.status);
+    await this.updateContentModerationStatus(
+      contentId,
+      contentType,
+      moderationDto.status,
+    );
 
     // TODO: Log moderation action
-    console.log(`Content ${contentId} moderated by ${moderatorId}:`, moderationDto);
+    console.log(
+      `Content ${contentId} moderated by ${moderatorId}:`,
+      moderationDto,
+    );
   }
 
   async getModerationQueue(
@@ -127,7 +149,9 @@ export class ModerationService {
           lastName: comment.user.lastName,
           trustScore: comment.user.trustScore || 0,
         },
-        status: comment.isApproved ? ModerationStatus.APPROVED : ModerationStatus.PENDING,
+        status: comment.isApproved
+          ? ModerationStatus.APPROVED
+          : ModerationStatus.PENDING,
         reportCount: 0, // TODO: Implement report counting
         createdAt: comment.createdAt,
         lastReportedAt: comment.createdAt, // TODO: Track last report time
@@ -135,7 +159,9 @@ export class ModerationService {
     }
 
     // Sort by creation date
-    return queueItems.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+    return queueItems.sort(
+      (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+    );
   }
 
   async getModerationStats(): Promise<ModerationStatsDto> {
@@ -190,33 +216,52 @@ export class ModerationService {
     return [];
   }
 
-  async autoModerateContent(contentId: string, contentType: 'post' | 'comment'): Promise<ModerationStatus> {
+  async autoModerateContent(
+    contentId: string,
+    contentType: 'post' | 'comment',
+  ): Promise<ModerationStatus> {
     const content = await this.getContentById(contentId, contentType);
     if (!content) {
       throw new NotFoundException(`${contentType} not found`);
     }
 
     // Basic content moderation rules
-    const contentText = contentType === 'post' ? content.content : content.content;
-    
+    const contentText =
+      contentType === 'post' ? content.content : content.content;
+
     // Check for spam patterns
     if (this.isSpam(contentText)) {
-      await this.updateContentModerationStatus(contentId, contentType, ModerationStatus.REJECTED);
+      await this.updateContentModerationStatus(
+        contentId,
+        contentType,
+        ModerationStatus.REJECTED,
+      );
       return ModerationStatus.REJECTED;
     }
 
     // Check for inappropriate content
     if (this.containsInappropriateContent(contentText)) {
-      await this.updateContentModerationStatus(contentId, contentType, ModerationStatus.PENDING);
+      await this.updateContentModerationStatus(
+        contentId,
+        contentType,
+        ModerationStatus.PENDING,
+      );
       return ModerationStatus.PENDING;
     }
 
     // Auto-approve if content looks good
-    await this.updateContentModerationStatus(contentId, contentType, ModerationStatus.APPROVED);
+    await this.updateContentModerationStatus(
+      contentId,
+      contentType,
+      ModerationStatus.APPROVED,
+    );
     return ModerationStatus.APPROVED;
   }
 
-  private async getContentById(contentId: string, contentType: 'post' | 'comment'): Promise<Post | PostComment | null> {
+  private async getContentById(
+    contentId: string,
+    contentType: 'post' | 'comment',
+  ): Promise<Post | PostComment | null> {
     if (contentType === 'post') {
       return this.postRepository.findOne({ where: { id: contentId } });
     } else {
@@ -250,7 +295,7 @@ export class ModerationService {
       /(free|win|click|now|urgent|limited|offer)/gi, // Spam keywords
     ];
 
-    return spamPatterns.some(pattern => pattern.test(content));
+    return spamPatterns.some((pattern) => pattern.test(content));
   }
 
   private containsInappropriateContent(content: string): boolean {
@@ -261,6 +306,6 @@ export class ModerationService {
       /(nazi|racist|sexist)/gi, // Hate speech
     ];
 
-    return inappropriatePatterns.some(pattern => pattern.test(content));
+    return inappropriatePatterns.some((pattern) => pattern.test(content));
   }
 }

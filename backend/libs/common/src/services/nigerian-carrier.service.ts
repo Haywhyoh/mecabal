@@ -237,7 +237,10 @@ export class NigerianCarrierService {
       },
     };
 
-    return messages[language]?.[carrierName] || messages.en[carrierName];
+    return (
+      messages[language]?.[carrierName as keyof typeof messages.en] ||
+      messages.en[carrierName as keyof typeof messages.en]
+    );
   }
 
   /**

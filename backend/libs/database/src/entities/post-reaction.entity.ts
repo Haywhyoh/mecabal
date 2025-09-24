@@ -45,11 +45,11 @@ export class PostReaction {
     enum: ReactionType,
     example: ReactionType.LIKE,
   })
-  @Column({ 
-    name: 'reaction_type', 
-    type: 'enum', 
-    enum: ReactionType, 
-    default: ReactionType.LIKE 
+  @Column({
+    name: 'reaction_type',
+    type: 'enum',
+    enum: ReactionType,
+    default: ReactionType.LIKE,
   })
   reactionType: ReactionType;
 

@@ -1,7 +1,19 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, SelectQueryBuilder, In } from 'typeorm';
-import { Post, PostCategory, PostMedia, PostReaction, PostComment, User } from '@app/database';
+import { Repository, SelectQueryBuilder } from 'typeorm';
+import {
+  Post,
+  PostCategory,
+  PostMedia,
+  PostReaction,
+  PostComment,
+  User,
+} from '@app/database';
 import {
   CreatePostDto,
   UpdatePostDto,
@@ -31,7 +43,11 @@ export class PostsService {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  async createPost(createPostDto: CreatePostDto, userId: string, neighborhoodId: string): Promise<PostResponseDto> {
+  async createPost(
+    createPostDto: CreatePostDto,
+    userId: string,
+    neighborhoodId: string,
+  ): Promise<PostResponseDto> {
     // Validate category if provided
     if (createPostDto.categoryId) {
       const category = await this.categoryRepository.findOne({
@@ -47,20 +63,22 @@ export class PostsService {
       ...createPostDto,
       userId,
       neighborhoodId,
-      expiresAt: createPostDto.expiresAt ? new Date(createPostDto.expiresAt) : undefined,
+      expiresAt: createPostDto.expiresAt
+        ? new Date(createPostDto.expiresAt)
+        : undefined,
     });
 
     const savedPost = await this.postRepository.save(post);
 
     // Create media attachments if provided
     if (createPostDto.media && createPostDto.media.length > 0) {
-      const mediaEntities = createPostDto.media.map(media => 
+      const mediaEntities = createPostDto.media.map((media) =>
         this.mediaRepository.create({
           postId: (savedPost as any).id,
           fileUrl: media.url,
           mediaType: media.type,
           caption: media.caption,
-        })
+        }),
       );
       await this.mediaRepository.save(mediaEntities);
     }
@@ -78,7 +96,11 @@ export class PostsService {
     return this.formatPostResponse(postWithRelations);
   }
 
-  async getPosts(filterDto: PostFilterDto, neighborhoodId: string, userId: string): Promise<PaginatedPostsDto> {
+  async getPosts(
+    filterDto: PostFilterDto,
+    neighborhoodId: string,
+    userId: string,
+  ): Promise<PaginatedPostsDto> {
     const queryBuilder = this.createPostsQueryBuilder(neighborhoodId, userId);
 
     // Apply filters
@@ -101,7 +123,7 @@ export class PostsService {
 
     // Format response
     const formattedPosts = await Promise.all(
-      posts.map(post => this.formatPostResponse(post))
+      posts.map((post) => this.formatPostResponse(post)),
     );
 
     return {
@@ -128,7 +150,11 @@ export class PostsService {
     return this.formatPostResponse(post);
   }
 
-  async updatePost(id: string, updatePostDto: UpdatePostDto, userId: string): Promise<PostResponseDto> {
+  async updatePost(
+    id: string,
+    updatePostDto: UpdatePostDto,
+    userId: string,
+  ): Promise<PostResponseDto> {
     const post = await this.postRepository.findOne({
       where: { id },
       relations: ['user', 'category', 'media'],
@@ -155,16 +181,16 @@ export class PostsService {
     if (updatePostDto.media) {
       // Remove existing media
       await this.mediaRepository.delete({ postId: id });
-      
+
       // Add new media
       if (updatePostDto.media.length > 0) {
-        const mediaEntities = updatePostDto.media.map(media => 
+        const mediaEntities = updatePostDto.media.map((media) =>
           this.mediaRepository.create({
             postId: id,
             fileUrl: media.url,
             mediaType: media.type,
             caption: media.caption,
-          })
+          }),
         );
         await this.mediaRepository.save(mediaEntities);
       }
@@ -191,7 +217,11 @@ export class PostsService {
     await this.postRepository.update(id, { isApproved: false });
   }
 
-  async pinPost(id: string, userId: string, isPinned: boolean): Promise<PostResponseDto> {
+  async pinPost(
+    id: string,
+    userId: string,
+    isPinned: boolean,
+  ): Promise<PostResponseDto> {
     const post = await this.postRepository.findOne({
       where: { id },
     });
@@ -210,7 +240,10 @@ export class PostsService {
     return this.getPostById(id, userId);
   }
 
-  private createPostsQueryBuilder(neighborhoodId: string, userId: string): SelectQueryBuilder<Post> {
+  private createPostsQueryBuilder(
+    neighborhoodId: string,
+    userId: string,
+  ): SelectQueryBuilder<Post> {
     return this.postRepository
       .createQueryBuilder('post')
       .leftJoinAndSelect('post.user', 'user')
@@ -220,47 +253,68 @@ export class PostsService {
       .leftJoinAndSelect('post.comments', 'comments')
       .where('post.neighborhoodId = :neighborhoodId', { neighborhoodId })
       .andWhere('post.isApproved = :isApproved', { isApproved: true })
-      .andWhere('post.moderationStatus = :moderationStatus', { moderationStatus: 'approved' });
+      .andWhere('post.moderationStatus = :moderationStatus', {
+        moderationStatus: 'approved',
+      });
   }
 
-  private applyFilters(queryBuilder: SelectQueryBuilder<Post>, filterDto: PostFilterDto): void {
+  private applyFilters(
+    queryBuilder: SelectQueryBuilder<Post>,
+    filterDto: PostFilterDto,
+  ): void {
     if (filterDto.postType) {
-      queryBuilder.andWhere('post.postType = :postType', { postType: filterDto.postType });
+      queryBuilder.andWhere('post.postType = :postType', {
+        postType: filterDto.postType,
+      });
     }
 
     if (filterDto.privacyLevel) {
-      queryBuilder.andWhere('post.privacyLevel = :privacyLevel', { privacyLevel: filterDto.privacyLevel });
+      queryBuilder.andWhere('post.privacyLevel = :privacyLevel', {
+        privacyLevel: filterDto.privacyLevel,
+      });
     }
 
     if (filterDto.categoryId) {
-      queryBuilder.andWhere('post.categoryId = :categoryId', { categoryId: filterDto.categoryId });
+      queryBuilder.andWhere('post.categoryId = :categoryId', {
+        categoryId: filterDto.categoryId,
+      });
     }
 
     if (filterDto.userId) {
-      queryBuilder.andWhere('post.userId = :userId', { userId: filterDto.userId });
+      queryBuilder.andWhere('post.userId = :userId', {
+        userId: filterDto.userId,
+      });
     }
 
     if (filterDto.search) {
       queryBuilder.andWhere(
         '(post.title ILIKE :search OR post.content ILIKE :search)',
-        { search: `%${filterDto.search}%` }
+        { search: `%${filterDto.search}%` },
       );
     }
 
     if (filterDto.startDate) {
-      queryBuilder.andWhere('post.createdAt >= :startDate', { startDate: filterDto.startDate });
+      queryBuilder.andWhere('post.createdAt >= :startDate', {
+        startDate: filterDto.startDate,
+      });
     }
 
     if (filterDto.endDate) {
-      queryBuilder.andWhere('post.createdAt <= :endDate', { endDate: filterDto.endDate });
+      queryBuilder.andWhere('post.createdAt <= :endDate', {
+        endDate: filterDto.endDate,
+      });
     }
 
     if (filterDto.isPinned !== undefined) {
-      queryBuilder.andWhere('post.isPinned = :isPinned', { isPinned: filterDto.isPinned });
+      queryBuilder.andWhere('post.isPinned = :isPinned', {
+        isPinned: filterDto.isPinned,
+      });
     }
 
     if (filterDto.isApproved !== undefined) {
-      queryBuilder.andWhere('post.isApproved = :isApproved', { isApproved: filterDto.isApproved });
+      queryBuilder.andWhere('post.isApproved = :isApproved', {
+        isApproved: filterDto.isApproved,
+      });
     }
   }
 
@@ -286,20 +340,23 @@ export class PostsService {
       trustScore: post.user.trustScore || 0,
     };
 
-    const category: CategoryInfoDto | undefined = post.category ? {
-      id: post.category.id,
-      name: post.category.name,
-      description: post.category.description,
-      iconUrl: post.category.iconUrl,
-      colorCode: post.category.colorCode,
-    } : undefined;
+    const category: CategoryInfoDto | undefined = post.category
+      ? {
+          id: post.category.id,
+          name: post.category.name,
+          description: post.category.description,
+          iconUrl: post.category.iconUrl,
+          colorCode: post.category.colorCode,
+        }
+      : undefined;
 
-    const media: MediaInfoDto[] = post.media?.map(m => ({
-      id: m.id,
-      url: m.url,
-      type: m.type as 'image' | 'video',
-      caption: m.caption,
-    })) || [];
+    const media: MediaInfoDto[] =
+      post.media?.map((m) => ({
+        id: m.id,
+        url: m.url,
+        type: m.type as 'image' | 'video',
+        caption: m.caption,
+      })) || [];
 
     const engagement: EngagementMetricsDto = {
       reactionsCount,

@@ -5,13 +5,7 @@ import { ModerationService } from './moderation.service';
 import { Post, PostComment, User } from '@app/database';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([
-      Post,
-      PostComment,
-      User,
-    ]),
-  ],
+  imports: [TypeOrmModule.forFeature([Post, PostComment, User])],
   controllers: [ModerationController],
   providers: [ModerationService],
   exports: [ModerationService],

@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull, Not } from 'typeorm';
 import { PostComment } from '@app/database/entities/post-comment.entity';
@@ -40,7 +45,9 @@ export class CommentsService {
 
       // Check if parent comment belongs to the same post
       if (parentComment.postId !== postId) {
-        throw new BadRequestException('Parent comment does not belong to this post');
+        throw new BadRequestException(
+          'Parent comment does not belong to this post',
+        );
       }
     }
 
@@ -104,7 +111,7 @@ export class CommentsService {
       order: { createdAt: 'DESC' },
     });
 
-    return comments.map(comment => this.mapToResponseDto(comment));
+    return comments.map((comment) => this.mapToResponseDto(comment));
   }
 
   async getCommentReplies(commentId: string): Promise<CommentResponseDto[]> {
@@ -114,7 +121,7 @@ export class CommentsService {
       order: { createdAt: 'ASC' },
     });
 
-    return replies.map(reply => this.mapToResponseDto(reply));
+    return replies.map((reply) => this.mapToResponseDto(reply));
   }
 
   async getCommentById(commentId: string): Promise<CommentResponseDto> {
@@ -137,7 +144,7 @@ export class CommentsService {
       order: { createdAt: 'DESC' },
     });
 
-    return comments.map(comment => this.mapToResponseDto(comment));
+    return comments.map((comment) => this.mapToResponseDto(comment));
   }
 
   async getCommentStats(postId: string): Promise<{
@@ -147,8 +154,12 @@ export class CommentsService {
   }> {
     const [totalComments, topLevelComments, replies] = await Promise.all([
       this.commentRepository.count({ where: { postId } }),
-      this.commentRepository.count({ where: { postId, parentCommentId: IsNull() } }),
-      this.commentRepository.count({ where: { postId, parentCommentId: Not(IsNull()) } }),
+      this.commentRepository.count({
+        where: { postId, parentCommentId: IsNull() },
+      }),
+      this.commentRepository.count({
+        where: { postId, parentCommentId: Not(IsNull()) },
+      }),
     ]);
 
     return {
@@ -168,15 +179,18 @@ export class CommentsService {
       isApproved: comment.isApproved,
       createdAt: comment.createdAt,
       updatedAt: comment.updatedAt,
-      user: comment.user ? {
-        id: comment.user.id,
-        firstName: comment.user.firstName,
-        lastName: comment.user.lastName,
-        profilePictureUrl: comment.user.profilePictureUrl,
-        isVerified: comment.user.isVerified,
-        trustScore: comment.user.trustScore,
-      } : undefined,
-      replies: comment.replies?.map(reply => this.mapToResponseDto(reply)) || [],
+      user: comment.user
+        ? {
+            id: comment.user.id,
+            firstName: comment.user.firstName,
+            lastName: comment.user.lastName,
+            profilePictureUrl: comment.user.profilePictureUrl,
+            isVerified: comment.user.isVerified,
+            trustScore: comment.user.trustScore,
+          }
+        : undefined,
+      replies:
+        comment.replies?.map((reply) => this.mapToResponseDto(reply)) || [],
     };
   }
 }

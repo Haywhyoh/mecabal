@@ -42,7 +42,6 @@ export class EmailOtpService {
       );
     }
 
-
     // Create transporter with better configuration
     this.transporter = nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
@@ -69,7 +68,7 @@ export class EmailOtpService {
       // Add retry logic for DNS resolution issues
       let retries = 3;
       let lastError;
-      
+
       while (retries > 0) {
         try {
           await this.transporter.verify();
@@ -78,16 +77,18 @@ export class EmailOtpService {
         } catch (error) {
           lastError = error;
           retries--;
-          
+
           if (error.code === 'ENOTFOUND' || error.code === 'EDNS') {
-            this.logger.warn(`DNS resolution failed, retrying... (${retries} attempts left)`);
-            await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+            this.logger.warn(
+              `DNS resolution failed, retrying... (${retries} attempts left)`,
+            );
+            await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2 seconds
           } else {
             throw error; // Re-throw non-DNS errors
           }
         }
       }
-      
+
       throw lastError;
     } catch (error) {
       this.logger.error('Email service connection verification failed:', error);

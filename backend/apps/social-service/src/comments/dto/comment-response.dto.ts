@@ -30,7 +30,10 @@ export class CommentResponseDto {
   @ApiProperty({ description: 'User ID' })
   userId: string;
 
-  @ApiProperty({ description: 'Parent comment ID for replies', required: false })
+  @ApiProperty({
+    description: 'Parent comment ID for replies',
+    required: false,
+  })
   parentCommentId?: string;
 
   @ApiProperty({ description: 'Comment content' })

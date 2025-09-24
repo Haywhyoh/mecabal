@@ -130,13 +130,17 @@ export class PhoneOtpService {
           where: { email },
           order: { updatedAt: 'DESC' },
         });
-        this.logger.log(`Found user by email for phone verification: ${user?.id}`);
+        this.logger.log(
+          `Found user by email for phone verification: ${user?.id}`,
+        );
       }
 
       let userId: string;
 
       if (!user && purpose === 'registration') {
-        this.logger.error(`User not found for registration. Phone: ${phoneNumber}, Email: ${email}`);
+        this.logger.error(
+          `User not found for registration. Phone: ${phoneNumber}, Email: ${email}`,
+        );
         return {
           success: false,
           error:
@@ -159,10 +163,13 @@ export class PhoneOtpService {
             });
 
             if (existingPhoneUser && existingPhoneUser.id !== user!.id) {
-              this.logger.error(`Phone number ${phoneNumber} already registered to another user: ${existingPhoneUser.id}`);
+              this.logger.error(
+                `Phone number ${phoneNumber} already registered to another user: ${existingPhoneUser.id}`,
+              );
               return {
                 success: false,
-                error: 'Phone number is already registered to another account. Please use a different number.',
+                error:
+                  'Phone number is already registered to another account. Please use a different number.',
               };
             }
 
@@ -170,15 +177,23 @@ export class PhoneOtpService {
             user!.phoneNumber = phoneNumber;
             user!.phoneCarrier = carrierInfo.name;
             await this.userRepository.save(user!);
-            this.logger.log(`Updated user ${user!.id} with phone number ${phoneNumber}`);
+            this.logger.log(
+              `Updated user ${user!.id} with phone number ${phoneNumber}`,
+            );
           } catch (error) {
-            this.logger.error(`Failed to update user with phone number: ${error.message}`);
+            this.logger.error(
+              `Failed to update user with phone number: ${error.message}`,
+            );
 
             // Handle specific constraint violation
-            if (error.code === '23505' && error.constraint === 'UQ_17d1817f241f10a3dbafb169fd2') {
+            if (
+              error.code === '23505' &&
+              error.constraint === 'UQ_17d1817f241f10a3dbafb169fd2'
+            ) {
               return {
                 success: false,
-                error: 'Phone number is already registered to another account. Please use a different number.',
+                error:
+                  'Phone number is already registered to another account. Please use a different number.',
               };
             }
 

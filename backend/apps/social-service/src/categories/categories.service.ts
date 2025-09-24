@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { PostCategory, Post } from '@app/database';
@@ -19,7 +23,9 @@ export class CategoriesService {
     private readonly postRepository: Repository<Post>,
   ) {}
 
-  async createCategory(createCategoryDto: CreateCategoryDto): Promise<CategoryResponseDto> {
+  async createCategory(
+    createCategoryDto: CreateCategoryDto,
+  ): Promise<CategoryResponseDto> {
     // Check if category with same name already exists
     const existingCategory = await this.categoryRepository.findOne({
       where: { name: createCategoryDto.name },
@@ -36,18 +42,22 @@ export class CategoriesService {
     return this.formatCategoryResponse(savedCategory);
   }
 
-  async getCategories(filterDto: CategoryFilterDto): Promise<CategoryResponseDto[]> {
+  async getCategories(
+    filterDto: CategoryFilterDto,
+  ): Promise<CategoryResponseDto[]> {
     const queryBuilder = this.createCategoriesQueryBuilder();
 
     // Apply filters
     if (filterDto.isActive !== undefined) {
-      queryBuilder.andWhere('category.isActive = :isActive', { isActive: filterDto.isActive });
+      queryBuilder.andWhere('category.isActive = :isActive', {
+        isActive: filterDto.isActive,
+      });
     }
 
     if (filterDto.search) {
       queryBuilder.andWhere(
         '(category.name ILIKE :search OR category.description ILIKE :search)',
-        { search: `%${filterDto.search}%` }
+        { search: `%${filterDto.search}%` },
       );
     }
 
@@ -57,7 +67,7 @@ export class CategoriesService {
     const categories = await queryBuilder.getMany();
 
     return Promise.all(
-      categories.map(category => this.formatCategoryResponse(category))
+      categories.map((category) => this.formatCategoryResponse(category)),
     );
   }
 
@@ -73,7 +83,10 @@ export class CategoriesService {
     return this.formatCategoryResponse(category);
   }
 
-  async updateCategory(id: number, updateCategoryDto: UpdateCategoryDto): Promise<CategoryResponseDto> {
+  async updateCategory(
+    id: number,
+    updateCategoryDto: UpdateCategoryDto,
+  ): Promise<CategoryResponseDto> {
     const category = await this.categoryRepository.findOne({
       where: { id },
     });
@@ -115,7 +128,9 @@ export class CategoriesService {
     });
 
     if (postCount > 0) {
-      throw new BadRequestException('Cannot delete category with existing posts');
+      throw new BadRequestException(
+        'Cannot delete category with existing posts',
+      );
     }
 
     await this.categoryRepository.remove(category);
@@ -145,7 +160,7 @@ export class CategoriesService {
       totalCategories,
       activeCategories,
       inactiveCategories,
-      topCategories: topCategories.map(cat => ({
+      topCategories: topCategories.map((cat) => ({
         id: parseInt(cat.id),
         name: cat.name,
         postCount: parseInt(cat.postCount),
@@ -213,7 +228,9 @@ export class CategoriesService {
       .groupBy('category.id');
   }
 
-  private async formatCategoryResponse(category: PostCategory): Promise<CategoryResponseDto> {
+  private async formatCategoryResponse(
+    category: PostCategory,
+  ): Promise<CategoryResponseDto> {
     // Get post count for this category
     const postCount = await this.postRepository.count({
       where: { categoryId: category.id },

@@ -107,7 +107,8 @@ export class User {
   city?: string;
 
   @ApiProperty({
-    description: 'Estate or compound name - DEPRECATED: Use neighborhoods instead',
+    description:
+      'Estate or compound name - DEPRECATED: Use neighborhoods instead',
     example: 'Victoria Island Estate',
     required: false,
   })
@@ -268,16 +269,18 @@ export class User {
 
   // Neighborhood helper methods
   get neighborhoods(): Neighborhood[] {
-    return this.userNeighborhoods?.map(rel => rel.neighborhood) || [];
+    return this.userNeighborhoods?.map((rel) => rel.neighborhood) || [];
   }
 
   get primaryNeighborhood(): Neighborhood | null {
-    const primaryRelation = this.userNeighborhoods?.find(rel => rel.isPrimary);
+    const primaryRelation = this.userNeighborhoods?.find(
+      (rel) => rel.isPrimary,
+    );
     return primaryRelation?.neighborhood || null;
   }
 
   get neighborhoodNames(): string[] {
-    return this.neighborhoods.map(neighborhood => neighborhood.name);
+    return this.neighborhoods.map((neighborhood) => neighborhood.name);
   }
 
   get primaryNeighborhoodName(): string | null {
@@ -286,7 +289,7 @@ export class User {
 
   // Helper methods
   toJSON() {
-    const { passwordHash, ...result } = this;
+    const { passwordHash: _passwordHash, ...result } = this;
     return result;
   }
 
@@ -324,7 +327,7 @@ export class User {
     if (this.primaryNeighborhood) {
       return this.primaryNeighborhood.name;
     }
-    
+
     // Fallback to deprecated fields for backward compatibility
     const parts = [this.estate, this.city, this.state].filter(Boolean);
     return parts.join(', ') || 'Location not set';
@@ -336,7 +339,7 @@ export class User {
       const neighborhood = this.primaryNeighborhood;
       return `${neighborhood.name}, ${neighborhood.lga?.name || 'Unknown LGA'}, ${neighborhood.lga?.state?.name || 'Unknown State'}`;
     }
-    
+
     // Fallback to deprecated fields
     const parts = [this.estate, this.city, this.state].filter(Boolean);
     return parts.join(', ') || 'Location not set';

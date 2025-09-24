@@ -227,10 +227,10 @@ export class AuthController {
   })
   async getCurrentUser(@CurrentUser() user: User, @Request() req: any) {
     // Add cache control headers to prevent 304 responses
-    (req.res as any).setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    (req.res as any).setHeader('Pragma', 'no-cache');
-    (req.res as any).setHeader('Expires', '0');
-    
+    req.res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    req.res.setHeader('Pragma', 'no-cache');
+    req.res.setHeader('Expires', '0');
+
     return this.authService.getUserProfile(user.id);
   }
 
@@ -940,12 +940,17 @@ export class AuthController {
 
     if (result.success && result.verified) {
       // For successful verification, find the user and generate tokens
-      const user = await this.authService.findUserByPhoneNumber(body.phoneNumber);
-      
+      const user = await this.authService.findUserByPhoneNumber(
+        body.phoneNumber,
+      );
+
       if (user) {
         // Generate JWT tokens for authenticated access
-        const tokenPair = await this.authService.generateTokensForUser(user, body.deviceInfo);
-        
+        const tokenPair = await this.authService.generateTokensForUser(
+          user,
+          body.deviceInfo,
+        );
+
         const response = {
           success: true,
           verified: true,
@@ -964,7 +969,10 @@ export class AuthController {
           tokens: tokenPair,
         };
 
-        console.log('📤 Phone OTP Verification Response with tokens:', response);
+        console.log(
+          '📤 Phone OTP Verification Response with tokens:',
+          response,
+        );
         return response;
       }
     }

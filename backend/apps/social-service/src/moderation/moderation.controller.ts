@@ -11,7 +11,14 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '@app/auth';
 import { ModerationService } from './moderation.service';
 import {
@@ -31,7 +38,11 @@ export class ModerationController {
 
   @Post('report/:contentType/:contentId')
   @ApiOperation({ summary: 'Report content for moderation' })
-  @ApiParam({ name: 'contentType', description: 'Type of content', enum: ['post', 'comment'] })
+  @ApiParam({
+    name: 'contentType',
+    description: 'Type of content',
+    enum: ['post', 'comment'],
+  })
   @ApiParam({ name: 'contentId', description: 'Content ID' })
   @ApiResponse({ status: 201, description: 'Content reported successfully' })
   @ApiResponse({ status: 404, description: 'Content not found' })
@@ -43,12 +54,21 @@ export class ModerationController {
     @Request() req: any,
   ): Promise<void> {
     const reporterId = req.user.id;
-    return this.moderationService.reportContent(contentId, contentType, reporterId, reportDto);
+    return this.moderationService.reportContent(
+      contentId,
+      contentType,
+      reporterId,
+      reportDto,
+    );
   }
 
   @Put('moderate/:contentType/:contentId')
   @ApiOperation({ summary: 'Moderate content (moderators only)' })
-  @ApiParam({ name: 'contentType', description: 'Type of content', enum: ['post', 'comment'] })
+  @ApiParam({
+    name: 'contentType',
+    description: 'Type of content',
+    enum: ['post', 'comment'],
+  })
   @ApiParam({ name: 'contentId', description: 'Content ID' })
   @ApiResponse({ status: 200, description: 'Content moderated successfully' })
   @ApiResponse({ status: 404, description: 'Content not found' })
@@ -60,13 +80,26 @@ export class ModerationController {
     @Request() req: any,
   ): Promise<void> {
     const moderatorId = req.user.id;
-    return this.moderationService.moderateContent(contentId, contentType, moderatorId, moderationDto);
+    return this.moderationService.moderateContent(
+      contentId,
+      contentType,
+      moderatorId,
+      moderationDto,
+    );
   }
 
   @Get('queue')
   @ApiOperation({ summary: 'Get moderation queue (moderators only)' })
-  @ApiQuery({ name: 'limit', description: 'Number of items to return', required: false })
-  @ApiQuery({ name: 'offset', description: 'Number of items to skip', required: false })
+  @ApiQuery({
+    name: 'limit',
+    description: 'Number of items to return',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'offset',
+    description: 'Number of items to skip',
+    required: false,
+  })
   @ApiResponse({
     status: 200,
     description: 'Moderation queue retrieved successfully',
@@ -95,8 +128,14 @@ export class ModerationController {
   }
 
   @Get('reports/:contentType/:contentId')
-  @ApiOperation({ summary: 'Get reports for specific content (moderators only)' })
-  @ApiParam({ name: 'contentType', description: 'Type of content', enum: ['post', 'comment'] })
+  @ApiOperation({
+    summary: 'Get reports for specific content (moderators only)',
+  })
+  @ApiParam({
+    name: 'contentType',
+    description: 'Type of content',
+    enum: ['post', 'comment'],
+  })
   @ApiParam({ name: 'contentId', description: 'Content ID' })
   @ApiResponse({
     status: 200,
@@ -114,7 +153,11 @@ export class ModerationController {
 
   @Post('auto-moderate/:contentType/:contentId')
   @ApiOperation({ summary: 'Trigger auto-moderation for content' })
-  @ApiParam({ name: 'contentType', description: 'Type of content', enum: ['post', 'comment'] })
+  @ApiParam({
+    name: 'contentType',
+    description: 'Type of content',
+    enum: ['post', 'comment'],
+  })
   @ApiParam({ name: 'contentId', description: 'Content ID' })
   @ApiResponse({ status: 200, description: 'Auto-moderation completed' })
   @ApiResponse({ status: 404, description: 'Content not found' })
@@ -123,7 +166,10 @@ export class ModerationController {
     @Param('contentType') contentType: 'post' | 'comment',
     @Param('contentId') contentId: string,
   ): Promise<{ status: string }> {
-    const status = await this.moderationService.autoModerateContent(contentId, contentType);
+    const status = await this.moderationService.autoModerateContent(
+      contentId,
+      contentType,
+    );
     return { status };
   }
 }

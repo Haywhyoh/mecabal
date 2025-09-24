@@ -8,7 +8,7 @@ import { redisStore } from 'cache-manager-ioredis-yet';
   imports: [
     CacheModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => {
+      useFactory: (configService: ConfigService) => {
         const redisConfig = {
           store: redisStore,
           host: configService.get('REDIS_HOST', 'localhost'),

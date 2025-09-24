@@ -1,9 +1,20 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { PostReaction, ReactionType } from '@app/database/entities/post-reaction.entity';
+import {
+  PostReaction,
+  ReactionType,
+} from '@app/database/entities/post-reaction.entity';
 import { Post } from '@app/database/entities/post.entity';
-import { CreateReactionDto, UpdateReactionDto, ReactionResponseDto } from './dto';
+import {
+  CreateReactionDto,
+  UpdateReactionDto,
+  ReactionResponseDto,
+} from './dto';
 
 @Injectable()
 export class ReactionsService {
@@ -36,7 +47,8 @@ export class ReactionsService {
     if (existingReaction) {
       // Update existing reaction
       existingReaction.reactionType = createReactionDto.reactionType;
-      const updatedReaction = await this.reactionRepository.save(existingReaction);
+      const updatedReaction =
+        await this.reactionRepository.save(existingReaction);
       return this.mapToResponseDto(updatedReaction);
     }
 
@@ -70,7 +82,7 @@ export class ReactionsService {
       order: { createdAt: 'DESC' },
     });
 
-    return reactions.map(reaction => this.mapToResponseDto(reaction));
+    return reactions.map((reaction) => this.mapToResponseDto(reaction));
   }
 
   async getPostReactionCounts(postId: string): Promise<Record<string, number>> {
@@ -79,7 +91,7 @@ export class ReactionsService {
     });
 
     const counts: Record<string, number> = {};
-    reactions.forEach(reaction => {
+    reactions.forEach((reaction) => {
       counts[reaction.reactionType] = (counts[reaction.reactionType] || 0) + 1;
     });
 
@@ -93,7 +105,7 @@ export class ReactionsService {
       order: { createdAt: 'DESC' },
     });
 
-    return reactions.map(reaction => this.mapToResponseDto(reaction));
+    return reactions.map((reaction) => this.mapToResponseDto(reaction));
   }
 
   async getReactionStats(postId: string): Promise<{
@@ -106,13 +118,15 @@ export class ReactionsService {
     });
 
     const reactionCounts: Record<string, number> = {};
-    reactions.forEach(reaction => {
-      reactionCounts[reaction.reactionType] = (reactionCounts[reaction.reactionType] || 0) + 1;
+    reactions.forEach((reaction) => {
+      reactionCounts[reaction.reactionType] =
+        (reactionCounts[reaction.reactionType] || 0) + 1;
     });
 
     const totalReactions = reactions.length;
-    const topReaction = Object.keys(reactionCounts).reduce((a, b) => 
-      reactionCounts[a] > reactionCounts[b] ? a : b, 'like'
+    const topReaction = Object.keys(reactionCounts).reduce(
+      (a, b) => (reactionCounts[a] > reactionCounts[b] ? a : b),
+      'like',
     );
 
     return {
@@ -129,14 +143,16 @@ export class ReactionsService {
       userId: reaction.userId,
       reactionType: reaction.reactionType,
       createdAt: reaction.createdAt,
-      user: reaction.user ? {
-        id: reaction.user.id,
-        firstName: reaction.user.firstName,
-        lastName: reaction.user.lastName,
-        profilePictureUrl: reaction.user.profilePictureUrl,
-        isVerified: reaction.user.isVerified,
-        trustScore: reaction.user.trustScore,
-      } : undefined,
+      user: reaction.user
+        ? {
+            id: reaction.user.id,
+            firstName: reaction.user.firstName,
+            lastName: reaction.user.lastName,
+            profilePictureUrl: reaction.user.profilePictureUrl,
+            isVerified: reaction.user.isVerified,
+            trustScore: reaction.user.trustScore,
+          }
+        : undefined,
     };
   }
 }

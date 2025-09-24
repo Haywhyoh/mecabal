@@ -10,7 +10,12 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { SocialAuthGuard } from '../guards/social-auth.guard';
 import { ReactionsService } from './reactions.service';
 import { CreateReactionDto, ReactionResponseDto } from './dto';
@@ -105,9 +110,7 @@ export class ReactionsController {
       },
     },
   })
-  async getReactionStats(
-    @Param('postId') postId: string,
-  ): Promise<{
+  async getReactionStats(@Param('postId') postId: string): Promise<{
     totalReactions: number;
     reactionCounts: Record<string, number>;
     topReaction: string;
@@ -122,9 +125,7 @@ export class ReactionsController {
     description: 'User reactions retrieved successfully',
     type: [ReactionResponseDto],
   })
-  async getUserReactions(
-    @Request() req: any,
-  ): Promise<ReactionResponseDto[]> {
+  async getUserReactions(@Request() req: any): Promise<ReactionResponseDto[]> {
     return this.reactionsService.getUserReactions(req.user.id);
   }
 }

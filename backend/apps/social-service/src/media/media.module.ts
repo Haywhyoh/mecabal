@@ -7,10 +7,7 @@ import { DigitalOceanSpacesService } from './digitalocean-spaces.service';
 import { Media, User } from '@app/database';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Media, User]),
-    ConfigModule,
-  ],
+  imports: [TypeOrmModule.forFeature([Media, User]), ConfigModule],
   controllers: [MediaController],
   providers: [MediaService, DigitalOceanSpacesService],
   exports: [MediaService, DigitalOceanSpacesService],

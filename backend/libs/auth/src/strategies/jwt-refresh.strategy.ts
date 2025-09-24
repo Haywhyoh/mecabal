@@ -18,7 +18,10 @@ export interface JwtRefreshPayload {
 }
 
 @Injectable()
-export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
+export class JwtRefreshStrategy extends PassportStrategy(
+  Strategy,
+  'jwt-refresh',
+) {
   constructor(
     private configService: ConfigService,
     @InjectRepository(User)
@@ -27,14 +30,18 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_REFRESH_SECRET') || 'your-super-secret-refresh-key-change-this-in-production',
+      secretOrKey:
+        configService.get<string>('JWT_REFRESH_SECRET') ||
+        'your-super-secret-refresh-key-change-this-in-production',
     });
   }
 
   async validate(payload: JwtRefreshPayload): Promise<User> {
     // Only validate refresh tokens
     if (payload.type !== 'refresh') {
-      throw new UnauthorizedException('Invalid token type - refresh token required');
+      throw new UnauthorizedException(
+        'Invalid token type - refresh token required',
+      );
     }
 
     const user = await this.userRepository.findOne({

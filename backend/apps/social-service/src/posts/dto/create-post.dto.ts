@@ -58,7 +58,8 @@ export class CreatePostDto {
 
   @ApiProperty({
     description: 'Post content',
-    example: 'Join us for a community BBQ this Saturday at 4 PM in the estate park.',
+    example:
+      'Join us for a community BBQ this Saturday at 4 PM in the estate park.',
   })
   @IsString()
   @MinLength(1)

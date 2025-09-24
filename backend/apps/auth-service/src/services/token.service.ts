@@ -155,7 +155,9 @@ export class TokenService {
       // Invalidate old session
       await this.invalidateSession(session.id);
 
-      this.logger.log(`Tokens refreshed for user ${payload.sub || payload.userId}`);
+      this.logger.log(
+        `Tokens refreshed for user ${payload.sub || payload.userId}`,
+      );
       return newTokenPair;
     } catch (error) {
       this.logger.error('Error refreshing tokens:', error);

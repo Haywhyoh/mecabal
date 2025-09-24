@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
@@ -52,11 +56,13 @@ export class MediaService {
 
         // Check if DigitalOcean Spaces is configured
         const doSpacesKey = this.configService.get<string>('DO_SPACES_KEY');
-        const doSpacesSecret = this.configService.get<string>('DO_SPACES_SECRET');
-        const doSpacesBucket = this.configService.get<string>('DO_SPACES_BUCKET');
-        
+        const doSpacesSecret =
+          this.configService.get<string>('DO_SPACES_SECRET');
+        const doSpacesBucket =
+          this.configService.get<string>('DO_SPACES_BUCKET');
+
         let uploadResult;
-        
+
         if (!doSpacesKey || !doSpacesSecret || !doSpacesBucket) {
           // For development, skip DigitalOcean Spaces and use local fallback
           const mockUrl = `http://localhost:3003/media/fallback/${Date.now()}-${file.originalname}`;
@@ -69,11 +75,15 @@ export class MediaService {
         } else {
           // Use DigitalOcean Spaces
           try {
-            uploadResult = await this.spacesService.uploadFile(mediaFile, 'posts', {
-              quality: uploadDto.quality,
-              maxWidth: uploadDto.maxWidth,
-              maxHeight: uploadDto.maxHeight,
-            });
+            uploadResult = await this.spacesService.uploadFile(
+              mediaFile,
+              'posts',
+              {
+                quality: uploadDto.quality,
+                maxWidth: uploadDto.maxWidth,
+                maxHeight: uploadDto.maxHeight,
+              },
+            );
           } catch (error) {
             // Fallback for development - create a mock upload result
             const mockUrl = `http://localhost:3003/media/fallback/${Date.now()}-${file.originalname}`;
@@ -118,7 +128,7 @@ export class MediaService {
               uploadedBy: userId,
               uploadedAt: new Date(),
             };
-            
+
             uploadedMedia.push(this.formatMediaResponse(mockMedia as any));
             totalSize += uploadResult.size;
           } else {
@@ -147,7 +157,10 @@ export class MediaService {
     }
   }
 
-  async getMedia(filterDto: MediaFilterDto, userId: string): Promise<PaginatedMediaDto> {
+  async getMedia(
+    filterDto: MediaFilterDto,
+    userId: string,
+  ): Promise<PaginatedMediaDto> {
     const queryBuilder = this.createMediaQueryBuilder();
 
     // Apply filters
@@ -156,7 +169,9 @@ export class MediaService {
     }
 
     if (filterDto.uploadedBy) {
-      queryBuilder.andWhere('media.uploadedBy = :uploadedBy', { uploadedBy: filterDto.uploadedBy });
+      queryBuilder.andWhere('media.uploadedBy = :uploadedBy', {
+        uploadedBy: filterDto.uploadedBy,
+      });
     }
 
     // Apply pagination
@@ -173,7 +188,7 @@ export class MediaService {
     const [media, total] = await queryBuilder.getManyAndCount();
 
     return {
-      data: media.map(m => this.formatMediaResponse(m)),
+      data: media.map((m) => this.formatMediaResponse(m)),
       total,
       page,
       limit,
@@ -202,7 +217,9 @@ export class MediaService {
     });
 
     if (!media) {
-      throw new NotFoundException('Media not found or you do not have permission to delete it');
+      throw new NotFoundException(
+        'Media not found or you do not have permission to delete it',
+      );
     }
 
     try {
@@ -217,7 +234,11 @@ export class MediaService {
     }
   }
 
-  async getUserMedia(userId: string, limit: number = 20, offset: number = 0): Promise<MediaResponseDto[]> {
+  async getUserMedia(
+    userId: string,
+    limit: number = 20,
+    offset: number = 0,
+  ): Promise<MediaResponseDto[]> {
     const media = await this.mediaRepository.find({
       where: { uploadedBy: userId },
       order: { uploadedAt: 'DESC' },
@@ -225,7 +246,7 @@ export class MediaService {
       skip: offset,
     });
 
-    return media.map(m => this.formatMediaResponse(m));
+    return media.map((m) => this.formatMediaResponse(m));
   }
 
   async getMediaStats(userId: string): Promise<{
@@ -280,7 +301,10 @@ export class MediaService {
     };
   }
 
-  private validateFileType(file: Express.Multer.File, expectedType: MediaType): void {
+  private validateFileType(
+    file: Express.Multer.File,
+    expectedType: MediaType,
+  ): void {
     const isImage = file.mimetype.startsWith('image/');
     const isVideo = file.mimetype.startsWith('video/');
 

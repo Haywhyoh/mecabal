@@ -1,5 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsUUID, IsOptional, MinLength, MaxLength } from 'class-validator';
+import {
+  IsString,
+  IsUUID,
+  IsOptional,
+  MinLength,
+  MaxLength,
+} from 'class-validator';
 
 export class CreateCommentDto {
   @ApiProperty({
@@ -66,7 +72,10 @@ export class CommentResponseDto {
     trustScore: number;
   };
 
-  @ApiProperty({ description: 'Replies to this comment', type: [CommentResponseDto] })
+  @ApiProperty({
+    description: 'Replies to this comment',
+    type: [CommentResponseDto],
+  })
   replies: CommentResponseDto[];
 
   @ApiProperty({ description: 'Whether this is a reply' })

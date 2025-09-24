@@ -21,7 +21,7 @@ export class SocialServiceController {
     return {
       message: 'Social service is working!',
       timestamp: new Date().toISOString(),
-      service: 'social-service'
+      service: 'social-service',
     };
   }
 }

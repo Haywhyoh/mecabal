@@ -1,6 +1,23 @@
-import { Controller, Get, Post, Req, Res, HttpStatus, All, UseGuards, UseInterceptors, UploadedFiles } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Req,
+  Res,
+  HttpStatus,
+  All,
+  UseGuards,
+  UseInterceptors,
+  UploadedFiles,
+} from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiConsumes,
+} from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { ApiGatewayService } from './api-gateway.service';
 import { JwtAuthGuard } from '@app/auth';
@@ -23,11 +40,17 @@ export class ApiGatewayController {
   @ApiResponse({ status: 200, description: 'Social service test successful' })
   async testSocialService(@Res() res: Response) {
     try {
-      const result = await this.apiGatewayService.proxyToSocialService('/test', 'GET');
+      const result = await this.apiGatewayService.proxyToSocialService(
+        '/test',
+        'GET',
+      );
       res.status(HttpStatus.OK).json(result);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: errorMessage });
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: errorMessage });
     }
   }
 
@@ -39,18 +62,29 @@ export class ApiGatewayController {
     try {
       // Extract the path after /auth
       const path = req.url.replace('/auth', '/auth');
-      const result = await this.apiGatewayService.proxyToAuthService(path, req.method, req.body, req.headers as Record<string, string | string[] | undefined>);
+      const result = await this.apiGatewayService.proxyToAuthService(
+        path,
+        req.method,
+        req.body,
+        req.headers as Record<string, string | string[] | undefined>,
+      );
 
       // Set appropriate status code based on method and result
       let statusCode = HttpStatus.OK;
-      if (req.method === 'POST' && (req.url.includes('register') || req.url.includes('create'))) {
+      if (
+        req.method === 'POST' &&
+        (req.url.includes('register') || req.url.includes('create'))
+      ) {
         statusCode = HttpStatus.CREATED;
       }
 
       res.status(statusCode).json(result);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: errorMessage });
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: errorMessage });
     }
   }
 
@@ -62,53 +96,58 @@ export class ApiGatewayController {
   @ApiResponse({ status: 201, description: 'Media uploaded successfully' })
   async uploadMediaTest(
     @UploadedFiles() files: Express.Multer.File[],
-    @Req() req: Request, 
-    @Res() res: Response
+    @Req() req: Request,
+    @Res() res: Response,
   ) {
     try {
       console.log('🔧 API Gateway - Test media upload request received:');
       console.log('  - Files count:', files?.length || 0);
       console.log('  - Request body:', req.body);
-      console.log('  - Files details:', files?.map(f => ({
-        originalname: f.originalname,
-        mimetype: f.mimetype,
-        size: f.size,
-        bufferLength: f.buffer?.length || 0
-      })));
+      console.log(
+        '  - Files details:',
+        files?.map((f) => ({
+          originalname: f.originalname,
+          mimetype: f.mimetype,
+          size: f.size,
+          bufferLength: f.buffer?.length || 0,
+        })),
+      );
 
       // Create FormData for the social service
       const formData = new FormData();
-      
+
       // Add files to form data
       if (files && files.length > 0) {
-        files.forEach(file => {
+        files.forEach((file) => {
           if (file.buffer) {
             formData.append('files', file.buffer, {
               filename: file.originalname,
               contentType: file.mimetype,
             });
           } else {
-            throw new Error(`File buffer is undefined for ${file.originalname}`);
+            throw new Error(
+              `File buffer is undefined for ${file.originalname}`,
+            );
           }
         });
       } else {
         throw new Error('No files provided');
       }
-      
+
       // Add other form fields
       if (req.body.type) formData.append('type', req.body.type);
       if (req.body.caption) formData.append('caption', req.body.caption);
       if (req.body.quality) formData.append('quality', req.body.quality);
       if (req.body.maxWidth) formData.append('maxWidth', req.body.maxWidth);
       if (req.body.maxHeight) formData.append('maxHeight', req.body.maxHeight);
-      
+
       // Create headers without Content-Type (let FormData set it)
       const headers = {
         ...req.headers,
       };
       delete headers['content-type'];
       delete headers['Content-Type'];
-      
+
       // Create mock user for testing
       const mockUser = {
         id: 'a4ba9886-ce30-43ea-9ac0-7ca4e5e45570',
@@ -116,15 +155,24 @@ export class ApiGatewayController {
         firstName: 'Ayo',
         lastName: 'User',
         isActive: true,
-        userNeighborhoods: []
+        userNeighborhoods: [],
       };
-      
-      const result = await this.apiGatewayService.proxyToSocialService('/media/upload', req.method, formData, headers as Record<string, string | string[] | undefined>, mockUser);
+
+      const result = await this.apiGatewayService.proxyToSocialService(
+        '/media/upload',
+        req.method,
+        formData,
+        headers as Record<string, string | string[] | undefined>,
+        mockUser,
+      );
       res.status(HttpStatus.CREATED).json(result);
     } catch (error) {
       console.error('Media upload error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: errorMessage });
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: errorMessage });
     }
   }
 
@@ -139,49 +187,60 @@ export class ApiGatewayController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async uploadMedia(
     @UploadedFiles() files: Express.Multer.File[],
-    @Req() req: Request, 
-    @Res() res: Response
+    @Req() req: Request,
+    @Res() res: Response,
   ) {
     try {
       // Create FormData for the social service
       const formData = new FormData();
-      
+
       // Add files to form data
       if (files && files.length > 0) {
-        files.forEach(file => {
+        files.forEach((file) => {
           if (file.buffer) {
             formData.append('files', file.buffer, {
               filename: file.originalname,
               contentType: file.mimetype,
             });
           } else {
-            throw new Error(`File buffer is undefined for ${file.originalname}`);
+            throw new Error(
+              `File buffer is undefined for ${file.originalname}`,
+            );
           }
         });
       } else {
         throw new Error('No files provided');
       }
-      
+
       // Add other form fields
       if (req.body.type) formData.append('type', req.body.type);
       if (req.body.caption) formData.append('caption', req.body.caption);
       if (req.body.quality) formData.append('quality', req.body.quality);
       if (req.body.maxWidth) formData.append('maxWidth', req.body.maxWidth);
       if (req.body.maxHeight) formData.append('maxHeight', req.body.maxHeight);
-      
+
       // Create headers without Content-Type (let FormData set it)
       const headers = {
         ...req.headers,
       };
       delete headers['content-type'];
       delete headers['Content-Type'];
-      
-      const result = await this.apiGatewayService.proxyToSocialService('/media/upload', req.method, formData, headers as Record<string, string | string[] | undefined>, req.user as any);
+
+      const result = await this.apiGatewayService.proxyToSocialService(
+        '/media/upload',
+        req.method,
+        formData,
+        headers as Record<string, string | string[] | undefined>,
+        req.user as any,
+      );
       res.status(HttpStatus.CREATED).json(result);
     } catch (error) {
       console.error('Media upload error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: errorMessage });
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: errorMessage });
     }
   }
 
@@ -190,11 +249,20 @@ export class ApiGatewayController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Proxy individual post requests to social service' })
-  @ApiResponse({ status: 200, description: 'Request proxied to social service' })
+  @ApiResponse({
+    status: 200,
+    description: 'Request proxied to social service',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async proxyIndividualPost(@Req() req: Request, @Res() res: Response) {
     try {
-      const result = await this.apiGatewayService.proxyToSocialService(req.url, req.method, req.body, req.headers as Record<string, string | string[] | undefined>, req.user as any);
+      const result = await this.apiGatewayService.proxyToSocialService(
+        req.url,
+        req.method,
+        req.body,
+        req.headers as Record<string, string | string[] | undefined>,
+        req.user as any,
+      );
 
       // Set appropriate status code based on method
       let statusCode = HttpStatus.OK;
@@ -204,8 +272,11 @@ export class ApiGatewayController {
 
       res.status(statusCode).json(result);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: errorMessage });
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: errorMessage });
     }
   }
 
@@ -225,11 +296,20 @@ export class ApiGatewayController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Proxy social requests to social service' })
-  @ApiResponse({ status: 200, description: 'Request proxied to social service' })
+  @ApiResponse({
+    status: 200,
+    description: 'Request proxied to social service',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async proxySocial(@Req() req: Request, @Res() res: Response) {
     try {
-      const result = await this.apiGatewayService.proxyToSocialService(req.url, req.method, req.body, req.headers as Record<string, string | string[] | undefined>, req.user as any);
+      const result = await this.apiGatewayService.proxyToSocialService(
+        req.url,
+        req.method,
+        req.body,
+        req.headers as Record<string, string | string[] | undefined>,
+        req.user as any,
+      );
 
       // Set appropriate status code based on method
       let statusCode = HttpStatus.OK;
@@ -239,8 +319,11 @@ export class ApiGatewayController {
 
       res.status(statusCode).json(result);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: errorMessage });
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: errorMessage });
     }
   }
 }

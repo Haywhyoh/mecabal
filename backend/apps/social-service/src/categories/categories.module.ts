@@ -5,12 +5,7 @@ import { CategoriesService } from './categories.service';
 import { PostCategory, Post } from '@app/database';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([
-      PostCategory,
-      Post,
-    ]),
-  ],
+  imports: [TypeOrmModule.forFeature([PostCategory, Post])],
   controllers: [CategoriesController],
   providers: [CategoriesService],
   exports: [CategoriesService],

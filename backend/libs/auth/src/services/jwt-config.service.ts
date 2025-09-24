@@ -6,11 +6,17 @@ export class JwtConfigService {
   constructor(private configService: ConfigService) {}
 
   getAccessTokenSecret(): string {
-    return this.configService.get<string>('JWT_SECRET') || 'your-super-secret-jwt-key-change-this-in-production';
+    return (
+      this.configService.get<string>('JWT_SECRET') ||
+      'your-super-secret-jwt-key-change-this-in-production'
+    );
   }
 
   getRefreshTokenSecret(): string {
-    return this.configService.get<string>('JWT_REFRESH_SECRET') || 'your-super-secret-refresh-key-change-this-in-production';
+    return (
+      this.configService.get<string>('JWT_REFRESH_SECRET') ||
+      'your-super-secret-refresh-key-change-this-in-production'
+    );
   }
 
   getAccessTokenExpiration(): string {
@@ -23,22 +29,31 @@ export class JwtConfigService {
 
   validateSecrets(): { isValid: boolean; issues: string[] } {
     const issues: string[] = [];
-    
+
     const accessSecret = this.getAccessTokenSecret();
     const refreshSecret = this.getRefreshTokenSecret();
 
     // Check if secrets are the default values
-    if (accessSecret === 'your-super-secret-jwt-key-change-this-in-production') {
+    if (
+      accessSecret === 'your-super-secret-jwt-key-change-this-in-production'
+    ) {
       issues.push('JWT_SECRET is using default value - change in production');
     }
 
-    if (refreshSecret === 'your-super-secret-refresh-key-change-this-in-production') {
-      issues.push('JWT_REFRESH_SECRET is using default value - change in production');
+    if (
+      refreshSecret ===
+      'your-super-secret-refresh-key-change-this-in-production'
+    ) {
+      issues.push(
+        'JWT_REFRESH_SECRET is using default value - change in production',
+      );
     }
 
     // Check if secrets are the same (security risk)
     if (accessSecret === refreshSecret) {
-      issues.push('JWT_SECRET and JWT_REFRESH_SECRET are the same - use different secrets for security');
+      issues.push(
+        'JWT_SECRET and JWT_REFRESH_SECRET are the same - use different secrets for security',
+      );
     }
 
     // Check secret length (should be at least 32 characters)
@@ -56,9 +71,12 @@ export class JwtConfigService {
     };
   }
 
-  generateSecureSecrets(): { accessSecret: string; refreshSecret: string } {
-    const crypto = require('crypto');
-    
+  async generateSecureSecrets(): Promise<{
+    accessSecret: string;
+    refreshSecret: string;
+  }> {
+    const crypto = await import('crypto');
+
     return {
       accessSecret: crypto.randomBytes(64).toString('hex'),
       refreshSecret: crypto.randomBytes(64).toString('hex'),

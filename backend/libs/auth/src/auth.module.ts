@@ -9,11 +9,14 @@ import { JwtConfigService } from './services/jwt-config.service';
 import { User } from '@app/database';
 
 @Module({
-  imports: [
-    ConfigModule,
-    TypeOrmModule.forFeature([User]),
+  imports: [ConfigModule, TypeOrmModule.forFeature([User])],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    JwtRefreshStrategy,
+    LocalStrategy,
+    JwtConfigService,
   ],
-  providers: [AuthService, JwtStrategy, JwtRefreshStrategy, LocalStrategy, JwtConfigService],
   exports: [AuthService, JwtConfigService],
 })
 export class AuthModule {}

@@ -12,7 +12,15 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
+import type { Request as ExpressRequest } from 'express';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { SocialAuthGuard } from '../guards/social-auth.guard';
 import { PostsService } from './posts.service';
 import { CategoriesService } from '../categories/categories.service';
@@ -23,6 +31,17 @@ import {
   PostResponseDto,
   PaginatedPostsDto,
 } from './dto';
+
+// Type definitions for request objects
+interface AuthenticatedRequest extends ExpressRequest {
+  user: {
+    id: string;
+    userNeighborhoods?: Array<{
+      isPrimary: boolean;
+      neighborhoodId: string;
+    }>;
+  };
+}
 
 @ApiTags('Posts')
 @Controller('posts')
@@ -45,24 +64,32 @@ export class PostsController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async createPost(
     @Body() createPostDto: CreatePostDto,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ): Promise<PostResponseDto> {
     const userId = req.user.id;
-    
+
     // Get user's primary neighborhood
     const primaryNeighborhood = req.user.userNeighborhoods?.find(
-      (un: any) => un.isPrimary
+      (un) => un.isPrimary,
     );
-    
+
     if (!primaryNeighborhood) {
-      throw new Error('User must be associated with a neighborhood to create posts');
+      throw new Error(
+        'User must be associated with a neighborhood to create posts',
+      );
     }
 
-    return this.postsService.createPost(createPostDto, userId, primaryNeighborhood.neighborhoodId);
+    return this.postsService.createPost(
+      createPostDto,
+      userId,
+      primaryNeighborhood.neighborhoodId,
+    );
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get neighborhood feed with filtering and pagination' })
+  @ApiOperation({
+    summary: 'Get neighborhood feed with filtering and pagination',
+  })
   @ApiResponse({
     status: 200,
     description: 'Posts retrieved successfully',
@@ -71,20 +98,26 @@ export class PostsController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getPosts(
     @Query() filterDto: PostFilterDto,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ): Promise<PaginatedPostsDto> {
     const userId = req.user.id;
-    
+
     // Get user's primary neighborhood
     const primaryNeighborhood = req.user.userNeighborhoods?.find(
-      (un: any) => un.isPrimary
+      (un) => un.isPrimary,
     );
-    
+
     if (!primaryNeighborhood) {
-      throw new Error('User must be associated with a neighborhood to view posts');
+      throw new Error(
+        'User must be associated with a neighborhood to view posts',
+      );
     }
 
-    return this.postsService.getPosts(filterDto, primaryNeighborhood.neighborhoodId, userId);
+    return this.postsService.getPosts(
+      filterDto,
+      primaryNeighborhood.neighborhoodId,
+      userId,
+    );
   }
 
   @Get(':id')
@@ -99,7 +132,7 @@ export class PostsController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getPostById(
     @Param('id') id: string,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ): Promise<PostResponseDto> {
     const userId = req.user.id;
     return this.postsService.getPostById(id, userId);
@@ -114,12 +147,15 @@ export class PostsController {
     type: PostResponseDto,
   })
   @ApiResponse({ status: 404, description: 'Post not found' })
-  @ApiResponse({ status: 403, description: 'Forbidden - can only update own posts' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - can only update own posts',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async updatePost(
     @Param('id') id: string,
     @Body() updatePostDto: UpdatePostDto,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ): Promise<PostResponseDto> {
     const userId = req.user.id;
     return this.postsService.updatePost(id, updatePostDto, userId);
@@ -131,11 +167,14 @@ export class PostsController {
   @ApiParam({ name: 'id', description: 'Post ID' })
   @ApiResponse({ status: 204, description: 'Post deleted successfully' })
   @ApiResponse({ status: 404, description: 'Post not found' })
-  @ApiResponse({ status: 403, description: 'Forbidden - can only delete own posts' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - can only delete own posts',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async deletePost(
     @Param('id') id: string,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ): Promise<void> {
     const userId = req.user.id;
     return this.postsService.deletePost(id, userId);
@@ -144,14 +183,21 @@ export class PostsController {
   @Post(':id/pin')
   @ApiOperation({ summary: 'Pin or unpin a post' })
   @ApiParam({ name: 'id', description: 'Post ID' })
-  @ApiQuery({ name: 'isPinned', description: 'Whether to pin the post', type: 'boolean' })
+  @ApiQuery({
+    name: 'isPinned',
+    description: 'Whether to pin the post',
+    type: 'boolean',
+  })
   @ApiResponse({
     status: 200,
     description: 'Post pin status updated successfully',
     type: PostResponseDto,
   })
   @ApiResponse({ status: 404, description: 'Post not found' })
-  @ApiResponse({ status: 403, description: 'Forbidden - can only pin own posts' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - can only pin own posts',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async pinPost(
     @Param('id') id: string,

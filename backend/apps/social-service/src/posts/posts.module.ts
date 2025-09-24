@@ -3,7 +3,14 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { PostsController } from './posts.controller';
 import { PostsService } from './posts.service';
 import { CategoriesModule } from '../categories/categories.module';
-import { Post, PostCategory, PostMedia, PostReaction, PostComment, User } from '@app/database';
+import {
+  Post,
+  PostCategory,
+  PostMedia,
+  PostReaction,
+  PostComment,
+  User,
+} from '@app/database';
 
 @Module({
   imports: [
