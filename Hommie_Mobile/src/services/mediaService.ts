@@ -228,7 +228,7 @@ export class MediaService {
       return result.media[0];
     } catch (error) {
       console.error('Error uploading media:', error);
-      if (error.name === 'AbortError') {
+      if (error instanceof Error && error.name === 'AbortError') {
         throw new Error('Upload timeout - please try again with a smaller file');
       }
       throw new Error('Failed to upload media');
@@ -310,7 +310,7 @@ export class MediaService {
       return result.media;
     } catch (error) {
       console.error('Error uploading multiple media:', error);
-      if (error.name === 'AbortError') {
+      if (error instanceof Error && error.name === 'AbortError') {
         throw new Error('Upload timeout - please try again with smaller files');
       }
       throw new Error('Failed to upload media files');
