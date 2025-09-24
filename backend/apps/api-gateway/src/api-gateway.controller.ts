@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, Req, Res, HttpStatus, All } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, Req, Res, HttpStatus, All, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { ApiGatewayService } from './api-gateway.service';
+import { JwtAuthGuard } from '@app/auth';
 
 @ApiTags('Gateway')
 @Controller()
@@ -59,11 +60,14 @@ export class ApiGatewayController {
   @All('comments/*')
   @All('reactions')
   @All('reactions/*')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Proxy social requests to social service' })
   @ApiResponse({ status: 200, description: 'Request proxied to social service' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async proxySocial(@Req() req: Request, @Res() res: Response) {
     try {
-      const result = await this.apiGatewayService.proxyToSocialService(req.url, req.method, req.body, req.headers);
+      const result = await this.apiGatewayService.proxyToSocialService(req.url, req.method, req.body, req.headers, req.user);
 
       // Set appropriate status code based on method
       let statusCode = HttpStatus.OK;

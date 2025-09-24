@@ -65,7 +65,13 @@ export class PostsService {
       await this.mediaRepository.save(mediaEntities);
     }
 
-    return this.formatPostResponse(savedPost as any);
+    // Reload the post with all relations for formatting
+    const postWithRelations = await this.postRepository.findOne({
+      where: { id: savedPost.id },
+      relations: ['user', 'category', 'media', 'reactions', 'comments'],
+    });
+
+    return this.formatPostResponse(postWithRelations);
   }
 
   async getPosts(filterDto: PostFilterDto, neighborhoodId: string, userId: string): Promise<PaginatedPostsDto> {

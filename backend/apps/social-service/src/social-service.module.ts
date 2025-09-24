@@ -9,26 +9,16 @@ import { CommentsModule } from './comments/comments.module';
 import { ModerationModule } from './moderation/moderation.module';
 import { CategoriesModule } from './categories/categories.module';
 import { MediaModule } from './media/media.module';
+import { DatabaseModule } from '@app/database';
+import { AuthModule } from '@app/auth';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: process.env.DATABASE_HOST || 'localhost',
-      port: parseInt(process.env.DATABASE_PORT || '5432', 10),
-      username: process.env.DATABASE_USERNAME || 'MeCabal_user',
-      password: process.env.DATABASE_PASSWORD || 'MeCabal_password',
-      database: process.env.DATABASE_NAME || 'MeCabal_dev',
-      entities: [__dirname + '/../../libs/database/src/entities/*.entity{.ts,.js}'],
-      synchronize: process.env.NODE_ENV === 'development',
-      logging: process.env.NODE_ENV === 'development',
-      ssl: process.env.NODE_ENV === 'production' ? {
-        rejectUnauthorized: false
-      } : false,
-    }),
+    DatabaseModule,
+    AuthModule,
     PostsModule, 
     ReactionsModule, 
     CommentsModule, 

@@ -13,7 +13,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@app/auth';
+import { SocialAuthGuard } from '../guards/social-auth.guard';
 import { PostsService } from './posts.service';
 import { CategoriesService } from '../categories/categories.service';
 import {
@@ -26,7 +26,7 @@ import {
 
 @ApiTags('Posts')
 @Controller('posts')
-@UseGuards(JwtAuthGuard)
+@UseGuards(SocialAuthGuard)
 @ApiBearerAuth()
 export class PostsController {
   constructor(

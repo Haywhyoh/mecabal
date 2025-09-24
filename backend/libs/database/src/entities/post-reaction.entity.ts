@@ -12,6 +12,17 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Post } from './post.entity';
 import { User } from './user.entity';
 
+export enum ReactionType {
+  LIKE = 'like',
+  LOVE = 'love',
+  LAUGH = 'laugh',
+  ANGRY = 'angry',
+  SAD = 'sad',
+  WOW = 'wow',
+  SUPPORT = 'support', // Nigerian context: showing support
+  BLESS = 'bless', // Nigerian context: blessing/well-wishing
+}
+
 @Entity('post_reactions')
 @Index(['postId'])
 @Index(['userId'])
@@ -31,11 +42,16 @@ export class PostReaction {
 
   @ApiProperty({
     description: 'Type of reaction',
-    enum: ['like', 'love', 'laugh', 'angry', 'sad'],
-    example: 'like',
+    enum: ReactionType,
+    example: ReactionType.LIKE,
   })
-  @Column({ name: 'reaction_type', length: 20, default: 'like' })
-  reactionType: string;
+  @Column({ 
+    name: 'reaction_type', 
+    type: 'enum', 
+    enum: ReactionType, 
+    default: ReactionType.LIKE 
+  })
+  reactionType: ReactionType;
 
   @ApiProperty({ description: 'Reaction creation timestamp' })
   @CreateDateColumn({ name: 'created_at' })

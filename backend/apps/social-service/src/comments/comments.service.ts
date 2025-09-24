@@ -1,24 +1,17 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, SelectQueryBuilder } from 'typeorm';
-import { PostComment, Post, User } from '@app/database';
-import {
-  CreateCommentDto,
-  UpdateCommentDto,
-  CommentResponseDto,
-  CommentFilterDto,
-  PaginatedCommentsDto,
-} from './dto';
+import { Repository, IsNull, Not } from 'typeorm';
+import { PostComment } from '@app/database/entities/post-comment.entity';
+import { Post } from '@app/database/entities/post.entity';
+import { CreateCommentDto, UpdateCommentDto, CommentResponseDto } from './dto';
 
 @Injectable()
 export class CommentsService {
   constructor(
     @InjectRepository(PostComment)
-    private readonly commentRepository: Repository<PostComment>,
+    private commentRepository: Repository<PostComment>,
     @InjectRepository(Post)
-    private readonly postRepository: Repository<Post>,
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
+    private postRepository: Repository<Post>,
   ) {}
 
   async createComment(
@@ -27,78 +20,39 @@ export class CommentsService {
     createCommentDto: CreateCommentDto,
   ): Promise<CommentResponseDto> {
     // Check if post exists
-    const post = await this.postRepository.findOne({ where: { id: postId } });
+    const post = await this.postRepository.findOne({
+      where: { id: postId },
+    });
+
     if (!post) {
       throw new NotFoundException('Post not found');
     }
 
-    // If this is a reply, check if parent comment exists
+    // Check if parent comment exists (for replies)
     if (createCommentDto.parentCommentId) {
       const parentComment = await this.commentRepository.findOne({
-        where: { id: createCommentDto.parentCommentId, postId },
+        where: { id: createCommentDto.parentCommentId },
       });
+
       if (!parentComment) {
-        throw new BadRequestException('Parent comment not found');
+        throw new NotFoundException('Parent comment not found');
       }
 
-      // Check if parent comment is not already a reply (max 2 levels deep)
-      if (parentComment.parentCommentId) {
-        throw new BadRequestException('Cannot reply to a reply (max 2 levels deep)');
+      // Check if parent comment belongs to the same post
+      if (parentComment.postId !== postId) {
+        throw new BadRequestException('Parent comment does not belong to this post');
       }
     }
 
-    // Create the comment
     const comment = this.commentRepository.create({
       postId,
       userId,
-      content: createCommentDto.content,
       parentCommentId: createCommentDto.parentCommentId,
+      content: createCommentDto.content,
     });
 
     const savedComment = await this.commentRepository.save(comment);
-    return this.formatCommentResponse(savedComment);
-  }
-
-  async getPostComments(
-    postId: string,
-    filterDto: CommentFilterDto,
-    userId: string,
-  ): Promise<PaginatedCommentsDto> {
-    // Check if post exists
-    const post = await this.postRepository.findOne({ where: { id: postId } });
-    if (!post) {
-      throw new NotFoundException('Post not found');
-    }
-
-    const queryBuilder = this.createCommentsQueryBuilder(postId);
-
-    // Apply filters
-    if (filterDto.topLevelOnly) {
-      queryBuilder.andWhere('comment.parentCommentId IS NULL');
-    }
-
-    // Apply pagination
-    const page = filterDto.page || 1;
-    const limit = filterDto.limit || 20;
-    const skip = (page - 1) * limit;
-
-    queryBuilder.skip(skip).take(limit);
-
-    // Execute query
-    const [comments, total] = await queryBuilder.getManyAndCount();
-
-    // Format response with nested replies
-    const formattedComments = await this.formatCommentsWithReplies(comments);
-
-    return {
-      data: formattedComments,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-      hasNext: page < Math.ceil(total / limit),
-      hasPrev: page > 1,
-    };
+    return this.mapToResponseDto(savedComment);
   }
 
   async updateComment(
@@ -115,16 +69,15 @@ export class CommentsService {
       throw new NotFoundException('Comment not found');
     }
 
-    // Check if user is the author
+    // Check if user owns the comment
     if (comment.userId !== userId) {
-      throw new ForbiddenException('You can only update your own comments');
+      throw new ForbiddenException('You can only edit your own comments');
     }
 
     // Update comment
-    comment.content = updateCommentDto.content;
+    Object.assign(comment, updateCommentDto);
     const updatedComment = await this.commentRepository.save(comment);
-
-    return this.formatCommentResponse(updatedComment);
+    return this.mapToResponseDto(updatedComment);
   }
 
   async deleteComment(commentId: string, userId: string): Promise<void> {
@@ -136,24 +89,35 @@ export class CommentsService {
       throw new NotFoundException('Comment not found');
     }
 
-    // Check if user is the author
+    // Check if user owns the comment
     if (comment.userId !== userId) {
       throw new ForbiddenException('You can only delete your own comments');
-    }
-
-    // Check if comment has replies
-    const replyCount = await this.commentRepository.count({
-      where: { parentCommentId: commentId },
-    });
-
-    if (replyCount > 0) {
-      throw new BadRequestException('Cannot delete comment with replies');
     }
 
     await this.commentRepository.remove(comment);
   }
 
-  async getCommentById(commentId: string, userId: string): Promise<CommentResponseDto> {
+  async getPostComments(postId: string): Promise<CommentResponseDto[]> {
+    const comments = await this.commentRepository.find({
+      where: { postId, parentCommentId: IsNull() }, // Only top-level comments
+      relations: ['user', 'replies', 'replies.user'],
+      order: { createdAt: 'DESC' },
+    });
+
+    return comments.map(comment => this.mapToResponseDto(comment));
+  }
+
+  async getCommentReplies(commentId: string): Promise<CommentResponseDto[]> {
+    const replies = await this.commentRepository.find({
+      where: { parentCommentId: commentId },
+      relations: ['user'],
+      order: { createdAt: 'ASC' },
+    });
+
+    return replies.map(reply => this.mapToResponseDto(reply));
+  }
+
+  async getCommentById(commentId: string): Promise<CommentResponseDto> {
     const comment = await this.commentRepository.findOne({
       where: { id: commentId },
       relations: ['user', 'replies', 'replies.user'],
@@ -163,44 +127,38 @@ export class CommentsService {
       throw new NotFoundException('Comment not found');
     }
 
-    return this.formatCommentResponse(comment);
+    return this.mapToResponseDto(comment);
   }
 
-  private createCommentsQueryBuilder(postId: string): SelectQueryBuilder<PostComment> {
-    return this.commentRepository
-      .createQueryBuilder('comment')
-      .leftJoinAndSelect('comment.user', 'user')
-      .leftJoinAndSelect('comment.replies', 'replies')
-      .leftJoinAndSelect('replies.user', 'replyUser')
-      .where('comment.postId = :postId', { postId })
-      .andWhere('comment.isApproved = :isApproved', { isApproved: true })
-      .orderBy('comment.createdAt', 'ASC');
+  async getUserComments(userId: string): Promise<CommentResponseDto[]> {
+    const comments = await this.commentRepository.find({
+      where: { userId },
+      relations: ['post', 'user'],
+      order: { createdAt: 'DESC' },
+    });
+
+    return comments.map(comment => this.mapToResponseDto(comment));
   }
 
-  private async formatCommentsWithReplies(comments: PostComment[]): Promise<CommentResponseDto[]> {
-    const formattedComments: CommentResponseDto[] = [];
+  async getCommentStats(postId: string): Promise<{
+    totalComments: number;
+    topLevelComments: number;
+    replies: number;
+  }> {
+    const [totalComments, topLevelComments, replies] = await Promise.all([
+      this.commentRepository.count({ where: { postId } }),
+      this.commentRepository.count({ where: { postId, parentCommentId: IsNull() } }),
+      this.commentRepository.count({ where: { postId, parentCommentId: Not(IsNull()) } }),
+    ]);
 
-    for (const comment of comments) {
-      const formattedComment = await this.formatCommentResponse(comment);
-      
-      // Get replies for this comment
-      const replies = await this.commentRepository.find({
-        where: { parentCommentId: comment.id },
-        relations: ['user'],
-        order: { createdAt: 'ASC' },
-      });
-
-      formattedComment.replies = await Promise.all(
-        replies.map(reply => this.formatCommentResponse(reply))
-      );
-
-      formattedComments.push(formattedComment);
-    }
-
-    return formattedComments;
+    return {
+      totalComments,
+      topLevelComments,
+      replies,
+    };
   }
 
-  private async formatCommentResponse(comment: PostComment): Promise<CommentResponseDto> {
+  private mapToResponseDto(comment: PostComment): CommentResponseDto {
     return {
       id: comment.id,
       postId: comment.postId,
@@ -210,16 +168,15 @@ export class CommentsService {
       isApproved: comment.isApproved,
       createdAt: comment.createdAt,
       updatedAt: comment.updatedAt,
-      user: {
+      user: comment.user ? {
         id: comment.user.id,
         firstName: comment.user.firstName,
         lastName: comment.user.lastName,
-        profilePicture: comment.user.profilePictureUrl,
-        isVerified: comment.user.isVerified || false,
-        trustScore: comment.user.trustScore || 0,
-      },
-      replies: [], // Will be populated by formatCommentsWithReplies
-      isReply: comment.isReply(),
+        profilePictureUrl: comment.user.profilePictureUrl,
+        isVerified: comment.user.isVerified,
+        trustScore: comment.user.trustScore,
+      } : undefined,
+      replies: comment.replies?.map(reply => this.mapToResponseDto(reply)) || [],
     };
   }
 }

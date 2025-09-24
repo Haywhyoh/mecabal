@@ -12,6 +12,13 @@ async function bootstrap() {
       'http://localhost:3000',
       'http://localhost:3001',
       'http://localhost:8080',
+      'http://localhost:8081', // Expo development server
+      'http://localhost:19000', // Expo web
+      'http://localhost:19001', // Expo web
+      'http://localhost:19002', // Expo web
+      'exp://localhost:19000', // Expo development
+      'exp://localhost:19001', // Expo development
+      'exp://localhost:19002', // Expo development
     ],
     credentials: true,
   });

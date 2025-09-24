@@ -14,13 +14,15 @@ export class ApiGatewayService {
   }
 
   // Proxy methods for social service
-  async proxyToSocialService(path: string, method: string, data?: any, headers?: any) {
+  async proxyToSocialService(path: string, method: string, data?: any, headers?: any, user?: any) {
     try {
       const url = `${this.socialServiceUrl}${path}`;
       const config = {
         headers: {
           'Content-Type': 'application/json',
           ...headers,
+          // Pass user information to social service
+          ...(user && { 'X-User-Id': user.id }),
         },
       };
 

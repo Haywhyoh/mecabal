@@ -17,6 +17,7 @@ import { Post } from './post.entity';
 import { UserSession } from './user-session.entity';
 import { OtpVerification } from './otp-verification.entity';
 import { Role } from './role.entity';
+import { Neighborhood } from './neighborhood.entity';
 
 @Entity('users')
 @Index(['phoneNumber'], { unique: true })
@@ -88,9 +89,9 @@ export class User {
   @Column({ name: 'last_login_at', type: 'timestamp', nullable: true })
   lastLoginAt?: Date;
 
-  // Location Information (Nigerian Context)
+  // Location Information (Nigerian Context) - DEPRECATED: Use neighborhoods instead
   @ApiProperty({
-    description: 'Nigerian state',
+    description: 'Nigerian state - DEPRECATED: Use neighborhoods instead',
     example: 'Lagos',
     required: false,
   })
@@ -98,7 +99,7 @@ export class User {
   state?: string;
 
   @ApiProperty({
-    description: 'City within state',
+    description: 'City within state - DEPRECATED: Use neighborhoods instead',
     example: 'Ikeja',
     required: false,
   })
@@ -106,7 +107,7 @@ export class User {
   city?: string;
 
   @ApiProperty({
-    description: 'Estate or compound name',
+    description: 'Estate or compound name - DEPRECATED: Use neighborhoods instead',
     example: 'Victoria Island Estate',
     required: false,
   })
@@ -265,6 +266,24 @@ export class User {
     return `${this.firstName} ${this.lastName}`;
   }
 
+  // Neighborhood helper methods
+  get neighborhoods(): Neighborhood[] {
+    return this.userNeighborhoods?.map(rel => rel.neighborhood) || [];
+  }
+
+  get primaryNeighborhood(): Neighborhood | null {
+    const primaryRelation = this.userNeighborhoods?.find(rel => rel.isPrimary);
+    return primaryRelation?.neighborhood || null;
+  }
+
+  get neighborhoodNames(): string[] {
+    return this.neighborhoods.map(neighborhood => neighborhood.name);
+  }
+
+  get primaryNeighborhoodName(): string | null {
+    return this.primaryNeighborhood?.name || null;
+  }
+
   // Helper methods
   toJSON() {
     const { passwordHash, ...result } = this;
@@ -301,6 +320,24 @@ export class User {
 
   // Location and verification helpers
   getLocationString(): string {
+    // Use neighborhoods if available, fallback to deprecated fields
+    if (this.primaryNeighborhood) {
+      return this.primaryNeighborhood.name;
+    }
+    
+    // Fallback to deprecated fields for backward compatibility
+    const parts = [this.estate, this.city, this.state].filter(Boolean);
+    return parts.join(', ') || 'Location not set';
+  }
+
+  getDetailedLocationString(): string {
+    // Use neighborhoods if available
+    if (this.primaryNeighborhood) {
+      const neighborhood = this.primaryNeighborhood;
+      return `${neighborhood.name}, ${neighborhood.lga?.name || 'Unknown LGA'}, ${neighborhood.lga?.state?.name || 'Unknown State'}`;
+    }
+    
+    // Fallback to deprecated fields
     const parts = [this.estate, this.city, this.state].filter(Boolean);
     return parts.join(', ') || 'Location not set';
   }
@@ -349,9 +386,8 @@ export class User {
       this.lastName &&
       this.email &&
       this.phoneNumber &&
-      this.state &&
-      this.city &&
-      this.phoneVerified
+      this.phoneVerified &&
+      (this.primaryNeighborhood || (this.state && this.city)) // Use neighborhoods or fallback to deprecated fields
     );
   }
 

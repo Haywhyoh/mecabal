@@ -1,116 +1,130 @@
 import {
   Controller,
-  Get,
   Post,
+  Get,
   Delete,
-  Body,
   Param,
-  Query,
+  Body,
   UseGuards,
   Request,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@app/auth';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { SocialAuthGuard } from '../guards/social-auth.guard';
 import { ReactionsService } from './reactions.service';
-import { CreateReactionDto, ReactionResponseDto, ReactionStatsDto } from './dto';
+import { CreateReactionDto, ReactionResponseDto } from './dto';
 
-@ApiTags('Reactions')
-@Controller('posts/:postId/reactions')
-@UseGuards(JwtAuthGuard)
+@ApiTags('reactions')
+@Controller('reactions')
+@UseGuards(SocialAuthGuard)
 @ApiBearerAuth()
 export class ReactionsController {
   constructor(private readonly reactionsService: ReactionsService) {}
 
-  @Post()
-  @ApiOperation({ summary: 'Add or update a reaction to a post' })
-  @ApiParam({ name: 'postId', description: 'Post ID' })
+  @Post('posts/:postId')
+  @ApiOperation({ summary: 'Add or update reaction to a post' })
   @ApiResponse({
     status: 201,
     description: 'Reaction added successfully',
     type: ReactionResponseDto,
   })
   @ApiResponse({ status: 404, description: 'Post not found' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async addReaction(
     @Param('postId') postId: string,
     @Body() createReactionDto: CreateReactionDto,
     @Request() req: any,
   ): Promise<ReactionResponseDto> {
-    const userId = req.user.id;
-    return this.reactionsService.addReaction(postId, userId, createReactionDto);
+    return this.reactionsService.addReaction(
+      postId,
+      req.user.id,
+      createReactionDto,
+    );
   }
 
-  @Delete()
+  @Delete('posts/:postId')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Remove user reaction from a post' })
-  @ApiParam({ name: 'postId', description: 'Post ID' })
+  @ApiOperation({ summary: 'Remove reaction from a post' })
   @ApiResponse({ status: 204, description: 'Reaction removed successfully' })
-  @ApiResponse({ status: 404, description: 'Post or reaction not found' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Reaction not found' })
   async removeReaction(
     @Param('postId') postId: string,
     @Request() req: any,
   ): Promise<void> {
-    const userId = req.user.id;
-    return this.reactionsService.removeReaction(postId, userId);
+    return this.reactionsService.removeReaction(postId, req.user.id);
   }
 
-  @Get()
+  @Get('posts/:postId')
   @ApiOperation({ summary: 'Get all reactions for a post' })
-  @ApiParam({ name: 'postId', description: 'Post ID' })
   @ApiResponse({
     status: 200,
     description: 'Reactions retrieved successfully',
     type: [ReactionResponseDto],
   })
-  @ApiResponse({ status: 404, description: 'Post not found' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getPostReactions(
     @Param('postId') postId: string,
-    @Request() req: any,
   ): Promise<ReactionResponseDto[]> {
-    const userId = req.user.id;
-    return this.reactionsService.getPostReactions(postId, userId);
+    return this.reactionsService.getPostReactions(postId);
   }
 
-  @Get('stats')
-  @ApiOperation({ summary: 'Get reaction statistics for a post' })
-  @ApiParam({ name: 'postId', description: 'Post ID' })
+  @Get('posts/:postId/counts')
+  @ApiOperation({ summary: 'Get reaction counts for a post' })
+  @ApiResponse({
+    status: 200,
+    description: 'Reaction counts retrieved successfully',
+    schema: {
+      type: 'object',
+      additionalProperties: { type: 'number' },
+      example: {
+        like: 5,
+        love: 3,
+        laugh: 1,
+      },
+    },
+  })
+  async getPostReactionCounts(
+    @Param('postId') postId: string,
+  ): Promise<Record<string, number>> {
+    return this.reactionsService.getPostReactionCounts(postId);
+  }
+
+  @Get('posts/:postId/stats')
+  @ApiOperation({ summary: 'Get detailed reaction statistics for a post' })
   @ApiResponse({
     status: 200,
     description: 'Reaction statistics retrieved successfully',
-    type: ReactionStatsDto,
+    schema: {
+      type: 'object',
+      properties: {
+        totalReactions: { type: 'number' },
+        reactionCounts: {
+          type: 'object',
+          additionalProperties: { type: 'number' },
+        },
+        topReaction: { type: 'string' },
+      },
+    },
   })
-  @ApiResponse({ status: 404, description: 'Post not found' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getReactionStats(
     @Param('postId') postId: string,
-    @Request() req: any,
-  ): Promise<ReactionStatsDto> {
-    const userId = req.user.id;
-    return this.reactionsService.getReactionStats(postId, userId);
+  ): Promise<{
+    totalReactions: number;
+    reactionCounts: Record<string, number>;
+    topReaction: string;
+  }> {
+    return this.reactionsService.getReactionStats(postId);
   }
 
-  @Get('user')
-  @ApiOperation({ summary: 'Get user reactions with pagination' })
-  @ApiQuery({ name: 'limit', description: 'Number of reactions to return', required: false })
-  @ApiQuery({ name: 'offset', description: 'Number of reactions to skip', required: false })
+  @Get('users/me')
+  @ApiOperation({ summary: 'Get current user reactions' })
   @ApiResponse({
     status: 200,
     description: 'User reactions retrieved successfully',
     type: [ReactionResponseDto],
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getUserReactions(
     @Request() req: any,
-    @Query('limit') limit?: string,
-    @Query('offset') offset?: string,
   ): Promise<ReactionResponseDto[]> {
-    const userId = req.user.id;
-    const limitNum = limit ? parseInt(limit, 10) : 20;
-    const offsetNum = offset ? parseInt(offset, 10) : 0;
-    return this.reactionsService.getUserReactions(userId, limitNum, offsetNum);
+    return this.reactionsService.getUserReactions(req.user.id);
   }
 }
