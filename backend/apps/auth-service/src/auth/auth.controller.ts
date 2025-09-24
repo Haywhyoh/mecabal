@@ -23,7 +23,6 @@ import {
   Public,
   CurrentUser,
   Roles,
-  RequirePermissions,
 } from '@app/auth';
 import { AuthService } from '../services/auth.service';
 import { EmailOtpService } from '../services/email-otp.service';
@@ -41,11 +40,9 @@ import {
   VerifyPhoneOtpDto,
   ResendPhoneOtpDto,
   AlternativeVerificationDto,
-  SocialAuthDto,
   SocialAuthWithPhoneDto,
   LinkSocialAccountDto,
   UnlinkSocialAccountDto,
-  LocationSetupDto,
   LandmarkSearchDto,
   EstateSearchDto,
   EnhancedRegisterDto,
@@ -167,10 +164,10 @@ export class AuthController {
   })
   async login(@Body() loginDto: LoginDto, @Request() req: any) {
     const deviceInfo = {
-      deviceId: req.headers['x-device-id'],
-      deviceType: req.headers['x-device-type'],
-      ipAddress: req.ip,
-      userAgent: req.headers['user-agent'],
+      deviceId: req.headers?.['x-device-id'] as string,
+      deviceType: req.headers?.['x-device-type'] as string,
+      ipAddress: req.ip as string,
+      userAgent: req.headers?.['user-agent'] as string,
     };
 
     return this.authService.loginUser(loginDto, deviceInfo);
@@ -230,9 +227,9 @@ export class AuthController {
   })
   async getCurrentUser(@CurrentUser() user: User, @Request() req: any) {
     // Add cache control headers to prevent 304 responses
-    req.res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    req.res.setHeader('Pragma', 'no-cache');
-    req.res.setHeader('Expires', '0');
+    (req.res as any).setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    (req.res as any).setHeader('Pragma', 'no-cache');
+    (req.res as any).setHeader('Expires', '0');
     
     return this.authService.getUserProfile(user.id);
   }
@@ -430,7 +427,7 @@ export class AuthController {
     status: 200,
     description: 'User roles and permissions retrieved successfully',
   })
-  async getUserRoles(@CurrentUser() user: User) {
+  getUserRoles(@CurrentUser() user: User) {
     return {
       roles: user.getRoleNames(),
       permissions: user.getAllPermissions(),
@@ -450,7 +447,7 @@ export class AuthController {
     status: 403,
     description: 'Insufficient permissions',
   })
-  async adminTest(@CurrentUser() user: User) {
+  adminTest(@CurrentUser() user: User) {
     return {
       message: 'Admin access granted',
       user: user.email,
@@ -483,7 +480,7 @@ export class AuthController {
     status: 400,
     description: 'Invalid Nigerian phone number or rate limit exceeded',
   })
-  async initiatePhoneVerification(@Body() dto: InitiatePhoneVerificationDto) {
+  initiatePhoneVerification(@Body() _dto: InitiatePhoneVerificationDto) {
     throw new Error('Method not implemented yet');
   }
 
@@ -499,7 +496,7 @@ export class AuthController {
     status: 400,
     description: 'Invalid or expired OTP code',
   })
-  async verifyPhoneOtp(@Body() dto: VerifyPhoneOtpDto) {
+  verifyPhoneOtp(@Body() _dto: VerifyPhoneOtpDto) {
     throw new Error('Method not implemented yet');
   }
 
@@ -515,7 +512,7 @@ export class AuthController {
     status: 429,
     description: 'Too many resend attempts. Please wait.',
   })
-  async resendPhoneOtp(@Body() dto: ResendPhoneOtpDto) {
+  resendPhoneOtp(@Body() _dto: ResendPhoneOtpDto) {
     throw new Error('Method not implemented yet');
   }
 
@@ -527,7 +524,7 @@ export class AuthController {
     status: 200,
     description: 'Alternative verification initiated',
   })
-  async alternativeVerification(@Body() dto: AlternativeVerificationDto) {
+  alternativeVerification(@Body() _dto: AlternativeVerificationDto) {
     throw new Error('Method not implemented yet');
   }
 
@@ -563,7 +560,7 @@ export class AuthController {
     status: 401,
     description: 'Invalid social token or provider error',
   })
-  async socialAuth(@Body() dto: SocialAuthWithPhoneDto) {
+  socialAuth(@Body() _dto: SocialAuthWithPhoneDto) {
     throw new Error('Method not implemented yet');
   }
 
@@ -580,9 +577,9 @@ export class AuthController {
     status: 409,
     description: 'Social account already linked to another user',
   })
-  async linkSocialAccount(
-    @CurrentUser() user: User,
-    @Body() dto: LinkSocialAccountDto,
+  linkSocialAccount(
+    @CurrentUser() _user: User,
+    @Body() _dto: LinkSocialAccountDto,
   ) {
     throw new Error('Method not implemented yet');
   }
@@ -600,9 +597,9 @@ export class AuthController {
     status: 400,
     description: 'Cannot unlink last authentication method',
   })
-  async unlinkSocialAccount(
-    @CurrentUser() user: User,
-    @Body() dto: UnlinkSocialAccountDto,
+  unlinkSocialAccount(
+    @CurrentUser() _user: User,
+    @Body() _dto: UnlinkSocialAccountDto,
   ) {
     throw new Error('Method not implemented yet');
   }
@@ -623,7 +620,7 @@ export class AuthController {
     status: 409,
     description: 'User already exists with this email or phone number',
   })
-  async enhancedRegister(@Body() dto: EnhancedRegisterDto) {
+  enhancedRegister(@Body() _dto: EnhancedRegisterDto) {
     throw new Error('Method not implemented yet');
   }
 
@@ -636,9 +633,9 @@ export class AuthController {
     status: 200,
     description: 'Onboarding step updated successfully',
   })
-  async updateOnboardingStep(
-    @CurrentUser() user: User,
-    @Body() dto: UpdateOnboardingStepDto,
+  updateOnboardingStep(
+    @CurrentUser() _user: User,
+    @Body() _dto: UpdateOnboardingStepDto,
   ) {
     throw new Error('Method not implemented yet');
   }
@@ -651,7 +648,7 @@ export class AuthController {
     status: 200,
     description: 'Onboarding status retrieved successfully',
   })
-  async getOnboardingStatus(@CurrentUser() user: User) {
+  getOnboardingStatus(@CurrentUser() _user: User) {
     throw new Error('Method not implemented yet');
   }
 
@@ -720,7 +717,7 @@ export class AuthController {
     status: 200,
     description: 'Landmarks retrieved successfully',
   })
-  async searchLandmarks(@Body() dto: LandmarkSearchDto) {
+  searchLandmarks(@Body() _dto: LandmarkSearchDto) {
     throw new Error('Method not implemented yet');
   }
 
@@ -731,7 +728,7 @@ export class AuthController {
     status: 200,
     description: 'Estates retrieved successfully',
   })
-  async searchEstates(@Body() dto: EstateSearchDto) {
+  searchEstates(@Body() _dto: EstateSearchDto) {
     throw new Error('Method not implemented yet');
   }
 
@@ -742,7 +739,7 @@ export class AuthController {
     status: 200,
     description: 'Nigerian states and cities retrieved successfully',
   })
-  async getNigerianStates() {
+  getNigerianStates() {
     throw new Error('Method not implemented yet');
   }
 

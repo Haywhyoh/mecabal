@@ -18,7 +18,7 @@ export class ApiGatewayService {
   }
 
   // Proxy methods for social service
-  async proxyToSocialService(path: string, method: string, data?: any, headers?: any, user?: any) {
+  async proxyToSocialService(path: string, method: string, data?: unknown, headers?: Record<string, string | string[] | undefined>, user?: any) {
     try {
       const url = `${this.socialServiceUrl}${path}`;
       
@@ -31,7 +31,7 @@ export class ApiGatewayService {
       console.log('  - Social Service URL:', this.socialServiceUrl);
       
       // Check if data is FormData
-      const isFormData = data && typeof data.getHeaders === 'function';
+      const isFormData = data && typeof (data as any).getHeaders === 'function';
 
       const baseHeaders = {
         // Don't set Content-Type for FormData, let axios handle it
@@ -46,7 +46,7 @@ export class ApiGatewayService {
 
       // If FormData, merge its headers (important for boundary)
       if (isFormData) {
-        Object.assign(baseHeaders, data.getHeaders());
+        Object.assign(baseHeaders, (data as any).getHeaders());
       }
 
       const config = {
@@ -55,7 +55,7 @@ export class ApiGatewayService {
         timeout: 300000, // 5 minutes timeout for media uploads
         maxRedirects: 5,
         // Don't transform FormData - let axios handle it natively
-        ...(isFormData ? {} : { transformRequest: [(data: any) => JSON.stringify(data)] }),
+        ...(isFormData ? {} : { transformRequest: [(data: unknown) => JSON.stringify(data)] }),
       };
 
       let response;
@@ -84,12 +84,14 @@ export class ApiGatewayService {
 
       return response.data;
     } catch (error) {
-      console.error(`Error proxying to social service: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error(`Error proxying to social service: ${errorMessage}`);
       
       // Handle specific error cases
-      if (error.response) {
-        const status = error.response.status;
-        const statusText = error.response.statusText;
+      if (error && typeof error === 'object' && 'response' in error) {
+        const response = (error as any).response;
+        const status = response.status;
+        const statusText = response.statusText;
         
         if (status === 304) {
           console.log('304 Not Modified received, returning appropriate response');
@@ -104,7 +106,7 @@ export class ApiGatewayService {
   }
 
   // Proxy methods for auth service
-  async proxyToAuthService(path: string, method: string, data?: any, headers?: any) {
+  async proxyToAuthService(path: string, method: string, data?: unknown, headers?: Record<string, string | string[] | undefined>) {
     try {
       const url = `${this.authServiceUrl}${path}`;
 
@@ -151,12 +153,14 @@ export class ApiGatewayService {
 
       return response.data;
     } catch (error) {
-      console.error(`Error proxying to auth service: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error(`Error proxying to auth service: ${errorMessage}`);
 
       // Handle specific error cases
-      if (error.response) {
-        const status = error.response.status;
-        const statusText = error.response.statusText;
+      if (error && typeof error === 'object' && 'response' in error) {
+        const response = (error as any).response;
+        const status = response.status;
+        const statusText = response.statusText;
 
         if (status === 304) {
           console.log('Auth service 304 Not Modified received, returning appropriate response');

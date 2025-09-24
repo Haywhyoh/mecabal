@@ -1,9 +1,10 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, Req, Res, HttpStatus, All, UseGuards, UseInterceptors, UploadedFiles } from '@nestjs/common';
+import { Controller, Get, Post, Req, Res, HttpStatus, All, UseGuards, UseInterceptors, UploadedFiles } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { ApiGatewayService } from './api-gateway.service';
 import { JwtAuthGuard } from '@app/auth';
+import FormData from 'form-data';
 
 @ApiTags('Gateway')
 @Controller()
@@ -25,7 +26,8 @@ export class ApiGatewayController {
       const result = await this.apiGatewayService.proxyToSocialService('/test', 'GET');
       res.status(HttpStatus.OK).json(result);
     } catch (error) {
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: error.message });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: errorMessage });
     }
   }
 
@@ -37,7 +39,7 @@ export class ApiGatewayController {
     try {
       // Extract the path after /auth
       const path = req.url.replace('/auth', '/auth');
-      const result = await this.apiGatewayService.proxyToAuthService(path, req.method, req.body, req.headers);
+      const result = await this.apiGatewayService.proxyToAuthService(path, req.method, req.body, req.headers as Record<string, string | string[] | undefined>);
 
       // Set appropriate status code based on method and result
       let statusCode = HttpStatus.OK;
@@ -47,7 +49,8 @@ export class ApiGatewayController {
 
       res.status(statusCode).json(result);
     } catch (error) {
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: error.message });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: errorMessage });
     }
   }
 
@@ -74,7 +77,6 @@ export class ApiGatewayController {
       })));
 
       // Create FormData for the social service
-      const FormData = require('form-data');
       const formData = new FormData();
       
       // Add files to form data
@@ -117,11 +119,12 @@ export class ApiGatewayController {
         userNeighborhoods: []
       };
       
-      const result = await this.apiGatewayService.proxyToSocialService('/media/upload', req.method, formData, headers, mockUser);
+      const result = await this.apiGatewayService.proxyToSocialService('/media/upload', req.method, formData, headers as Record<string, string | string[] | undefined>, mockUser);
       res.status(HttpStatus.CREATED).json(result);
     } catch (error) {
       console.error('Media upload error:', error);
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: error.message });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: errorMessage });
     }
   }
 
@@ -141,7 +144,6 @@ export class ApiGatewayController {
   ) {
     try {
       // Create FormData for the social service
-      const FormData = require('form-data');
       const formData = new FormData();
       
       // Add files to form data
@@ -174,11 +176,12 @@ export class ApiGatewayController {
       delete headers['content-type'];
       delete headers['Content-Type'];
       
-      const result = await this.apiGatewayService.proxyToSocialService('/media/upload', req.method, formData, headers, req.user);
+      const result = await this.apiGatewayService.proxyToSocialService('/media/upload', req.method, formData, headers as Record<string, string | string[] | undefined>, req.user as any);
       res.status(HttpStatus.CREATED).json(result);
     } catch (error) {
       console.error('Media upload error:', error);
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: error.message });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: errorMessage });
     }
   }
 
@@ -191,7 +194,7 @@ export class ApiGatewayController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async proxyIndividualPost(@Req() req: Request, @Res() res: Response) {
     try {
-      const result = await this.apiGatewayService.proxyToSocialService(req.url, req.method, req.body, req.headers, req.user);
+      const result = await this.apiGatewayService.proxyToSocialService(req.url, req.method, req.body, req.headers as Record<string, string | string[] | undefined>, req.user as any);
 
       // Set appropriate status code based on method
       let statusCode = HttpStatus.OK;
@@ -201,7 +204,8 @@ export class ApiGatewayController {
 
       res.status(statusCode).json(result);
     } catch (error) {
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: error.message });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: errorMessage });
     }
   }
 
@@ -225,7 +229,7 @@ export class ApiGatewayController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async proxySocial(@Req() req: Request, @Res() res: Response) {
     try {
-      const result = await this.apiGatewayService.proxyToSocialService(req.url, req.method, req.body, req.headers, req.user);
+      const result = await this.apiGatewayService.proxyToSocialService(req.url, req.method, req.body, req.headers as Record<string, string | string[] | undefined>, req.user as any);
 
       // Set appropriate status code based on method
       let statusCode = HttpStatus.OK;
@@ -235,7 +239,8 @@ export class ApiGatewayController {
 
       res.status(statusCode).json(result);
     } catch (error) {
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: error.message });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: errorMessage });
     }
   }
 }

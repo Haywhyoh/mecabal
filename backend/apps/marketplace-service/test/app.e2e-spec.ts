@@ -19,6 +19,6 @@ describe('MarketplaceServiceController (e2e)', () => {
     return request(app.getHttpServer())
       .get('/')
       .expect(200)
-      .expect('Hello World!');
+      .expect('Marketplace Service is running!');
   });
 });

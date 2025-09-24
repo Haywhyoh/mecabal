@@ -70,4 +70,4 @@ async function bootstrap() {
   console.log(`🚀 Auth Service running on: http://localhost:${port}`);
   console.log(`📚 Swagger UI available at: http://localhost:${port}/api/docs`);
 }
-bootstrap();
+void bootstrap();
