@@ -407,6 +407,7 @@ export class MeCabalAuth {
         return null;
       }
 
+
       console.log('✅ Successfully retrieved current user');
       return result.data?.user || result.data!;
     } catch (error) {

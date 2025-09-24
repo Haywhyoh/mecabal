@@ -154,13 +154,13 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
   const renderHeader = useMemo(() => (
     <View style={styles.header}>
       <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="#7f8c8d" style={styles.searchIcon} />
+        <Ionicons name="search" size={20} color="#8E8E8E" style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
           value={searchQuery}
           onChangeText={handleSearch}
           placeholder="Search posts..."
-          placeholderTextColor="#bdc3c7"
+          placeholderTextColor="#8E8E8E"
           returnKeyType="search"
           onSubmitEditing={() => handleSearch(searchQuery)}
         />
@@ -169,7 +169,7 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
             onPress={() => handleSearch('')}
             style={styles.clearButton}
           >
-            <Ionicons name="close-circle" size={20} color="#7f8c8d" />
+            <Ionicons name="close-circle" size={20} color="#8E8E8E" />
           </TouchableOpacity>
         )}
       </View>
@@ -178,7 +178,7 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
         style={styles.filterButton}
         onPress={() => setShowFilter(true)}
       >
-        <Ionicons name="filter" size={20} color="#3498db" />
+        <Ionicons name="options-outline" size={20} color="#00A651" />
       </TouchableOpacity>
     </View>
   ), [searchQuery, handleSearch]);
@@ -232,28 +232,26 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#FFFFFF',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e1e8ed',
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#F5F5F5',
   },
   searchContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     marginRight: 12,
-    borderRadius: 20,
-    backgroundColor: '#f8f9fa',
-    borderWidth: 1,
-    borderColor: '#e1e8ed',
+    borderRadius: 25,
+    backgroundColor: '#FAFAFA',
   },
   searchIcon: {
     marginRight: 8,
@@ -261,7 +259,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: '#2c3e50',
+    color: '#2C2C2C',
   },
   clearButton: {
     marginLeft: 8,
@@ -269,9 +267,6 @@ const styles = StyleSheet.create({
   filterButton: {
     padding: 8,
     borderRadius: 20,
-    backgroundColor: '#f8f9fa',
-    borderWidth: 1,
-    borderColor: '#e1e8ed',
   },
 });
 

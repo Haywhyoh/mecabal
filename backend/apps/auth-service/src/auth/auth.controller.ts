@@ -228,7 +228,12 @@ export class AuthController {
     status: 200,
     description: 'Current user retrieved successfully',
   })
-  async getCurrentUser(@CurrentUser() user: User) {
+  async getCurrentUser(@CurrentUser() user: User, @Request() req: any) {
+    // Add cache control headers to prevent 304 responses
+    req.res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    req.res.setHeader('Pragma', 'no-cache');
+    req.res.setHeader('Expires', '0');
+    
     return this.authService.getUserProfile(user.id);
   }
 

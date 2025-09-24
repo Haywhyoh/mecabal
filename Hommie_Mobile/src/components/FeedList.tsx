@@ -125,10 +125,10 @@ export const FeedList: React.FC<FeedListProps> = ({
       <RefreshControl
         refreshing={refreshing}
         onRefresh={onRefresh}
-        colors={['#3498db']}
-        tintColor="#3498db"
+        colors={['#00A651']}
+        tintColor="#00A651"
         title="Pull to refresh"
-        titleColor="#7f8c8d"
+        titleColor="#8E8E8E"
       />
     ),
     [refreshing, onRefresh]
@@ -178,17 +178,19 @@ export const FeedList: React.FC<FeedListProps> = ({
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
+    backgroundColor: '#FFFFFF',
   },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 20,
+    backgroundColor: '#FFFFFF',
   },
   footerText: {
     marginLeft: 8,
     fontSize: 14,
-    color: '#7f8c8d',
+    color: '#8E8E8E',
   },
   errorContainer: {
     flex: 1,
@@ -196,17 +198,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 32,
     paddingVertical: 64,
+    backgroundColor: '#FFFFFF',
   },
   errorTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#2c3e50',
+    color: '#2C2C2C',
     marginTop: 16,
     marginBottom: 8,
   },
   errorMessage: {
     fontSize: 16,
-    color: '#7f8c8d',
+    color: '#8E8E8E',
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 24,
@@ -216,8 +219,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 24,
-    borderRadius: 8,
-    backgroundColor: '#3498db',
+    borderRadius: 25,
+    backgroundColor: '#00A651',
   },
   retryButtonText: {
     marginLeft: 8,

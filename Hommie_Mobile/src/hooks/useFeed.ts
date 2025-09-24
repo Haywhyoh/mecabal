@@ -81,6 +81,18 @@ export const useFeed = (options: FeedOptions = {}) => {
     loadPosts(true);
   }, [filter]);
 
+  // Helper function to deduplicate posts by ID
+  const deduplicatePosts = useCallback((posts: Post[]): Post[] => {
+    const seen = new Set<string>();
+    return posts.filter(post => {
+      if (seen.has(post.id)) {
+        return false;
+      }
+      seen.add(post.id);
+      return true;
+    });
+  }, []);
+
   const loadPosts = useCallback(async (reset = false) => {
     if (!isMountedRef.current) return;
 
@@ -109,9 +121,12 @@ export const useFeed = (options: FeedOptions = {}) => {
 
         if (!isMountedRef.current) return;
 
+        const combinedPosts = reset ? cachedPosts : [...prev.posts, ...cachedPosts];
+        const deduplicatedPosts = deduplicatePosts(combinedPosts);
+
         setState(prev => ({
           ...prev,
-          posts: reset ? cachedPosts : [...prev.posts, ...cachedPosts],
+          posts: deduplicatedPosts,
           loading: false,
           refreshing: false,
           hasMore: false, // Cached data doesn't have pagination
@@ -124,7 +139,7 @@ export const useFeed = (options: FeedOptions = {}) => {
 
       // Load from API
       const result = await postsService.getPosts(postsFilter);
-      
+
       if (!isMountedRef.current) return;
 
       // Cache the posts for offline use
@@ -132,9 +147,12 @@ export const useFeed = (options: FeedOptions = {}) => {
         await offlineService.cachePosts(result.data);
       }
 
+      const combinedPosts = reset ? result.data : [...prev.posts, ...result.data];
+      const deduplicatedPosts = deduplicatePosts(combinedPosts);
+
       setState(prev => ({
         ...prev,
-        posts: reset ? result.data : [...prev.posts, ...result.data],
+        posts: deduplicatedPosts,
         loading: false,
         refreshing: false,
         hasMore: result.hasNext,
@@ -157,9 +175,12 @@ export const useFeed = (options: FeedOptions = {}) => {
 
           if (!isMountedRef.current) return;
 
+          const combinedPosts = reset ? cachedPosts : [...prev.posts, ...cachedPosts];
+          const deduplicatedPosts = deduplicatePosts(combinedPosts);
+
           setState(prev => ({
             ...prev,
-            posts: reset ? cachedPosts : [...prev.posts, ...cachedPosts],
+            posts: deduplicatedPosts,
             loading: false,
             refreshing: false,
             hasMore: false,
@@ -180,7 +201,7 @@ export const useFeed = (options: FeedOptions = {}) => {
         error: error instanceof Error ? error.message : 'Failed to load posts',
       }));
     }
-  }, [filter, state.page, postsService, offlineService]);
+  }, [filter, state.page, postsService, offlineService, deduplicatePosts]);
 
   const refreshFeed = useCallback(() => {
     loadPosts(true);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Post } from '../services/postsService';
 import { UserAvatar } from './UserAvatar';
+import { PostActionMenu } from './PostActionMenu';
 
 interface PostCardProps {
   post: Post;
@@ -42,7 +43,10 @@ export const PostCard: React.FC<PostCardProps> = ({
   isOwner = false,
 }) => {
   const [showFullContent, setShowFullContent] = useState(false);
-  const [isLiked, setIsLiked] = useState(false);
+  const [isLiked, setIsLiked] = useState(post.engagement.userReaction === 'like');
+  const [showActionMenu, setShowActionMenu] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
+  const menuButtonRef = useRef<any>(null);
 
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
@@ -90,6 +94,20 @@ export const PostCard: React.FC<PostCardProps> = ({
   const handleReaction = (reactionType: string) => {
     setIsLiked(!isLiked);
     onReaction?.(post.id, reactionType);
+  };
+
+  const handleMenuPress = () => {
+    menuButtonRef.current?.measure((x, y, width, height, pageX, pageY) => {
+      setMenuPosition({ x: pageX, y: pageY });
+      setShowActionMenu(true);
+    });
+  };
+
+  const formatCount = (count: number): string => {
+    if (count === 0) return '';
+    if (count < 1000) return count.toString();
+    if (count < 1000000) return `${(count / 1000).toFixed(1)}K`;
+    return `${(count / 1000000).toFixed(1)}M`;
   };
 
   const handleShare = async () => {
@@ -151,10 +169,11 @@ export const PostCard: React.FC<PostCardProps> = ({
               id: post.author.id,
               firstName: post.author.firstName,
               lastName: post.author.lastName,
-              profilePicture: post.author.profilePicture,
+              profilePictureUrl: post.author.profilePicture,
               isVerified: post.author.isVerified,
             }}
-            size={40}
+            size="small"
+            showBadge={post.author.isVerified}
           />
           <View style={styles.authorDetails}>
             <View style={styles.authorNameContainer}>
@@ -189,8 +208,12 @@ export const PostCard: React.FC<PostCardProps> = ({
         </View>
 
         {/* Post Actions Menu */}
-        <TouchableOpacity style={styles.menuButton}>
-          <Ionicons name="ellipsis-horizontal" size={20} color="#7f8c8d" />
+        <TouchableOpacity
+          ref={menuButtonRef}
+          style={styles.menuButton}
+          onPress={handleMenuPress}
+        >
+          <Ionicons name="ellipsis-horizontal" size={20} color="#8E8E8E" />
         </TouchableOpacity>
       </View>
 
@@ -253,14 +276,7 @@ export const PostCard: React.FC<PostCardProps> = ({
         </View>
       )}
 
-      {/* Engagement Stats */}
-      <View style={styles.engagementContainer}>
-        <Text style={styles.engagementText}>
-          {post.engagement.reactionsCount} reactions • {post.engagement.commentsCount} comments
-        </Text>
-      </View>
-
-      {/* Action Buttons */}
+      {/* Twitter-Style Action Buttons */}
       {showActions && (
         <View style={styles.actionsContainer}>
           <TouchableOpacity
@@ -270,48 +286,47 @@ export const PostCard: React.FC<PostCardProps> = ({
             <Ionicons
               name={isLiked ? 'heart' : 'heart-outline'}
               size={20}
-              color={isLiked ? '#e74c3c' : '#7f8c8d'}
+              color={isLiked ? '#00A651' : '#8E8E8E'}
             />
-            <Text style={[styles.actionText, isLiked && styles.actionTextActive]}>
-              Like
-            </Text>
+            {post.engagement.reactionsCount > 0 && (
+              <Text style={[styles.actionCount, isLiked && styles.actionCountActive]}>
+                {formatCount(post.engagement.reactionsCount)}
+              </Text>
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.actionButton}
             onPress={() => onComment?.(post.id)}
           >
-            <Ionicons name="chatbubble-outline" size={20} color="#7f8c8d" />
-            <Text style={styles.actionText}>Comment</Text>
+            <Ionicons name="chatbubble-outline" size={20} color="#8E8E8E" />
+            {post.engagement.commentsCount > 0 && (
+              <Text style={styles.actionCount}>
+                {formatCount(post.engagement.commentsCount)}
+              </Text>
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.actionButton}
             onPress={handleShare}
           >
-            <Ionicons name="share-outline" size={20} color="#7f8c8d" />
-            <Text style={styles.actionText}>Share</Text>
+            <Ionicons name="repeat-outline" size={20} color="#8E8E8E" />
+            {post.engagement.sharesCount > 0 && (
+              <Text style={styles.actionCount}>
+                {formatCount(post.engagement.sharesCount)}
+              </Text>
+            )}
           </TouchableOpacity>
 
-          {isOwner && (
-            <>
-              <TouchableOpacity
-                style={styles.actionButton}
-                onPress={handleEdit}
-              >
-                <Ionicons name="create-outline" size={20} color="#7f8c8d" />
-                <Text style={styles.actionText}>Edit</Text>
-              </TouchableOpacity>
+          <View style={styles.actionSpacer} />
 
-              <TouchableOpacity
-                style={styles.actionButton}
-                onPress={handleDelete}
-              >
-                <Ionicons name="trash-outline" size={20} color="#e74c3c" />
-                <Text style={[styles.actionText, { color: '#e74c3c' }]}>Delete</Text>
-              </TouchableOpacity>
-            </>
-          )}
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => {/* Share/Save functionality */}}
+          >
+            <Ionicons name="bookmark-outline" size={20} color="#8E8E8E" />
+          </TouchableOpacity>
         </View>
       )}
 
@@ -322,21 +337,33 @@ export const PostCard: React.FC<PostCardProps> = ({
           <Text style={styles.pinnedText}>Pinned Post</Text>
         </View>
       )}
+
+      {/* Action Menu */}
+      <PostActionMenu
+        visible={showActionMenu}
+        onClose={() => setShowActionMenu(false)}
+        post={post}
+        isOwner={isOwner}
+        onReport={onReport}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        position={menuPosition}
+      />
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
     marginVertical: 8,
     borderRadius: 12,
     padding: 16,
-    shadowColor: '#000',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 8,
     elevation: 3,
   },
   pinnedContainer: {
@@ -364,7 +391,7 @@ const styles = StyleSheet.create({
   authorName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#2c3e50',
+    color: '#2C2C2C',
     marginRight: 4,
   },
   postMeta: {
@@ -374,7 +401,7 @@ const styles = StyleSheet.create({
   },
   timestamp: {
     fontSize: 12,
-    color: '#7f8c8d',
+    color: '#8E8E8E',
     marginRight: 8,
   },
   postTypeContainer: {
@@ -388,7 +415,8 @@ const styles = StyleSheet.create({
     marginLeft: 2,
   },
   menuButton: {
-    padding: 4,
+    padding: 8,
+    borderRadius: 20,
   },
   categoryContainer: {
     marginBottom: 8,
@@ -416,7 +444,7 @@ const styles = StyleSheet.create({
   content: {
     fontSize: 16,
     lineHeight: 24,
-    color: '#2c3e50',
+    color: '#2C2C2C',
   },
   readMoreButton: {
     marginTop: 4,
@@ -457,37 +485,32 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontStyle: 'italic',
   },
-  engagementContainer: {
-    marginBottom: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#e1e8ed',
-  },
-  engagementText: {
-    fontSize: 14,
-    color: '#7f8c8d',
-  },
   actionsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#e1e8ed',
+    alignItems: 'center',
+    paddingTop: 8,
+    marginTop: 8,
+    paddingHorizontal: 8,
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
+    borderRadius: 20,
+    minWidth: 60,
   },
-  actionText: {
-    marginLeft: 4,
+  actionCount: {
+    marginLeft: 6,
     fontSize: 14,
-    color: '#7f8c8d',
-    fontWeight: '500',
+    color: '#8E8E8E',
+    fontWeight: '400',
   },
-  actionTextActive: {
-    color: '#e74c3c',
+  actionCountActive: {
+    color: '#00A651',
+  },
+  actionSpacer: {
+    flex: 1,
   },
   pinnedIndicator: {
     flexDirection: 'row',
