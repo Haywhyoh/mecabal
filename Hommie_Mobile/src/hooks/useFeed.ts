@@ -121,7 +121,7 @@ export const useFeed = (options: FeedOptions = {}) => {
 
         if (!isMountedRef.current) return;
 
-        const combinedPosts = reset ? cachedPosts : [...prev.posts, ...cachedPosts];
+        const combinedPosts = reset ? cachedPosts : [...state.posts, ...cachedPosts];
         const deduplicatedPosts = deduplicatePosts(combinedPosts);
 
         setState(prev => ({
@@ -147,7 +147,7 @@ export const useFeed = (options: FeedOptions = {}) => {
         await offlineService.cachePosts(result.data);
       }
 
-      const combinedPosts = reset ? result.data : [...prev.posts, ...result.data];
+      const combinedPosts = reset ? result.data : [...state.posts, ...result.data];
       const deduplicatedPosts = deduplicatePosts(combinedPosts);
 
       setState(prev => ({
@@ -175,7 +175,7 @@ export const useFeed = (options: FeedOptions = {}) => {
 
           if (!isMountedRef.current) return;
 
-          const combinedPosts = reset ? cachedPosts : [...prev.posts, ...cachedPosts];
+          const combinedPosts = reset ? cachedPosts : [...state.posts, ...cachedPosts];
           const deduplicatedPosts = deduplicatePosts(combinedPosts);
 
           setState(prev => ({
@@ -318,6 +318,15 @@ export const useFeed = (options: FeedOptions = {}) => {
     }
   }, [postsService]);
 
+  const getPostById = useCallback(async (postId: string): Promise<Post> => {
+    try {
+      return await postsService.getPostById(postId);
+    } catch (error) {
+      console.error('Error fetching post by ID:', error);
+      throw error;
+    }
+  }, [postsService]);
+
   return {
     // State
     posts: state.posts,
@@ -339,6 +348,7 @@ export const useFeed = (options: FeedOptions = {}) => {
     reportPost,
     editPost,
     deletePost,
+    getPostById,
   };
 };
 

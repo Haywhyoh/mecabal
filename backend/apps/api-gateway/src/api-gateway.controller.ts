@@ -185,6 +185,8 @@ export class ApiGatewayController {
   // Dynamic routing for social service - handles ALL social-related routes EXCEPT media uploads
   @All('posts')
   @All('posts/*')
+  @All('posts/categories')
+  @All('posts/categories/*')
   @All('categories')
   @All('categories/*')
   @All('media/stats')

@@ -60,6 +60,7 @@ import ChatScreen from './src/screens/ChatScreen';
 
 // Community Posts
 import CreatePostScreen from './src/screens/CreatePostScreen';
+import PostDetailScreen from './src/screens/PostDetailScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -160,6 +161,7 @@ function MainStackNavigator() {
       
       {/* Community Posts */}
       <Stack.Screen name="CreatePost" component={CreatePostScreen} />
+      <Stack.Screen name="PostDetail" component={PostDetailScreen} />
       
       {/* Development & Testing */}
       <Stack.Screen name="LocationTest" component={LocationTestScreen} />

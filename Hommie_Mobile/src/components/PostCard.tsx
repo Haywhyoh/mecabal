@@ -9,6 +9,7 @@ import {
   Alert,
   Share,
 } from 'react-native';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import { Ionicons } from '@expo/vector-icons';
 import { Post } from '../services/postsService';
 import { UserAvatar } from './UserAvatar';
@@ -16,7 +17,7 @@ import { PostActionMenu } from './PostActionMenu';
 
 interface PostCardProps {
   post: Post;
-  onPress?: () => void;
+  onPress?: (post: Post) => void;
   onReaction?: (postId: string, reactionType: string) => void;
   onComment?: (postId: string) => void;
   onShare?: (post: Post) => void;
@@ -97,7 +98,7 @@ export const PostCard: React.FC<PostCardProps> = ({
   };
 
   const handleMenuPress = () => {
-    menuButtonRef.current?.measure((x, y, width, height, pageX, pageY) => {
+    menuButtonRef.current?.measure((x: number, y: number, width: number, height: number, pageX: number, pageY: number) => {
       setMenuPosition({ x: pageX, y: pageY });
       setShowActionMenu(true);
     });
@@ -158,7 +159,7 @@ export const PostCard: React.FC<PostCardProps> = ({
   return (
     <TouchableOpacity
       style={[styles.container, post.isPinned && styles.pinnedContainer]}
-      onPress={onPress}
+      onPress={() => onPress?.(post)}
       activeOpacity={0.7}
     >
       {/* Header */}
@@ -167,10 +168,18 @@ export const PostCard: React.FC<PostCardProps> = ({
           <UserAvatar
             user={{
               id: post.author.id,
+              phoneNumber: '', // Not available in post data
               firstName: post.author.firstName,
               lastName: post.author.lastName,
               profilePictureUrl: post.author.profilePicture,
               isVerified: post.author.isVerified,
+              phoneVerified: false,
+              identityVerified: false,
+              addressVerified: false,
+              preferredLanguage: 'en',
+              verificationLevel: 0,
+              createdAt: '',
+              updatedAt: '',
             }}
             size="small"
             showBadge={post.author.isVerified}
@@ -263,10 +272,12 @@ export const PostCard: React.FC<PostCardProps> = ({
                   resizeMode="cover"
                 />
               ) : (
-                <View style={styles.videoPlaceholder}>
-                  <Ionicons name="play-circle" size={40} color="#fff" />
-                  <Text style={styles.videoText}>Video</Text>
-                </View>
+                <VideoView
+                  player={useVideoPlayer(media.url)}
+                  style={styles.mediaVideo}
+                  allowsFullscreen
+                  allowsPictureInPicture
+                />
               )}
               {media.caption && (
                 <Text style={styles.mediaCaption}>{media.caption}</Text>
@@ -467,19 +478,10 @@ const styles = StyleSheet.create({
     height: imageWidth * 0.75,
     borderRadius: 8,
   },
-  videoPlaceholder: {
+  mediaVideo: {
     width: imageWidth,
     height: imageWidth * 0.75,
     borderRadius: 8,
-    backgroundColor: '#2c3e50',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  videoText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '500',
-    marginTop: 4,
   },
   mediaCaption: {
     fontSize: 14,
