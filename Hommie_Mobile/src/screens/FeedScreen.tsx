@@ -5,7 +5,6 @@ import {
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
-  TextInput,
   Alert,
   StatusBar,
 } from 'react-native';
@@ -28,8 +27,6 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
   const [selectedSegment, setSelectedSegment] = useState('all');
   const [showFilter, setShowFilter] = useState(false);
   const [showPostCreator, setShowPostCreator] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
   const { user: currentUser } = useAuth();
 
   // Initialize feed with auto-refresh
@@ -44,7 +41,6 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
     refreshFeed,
     updateFilter,
     clearFilter,
-    searchPosts,
     likePost,
     commentOnPost,
     sharePost,
@@ -56,26 +52,6 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
     refreshInterval: 30000, // 30 seconds
   });
 
-
-  // Handle search
-  const handleSearch = useCallback(async (query: string) => {
-    setSearchQuery(query);
-    setIsSearching(true);
-    
-    try {
-      if (query.trim()) {
-        await searchPosts(query);
-      } else {
-        // Clear search and refresh feed
-        clearFilter();
-        refreshFeed();
-      }
-    } catch (error) {
-      console.error('Search error:', error);
-    } finally {
-      setIsSearching(false);
-    }
-  }, [searchPosts, clearFilter, refreshFeed]);
 
   // Handle post actions
   const handlePostPress = useCallback((post: Post) => {
@@ -191,46 +167,9 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
     return null;
   }, [handlePostPress, handleReaction, handleComment, handleShare]);
 
-  // Memoize the header component
-  const renderHeader = useMemo(() => (
-    <View style={styles.header}>
-      <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="#8E8E8E" style={styles.searchIcon} />
-        <TextInput
-          style={styles.searchInput}
-          value={searchQuery}
-          onChangeText={handleSearch}
-          placeholder="Search posts..."
-          placeholderTextColor="#8E8E8E"
-          returnKeyType="search"
-          onSubmitEditing={() => handleSearch(searchQuery)}
-        />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity
-            onPress={() => handleSearch('')}
-            style={styles.clearButton}
-          >
-            <Ionicons name="close-circle" size={20} color="#8E8E8E" />
-          </TouchableOpacity>
-        )}
-      </View>
-      
-      <TouchableOpacity
-        style={styles.filterButton}
-        onPress={() => setShowFilter(true)}
-      >
-        <Ionicons name="options-outline" size={20} color="#00A651" />
-      </TouchableOpacity>
-    </View>
-  ), [searchQuery, handleSearch]);
-
-
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-
-      {/* Header */}
-      {renderHeader}
 
       {/* Segmented Control */}
       <View style={styles.filterBar}>
@@ -291,40 +230,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#F5F5F5',
-  },
-  searchContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    marginRight: 12,
-    borderRadius: 25,
-    backgroundColor: '#FAFAFA',
-  },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: '#2C2C2C',
-  },
-  clearButton: {
-    marginLeft: 8,
-  },
-  filterButton: {
-    padding: 8,
-    borderRadius: 20,
   },
   filterBar: {
     flexDirection: 'row',

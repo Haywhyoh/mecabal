@@ -3,7 +3,9 @@ import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, Dim
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import NotificationService from '../services/NotificationService';
-import MessagingService from '../services/MessagingService';
+import { PostsService } from '../services/postsService';
+import { ListingsService } from '../services/listingsService';
+import { DataService } from '../services/data';
 import FloatingActionButton from '../components/FloatingActionButton';
 import { useAuth } from '../contexts/AuthContext';
 import { FeedScreen } from '../screens/FeedScreen';
@@ -14,21 +16,21 @@ export default function HomeScreen() {
   const [searchText, setSearchText] = useState('');
   const [sidebarVisible, setSidebarVisible] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
-  const [unreadMessages, setUnreadMessages] = useState(0);
+  const [searchResults, setSearchResults] = useState({
+    posts: [],
+    events: [],
+    listings: []
+  });
+  const [isSearching, setIsSearching] = useState(false);
   const navigation = useNavigation();
   const { user } = useAuth();
 
   const notificationService = NotificationService.getInstance();
-  const messagingService = MessagingService.getInstance();
 
-  // Subscribe to notification and message updates
+  // Subscribe to notification updates
   useEffect(() => {
     // Load initial counts
     setUnreadNotifications(notificationService.getUnreadCount());
-    
-    const conversations = messagingService.getConversations();
-    const totalUnreadMessages = conversations.reduce((total, conv) => total + conv.unreadCount, 0);
-    setUnreadMessages(totalUnreadMessages);
 
     // Subscribe to notification updates
     const unsubscribeNotifications = notificationService.subscribe((notifications) => {
@@ -36,20 +38,8 @@ export default function HomeScreen() {
       setUnreadNotifications(unreadCount);
     });
 
-    // Subscribe to conversation updates
-    const handleConversationUpdated = () => {
-      const conversations = messagingService.getConversations();
-      const totalUnread = conversations.reduce((total, conv) => total + conv.unreadCount, 0);
-      setUnreadMessages(totalUnread);
-    };
-
-    messagingService.on('conversationUpdated', handleConversationUpdated);
-    messagingService.on('conversationCreated', handleConversationUpdated);
-
     return () => {
       unsubscribeNotifications();
-      messagingService.off('conversationUpdated', handleConversationUpdated);
-      messagingService.off('conversationCreated', handleConversationUpdated);
     };
   }, []);
 
@@ -76,9 +66,41 @@ export default function HomeScreen() {
     setTimeout(action, 200);
   };
 
-  const handleSearch = () => {
-    if (searchText.trim()) {
-      Alert.alert('Search', `Searching for: "${searchText}"`);
+  const handleSearch = async () => {
+    if (!searchText.trim()) return;
+    
+    setIsSearching(true);
+    try {
+      const query = searchText.trim();
+      
+      // Search across all content types in parallel
+      const [posts, events, listings] = await Promise.all([
+        PostsService.getInstance().searchPosts(query, { limit: 5 }),
+        DataService.searchContent(query, ['events']).then(result => result.events || []),
+        ListingsService.getInstance().searchListings(query, { limit: 5 })
+      ]);
+      
+      setSearchResults({
+        posts: posts || [],
+        events: events || [],
+        listings: listings || []
+      });
+      
+      // Navigate to search results screen
+      navigation.navigate('SearchResults' as never, {
+        query,
+        results: {
+          posts: posts || [],
+          events: events || [],
+          listings: listings || []
+        }
+      });
+      
+    } catch (error) {
+      console.error('Search error:', error);
+      Alert.alert('Search Error', 'Failed to search. Please try again.');
+    } finally {
+      setIsSearching(false);
     }
   };
 
@@ -108,9 +130,6 @@ export default function HomeScreen() {
     );
   };
 
-  const handleMessages = () => {
-    navigation.navigate('Messaging' as never);
-  };
 
   const handleNotifications = () => {
     navigation.navigate('Notifications' as never);
@@ -149,17 +168,19 @@ export default function HomeScreen() {
             <MaterialCommunityIcons name="magnify" size={20} color="#8E8E8E" style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search MeCabal"
+              placeholder="Search posts, events, listings..."
               placeholderTextColor="#8E8E8E"
               value={searchText}
               onChangeText={setSearchText}
               onSubmitEditing={handleSearch}
             />
-            {searchText.length > 0 && (
+            {isSearching ? (
+              <MaterialCommunityIcons name="loading" size={18} color="#8E8E8E" style={styles.loadingIcon} />
+            ) : searchText.length > 0 ? (
               <TouchableOpacity onPress={() => setSearchText('')} style={styles.clearButton} activeOpacity={0.7}>
                 <MaterialCommunityIcons name="close-circle" size={18} color="#8E8E8E" />
               </TouchableOpacity>
-            )}
+            ) : null}
           </View>
           
           <View style={styles.headerActions}>
@@ -178,8 +199,8 @@ export default function HomeScreen() {
                 </View>
               )}
             </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.headerAction} 
+            <TouchableOpacity
+              style={styles.headerAction}
               onPress={handleNotifications}
               activeOpacity={0.7}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -189,21 +210,6 @@ export default function HomeScreen() {
                 <View style={styles.notificationBadge}>
                   <Text style={styles.notificationText}>
                     {unreadNotifications > 9 ? '9+' : unreadNotifications}
-                  </Text>
-                </View>
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.headerAction} 
-              onPress={handleMessages}
-              activeOpacity={0.7}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <MaterialCommunityIcons name="chat" size={24} color="#2C2C2C" />
-              {unreadMessages > 0 && (
-                <View style={styles.notificationBadge}>
-                  <Text style={styles.notificationText}>
-                    {unreadMessages > 9 ? '9+' : unreadMessages}
                   </Text>
                 </View>
               )}
@@ -350,12 +356,12 @@ const styles = StyleSheet.create({
     minHeight: 44, // Ensure minimum touch target size
   },
   profileSection: {
-    marginRight: 12,
+    marginRight: 16,
   },
   profileButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: '#00A651',
     alignItems: 'center',
     justifyContent: 'center',
@@ -384,10 +390,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F5F5F5',
-    borderRadius: 20,
+    borderRadius: 22,
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginRight: 12,
+    paddingVertical: 10,
+    marginRight: 16,
+    minHeight: 44,
   },
   searchIcon: {
     marginRight: 8,
@@ -400,12 +407,21 @@ const styles = StyleSheet.create({
   clearButton: {
     padding: 2,
   },
+  loadingIcon: {
+    padding: 2,
+  },
   headerActions: {
     flexDirection: 'row',
+    alignItems: 'center',
   },
   headerAction: {
-    marginLeft: 16,
+    marginLeft: 20,
     position: 'relative',
+    padding: 10, // Ensure 44x44 touch target (24px icon + 20px padding)
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   notificationBadge: {
     position: 'absolute',
