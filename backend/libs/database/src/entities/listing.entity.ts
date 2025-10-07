@@ -8,13 +8,14 @@ import {
   OneToMany,
   JoinColumn,
   Index,
+  Relation,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
-import { User } from './user.entity';
-import { Neighborhood } from './neighborhood.entity';
-import { ListingCategory } from './listing-category.entity';
 import { ListingMedia } from './listing-media.entity';
 import { ListingSave } from './listing-save.entity';
+import type { User } from './user.entity';
+import type { Neighborhood } from './neighborhood.entity';
+import type { ListingCategory } from './listing-category.entity';
 
 @Entity('listings')
 @Index(['neighborhoodId', 'createdAt'])
@@ -113,15 +114,14 @@ export class Listing {
   @Column({ length: 100, nullable: true })
   brand?: string;
 
-  // Location (using PostGIS)
-  @ApiProperty({ description: 'Geographic location' })
-  @Index({ spatial: true })
-  @Column({
-    type: 'geography',
-    spatialFeatureType: 'Point',
-    srid: 4326,
-  })
-  location: string; // Will be stored as WKT format
+  // Location (using separate lat/lng columns for better compatibility)
+  @ApiProperty({ description: 'Latitude coordinate' })
+  @Column({ type: 'decimal', precision: 10, scale: 8 })
+  latitude: number;
+
+  @ApiProperty({ description: 'Longitude coordinate' })
+  @Column({ type: 'decimal', precision: 11, scale: 8 })
+  longitude: number;
 
   @ApiProperty({ description: 'Full address text' })
   @Column({ type: 'text' })
@@ -158,19 +158,17 @@ export class Listing {
   updatedAt: Date;
 
   // Relations
-  @ManyToOne(() => User, (user) => user.listings, { onDelete: 'CASCADE' })
+  @ManyToOne('User', { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
-  user: User;
+  user: any;
 
-  @ManyToOne(() => Neighborhood, (neighborhood) => neighborhood.listings, {
-    onDelete: 'CASCADE',
-  })
+  @ManyToOne('Neighborhood', { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'neighborhood_id' })
-  neighborhood: Neighborhood;
+  neighborhood: any;
 
-  @ManyToOne(() => ListingCategory, (category) => category.listings)
+  @ManyToOne('ListingCategory')
   @JoinColumn({ name: 'category_id' })
-  category: ListingCategory;
+  category: any;
 
   @OneToMany(() => ListingMedia, (media) => media.listing, {
     cascade: true,

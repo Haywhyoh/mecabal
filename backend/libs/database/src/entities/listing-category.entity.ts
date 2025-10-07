@@ -7,6 +7,7 @@ import {
   Index,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
+// import { Listing } from './listing.entity'; // Removed to avoid circular dependency
 
 @Entity('listing_categories')
 @Index(['listingType'])
@@ -73,6 +74,6 @@ export class ListingCategory {
   createdAt: Date;
 
   // Relations
-  // Note: Removed OneToMany relationship to Listing to avoid circular dependency
-  // Use Listing.category to access listings for a category
+  @OneToMany('Listing', (listing: any) => listing.category)
+  listings: any[];
 }

@@ -8,6 +8,7 @@ import {
   ManyToMany,
   JoinTable,
   Index,
+  Relation,
 } from 'typeorm';
 // import type { Point } from 'typeorm'; // Temporarily disabled for PostGIS
 import { ApiProperty } from '@nestjs/swagger';
@@ -18,6 +19,7 @@ import { UserSession } from './user-session.entity';
 import { OtpVerification } from './otp-verification.entity';
 import { Role } from './role.entity';
 import { Neighborhood } from './neighborhood.entity';
+import type { Listing } from './listing.entity';
 
 @Entity('users')
 @Index(['phoneNumber'], { unique: true })
@@ -246,9 +248,6 @@ export class User {
 
   @OneToMany(() => Post, (post) => post.user)
   posts: Post[];
-
-  // Note: Removed OneToMany relationship to Listing to avoid circular dependency
-  // Use Listing.user to access listings for a user
 
   @OneToMany(() => UserSession, (session) => session.user)
   sessions: UserSession[];

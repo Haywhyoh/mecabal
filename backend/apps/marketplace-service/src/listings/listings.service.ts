@@ -58,15 +58,13 @@ export class ListingsService {
       );
     }
 
-    // Convert location to PostGIS format (WKT)
-    const locationWKT = `SRID=4326;POINT(${createListingDto.location.longitude} ${createListingDto.location.latitude})`;
-
     // Create listing
     const listing = this.listingRepository.create({
       ...createListingDto,
       userId,
       neighborhoodId,
-      location: locationWKT,
+      latitude: createListingDto.location.latitude,
+      longitude: createListingDto.location.longitude,
       address: createListingDto.location.address,
       expiresAt: createListingDto.expiresAt
         ? new Date(createListingDto.expiresAt)
@@ -77,7 +75,7 @@ export class ListingsService {
 
     // Create media attachments if provided
     if (createListingDto.media && createListingDto.media.length > 0) {
-      const mediaEntities = createListingDto.media.map((media, index) =>
+      const mediaEntities = createListingDto.media.map((media: any, index: number) =>
         this.mediaRepository.create({
           listingId: savedListing.id,
           url: media.url,
@@ -164,8 +162,8 @@ export class ListingsService {
 
     // Update location if provided
     if (updateListingDto.location) {
-      const locationWKT = `SRID=4326;POINT(${updateListingDto.location.longitude} ${updateListingDto.location.latitude})`;
-      listing.location = locationWKT;
+      listing.latitude = updateListingDto.location.latitude;
+      listing.longitude = updateListingDto.location.longitude;
       listing.address = updateListingDto.location.address;
       delete updateListingDto.location;
     }
@@ -184,7 +182,7 @@ export class ListingsService {
       await this.mediaRepository.delete({ listingId: id });
 
       if (updateListingDto.media.length > 0) {
-        const mediaEntities = updateListingDto.media.map((media, index) =>
+        const mediaEntities = updateListingDto.media.map((media: any, index: number) =>
           this.mediaRepository.create({
             listingId: id,
             url: media.url,
@@ -496,10 +494,9 @@ export class ListingsService {
       isSaved = !!save;
     }
 
-    // Parse location from WKT format
-    const locationMatch = listing.location.match(/POINT\(([^ ]+) ([^ ]+)\)/);
-    const longitude = locationMatch ? parseFloat(locationMatch[1]) : 0;
-    const latitude = locationMatch ? parseFloat(locationMatch[2]) : 0;
+    // Use latitude and longitude directly
+    const latitude = listing.latitude;
+    const longitude = listing.longitude;
 
     return {
       id: listing.id,

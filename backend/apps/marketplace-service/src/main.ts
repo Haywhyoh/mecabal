@@ -60,7 +60,7 @@ async function bootstrap() {
     customSiteTitle: 'MeCabal Marketplace API Docs',
   });
 
-  const port = process.env.PORT ?? 3005;
+  const port = process.env.MARKETPLACE_SERVICE_PORT ?? 3005;
   await app.listen(port);
 
   console.log(`🚀 Marketplace Service running on: http://localhost:${port}`);

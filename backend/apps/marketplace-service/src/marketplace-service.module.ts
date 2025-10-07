@@ -1,11 +1,22 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { MarketplaceServiceController } from './marketplace-service.controller';
 import { MarketplaceServiceService } from './marketplace-service.service';
 import { ListingsModule } from './listings/listings.module';
 import { ListingCategoriesModule } from './listing-categories/listing-categories.module';
+import { DatabaseModule } from '@app/database';
+import { AuthModule } from '@app/auth';
 
 @Module({
-  imports: [ListingsModule, ListingCategoriesModule],
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
+    DatabaseModule,
+    AuthModule,
+    ListingsModule,
+    ListingCategoriesModule,
+  ],
   controllers: [MarketplaceServiceController],
   providers: [MarketplaceServiceService],
 })

@@ -19,6 +19,10 @@ import {
   UserNeighborhood,
   Media,
   CommentMedia,
+  Listing,
+  ListingCategory,
+  ListingMedia,
+  ListingSave,
 } from './entities';
 
 @Module({
@@ -50,6 +54,10 @@ import {
           UserNeighborhood,
           Media,
           CommentMedia,
+          Listing,
+          ListingCategory,
+          ListingMedia,
+          ListingSave,
         ],
         synchronize: configService.get('NODE_ENV') === 'development',
         logging: configService.get('NODE_ENV') === 'development',
@@ -79,6 +87,10 @@ import {
       UserNeighborhood,
       Media,
       CommentMedia,
+      Listing,
+      ListingCategory,
+      ListingMedia,
+      ListingSave,
     ]),
   ],
   providers: [DatabaseService],

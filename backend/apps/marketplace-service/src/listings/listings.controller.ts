@@ -26,6 +26,13 @@ import {
   PaginatedListingsResponseDto,
 } from './dto';
 
+interface AuthenticatedRequest extends Request {
+  user: {
+    userId: string;
+    neighborhoodId: string;
+  };
+}
+
 @ApiTags('listings')
 @Controller('listings')
 @UseGuards(JwtAuthGuard)
@@ -41,7 +48,7 @@ export class ListingsController {
     type: ListingResponseDto,
   })
   async create(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Body() createListingDto: CreateListingDto,
   ): Promise<ListingResponseDto> {
     return this.listingsService.create(
@@ -59,7 +66,7 @@ export class ListingsController {
     type: PaginatedListingsResponseDto,
   })
   async findAll(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Query() filter: ListingFilterDto,
   ): Promise<PaginatedListingsResponseDto> {
     return this.listingsService.findAll(filter, req.user?.userId);
@@ -94,7 +101,7 @@ export class ListingsController {
     type: PaginatedListingsResponseDto,
   })
   async getSaved(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Query() filter: ListingFilterDto,
   ): Promise<PaginatedListingsResponseDto> {
     return this.listingsService.getSavedListings(req.user.userId, filter);
@@ -108,7 +115,7 @@ export class ListingsController {
     type: PaginatedListingsResponseDto,
   })
   async getMyListings(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Query() filter: ListingFilterDto,
   ): Promise<PaginatedListingsResponseDto> {
     return this.listingsService.getUserListings(req.user.userId, filter);
@@ -123,7 +130,7 @@ export class ListingsController {
   })
   @ApiResponse({ status: 404, description: 'Listing not found' })
   async findOne(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
   ): Promise<ListingResponseDto> {
     return this.listingsService.findOne(id, req.user?.userId);
@@ -139,7 +146,7 @@ export class ListingsController {
   @ApiResponse({ status: 404, description: 'Listing not found' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   async update(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() updateListingDto: UpdateListingDto,
   ): Promise<ListingResponseDto> {
@@ -151,7 +158,7 @@ export class ListingsController {
   @ApiResponse({ status: 200, description: 'Listing deleted successfully' })
   @ApiResponse({ status: 404, description: 'Listing not found' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
-  async remove(@Request() req, @Param('id') id: string): Promise<void> {
+  async remove(@Request() req: AuthenticatedRequest, @Param('id') id: string): Promise<void> {
     return this.listingsService.remove(id, req.user.userId);
   }
 
@@ -165,14 +172,14 @@ export class ListingsController {
   @Post(':id/save')
   @ApiOperation({ summary: 'Save a listing' })
   @ApiResponse({ status: 200, description: 'Listing saved successfully' })
-  async save(@Request() req, @Param('id') id: string): Promise<void> {
+  async save(@Request() req: AuthenticatedRequest, @Param('id') id: string): Promise<void> {
     return this.listingsService.saveListing(id, req.user.userId);
   }
 
   @Delete(':id/save')
   @ApiOperation({ summary: 'Unsave a listing' })
   @ApiResponse({ status: 200, description: 'Listing unsaved successfully' })
-  async unsave(@Request() req, @Param('id') id: string): Promise<void> {
+  async unsave(@Request() req: AuthenticatedRequest, @Param('id') id: string): Promise<void> {
     return this.listingsService.unsaveListing(id, req.user.userId);
   }
 
@@ -186,7 +193,7 @@ export class ListingsController {
   @ApiResponse({ status: 404, description: 'Listing not found' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   async markSold(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
   ): Promise<ListingResponseDto> {
     return this.listingsService.markAsSold(id, req.user.userId);

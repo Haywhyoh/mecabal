@@ -14,6 +14,7 @@ import { LocalGovernmentArea } from './local-government-area.entity';
 import { User } from './user.entity';
 import { UserNeighborhood } from './user-neighborhood.entity';
 import { Post } from './post.entity';
+// import { Listing } from './listing.entity'; // Removed to avoid circular dependency
 
 @Entity('neighborhoods')
 @Index(['lgaId'])
@@ -89,9 +90,6 @@ export class Neighborhood {
 
   @OneToMany(() => Post, (post) => post.neighborhood)
   posts: Post[];
-
-  // Note: Removed OneToMany relationship to Listing to avoid circular dependency
-  // Use Listing.neighborhood to access listings for a neighborhood
 
   // Helper methods
   getDistanceFromPoint(lat: number, lng: number): number {
