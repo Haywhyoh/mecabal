@@ -9,6 +9,7 @@ import {
 } from '@app/database';
 import { ListingsService } from './listings.service';
 import { ListingsController } from './listings.controller';
+import { MarketplaceAuthGuard } from '../guards/marketplace-auth.guard';
 
 @Module({
   imports: [
@@ -21,7 +22,7 @@ import { ListingsController } from './listings.controller';
     ]),
   ],
   controllers: [ListingsController],
-  providers: [ListingsService],
+  providers: [ListingsService, MarketplaceAuthGuard],
   exports: [ListingsService],
 })
 export class ListingsModule {}

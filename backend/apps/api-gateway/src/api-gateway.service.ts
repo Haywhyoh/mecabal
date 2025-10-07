@@ -266,6 +266,12 @@ export class ApiGatewayService {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         Pragma: 'no-cache',
         Expires: '0',
+        // Forward the original Authorization header for JWT authentication
+        ...(headers && headers.authorization && {
+          'Authorization': Array.isArray(headers.authorization) 
+            ? headers.authorization[0] 
+            : headers.authorization,
+        }),
         ...(user && {
           'X-User-Id':
             (user as { id: string }).id.length === 37 &&

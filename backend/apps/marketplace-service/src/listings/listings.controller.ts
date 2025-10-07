@@ -16,7 +16,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@app/auth';
+import { MarketplaceAuthGuard } from '../guards/marketplace-auth.guard';
 import { ListingsService } from './listings.service';
 import {
   CreateListingDto,
@@ -35,7 +35,7 @@ interface AuthenticatedRequest extends Request {
 
 @ApiTags('listings')
 @Controller('listings')
-@UseGuards(JwtAuthGuard)
+@UseGuards(MarketplaceAuthGuard)
 @ApiBearerAuth()
 export class ListingsController {
   constructor(private readonly listingsService: ListingsService) {}
