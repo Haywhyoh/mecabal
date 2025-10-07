@@ -6,7 +6,7 @@ export interface Post {
   id: string;
   title?: string;
   content: string;
-  postType: 'general' | 'event' | 'alert' | 'marketplace' | 'lost_found';
+  postType: 'general' | 'event' | 'alert' | 'marketplace' | 'lost_found' | 'help';
   privacyLevel: 'neighborhood' | 'group' | 'public';
   isPinned: boolean;
   isApproved: boolean;
@@ -44,12 +44,17 @@ export interface Post {
   };
   isVisible: boolean;
   isExpired: boolean;
+  // Help-specific fields
+  helpCategory?: 'job' | 'errand' | 'recommendation' | 'advice';
+  urgency?: 'low' | 'medium' | 'high';
+  budget?: string;
+  deadline?: string;
 }
 
 export interface CreatePostRequest {
   title?: string;
   content: string;
-  postType: 'general' | 'event' | 'alert' | 'marketplace' | 'lost_found';
+  postType: 'general' | 'event' | 'alert' | 'marketplace' | 'lost_found' | 'help';
   privacyLevel: 'neighborhood' | 'group' | 'public';
   categoryId?: number;
   expiresAt?: string;
@@ -59,12 +64,17 @@ export interface CreatePostRequest {
     caption?: string;
   }>;
   isPinned?: boolean;
+  // Help-specific fields
+  helpCategory?: string;
+  urgency?: string;
+  budget?: string;
+  deadline?: string;
 }
 
 export interface UpdatePostRequest {
   title?: string;
   content?: string;
-  postType?: 'general' | 'event' | 'alert' | 'marketplace' | 'lost_found';
+  postType?: 'general' | 'event' | 'alert' | 'marketplace' | 'lost_found' | 'help';
   privacyLevel?: 'neighborhood' | 'group' | 'public';
   categoryId?: number;
   expiresAt?: string;
@@ -74,6 +84,11 @@ export interface UpdatePostRequest {
     caption?: string;
   }>;
   isPinned?: boolean;
+  // Help-specific fields
+  helpCategory?: string;
+  urgency?: string;
+  budget?: string;
+  deadline?: string;
 }
 
 export interface Comment {
@@ -126,7 +141,7 @@ export interface Reaction {
 export interface PostFilter {
   page?: number;
   limit?: number;
-  postType?: 'general' | 'event' | 'alert' | 'marketplace' | 'lost_found';
+  postType?: 'general' | 'event' | 'alert' | 'marketplace' | 'lost_found' | 'help';
   privacyLevel?: 'neighborhood' | 'group' | 'public';
   categoryId?: number;
   userId?: string;

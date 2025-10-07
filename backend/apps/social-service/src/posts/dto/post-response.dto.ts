@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { PostType, PrivacyLevel } from './create-post.dto';
+import { PostType, PrivacyLevel, HelpCategory, Urgency } from './create-post.dto';
 
 export class UserInfoDto {
   @ApiProperty({ description: 'User ID' })
@@ -120,6 +120,19 @@ export class PostResponseDto {
 
   @ApiProperty({ description: 'Whether post has expired' })
   isExpired: boolean;
+
+  // Help-specific fields
+  @ApiPropertyOptional({ description: 'Help category', enum: HelpCategory })
+  helpCategory?: HelpCategory;
+
+  @ApiPropertyOptional({ description: 'Urgency level', enum: Urgency })
+  urgency?: Urgency;
+
+  @ApiPropertyOptional({ description: 'Budget for help request' })
+  budget?: string;
+
+  @ApiPropertyOptional({ description: 'Deadline for help request' })
+  deadline?: Date;
 }
 
 export class PaginatedPostsDto {

@@ -58,6 +58,15 @@ export class PostsService {
       }
     }
 
+    // Validate help-specific fields
+    if (createPostDto.postType === 'help') {
+      if (!createPostDto.helpCategory) {
+        throw new BadRequestException(
+          'Help category is required for help posts',
+        );
+      }
+    }
+
     // Create the post
     const post = this.postRepository.create({
       ...createPostDto,
@@ -65,6 +74,9 @@ export class PostsService {
       neighborhoodId,
       expiresAt: createPostDto.expiresAt
         ? new Date(createPostDto.expiresAt)
+        : undefined,
+      deadline: createPostDto.deadline
+        ? new Date(createPostDto.deadline)
         : undefined,
     });
 
@@ -316,6 +328,19 @@ export class PostsService {
         isApproved: filterDto.isApproved,
       });
     }
+
+    // Help-specific filters
+    if (filterDto.helpCategory) {
+      queryBuilder.andWhere('post.helpCategory = :helpCategory', {
+        helpCategory: filterDto.helpCategory,
+      });
+    }
+
+    if (filterDto.urgency) {
+      queryBuilder.andWhere('post.urgency = :urgency', {
+        urgency: filterDto.urgency,
+      });
+    }
   }
 
   private async formatPostResponse(post: Post): Promise<PostResponseDto> {
@@ -384,6 +409,11 @@ export class PostsService {
       engagement,
       isVisible: post.isVisible(),
       isExpired: post.isExpired(),
+      // Help-specific fields
+      helpCategory: post.helpCategory as any,
+      urgency: post.urgency as any,
+      budget: post.budget,
+      deadline: post.deadline,
     };
   }
 }

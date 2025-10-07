@@ -34,6 +34,10 @@ export { default as PostsService } from './postsService';
 export { default as MediaService } from './mediaService';
 export { default as OfflineService } from './offlineService';
 
+// Listing services
+export { default as ListingsService } from './listingsService';
+export { default as ListingCategoriesService } from './listingCategoriesService';
+
 // Type exports for convenience
 export type {
   NigerianUser,
@@ -58,6 +62,20 @@ export type {
   RealtimeSubscription,
   RealtimePayload
 } from '../types';
+
+// Export new service types
+export type {
+  Listing,
+  CreateListingRequest,
+  UpdateListingRequest,
+  ListingFilter,
+  PaginatedListings,
+  Media as ListingMedia
+} from './listingsService';
+
+export type {
+  ListingCategory
+} from './listingCategoriesService';
 
 // Nigerian-specific types
 export type {

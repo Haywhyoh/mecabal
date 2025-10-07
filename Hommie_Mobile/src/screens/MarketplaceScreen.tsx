@@ -1,114 +1,108 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView, TextInput } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, shadows, MARKETPLACE_CATEGORIES } from '../constants';
-import { MarketplaceListingCard } from '../components/MarketplaceListingCard';
+import { ListingCard } from '../components/ListingCard';
 import { EmptyState } from '../components/EmptyState';
+import { ListingsService, Listing, ListingFilter } from '../services/listingsService';
+import { ListingCategoriesService } from '../services/listingCategoriesService';
 
 interface MarketplaceScreenProps {
   navigation?: any;
 }
 
 export default function MarketplaceScreen({ navigation }: MarketplaceScreenProps) {
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState('newest'); // newest, price_low, price_high, location
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
+  const [filter, setFilter] = useState<ListingFilter>({
+    page: 1,
+    limit: 20,
+    sortBy: 'createdAt',
+    sortOrder: 'DESC',
+  });
   
-  const dummyItems = [
-    { 
-      id: '1', 
-      title: 'iPhone 12 Pro Max 256GB', 
-      price: '₦450,000', 
-      category: 'electronics', 
-      categoryName: 'Electronics', 
-      seller: 'TechHub NG', 
-      location: 'Ikeja, Lagos',
-      condition: 'Used - Like New',
-      isVerified: true,
-      isFeatured: true,
-      postedDate: '2 hours ago'
-    },
-    { 
-      id: '2', 
-      title: 'Professional Plumbing Service', 
-      price: '₦12,000/visit', 
-      category: 'services', 
-      categoryName: 'Services', 
-      seller: 'AquaFix Solutions', 
-      location: 'Victoria Island, Lagos',
-      isVerified: true,
-      postedDate: '1 day ago'
-    },
-    { 
-      id: '3', 
-      title: '7-Seater Sofa Set with Center Table', 
-      price: '₦180,000', 
-      category: 'furniture', 
-      categoryName: 'Furniture', 
-      seller: 'Sarah\'s Furniture', 
-      location: 'Lekki Phase 1, Lagos',
-      condition: 'Brand New',
-      postedDate: '3 days ago'
-    },
-    { 
-      id: '4', 
-      title: 'Generator Repair & Maintenance', 
-      price: '₦8,000', 
-      category: 'services', 
-      categoryName: 'Services', 
-      seller: 'PowerTech Engineers', 
-      location: 'Surulere, Lagos',
-      isVerified: true,
-      postedDate: '1 week ago'
-    },
-    { 
-      id: '5', 
-      title: 'Toyota Corolla 2018 (Nigerian Used)', 
-      price: '₦4,800,000', 
-      category: 'vehicles', 
-      categoryName: 'Vehicles', 
-      seller: 'AutoMart Nigeria', 
-      location: 'Berger, Lagos',
-      condition: 'Used - Good',
-      isVerified: true,
-      isFeatured: true,
-      postedDate: '2 days ago'
-    },
-    { 
-      id: '6', 
-      title: 'Designer Wedding Gown (Size 12)', 
-      price: '₦95,000', 
-      category: 'fashion', 
-      categoryName: 'Fashion', 
-      seller: 'Bella\'s Bridal Collection', 
-      location: 'Ajah, Lagos',
-      condition: 'Used Once',
-      postedDate: '5 days ago'
-    },
-  ];
+  const listingsService = ListingsService.getInstance();
 
-  const filteredItems = dummyItems
-    .filter(item => selectedCategory === 'all' || item.category === selectedCategory)
-    .filter(item => 
-      searchQuery === '' || 
-      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.seller.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-    .sort((a, b) => {
-      switch (sortBy) {
-        case 'price_low':
-          return parseFloat(a.price.replace(/[₦,]/g, '')) - parseFloat(b.price.replace(/[₦,]/g, ''));
-        case 'price_high':
-          return parseFloat(b.price.replace(/[₦,]/g, '')) - parseFloat(a.price.replace(/[₦,]/g, ''));
-        case 'location':
-          return a.location.localeCompare(b.location);
-        case 'newest':
-        default:
-          return 0; // Keep original order (newest first in our dummy data)
+  // Fetch listings
+  const fetchListings = useCallback(async () => {
+    try {
+      setLoading(true);
+      const result = await listingsService.getListings({
+        ...filter,
+        categoryId: selectedCategory || undefined,
+        search: searchQuery || undefined,
+      });
+      setListings(result.data);
+    } catch (error) {
+      console.error('Error fetching listings:', error);
+      Alert.alert('Error', 'Failed to load listings');
+    } finally {
+      setLoading(false);
+    }
+  }, [filter, selectedCategory, searchQuery]);
+
+  // Refresh listings
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await fetchListings();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [fetchListings]);
+
+  // Handle save listing
+  const handleSaveListing = useCallback(async (listingId: string) => {
+    try {
+      const listing = listings.find(l => l.id === listingId);
+      if (!listing) return;
+
+      if (listing.isSaved) {
+        await listingsService.unsaveListing(listingId);
+      } else {
+        await listingsService.saveListing(listingId);
       }
-    });
+
+      // Update local state
+      setListings(prevListings =>
+        prevListings.map(l =>
+          l.id === listingId ? { ...l, isSaved: !l.isSaved } : l
+        )
+      );
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save listing');
+    }
+  }, [listings, listingsService]);
+
+  // Handle category selection
+  const handleCategorySelect = useCallback((categoryId: number | null) => {
+    setSelectedCategory(categoryId);
+  }, []);
+
+  // Handle search
+  const handleSearch = useCallback((query: string) => {
+    setSearchQuery(query);
+  }, []);
+
+  // Fetch on mount and filter changes
+  useEffect(() => {
+    fetchListings();
+  }, [filter, selectedCategory, searchQuery]);
+
+  // Categories for pills
+  const categories = [
+    { id: null, label: 'All', icon: 'apps' },
+    { id: 1, label: 'Property', icon: 'home' },
+    { id: 10, label: 'Electronics', icon: 'laptop' },
+    { id: 11, label: 'Furniture', icon: 'bed' },
+    { id: 20, label: 'Services', icon: 'construct' },
+  ];
 
   const renderCategoryItem = ({ item }: { item: any }) => (
     <TouchableOpacity
@@ -116,45 +110,54 @@ export default function MarketplaceScreen({ navigation }: MarketplaceScreenProps
         styles.categoryItem,
         selectedCategory === item.id && styles.categoryItemActive
       ]}
-      onPress={() => {
-        if (item.id === 'all') {
-          setSelectedCategory(item.id);
-        } else {
-          // Navigate to category browse screen
-          navigation?.navigate('CategoryBrowse', {
-            categoryId: item.id,
-            categoryName: item.name
-          });
-        }
-      }}
+      onPress={() => handleCategorySelect(item.id)}
       activeOpacity={0.7}
     >
-      <Text style={styles.categoryIcon}>{item.icon}</Text>
+      <Ionicons
+        name={item.icon as any}
+        size={20}
+        color={selectedCategory === item.id ? colors.white : colors.text.light}
+        style={styles.categoryIcon}
+      />
       <Text style={[
         styles.categoryText,
         selectedCategory === item.id && styles.categoryTextActive
       ]}>
-        {item.name}
+        {item.label}
       </Text>
     </TouchableOpacity>
   );
 
-  const renderItem = ({ item }: { item: any }) => (
-    <MarketplaceListingCard 
-      item={item}
-      onPress={() => {
-        // Navigate to listing detail screen
-        navigation?.navigate('ListingDetail', { listingId: item.id });
-      }}
-    />
+  const renderItem = ({ item }: { item: Listing }) => (
+    <View style={viewMode === 'grid' ? styles.gridItem : styles.listItem}>
+      <ListingCard
+        listing={item}
+        onPress={() => navigation?.navigate('ListingDetail', { listingId: item.id })}
+        onSave={() => handleSaveListing(item.id)}
+        viewMode={viewMode}
+      />
+    </View>
   );
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerContent}>
-          <Text style={styles.title}>Estate Marketplace</Text>
+          <Text style={styles.title}>Marketplace</Text>
           <Text style={styles.subtitle}>Buy, sell & find services in your community</Text>
+        </View>
+        <View style={styles.headerActions}>
+          <TouchableOpacity onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}>
+            <Ionicons
+              name={viewMode === 'grid' ? 'list' : 'grid'}
+              size={24}
+              color={colors.white}
+              style={styles.headerIcon}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setShowFilters(true)}>
+            <Ionicons name="options-outline" size={24} color={colors.white} />
+          </TouchableOpacity>
         </View>
       </View>
       
@@ -164,10 +167,10 @@ export default function MarketplaceScreen({ navigation }: MarketplaceScreenProps
           placeholder="Search items, services, or areas (e.g. Ikeja, Lagos)"
           placeholderTextColor={colors.text.light}
           value={searchQuery}
-          onChangeText={setSearchQuery}
+          onChangeText={handleSearch}
         />
         <TouchableOpacity style={styles.searchButton}>
-          <Text style={styles.searchButtonText}>🔍</Text>
+          <Ionicons name="search" size={20} color={colors.white} />
         </TouchableOpacity>
       </View>
       
@@ -181,22 +184,22 @@ export default function MarketplaceScreen({ navigation }: MarketplaceScreenProps
         
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.sortContainer}>
           {[
-            { key: 'newest', label: '🕒 Newest' },
-            { key: 'price_low', label: '⬆️ Price Low' },
-            { key: 'price_high', label: '⬇️ Price High' },
-            { key: 'location', label: '📍 Location' },
-          ].map((sort) => (
+            { key: 'createdAt', order: 'DESC', label: '🕒 Newest' },
+            { key: 'price', order: 'ASC', label: '⬆️ Price Low' },
+            { key: 'price', order: 'DESC', label: '⬇️ Price High' },
+            { key: 'viewsCount', order: 'DESC', label: '👁️ Most Viewed' },
+          ].map((sort, index) => (
             <TouchableOpacity
-              key={sort.key}
+              key={index}
               style={[
                 styles.sortButton,
-                sortBy === sort.key && styles.sortButtonActive
+                filter.sortBy === sort.key && filter.sortOrder === sort.order && styles.sortButtonActive
               ]}
-              onPress={() => setSortBy(sort.key)}
+              onPress={() => setFilter({ ...filter, sortBy: sort.key as any, sortOrder: sort.order as any })}
             >
               <Text style={[
                 styles.sortButtonText,
-                sortBy === sort.key && styles.sortButtonTextActive
+                filter.sortBy === sort.key && filter.sortOrder === sort.order && styles.sortButtonTextActive
               ]}>
                 {sort.label}
               </Text>
@@ -207,27 +210,30 @@ export default function MarketplaceScreen({ navigation }: MarketplaceScreenProps
       
       <View style={styles.categoriesContainer}>
         <FlatList
-          data={MARKETPLACE_CATEGORIES}
+          data={categories}
           renderItem={renderCategoryItem}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.id?.toString() || 'all'}
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoriesContent}
         />
       </View>
-      
-      {filteredItems.length === 0 ? (
+
+      {loading && !refreshing ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Loading listings...</Text>
+        </View>
+      ) : listings.length === 0 ? (
         <EmptyState
           icon="🛍️"
-          title={searchQuery ? "No items found" : selectedCategory === 'all' ? "Welcome to the Marketplace!" : "No items in this category"}
+          title={searchQuery ? "No items found" : "No listings available"}
           subtitle={
-            searchQuery 
-              ? `No listings match "${searchQuery}". Try adjusting your search or browse categories below.`
-              : selectedCategory === 'all'
-              ? "Start browsing items and services from your neighbors, or list something to sell!"
-              : `No ${MARKETPLACE_CATEGORIES.find(c => c.id === selectedCategory)?.name.toLowerCase()} items available right now. Check back later or try other categories.`
+            searchQuery
+              ? `No listings match "${searchQuery}". Try adjusting your search or browse categories.`
+              : "Be the first to list something in your community!"
           }
-          actionText={searchQuery ? "Clear Search" : "Start Selling"}
+          actionText={searchQuery ? "Clear Search" : "Create Listing"}
           onActionPress={() => {
             if (searchQuery) {
               setSearchQuery('');
@@ -238,11 +244,15 @@ export default function MarketplaceScreen({ navigation }: MarketplaceScreenProps
         />
       ) : (
         <FlatList
-          data={filteredItems}
+          data={listings}
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
           style={styles.marketplaceList}
           contentContainerStyle={styles.listContent}
+          numColumns={viewMode === 'grid' ? 2 : 1}
+          key={viewMode}
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
         />
       )}
       
@@ -272,9 +282,19 @@ const styles = StyleSheet.create({
     paddingTop: spacing.lg,
     paddingBottom: spacing.lg,
     ...shadows.small,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   headerContent: {
-    alignItems: 'center',
+    flex: 1,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  headerIcon: {
+    marginRight: spacing.sm,
   },
   title: {
     fontSize: typography.sizes['2xl'],
@@ -390,7 +410,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   categoryIcon: {
-    fontSize: 20,
     marginBottom: spacing.xs / 2,
   },
   categoryText: {
@@ -426,5 +445,23 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.medium,
     color: colors.white,
     marginTop: 2,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  loadingText: {
+    marginTop: spacing.md,
+    fontSize: typography.sizes.base,
+    color: colors.text.light,
+  },
+  gridItem: {
+    width: '50%',
+    padding: spacing.xs,
+  },
+  listItem: {
+    width: '100%',
   },
 });

@@ -40,44 +40,36 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ navigation 
       onPress: () => handlePostType('general'),
     },
     {
-      id: 'safety',
-      title: 'Safety Alert',
-      description: 'Report security or emergency situations',
-      icon: 'shield-alert',
-      color: colors.accent.safetyRed,
-      onPress: () => handlePostType('safety'),
+      id: 'help',
+      title: 'Ask for Help',
+      description: 'Get help with jobs, errands, or recommendations',
+      icon: 'hand-right',
+      color: colors.accent.lagosOrange,
+      onPress: () => handlePostType('help'),
     },
     {
-      id: 'marketplace',
-      title: 'Sell Something',
-      description: 'List an item or service for sale',
-      icon: 'shopping',
+      id: 'listing',
+      title: 'Create Listing',
+      description: 'Sell property, items, or offer services',
+      icon: 'pricetag',
       color: colors.accent.marketGreen,
-      onPress: () => handlePostType('marketplace'),
+      onPress: () => handlePostType('listing'),
     },
     {
       id: 'event',
       title: 'Create Event',
       description: 'Organize a community gathering',
       icon: 'calendar-plus',
-      color: colors.accent.lagosOrange,
+      color: colors.accent.trustBlue,
       onPress: () => handlePostType('event'),
     },
     {
-      id: 'recommendation',
-      title: 'Ask for Help',
-      description: 'Get recommendations or assistance',
-      icon: 'help-circle',
-      color: colors.accent.trustBlue,
-      onPress: () => handlePostType('recommendation'),
-    },
-    {
-      id: 'civic',
-      title: 'Report Issue',
-      description: 'Report infrastructure or civic problems',
-      icon: 'clipboard-text',
-      color: colors.accent.neighborPurple,
-      onPress: () => handlePostType('civic'),
+      id: 'safety',
+      title: 'Safety Alert',
+      description: 'Report security or emergency situations',
+      icon: 'shield-alert',
+      color: colors.accent.safetyRed,
+      onPress: () => handlePostType('safety'),
     },
   ];
 
@@ -93,28 +85,24 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ navigation 
 
   const handlePostType = (type: string) => {
     closeModal();
-    
+
     switch (type) {
       case 'general':
         navigation?.navigate('CreatePost', { type: 'general' });
         break;
-      case 'safety':
-        navigation?.navigate('CreatePost', { type: 'safety' });
+      case 'help':
+        navigation?.navigate('CreateHelpPost');
         break;
-      case 'marketplace':
-        navigation?.navigate('Market', { 
-          screen: 'CreateListing',
-          params: { type: 'sell' }
+      case 'listing':
+        navigation?.navigate('Market', {
+          screen: 'CreateListing'
         });
         break;
       case 'event':
         navigation?.navigate('CreateEvent');
         break;
-      case 'recommendation':
-        navigation?.navigate('CreatePost', { type: 'recommendation' });
-        break;
-      case 'civic':
-        navigation?.navigate('CreatePost', { type: 'civic' });
+      case 'safety':
+        navigation?.navigate('CreatePost', { type: 'alert' });
         break;
     }
   };
@@ -151,7 +139,7 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ navigation 
   const PostTypeButton: React.FC<{ postType: PostType; index: number }> = ({ postType, index }) => {
     const buttonTranslateY = animation.interpolate({
       inputRange: [0, 1],
-      outputRange: [0, -(65 * (index + 1))], // Slightly tighter spacing for 6 icons
+      outputRange: [0, -(65 * (index + 1))], // Spacing for 5 icons
     });
 
     const buttonOpacity = animation.interpolate({
@@ -316,7 +304,7 @@ const styles = StyleSheet.create({
     bottom: 80, // Above tab bar but below FAB
     right: spacing.lg - 20,
     width: 100,
-    height: 420, // Enough to cover all 6 floating buttons
+    height: 350, // Enough to cover all 5 floating buttons
     backgroundColor: 'rgba(0, 166, 81, 0.05)',
     borderRadius: 50,
     borderWidth: 1,

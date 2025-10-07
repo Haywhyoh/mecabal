@@ -11,6 +11,8 @@ import {
   IsArray,
   ValidateNested,
   IsBoolean,
+  ValidateIf,
+  IsNotEmpty,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -20,6 +22,20 @@ export enum PostType {
   ALERT = 'alert',
   MARKETPLACE = 'marketplace',
   LOST_FOUND = 'lost_found',
+  HELP = 'help',
+}
+
+export enum HelpCategory {
+  JOB = 'job',
+  ERRAND = 'errand',
+  RECOMMENDATION = 'recommendation',
+  ADVICE = 'advice',
+}
+
+export enum Urgency {
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
 }
 
 export enum PrivacyLevel {
@@ -115,4 +131,43 @@ export class CreatePostDto {
   @IsOptional()
   @IsBoolean()
   isPinned?: boolean;
+
+  // Help-specific fields
+  @ApiPropertyOptional({
+    description: 'Help category (required if postType is help)',
+    enum: HelpCategory,
+    example: HelpCategory.JOB,
+  })
+  @IsOptional()
+  @IsEnum(HelpCategory)
+  @ValidateIf((o) => o.postType === PostType.HELP)
+  @IsNotEmpty()
+  helpCategory?: HelpCategory;
+
+  @ApiPropertyOptional({
+    description: 'Urgency level for help requests',
+    enum: Urgency,
+    example: Urgency.MEDIUM,
+  })
+  @IsOptional()
+  @IsEnum(Urgency)
+  urgency?: Urgency;
+
+  @ApiPropertyOptional({
+    description: 'Budget for help request',
+    example: '₦50,000',
+    maxLength: 100,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  budget?: string;
+
+  @ApiPropertyOptional({
+    description: 'Deadline for help request',
+    example: '2024-12-31T23:59:59Z',
+  })
+  @IsOptional()
+  @IsDateString()
+  deadline?: string;
 }

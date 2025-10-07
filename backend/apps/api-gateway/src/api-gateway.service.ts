@@ -8,11 +8,14 @@ export class ApiGatewayService {
     process.env.SOCIAL_SERVICE_URL || 'http://localhost:3003';
   private readonly authServiceUrl =
     process.env.AUTH_SERVICE_URL || 'http://localhost:3001';
+  private readonly marketplaceServiceUrl =
+    process.env.MARKETPLACE_SERVICE_URL || 'http://localhost:3005';
 
   constructor(private readonly httpService: HttpService) {
     console.log('🔧 API Gateway Service initialized:');
     console.log('  - Social Service URL:', this.socialServiceUrl);
     console.log('  - Auth Service URL:', this.authServiceUrl);
+    console.log('  - Marketplace Service URL:', this.marketplaceServiceUrl);
   }
 
   getHello(): string {
@@ -227,6 +230,102 @@ export class ApiGatewayService {
 
         throw new Error(
           `Auth request failed with status code ${status}: ${statusText}`,
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  // Proxy methods for marketplace service
+  async proxyToMarketplaceService(
+    path: string,
+    method: string,
+    data?: unknown,
+    headers?: Record<string, string | string[] | undefined>,
+    user?: any,
+  ) {
+    try {
+      const url = `${this.marketplaceServiceUrl}${path}`;
+
+      console.log('🌐 API Gateway - Proxying to marketplace service:');
+      console.log('  - URL:', url);
+      console.log('  - Method:', method);
+      console.log(
+        '  - User:',
+        user
+          ? {
+              id: (user as { id: string; email: string }).id,
+              email: (user as { id: string; email: string }).email,
+            }
+          : 'No user',
+      );
+
+      const baseHeaders: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        Pragma: 'no-cache',
+        Expires: '0',
+        ...(user && {
+          'X-User-Id':
+            (user as { id: string }).id.length === 37 &&
+            (user as { id: string }).id.endsWith('f')
+              ? (user as { id: string }).id.slice(0, -1)
+              : (user as { id: string }).id,
+        }),
+      };
+
+      const config: Record<string, unknown> = {
+        headers: baseHeaders,
+        timeout: 60000,
+        maxRedirects: 5,
+        transformRequest: [(data: unknown) => JSON.stringify(data)],
+      };
+
+      let response;
+      switch (method.toLowerCase()) {
+        case 'get':
+          response = await firstValueFrom(this.httpService.get(url, config));
+          break;
+        case 'post':
+          response = await firstValueFrom(
+            this.httpService.post(url, data, config),
+          );
+          break;
+        case 'patch':
+          response = await firstValueFrom(
+            this.httpService.patch(url, data, config),
+          );
+          break;
+        case 'put':
+          response = await firstValueFrom(
+            this.httpService.put(url, data, config),
+          );
+          break;
+        case 'delete':
+          response = await firstValueFrom(
+            this.httpService.delete(url, config),
+          );
+          break;
+        default:
+          throw new Error(`Unsupported method: ${method}`);
+      }
+
+      return response.data as unknown;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      console.error(`Error proxying to marketplace service: ${errorMessage}`);
+
+      if (error && typeof error === 'object' && 'response' in error) {
+        const response = (
+          error as { response: { status: number; statusText: string } }
+        ).response;
+        const status = response.status;
+        const statusText = response.statusText;
+
+        throw new Error(
+          `Marketplace request failed with status code ${status}: ${statusText}`,
         );
       }
 

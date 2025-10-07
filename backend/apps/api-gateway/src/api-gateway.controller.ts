@@ -384,6 +384,76 @@ export class ApiGatewayController {
     return this.proxySocialRequest(req, res);
   }
 
+  // Marketplace Listings routes
+  @All('listings/nearby')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyListingsNearby(@Req() req: Request, @Res() res: Response) {
+    return this.proxyMarketplaceRequest(req, res);
+  }
+
+  @All('listings/saved')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyListingsSaved(@Req() req: Request, @Res() res: Response) {
+    return this.proxyMarketplaceRequest(req, res);
+  }
+
+  @All('listings/my-listings')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyMyListings(@Req() req: Request, @Res() res: Response) {
+    return this.proxyMarketplaceRequest(req, res);
+  }
+
+  @All('listings/:id/save')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyListingSave(@Req() req: Request, @Res() res: Response) {
+    return this.proxyMarketplaceRequest(req, res);
+  }
+
+  @All('listings/:id/view')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyListingView(@Req() req: Request, @Res() res: Response) {
+    return this.proxyMarketplaceRequest(req, res);
+  }
+
+  @All('listings/:id/mark-sold')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyListingMarkSold(@Req() req: Request, @Res() res: Response) {
+    return this.proxyMarketplaceRequest(req, res);
+  }
+
+  @All('listings/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyListingById(@Req() req: Request, @Res() res: Response) {
+    return this.proxyMarketplaceRequest(req, res);
+  }
+
+  @All('listings')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyListings(@Req() req: Request, @Res() res: Response) {
+    return this.proxyMarketplaceRequest(req, res);
+  }
+
+  // Listing Categories routes
+  @All('listing-categories/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyListingCategoryById(@Req() req: Request, @Res() res: Response) {
+    return this.proxyMarketplaceRequest(req, res);
+  }
+
+  @All('listing-categories')
+  async proxyListingCategories(@Req() req: Request, @Res() res: Response) {
+    return this.proxyMarketplaceRequest(req, res);
+  }
+
   // Helper method to proxy requests to social service
   @ApiOperation({ summary: 'Proxy all social service requests' })
   @ApiResponse({
@@ -414,6 +484,48 @@ export class ApiGatewayController {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
       console.error('Error proxying social service request:', errorMessage);
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: errorMessage });
+    }
+  }
+
+  // Helper method to proxy requests to marketplace service
+  @ApiOperation({ summary: 'Proxy all marketplace service requests' })
+  @ApiResponse({
+    status: 200,
+    description: 'Request proxied to marketplace service',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  private async proxyMarketplaceRequest(req: Request, res: Response) {
+    try {
+      console.log(
+        '🌐 API Gateway - Proxying marketplace service request:',
+        req.url,
+        req.method,
+      );
+
+      const result: unknown =
+        await this.apiGatewayService.proxyToMarketplaceService(
+          req.url,
+          req.method,
+          req.body,
+          req.headers as Record<string, string | string[] | undefined>,
+          req.user,
+        );
+
+      let statusCode = HttpStatus.OK;
+      if (req.method === 'POST') {
+        statusCode = HttpStatus.CREATED;
+      } else if (req.method === 'DELETE') {
+        statusCode = HttpStatus.NO_CONTENT;
+      }
+
+      res.status(statusCode).json(result);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error proxying marketplace service request:', errorMessage);
       res
         .status(HttpStatus.INTERNAL_SERVER_ERROR)
         .json({ error: errorMessage });

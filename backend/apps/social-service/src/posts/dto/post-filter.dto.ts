@@ -10,7 +10,7 @@ import {
   Max,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
-import { PostType, PrivacyLevel } from './create-post.dto';
+import { PostType, PrivacyLevel, HelpCategory, Urgency } from './create-post.dto';
 
 export class PostFilterDto {
   @ApiPropertyOptional({
@@ -124,4 +124,21 @@ export class PostFilterDto {
   @IsOptional()
   @IsEnum(['ASC', 'DESC'])
   sortOrder?: 'ASC' | 'DESC' = 'DESC';
+
+  // Help-specific filters
+  @ApiPropertyOptional({
+    description: 'Filter by help category',
+    enum: HelpCategory,
+  })
+  @IsOptional()
+  @IsEnum(HelpCategory)
+  helpCategory?: HelpCategory;
+
+  @ApiPropertyOptional({
+    description: 'Filter by urgency level',
+    enum: Urgency,
+  })
+  @IsOptional()
+  @IsEnum(Urgency)
+  urgency?: Urgency;
 }

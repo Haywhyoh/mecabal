@@ -1,0 +1,346 @@
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+  Dimensions,
+  Alert,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Post } from '../services/postsService';
+import { UserAvatar } from './UserAvatar';
+
+interface HelpPostCardProps {
+  post: Post;
+  onPress: () => void;
+  onReact: (reactionType: string) => void;
+  onComment: () => void;
+  onShare: () => void;
+  onRespond?: () => void;
+  showActions?: boolean;
+}
+
+const { width } = Dimensions.get('window');
+const imageWidth = width - 64; // Account for marginHorizontal (16*2) + padding (16*2)
+
+export const HelpPostCard: React.FC<HelpPostCardProps> = ({
+  post,
+  onPress,
+  onReact,
+  onComment,
+  onShare,
+  onRespond,
+  showActions = true,
+}) => {
+  const [isLiked, setIsLiked] = useState(post.engagement.userReaction === 'like');
+
+  const getHelpIcon = () => {
+    switch (post.helpCategory) {
+      case 'job': return 'briefcase';
+      case 'errand': return 'bicycle';
+      case 'recommendation': return 'star';
+      case 'advice': return 'help-circle';
+      default: return 'help-circle';
+    }
+  };
+
+  const getUrgencyColor = () => {
+    switch (post.urgency) {
+      case 'high': return '#E74C3C';
+      case 'medium': return '#FFC107';
+      case 'low': return '#00A651';
+      default: return '#8E8E8E';
+    }
+  };
+
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    
+    if (diffInSeconds < 60) return 'Just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+    return date.toLocaleDateString();
+  };
+
+  const formatDeadline = (deadline: string) => {
+    const date = new Date(deadline);
+    const now = new Date();
+    const diffInHours = Math.floor((date.getTime() - now.getTime()) / (1000 * 60 * 60));
+    
+    if (diffInHours < 0) return 'Overdue';
+    if (diffInHours < 24) return `${diffInHours}h left`;
+    if (diffInHours < 168) return `${Math.floor(diffInHours / 24)}d left`;
+    return date.toLocaleDateString();
+  };
+
+  const handleReaction = () => {
+    const newReaction = isLiked ? null : 'like';
+    setIsLiked(!isLiked);
+    onReact(newReaction || 'like');
+  };
+
+  const handleRespond = () => {
+    if (onRespond) {
+      onRespond();
+    } else {
+      // Default action - navigate to comments or contact
+      onComment();
+    }
+  };
+
+  return (
+    <TouchableOpacity style={styles.card} onPress={onPress}>
+      {/* Author Info */}
+      <View style={styles.header}>
+        <UserAvatar 
+          user={post.author} 
+          size="medium" 
+          showBadge={post.author.isVerified}
+        />
+        <View style={styles.authorInfo}>
+          <View style={styles.nameRow}>
+            <Text style={styles.authorName}>
+              {post.author.firstName} {post.author.lastName}
+            </Text>
+            {post.author.isVerified && (
+              <Ionicons name="checkmark-circle" size={16} color="#3498db" />
+            )}
+          </View>
+          <Text style={styles.timestamp}>
+            {formatTimeAgo(post.createdAt)}
+          </Text>
+        </View>
+
+        {/* Help Type Badge */}
+        <View style={[styles.helpBadge, { backgroundColor: getUrgencyColor() + '20' }]}>
+          <Ionicons
+            name={getHelpIcon() as any}
+            size={14}
+            color={getUrgencyColor()}
+          />
+          <Text style={[styles.helpType, { color: getUrgencyColor() }]}>
+            {post.helpCategory?.toUpperCase()}
+          </Text>
+        </View>
+      </View>
+
+      {/* Content */}
+      <Text style={styles.content}>{post.content}</Text>
+
+      {/* Help Details */}
+      <View style={styles.detailsRow}>
+        {post.budget && (
+          <View style={styles.detail}>
+            <Ionicons name="cash-outline" size={16} color="#00A651" />
+            <Text style={styles.detailText}>{post.budget}</Text>
+          </View>
+        )}
+        {post.deadline && (
+          <View style={styles.detail}>
+            <Ionicons name="time-outline" size={16} color="#FF6B35" />
+            <Text style={styles.detailText}>
+              {formatDeadline(post.deadline)}
+            </Text>
+          </View>
+        )}
+        {post.urgency && (
+          <View style={styles.detail}>
+            <Ionicons name="alert-circle-outline" size={16} color={getUrgencyColor()} />
+            <Text style={[styles.detailText, { color: getUrgencyColor() }]}>
+              {post.urgency.toUpperCase()}
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* Media */}
+      {post.media && post.media.length > 0 && (
+        <View style={styles.mediaContainer}>
+          {post.media.map((media, index) => (
+            <View key={media.id} style={styles.mediaItem}>
+              {media.type === 'image' ? (
+                <Image
+                  source={{ uri: media.url }}
+                  style={styles.mediaImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={styles.videoPlaceholder}>
+                  <Ionicons name="play-circle" size={40} color="#8E8E8E" />
+                </View>
+              )}
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Engagement Actions */}
+      {showActions && (
+        <View style={styles.actions}>
+          <TouchableOpacity style={styles.actionButton} onPress={handleReaction}>
+            <Ionicons
+              name={isLiked ? "heart" : "heart-outline"}
+              size={20}
+              color={isLiked ? "#E74C3C" : "#8E8E8E"}
+            />
+            <Text style={styles.actionCount}>{post.engagement.reactionsCount}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.actionButton} onPress={onComment}>
+            <Ionicons name="chatbubble-outline" size={20} color="#8E8E8E" />
+            <Text style={styles.actionCount}>{post.engagement.commentsCount}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.actionButton} onPress={onShare}>
+            <Ionicons name="share-outline" size={20} color="#8E8E8E" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.respondButton} onPress={handleRespond}>
+            <Ionicons name="hand-right-outline" size={16} color="#FFFFFF" />
+            <Text style={styles.respondText}>I Can Help</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+};
+
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginVertical: 8,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  authorInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  authorName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2C2C2C',
+    marginRight: 6,
+  },
+  timestamp: {
+    fontSize: 12,
+    color: '#8E8E8E',
+    marginTop: 2,
+  },
+  helpBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  helpType: {
+    fontSize: 10,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  content: {
+    fontSize: 16,
+    lineHeight: 22,
+    color: '#2C2C2C',
+    marginBottom: 12,
+  },
+  detailsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 12,
+  },
+  detail: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginRight: 8,
+    marginBottom: 4,
+  },
+  detailText: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginLeft: 4,
+    color: '#2C2C2C',
+  },
+  mediaContainer: {
+    flexDirection: 'row',
+    marginBottom: 12,
+  },
+  mediaItem: {
+    marginRight: 8,
+  },
+  mediaImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+  },
+  videoPlaceholder: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    backgroundColor: '#F0F0F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 20,
+  },
+  actionCount: {
+    fontSize: 14,
+    color: '#8E8E8E',
+    marginLeft: 4,
+  },
+  respondButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#00A651',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginLeft: 'auto',
+  },
+  respondText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+});
+
+export default HelpPostCard;

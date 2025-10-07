@@ -16,6 +16,8 @@ import { Post } from '../services/postsService';
 import FeedList from '../components/FeedList';
 import PostFilter from '../components/PostFilter';
 import PostCreator from '../components/PostCreator';
+import SegmentedControl from '../components/SegmentedControl';
+import HelpPostCard from '../components/HelpPostCard';
 import { useAuth } from '../contexts/AuthContext';
 
 interface FeedScreenProps {
@@ -23,6 +25,7 @@ interface FeedScreenProps {
 }
 
 export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
+  const [selectedSegment, setSelectedSegment] = useState('all');
   const [showFilter, setShowFilter] = useState(false);
   const [showPostCreator, setShowPostCreator] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -150,6 +153,44 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
     updateFilter(newFilter);
   }, [updateFilter]);
 
+  // Handle segment change
+  const handleSegmentChange = useCallback((segmentId: string) => {
+    setSelectedSegment(segmentId);
+
+    if (segmentId === 'all') {
+      clearFilter();
+    } else {
+      updateFilter({ postType: segmentId as any });
+    }
+
+    refreshFeed();
+  }, [clearFilter, updateFilter, refreshFeed]);
+
+  // Define segments for the segmented control
+  const segments = [
+    { id: 'all', label: 'All', icon: 'apps-outline' },
+    { id: 'help', label: 'Help', icon: 'hand-right-outline' },
+    { id: 'event', label: 'Events', icon: 'calendar-outline' },
+    { id: 'alert', label: 'Alerts', icon: 'warning-outline' },
+  ];
+
+  // Render post card based on type
+  const renderPostCard = useCallback((post: Post) => {
+    if (post.postType === 'help') {
+      return (
+        <HelpPostCard
+          post={post}
+          onPress={() => handlePostPress(post)}
+          onReact={handleReaction}
+          onComment={() => handleComment(post.id)}
+          onShare={() => handleShare(post)}
+        />
+      );
+    }
+    // Return null here - FeedList will render the default PostCard
+    return null;
+  }, [handlePostPress, handleReaction, handleComment, handleShare]);
+
   // Memoize the header component
   const renderHeader = useMemo(() => (
     <View style={styles.header}>
@@ -187,9 +228,25 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-      
+
       {/* Header */}
       {renderHeader}
+
+      {/* Segmented Control */}
+      <View style={styles.filterBar}>
+        <SegmentedControl
+          segments={segments}
+          selectedSegment={selectedSegment}
+          onSegmentChange={handleSegmentChange}
+          style={styles.segmentedControl}
+        />
+        <TouchableOpacity
+          style={styles.advancedFilterButton}
+          onPress={() => setShowFilter(true)}
+        >
+          <Ionicons name="options-outline" size={20} color="#2C2C2C" />
+        </TouchableOpacity>
+      </View>
 
       {/* Feed List */}
       <FeedList
@@ -208,6 +265,7 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
         onEdit={handleEdit}
         onDelete={handleDelete}
         currentUserId={currentUser?.id}
+        renderCustomCard={renderPostCard}
       />
 
 
@@ -267,6 +325,22 @@ const styles = StyleSheet.create({
   filterButton: {
     padding: 8,
     borderRadius: 20,
+  },
+  filterBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 8,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#F5F5F5',
+  },
+  segmentedControl: {
+    flex: 1,
+    marginLeft: 0,
+  },
+  advancedFilterButton: {
+    padding: 8,
+    marginRight: 16,
   },
 });
 
