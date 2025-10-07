@@ -84,15 +84,15 @@ export const API_ENDPOINTS = {
     PIN: '/posts',
   },
   REACTIONS: {
-    ADD: '/posts',
-    REMOVE: '/posts',
-    GET_STATS: '/posts',
+    ADD: '/reactions/posts',
+    REMOVE: '/reactions/posts',
+    GET_STATS: '/reactions/posts',
   },
   COMMENTS: {
-    CREATE: '/posts',
-    GET_ALL: '/posts',
-    UPDATE: '/posts',
-    DELETE: '/posts',
+    CREATE: '/comments/posts',
+    GET_ALL: '/comments/posts',
+    UPDATE: '/comments',
+    DELETE: '/comments',
   },
   CATEGORIES: {
     GET_ALL: '/posts/categories',

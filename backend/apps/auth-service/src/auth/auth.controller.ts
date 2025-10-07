@@ -201,9 +201,7 @@ export class AuthController {
     status: 200,
     description: 'User logged out successfully',
   })
-  async logout(
-    @CurrentUser() user: User,
-  ) {
+  async logout(@CurrentUser() user: User) {
     return this.authService.logoutUser(user.id);
   }
 

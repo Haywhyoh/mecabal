@@ -6,6 +6,9 @@ import { SocialServiceController } from './social-service.controller';
 import { SocialServiceService } from './social-service.service';
 import { PostsModule } from './posts/posts.module';
 import { MediaModule } from './media/media.module';
+import { CommentsModule } from './comments/comments.module';
+import { ReactionsModule } from './reactions/reactions.module';
+import { CategoriesModule } from './categories/categories.module';
 
 @Module({
   imports: [
@@ -16,6 +19,9 @@ import { MediaModule } from './media/media.module';
     AuthModule,
     PostsModule,
     MediaModule,
+    CommentsModule,
+    ReactionsModule,
+    CategoriesModule,
   ],
   controllers: [SocialServiceController],
   providers: [SocialServiceService],

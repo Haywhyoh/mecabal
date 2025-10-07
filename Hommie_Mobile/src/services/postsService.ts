@@ -86,6 +86,7 @@ export interface Comment {
     lastName: string;
     profilePicture?: string;
     isVerified: boolean;
+    trustScore?: number;
   };
   createdAt: string;
   updatedAt: string;
@@ -94,11 +95,24 @@ export interface Comment {
   replies?: Comment[];
   likesCount: number;
   userLiked: boolean;
+  media: Array<{
+    id: string;
+    url: string;
+    type: 'image' | 'video';
+    caption?: string;
+  }>;
+  isApproved: boolean;
+  isReply: boolean;
 }
 
 export interface CreateCommentRequest {
   content: string;
   parentCommentId?: string;
+  media?: Array<{
+    url: string;
+    type: 'image' | 'video';
+    caption?: string;
+  }>;
 }
 
 export interface Reaction {
@@ -380,9 +394,38 @@ export class PostsService {
   /**
    * Get comments for a post
    */
+  /**
+   * Transform backend comment response to frontend format
+   */
+  private transformComment(backendComment: any): Comment {
+    return {
+      id: backendComment.id,
+      postId: backendComment.postId,
+      content: backendComment.content,
+      author: {
+        id: backendComment.user?.id || backendComment.userId,
+        firstName: backendComment.user?.firstName || '',
+        lastName: backendComment.user?.lastName || '',
+        profilePicture: backendComment.user?.profilePicture,
+        isVerified: backendComment.user?.isVerified || false,
+        trustScore: backendComment.user?.trustScore || 0,
+      },
+      createdAt: backendComment.createdAt,
+      updatedAt: backendComment.updatedAt,
+      isEdited: backendComment.createdAt !== backendComment.updatedAt,
+      parentCommentId: backendComment.parentCommentId,
+      replies: backendComment.replies?.map((reply: any) => this.transformComment(reply)) || [],
+      likesCount: 0, // TODO: Add when backend supports likes
+      userLiked: false, // TODO: Add when backend supports likes
+      media: backendComment.media || [],
+      isApproved: backendComment.isApproved,
+      isReply: backendComment.isReply || false,
+    };
+  }
+
   async getComments(postId: string, page: number = 1, limit: number = 20): Promise<{ data: Comment[]; hasNext: boolean; total: number }> {
     try {
-      const response = await fetch(`${this.baseUrl}${API_ENDPOINTS.COMMENTS.GET_ALL}/${postId}?page=${page}&limit=${limit}`, {
+      const response = await fetch(`${this.baseUrl}${API_ENDPOINTS.COMMENTS.GET_ALL}/${postId}`, {
         method: 'GET',
         headers: await this.getAuthHeaders(),
       });
@@ -392,7 +435,21 @@ export class PostsService {
         throw new Error(errorData.message || 'Failed to fetch comments');
       }
 
-      return await response.json();
+      const backendComments = await response.json();
+
+      // Transform backend response to frontend format
+      const transformedComments = backendComments.map((comment: any) => this.transformComment(comment));
+
+      // Since backend doesn't have pagination yet, we simulate it
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      const paginatedComments = transformedComments.slice(startIndex, endIndex);
+
+      return {
+        data: paginatedComments,
+        hasNext: endIndex < transformedComments.length,
+        total: transformedComments.length,
+      };
     } catch (error) {
       console.error('Error fetching comments:', error);
       throw new Error('Failed to fetch comments');
@@ -418,7 +475,8 @@ export class PostsService {
         throw new Error(errorData.message || 'Failed to create comment');
       }
 
-      return await response.json();
+      const backendComment = await response.json();
+      return this.transformComment(backendComment);
     } catch (error) {
       console.error('Error creating comment:', error);
       throw new Error('Failed to create comment');
@@ -444,7 +502,8 @@ export class PostsService {
         throw new Error(errorData.message || 'Failed to update comment');
       }
 
-      return await response.json();
+      const backendComment = await response.json();
+      return this.transformComment(backendComment);
     } catch (error) {
       console.error('Error updating comment:', error);
       throw new Error('Failed to update comment');

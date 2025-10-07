@@ -10,5 +10,5 @@ export class CreateReactionDto {
   })
   @IsEnum(ReactionType)
   @IsNotEmpty()
-  reactionType: ReactionType;
+  type: ReactionType;
 }

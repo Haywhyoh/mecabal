@@ -6,6 +6,7 @@ import {
   User,
   UserSession,
   OtpVerification,
+  EmailOtp,
   Role,
   State,
   LocalGovernmentArea,
@@ -17,6 +18,7 @@ import {
   PostCategory,
   UserNeighborhood,
   Media,
+  CommentMedia,
 } from './entities';
 
 @Module({
@@ -35,6 +37,7 @@ import {
           User,
           UserSession,
           OtpVerification,
+          EmailOtp,
           Role,
           State,
           LocalGovernmentArea,
@@ -46,6 +49,7 @@ import {
           PostCategory,
           UserNeighborhood,
           Media,
+          CommentMedia,
         ],
         synchronize: configService.get('NODE_ENV') === 'development',
         logging: configService.get('NODE_ENV') === 'development',
@@ -62,6 +66,7 @@ import {
       User,
       UserSession,
       OtpVerification,
+      EmailOtp,
       Role,
       State,
       LocalGovernmentArea,
@@ -73,6 +78,7 @@ import {
       PostCategory,
       UserNeighborhood,
       Media,
+      CommentMedia,
     ]),
   ],
   providers: [DatabaseService],

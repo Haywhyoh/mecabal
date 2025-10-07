@@ -3,22 +3,27 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
-  TextInput,
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  RefreshControl,
+  Image,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Comment, CreateCommentRequest } from '../services/postsService';
+import { VideoView, useVideoPlayer } from 'expo-video';
+import { Comment } from '../services/postsService';
+import PostsService from '../services/postsService';
 import { UserAvatar } from './UserAvatar';
 import { useAuth } from '../contexts/AuthContext';
+import CommentCreator from './CommentCreator';
 
 interface CommentsListProps {
   postId: string;
   onCommentAdded?: () => void;
 }
+
+const { width } = Dimensions.get('window');
+const commentMediaWidth = width - 96; // Account for avatar (40) + margin (16) + padding (32) + spacing (8)
 
 export const CommentsList: React.FC<CommentsListProps> = ({
   postId,
@@ -27,13 +32,13 @@ export const CommentsList: React.FC<CommentsListProps> = ({
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [newComment, setNewComment] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const [showCommentCreator, setShowCommentCreator] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
   const { user: currentUser } = useAuth();
 
-  // Mock comments for now - replace with actual API call
+  const postsService = PostsService.getInstance();
+
   const loadComments = useCallback(async (pageNum: number = 1, refresh: boolean = false) => {
     try {
       if (refresh) {
@@ -42,53 +47,19 @@ export const CommentsList: React.FC<CommentsListProps> = ({
         setLoading(true);
       }
 
-      // Mock data - replace with actual API call
-      const mockComments: Comment[] = [
-        {
-          id: '1',
-          postId,
-          content: 'This is a great post! Thanks for sharing.',
-          author: {
-            id: 'user1',
-            firstName: 'John',
-            lastName: 'Doe',
-            profilePicture: undefined,
-            isVerified: true,
-          },
-          createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 minutes ago
-          updatedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-          isEdited: false,
-          likesCount: 5,
-          userLiked: false,
-        },
-        {
-          id: '2',
-          postId,
-          content: 'I completely agree with this. Very insightful!',
-          author: {
-            id: 'user2',
-            firstName: 'Jane',
-            lastName: 'Smith',
-            profilePicture: undefined,
-            isVerified: false,
-          },
-          createdAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(), // 15 minutes ago
-          updatedAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-          isEdited: false,
-          likesCount: 2,
-          userLiked: true,
-        },
-      ];
+      // Load comments from API
+      const limit = 20;
+      const response = await postsService.getComments(postId, pageNum, limit);
 
       if (refresh || pageNum === 1) {
-        setComments(mockComments);
+        setComments(response.data);
         setPage(1);
       } else {
-        setComments(prev => [...prev, ...mockComments]);
+        setComments(prev => [...prev, ...response.data]);
         setPage(pageNum);
       }
 
-      setHasMore(mockComments.length === 20); // Assuming 20 is the page size
+      setHasMore(response.hasNext);
     } catch (error) {
       console.error('Error loading comments:', error);
       Alert.alert('Error', 'Failed to load comments');
@@ -96,47 +67,17 @@ export const CommentsList: React.FC<CommentsListProps> = ({
       setLoading(false);
       setRefreshing(false);
     }
-  }, [postId]);
+  }, [postId, postsService]);
 
   // Load comments on mount
   useEffect(() => {
     loadComments(1, true);
-  }, [loadComments]);
+  }, [postId]); // Only depend on postId, not the functions
 
-  const handleSubmitComment = async () => {
-    if (!newComment.trim() || submitting) return;
-
-    try {
-      setSubmitting(true);
-
-      // Mock comment creation - replace with actual API call
-      const mockNewComment: Comment = {
-        id: Date.now().toString(),
-        postId,
-        content: newComment.trim(),
-        author: {
-          id: currentUser?.id || 'current-user',
-          firstName: currentUser?.firstName || 'You',
-          lastName: currentUser?.lastName || '',
-          profilePicture: currentUser?.profilePictureUrl,
-          isVerified: currentUser?.isVerified || false,
-        },
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        isEdited: false,
-        likesCount: 0,
-        userLiked: false,
-      };
-
-      setComments(prev => [mockNewComment, ...prev]);
-      setNewComment('');
-      onCommentAdded?.();
-    } catch (error) {
-      console.error('Error submitting comment:', error);
-      Alert.alert('Error', 'Failed to submit comment');
-    } finally {
-      setSubmitting(false);
-    }
+  const handleCommentCreated = (newComment: Comment) => {
+    // Add new comment to the beginning of the list
+    setComments(prev => [newComment, ...prev]);
+    onCommentAdded?.();
   };
 
   const handleLoadMore = () => {
@@ -161,37 +102,82 @@ export const CommentsList: React.FC<CommentsListProps> = ({
     return date.toLocaleDateString();
   };
 
-  const renderComment = ({ item }: { item: Comment }) => (
-    <View style={styles.commentItem}>
-      <UserAvatar
-        user={{
-          id: item.author.id,
-          phoneNumber: '',
-          firstName: item.author.firstName,
-          lastName: item.author.lastName,
-          profilePictureUrl: item.author.profilePicture,
-          isVerified: item.author.isVerified,
-          phoneVerified: false,
-          identityVerified: false,
-          addressVerified: false,
-          preferredLanguage: 'en',
-          verificationLevel: 0,
-          createdAt: '',
-          updatedAt: '',
-        }}
-        size="small"
-        showBadge={item.author.isVerified}
-      />
-      <View style={styles.commentContent}>
-        <View style={styles.commentHeader}>
-          <Text style={styles.commentAuthor}>
-            {item.author.firstName} {item.author.lastName}
-          </Text>
-          <Text style={styles.commentTime}>
-            {formatTimeAgo(item.createdAt)}
-          </Text>
-        </View>
-        <Text style={styles.commentText}>{item.content}</Text>
+  const renderCommentsHeader = () => {
+    return (
+      <View style={styles.commentsHeaderContainer}>
+        <Text style={styles.commentsHeaderText}>
+          {comments.length} {comments.length === 1 ? 'Comment' : 'Comments'}
+        </Text>
+      </View>
+    );
+  };
+
+  const renderComment = ({ item }: { item: Comment }) => {
+    // Null check for item and author
+    if (!item || !item.author) {
+      console.warn('Invalid comment item:', item);
+      return null;
+    }
+
+    return (
+      <View style={styles.commentItem}>
+        <UserAvatar
+          user={{
+            id: item.author.id,
+            phoneNumber: '',
+            firstName: item.author.firstName || '',
+            lastName: item.author.lastName || '',
+            profilePictureUrl: item.author.profilePicture,
+            isVerified: item.author.isVerified || false,
+            phoneVerified: false,
+            identityVerified: false,
+            addressVerified: false,
+            preferredLanguage: 'en',
+            verificationLevel: 0,
+            createdAt: '',
+            updatedAt: '',
+          }}
+          size="small"
+          showBadge={item.author.isVerified}
+        />
+        <View style={styles.commentContent}>
+          <View style={styles.commentHeader}>
+            <Text style={styles.commentAuthor}>
+              {item.author.firstName} {item.author.lastName}
+            </Text>
+            <Text style={styles.commentTime}>
+              {formatTimeAgo(item.createdAt)}
+            </Text>
+          </View>
+          <Text style={styles.commentText}>{item.content}</Text>
+
+        {/* Media attachments */}
+        {item.media && item.media.length > 0 && (
+          <View style={styles.commentMediaContainer}>
+            {item.media.map((media, index) => (
+              <View key={index} style={styles.commentMediaItem}>
+                {media.type === 'image' ? (
+                  <Image
+                    source={{ uri: media.url }}
+                    style={styles.commentMediaImage}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <VideoView
+                    player={useVideoPlayer(media.url)}
+                    style={styles.commentMediaVideo}
+                    allowsFullscreen
+                    allowsPictureInPicture
+                  />
+                )}
+                {media.caption && (
+                  <Text style={styles.commentMediaCaption}>{media.caption}</Text>
+                )}
+              </View>
+            ))}
+          </View>
+        )}
+
         <View style={styles.commentActions}>
           <TouchableOpacity style={styles.commentAction}>
             <Ionicons
@@ -212,13 +198,14 @@ export const CommentsList: React.FC<CommentsListProps> = ({
         </View>
       </View>
     </View>
-  );
+    );
+  };
 
   const renderFooter = () => {
     if (!loading) return null;
     return (
       <View style={styles.footer}>
-        <ActivityIndicator size="small" color="#3498db" />
+        <ActivityIndicator size="small" color="#00A651" />
         <Text style={styles.footerText}>Loading comments...</Text>
       </View>
     );
@@ -227,7 +214,7 @@ export const CommentsList: React.FC<CommentsListProps> = ({
   if (loading && comments.length === 0) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#3498db" />
+        <ActivityIndicator size="large" color="#00A651" />
         <Text style={styles.loadingText}>Loading comments...</Text>
       </View>
     );
@@ -235,42 +222,66 @@ export const CommentsList: React.FC<CommentsListProps> = ({
 
   return (
     <View style={styles.container}>
+      {/* Comments Header */}
+      {renderCommentsHeader()}
+
       {/* Comments List */}
-      <FlatList
-        data={comments}
-        keyExtractor={(item) => item.id}
-        renderItem={renderComment}
-        onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.1}
-        ListFooterComponent={renderFooter}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-        }
-        showsVerticalScrollIndicator={false}
-      />
+      {comments.map((comment) => (
+        <View key={comment.id}>
+          {renderComment({ item: comment })}
+        </View>
+      ))}
+
+      {/* Loading Footer */}
+      {renderFooter()}
 
       {/* Comment Input */}
       <View style={styles.commentInputContainer}>
-        <TextInput
-          style={styles.commentInput}
-          placeholder="Write a comment..."
-          value={newComment}
-          onChangeText={setNewComment}
-          multiline
-          maxLength={500}
-        />
         <TouchableOpacity
-          style={[styles.submitButton, (!newComment.trim() || submitting) && styles.submitButtonDisabled]}
-          onPress={handleSubmitComment}
-          disabled={!newComment.trim() || submitting}
+          style={styles.commentInputButton}
+          onPress={() => setShowCommentCreator(true)}
+          accessibilityLabel="Write a comment"
+          accessibilityHint="Opens comment composer to write and attach media to your comment"
         >
-          {submitting ? (
-            <ActivityIndicator size="small" color="#fff" />
+          {currentUser?.profilePictureUrl ? (
+            <UserAvatar
+              user={{
+                id: currentUser.id,
+                phoneNumber: currentUser.phoneNumber,
+                firstName: currentUser.firstName,
+                lastName: currentUser.lastName,
+                profilePictureUrl: currentUser.profilePictureUrl,
+                isVerified: currentUser.isVerified,
+                phoneVerified: currentUser.phoneVerified,
+                identityVerified: currentUser.identityVerified,
+                addressVerified: currentUser.addressVerified,
+                preferredLanguage: currentUser.preferredLanguage,
+                verificationLevel: currentUser.verificationLevel,
+                createdAt: currentUser.createdAt,
+                updatedAt: currentUser.updatedAt,
+              }}
+              size="small"
+              showBadge={false}
+            />
           ) : (
-            <Ionicons name="send" size={20} color="#fff" />
+            <View style={styles.defaultAvatar}>
+              <Ionicons name="person" size={20} color="#8E8E8E" />
+            </View>
           )}
+          <Text style={styles.commentInputPlaceholder}>Write a comment...</Text>
+          <Ionicons name="image-outline" size={20} color="#8E8E8E" />
         </TouchableOpacity>
       </View>
+
+      {/* Comment Creator Modal */}
+      <CommentCreator
+        visible={showCommentCreator}
+        onClose={() => setShowCommentCreator(false)}
+        onCommentCreated={handleCommentCreated}
+        postId={postId}
+        placeholder="What's your thought on this post?"
+        autoFocus={true}
+      />
     </View>
   );
 };
@@ -339,35 +350,68 @@ const styles = StyleSheet.create({
     color: '#00A651',
   },
   commentInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
     padding: 16,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#E1E8ED',
   },
-  commentInput: {
-    flex: 1,
+  commentInputButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    borderRadius: 25,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderWidth: 1,
     borderColor: '#E1E8ED',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    marginRight: 12,
-    maxHeight: 100,
-    fontSize: 14,
-    color: '#2C2C2C',
   },
-  submitButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#00A651',
+  defaultAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#E1E8ED',
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 12,
   },
-  submitButtonDisabled: {
-    backgroundColor: '#8E8E8E',
+  commentInputPlaceholder: {
+    flex: 1,
+    fontSize: 16,
+    color: '#8E8E8E',
+  },
+  commentMediaContainer: {
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  commentMediaItem: {
+    marginBottom: 8,
+  },
+  commentMediaImage: {
+    width: commentMediaWidth,
+    height: commentMediaWidth * 0.75,
+    borderRadius: 8,
+  },
+  commentMediaVideo: {
+    width: commentMediaWidth,
+    height: commentMediaWidth * 0.75,
+    borderRadius: 8,
+  },
+  commentMediaCaption: {
+    fontSize: 12,
+    color: '#7f8c8d',
+    marginTop: 4,
+    fontStyle: 'italic',
+  },
+  commentsHeaderContainer: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E1E8ED',
+  },
+  commentsHeaderText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2C2C2C',
   },
   footer: {
     flexDirection: 'row',
@@ -383,3 +427,4 @@ const styles = StyleSheet.create({
 });
 
 export default CommentsList;
+

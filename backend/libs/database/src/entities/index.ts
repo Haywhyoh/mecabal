@@ -17,6 +17,7 @@ export { Post } from './post.entity';
 export { PostMedia } from './post-media.entity';
 export { PostReaction } from './post-reaction.entity';
 export { PostComment } from './post-comment.entity';
+export { CommentMedia } from './comment-media.entity';
 
 // Media Entities
 export { Media } from './media.entity';

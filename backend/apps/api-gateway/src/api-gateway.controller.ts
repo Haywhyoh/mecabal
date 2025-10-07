@@ -260,65 +260,141 @@ export class ApiGatewayController {
     }
   }
 
-  // Specific route for individual posts
+  // Dynamic routing for social service - handles ALL social-related routes EXCEPT media uploads
+  // IMPORTANT: More specific routes must come BEFORE general routes to avoid conflicts
+
+  // Dynamic routing for social service routes
+  // Use wildcard matching to catch all social service routes
+  // IMPORTANT: More specific routes must come FIRST
+
+  // Posts routes - specific routes before general
+  @All('posts/categories')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyPostCategories(@Req() req: Request, @Res() res: Response) {
+    return this.proxySocialRequest(req, res);
+  }
+
+  @All('posts/categories/*')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyPostCategoriesWildcard(@Req() req: Request, @Res() res: Response) {
+    return this.proxySocialRequest(req, res);
+  }
+
   @All('posts/:id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Proxy individual post requests to social service' })
-  @ApiResponse({
-    status: 200,
-    description: 'Request proxied to social service',
-  })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async proxyIndividualPost(@Req() req: Request, @Res() res: Response) {
-    try {
-      const result: unknown = await this.apiGatewayService.proxyToSocialService(
-        req.url,
-        req.method,
-        req.body,
-        req.headers as Record<string, string | string[] | undefined>,
-        req.user as any,
-      );
-
-      // Set appropriate status code based on method
-      let statusCode = HttpStatus.OK;
-      if (req.method === 'POST') {
-        statusCode = HttpStatus.CREATED;
-      }
-
-      res.status(statusCode).json(result);
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-      res
-        .status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .json({ error: errorMessage });
-    }
+  async proxyPostById(@Req() req: Request, @Res() res: Response) {
+    return this.proxySocialRequest(req, res);
   }
 
-  // Dynamic routing for social service - handles ALL social-related routes EXCEPT media uploads
   @All('posts')
-  @All('posts/categories')
-  @All('posts/categories/*')
-  @All('categories')
-  @All('categories/*')
-  @All('media/stats')
-  @All('media/my-media')
-  @All('media/:id')
-  @All('comments')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyPosts(@Req() req: Request, @Res() res: Response) {
+    return this.proxySocialRequest(req, res);
+  }
+
+  // Comments routes
+  @All('comments/posts/:postId/*')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyCommentsPostsWildcard(@Req() req: Request, @Res() res: Response) {
+    return this.proxySocialRequest(req, res);
+  }
+
+  @All('comments/posts/:postId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyCommentsPosts(@Req() req: Request, @Res() res: Response) {
+    return this.proxySocialRequest(req, res);
+  }
+
   @All('comments/*')
-  @All('reactions')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyCommentsWildcard(@Req() req: Request, @Res() res: Response) {
+    return this.proxySocialRequest(req, res);
+  }
+
+  @All('comments')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyComments(@Req() req: Request, @Res() res: Response) {
+    return this.proxySocialRequest(req, res);
+  }
+
+  // Reactions routes
+  @All('reactions/posts/:postId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyReactionsPosts(@Req() req: Request, @Res() res: Response) {
+    return this.proxySocialRequest(req, res);
+  }
+
   @All('reactions/*')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Proxy social requests to social service' })
+  async proxyReactionsWildcard(@Req() req: Request, @Res() res: Response) {
+    return this.proxySocialRequest(req, res);
+  }
+
+  @All('reactions')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyReactions(@Req() req: Request, @Res() res: Response) {
+    return this.proxySocialRequest(req, res);
+  }
+
+  // Categories routes
+  @All('categories/*')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyCategoriesWildcard(@Req() req: Request, @Res() res: Response) {
+    return this.proxySocialRequest(req, res);
+  }
+
+  @All('categories')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyCategories(@Req() req: Request, @Res() res: Response) {
+    return this.proxySocialRequest(req, res);
+  }
+
+  // Media routes
+  @All('media/stats')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyMediaStats(@Req() req: Request, @Res() res: Response) {
+    return this.proxySocialRequest(req, res);
+  }
+
+  @All('media/my-media')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyMyMedia(@Req() req: Request, @Res() res: Response) {
+    return this.proxySocialRequest(req, res);
+  }
+
+  @All('media/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyMediaById(@Req() req: Request, @Res() res: Response) {
+    return this.proxySocialRequest(req, res);
+  }
+
+  // Helper method to proxy requests to social service
+  @ApiOperation({ summary: 'Proxy all social service requests' })
   @ApiResponse({
     status: 200,
     description: 'Request proxied to social service',
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async proxySocial(@Req() req: Request, @Res() res: Response) {
+  private async proxySocialRequest(req: Request, res: Response) {
     try {
+      console.log('🌐 API Gateway - Proxying social service request:', req.url, req.method);
+
       const result: unknown = await this.apiGatewayService.proxyToSocialService(
         req.url,
         req.method,
@@ -337,6 +413,7 @@ export class ApiGatewayController {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error proxying social service request:', errorMessage);
       res
         .status(HttpStatus.INTERNAL_SERVER_ERROR)
         .json({ error: errorMessage });

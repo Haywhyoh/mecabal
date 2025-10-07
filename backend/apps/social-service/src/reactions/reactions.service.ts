@@ -46,7 +46,7 @@ export class ReactionsService {
 
     if (existingReaction) {
       // Update existing reaction
-      existingReaction.reactionType = createReactionDto.reactionType;
+      existingReaction.reactionType = createReactionDto.type;
       const updatedReaction =
         await this.reactionRepository.save(existingReaction);
       return this.mapToResponseDto(updatedReaction);
@@ -56,7 +56,7 @@ export class ReactionsService {
     const reaction = this.reactionRepository.create({
       postId,
       userId,
-      reactionType: createReactionDto.reactionType,
+      reactionType: createReactionDto.type,
     });
 
     const savedReaction = await this.reactionRepository.save(reaction);

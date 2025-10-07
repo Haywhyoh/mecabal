@@ -7,7 +7,16 @@
       "Read(//c/Users/USER/Downloads/**)",
       "Bash(npx tsc:*)",
       "Bash(npx supabase functions deploy:*)",
-      "Read(//c/Users/USER/Pictures/Screenshots/**)"
+      "Read(//c/Users/USER/Pictures/Screenshots/**)",
+      "Bash(taskkill:*)",
+      "Bash(pkill:*)",
+      "Bash(tasklist)",
+      "Bash(findstr:*)",
+      "Bash(npm run start:social:*)",
+      "Bash(npm run typeorm:*)",
+      "Bash(npm run build:*)",
+      "Bash(find:*)",
+      "Bash(netstat:*)"
     ],
     "deny": [],
     "ask": []

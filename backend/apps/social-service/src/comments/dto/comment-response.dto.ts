@@ -20,6 +20,20 @@ export class UserInfoDto {
   trustScore: number;
 }
 
+export class MediaInfoDto {
+  @ApiProperty({ description: 'Media ID' })
+  id: string;
+
+  @ApiProperty({ description: 'Media URL' })
+  url: string;
+
+  @ApiProperty({ description: 'Media type' })
+  type: 'image' | 'video';
+
+  @ApiProperty({ description: 'Media caption', required: false })
+  caption?: string;
+}
+
 export class CommentResponseDto {
   @ApiProperty({ description: 'Comment ID' })
   id: string;
@@ -51,6 +65,12 @@ export class CommentResponseDto {
   @ApiProperty({ description: 'User information', required: false })
   user?: UserInfoDto;
 
+  @ApiProperty({ description: 'Media attachments', type: [MediaInfoDto] })
+  media: MediaInfoDto[];
+
   @ApiProperty({ description: 'Comment replies', type: [CommentResponseDto] })
   replies: CommentResponseDto[];
+
+  @ApiProperty({ description: 'Whether this is a reply' })
+  isReply: boolean;
 }

@@ -3,9 +3,13 @@ import {
   IsString,
   IsUUID,
   IsOptional,
+  IsArray,
+  ValidateNested,
   MinLength,
   MaxLength,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+import { CommentMediaDto } from './create-comment.dto';
 
 export class CreateCommentDto {
   @ApiProperty({
@@ -35,6 +39,30 @@ export class UpdateCommentDto {
   @MinLength(1)
   @MaxLength(2000)
   content: string;
+
+  @ApiPropertyOptional({
+    description: 'Updated media attachments',
+    type: [CommentMediaDto],
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CommentMediaDto)
+  media?: CommentMediaDto[];
+}
+
+export class MediaInfoDto {
+  @ApiProperty({ description: 'Media ID' })
+  id: string;
+
+  @ApiProperty({ description: 'Media URL' })
+  url: string;
+
+  @ApiProperty({ description: 'Media type' })
+  type: 'image' | 'video';
+
+  @ApiPropertyOptional({ description: 'Media caption' })
+  caption?: string;
 }
 
 export class CommentResponseDto {
@@ -71,6 +99,9 @@ export class CommentResponseDto {
     isVerified: boolean;
     trustScore: number;
   };
+
+  @ApiProperty({ description: 'Media attachments', type: [MediaInfoDto] })
+  media: MediaInfoDto[];
 
   @ApiProperty({
     description: 'Replies to this comment',

@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { VideoView, useVideoPlayer } from 'expo-video';
-import { useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { Post } from '../services/postsService';
 import { UserAvatar } from '../components/UserAvatar';
 import { PostActionMenu } from '../components/PostActionMenu';
@@ -22,24 +22,18 @@ import { CommentsList } from '../components/CommentsList';
 import { useAuth } from '../contexts/AuthContext';
 import useFeed from '../hooks/useFeed';
 
-interface PostDetailScreenProps {
-  navigation: any;
-  route: {
-    params: {
-      postId: string;
-      focusComment?: boolean;
-    };
-  };
+interface PostDetailRouteParams {
+  postId: string;
+  focusComment?: boolean;
 }
 
 const { width } = Dimensions.get('window');
 const imageWidth = width - 32; // Account for marginHorizontal (16*2)
 
-export const PostDetailScreen: React.FC<PostDetailScreenProps> = ({
-  navigation,
-  route,
-}) => {
-  const { postId, focusComment = false } = route.params;
+export const PostDetailScreen: React.FC = () => {
+  const navigation = useNavigation();
+  const route = useRoute();
+  const { postId, focusComment = false } = (route.params as PostDetailRouteParams) || {};
   const { user: currentUser } = useAuth();
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
@@ -84,12 +78,10 @@ export const PostDetailScreen: React.FC<PostDetailScreenProps> = ({
     setRefreshing(false);
   }, [loadPost]);
 
-  // Load post on mount and when focused
-  useFocusEffect(
-    useCallback(() => {
-      loadPost();
-    }, [loadPost])
-  );
+  // Load post only on mount, not on every focus
+  useEffect(() => {
+    loadPost();
+  }, [postId]); // Only reload if postId changes
 
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
@@ -123,6 +115,15 @@ export const PostDetailScreen: React.FC<PostDetailScreenProps> = ({
       lost_found: '#9b59b6',
     };
     return colors[type as keyof typeof colors] || '#3498db';
+  };
+
+  const handleGoBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      // @ts-ignore - Navigation type issue
+      navigation.navigate('MainTabs', { screen: 'Home' });
+    }
   };
 
   const getPrivacyIcon = (level: string) => {
@@ -288,7 +289,7 @@ export const PostDetailScreen: React.FC<PostDetailScreenProps> = ({
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={handleGoBack}>
           <Ionicons name="arrow-back" size={24} color="#2C2C2C" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Post</Text>
@@ -476,13 +477,12 @@ export const PostDetailScreen: React.FC<PostDetailScreenProps> = ({
 
         {/* Comments Section */}
         <View style={styles.commentsContainer}>
-          <Text style={styles.commentsTitle}>Comments</Text>
-          <CommentsList 
-            postId={post.id} 
+          <CommentsList
+            postId={post.id}
             onCommentAdded={() => {
               // Refresh post data to update comment count
               loadPost();
-            }} 
+            }}
           />
         </View>
       </ScrollView>
@@ -678,13 +678,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
     flex: 1,
-  },
-  commentsTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#2C2C2C',
-    padding: 16,
-    paddingBottom: 0,
   },
   loadingContainer: {
     flex: 1,
