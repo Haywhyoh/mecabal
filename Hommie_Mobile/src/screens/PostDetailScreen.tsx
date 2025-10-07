@@ -118,12 +118,7 @@ export const PostDetailScreen: React.FC = () => {
   };
 
   const handleGoBack = () => {
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-    } else {
-      // @ts-ignore - Navigation type issue
-      navigation.navigate('MainTabs', { screen: 'Home' });
-    }
+    navigation.goBack();
   };
 
   const getPrivacyIcon = (level: string) => {

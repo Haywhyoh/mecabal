@@ -65,6 +65,17 @@ import PostDetailScreen from './src/screens/PostDetailScreen';
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
+// Home Stack Navigator to keep tabs visible
+function HomeStackNavigator() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="HomeMain" component={HomeScreen} />
+      <Stack.Screen name="PostDetail" component={PostDetailScreen} />
+      <Stack.Screen name="CreatePost" component={CreatePostScreen} />
+    </Stack.Navigator>
+  );
+}
+
 function TabNavigator() {
   return (
     <Tab.Navigator
@@ -79,9 +90,9 @@ function TabNavigator() {
         },
       }}
     >
-      <Tab.Screen 
-        name="Home" 
-        component={HomeScreen}
+      <Tab.Screen
+        name="Home"
+        component={HomeStackNavigator}
         options={{
           tabBarLabel: 'Home',
           tabBarIcon: ({ color, size }) => (
@@ -158,11 +169,7 @@ function MainStackNavigator() {
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="Messaging" component={MessagingScreen} />
       <Stack.Screen name="Chat" component={ChatScreen} />
-      
-      {/* Community Posts */}
-      <Stack.Screen name="CreatePost" component={CreatePostScreen} />
-      <Stack.Screen name="PostDetail" component={PostDetailScreen} />
-      
+
       {/* Development & Testing */}
       <Stack.Screen name="LocationTest" component={LocationTestScreen} />
     </Stack.Navigator>
