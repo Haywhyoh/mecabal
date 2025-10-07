@@ -19,5 +19,11 @@ export { PostReaction } from './post-reaction.entity';
 export { PostComment } from './post-comment.entity';
 export { CommentMedia } from './comment-media.entity';
 
+// Marketplace & Listings Entities
+export { ListingCategory } from './listing-category.entity';
+export { Listing } from './listing.entity';
+export { ListingMedia } from './listing-media.entity';
+export { ListingSave } from './listing-save.entity';
+
 // Media Entities
 export { Media } from './media.entity';

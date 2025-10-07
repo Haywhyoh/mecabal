@@ -8,6 +8,7 @@ import {
   PROFESSIONAL_TITLES,
   VERIFICATION_BADGES
 } from '../constants/nigerianData';
+import { useNavigation } from '@react-navigation/native';
 
 interface CulturalProfile {
   stateOfOrigin?: string;
@@ -32,6 +33,9 @@ export default function CulturalProfileScreen() {
     showProfessionOnProfile: true,
   });
 
+  const navigation = useNavigation();
+
+
   const [showStateModal, setShowStateModal] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showCultureModal, setShowCultureModal] = useState(false);
@@ -52,6 +56,10 @@ export default function CulturalProfileScreen() {
   const handleStateSelect = (stateId: string) => {
     setProfile(prev => ({ ...prev, stateOfOrigin: stateId }));
     setShowStateModal(false);
+  };
+
+  const handleGoBack = () => {
+      navigation.goBack();
   };
 
   const handleLanguageToggle = (languageId: string) => {
@@ -249,7 +257,7 @@ export default function CulturalProfileScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton}>
+        <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
           <MaterialCommunityIcons name="arrow-left" size={24} color="#2C2C2C" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Cultural Profile</Text>

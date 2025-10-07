@@ -90,6 +90,9 @@ export class Neighborhood {
   @OneToMany(() => Post, (post) => post.neighborhood)
   posts: Post[];
 
+  // Note: Removed OneToMany relationship to Listing to avoid circular dependency
+  // Use Listing.neighborhood to access listings for a neighborhood
+
   // Helper methods
   getDistanceFromPoint(lat: number, lng: number): number {
     const R = 6371e3; // Earth's radius in meters

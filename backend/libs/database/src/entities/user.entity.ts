@@ -247,6 +247,9 @@ export class User {
   @OneToMany(() => Post, (post) => post.user)
   posts: Post[];
 
+  // Note: Removed OneToMany relationship to Listing to avoid circular dependency
+  // Use Listing.user to access listings for a user
+
   @OneToMany(() => UserSession, (session) => session.user)
   sessions: UserSession[];
 

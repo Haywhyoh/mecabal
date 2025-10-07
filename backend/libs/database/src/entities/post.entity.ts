@@ -51,11 +51,43 @@ export class Post {
 
   @ApiProperty({
     description: 'Type of post',
-    enum: ['general', 'event', 'alert', 'marketplace', 'lost_found'],
+    enum: ['general', 'event', 'alert', 'marketplace', 'lost_found', 'help'],
     example: 'general',
   })
   @Column({ name: 'post_type', length: 20, default: 'general' })
   postType: string;
+
+  // Help-specific fields
+  @ApiProperty({
+    description: 'Help category (required if postType is help)',
+    enum: ['job', 'errand', 'recommendation', 'advice'],
+    required: false,
+  })
+  @Column({ name: 'help_category', length: 50, nullable: true })
+  helpCategory?: string;
+
+  @ApiProperty({
+    description: 'Urgency level for help requests',
+    enum: ['low', 'medium', 'high'],
+    required: false,
+  })
+  @Column({ name: 'urgency', length: 20, nullable: true })
+  urgency?: string;
+
+  @ApiProperty({
+    description: 'Budget for help request',
+    example: '₦50,000',
+    required: false,
+  })
+  @Column({ name: 'budget', length: 100, nullable: true })
+  budget?: string;
+
+  @ApiProperty({
+    description: 'Deadline for help request',
+    required: false,
+  })
+  @Column({ name: 'deadline', type: 'timestamp', nullable: true })
+  deadline?: Date;
 
   @ApiProperty({
     description: 'Privacy level of the post',
