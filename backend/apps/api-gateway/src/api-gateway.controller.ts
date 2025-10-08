@@ -454,6 +454,63 @@ export class ApiGatewayController {
     return this.proxyMarketplaceRequest(req, res);
   }
 
+  // Events routes
+  @All('events/nearby')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyEventsNearby(@Req() req: Request, @Res() res: Response) {
+    return this.proxyEventsRequest(req, res);
+  }
+
+  @All('events/my-events')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyMyEvents(@Req() req: Request, @Res() res: Response) {
+    return this.proxyEventsRequest(req, res);
+  }
+
+  @All('events/featured')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyFeaturedEvents(@Req() req: Request, @Res() res: Response) {
+    return this.proxyEventsRequest(req, res);
+  }
+
+  @All('events/:id/rsvp')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyEventRsvp(@Req() req: Request, @Res() res: Response) {
+    return this.proxyEventsRequest(req, res);
+  }
+
+  @All('events/:id/attendees')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyEventAttendees(@Req() req: Request, @Res() res: Response) {
+    return this.proxyEventsRequest(req, res);
+  }
+
+  @All('events/:id/increment-views')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyEventIncrementViews(@Req() req: Request, @Res() res: Response) {
+    return this.proxyEventsRequest(req, res);
+  }
+
+  @All('events/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyEventById(@Req() req: Request, @Res() res: Response) {
+    return this.proxyEventsRequest(req, res);
+  }
+
+  @All('events')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyEvents(@Req() req: Request, @Res() res: Response) {
+    return this.proxyEventsRequest(req, res);
+  }
+
   // Helper method to proxy requests to social service
   @ApiOperation({ summary: 'Proxy all social service requests' })
   @ApiResponse({
@@ -526,6 +583,48 @@ export class ApiGatewayController {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
       console.error('Error proxying marketplace service request:', errorMessage);
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: errorMessage });
+    }
+  }
+
+  // Helper method to proxy requests to events service
+  @ApiOperation({ summary: 'Proxy all events service requests' })
+  @ApiResponse({
+    status: 200,
+    description: 'Request proxied to events service',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  private async proxyEventsRequest(req: Request, res: Response) {
+    try {
+      console.log(
+        '🌐 API Gateway - Proxying events service request:',
+        req.url,
+        req.method,
+      );
+
+      const result: unknown =
+        await this.apiGatewayService.proxyToEventsService(
+          req.url,
+          req.method,
+          req.body,
+          req.headers as Record<string, string | string[] | undefined>,
+          req.user,
+        );
+
+      let statusCode = HttpStatus.OK;
+      if (req.method === 'POST') {
+        statusCode = HttpStatus.CREATED;
+      } else if (req.method === 'DELETE') {
+        statusCode = HttpStatus.NO_CONTENT;
+      }
+
+      res.status(statusCode).json(result);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error proxying events service request:', errorMessage);
       res
         .status(HttpStatus.INTERNAL_SERVER_ERROR)
         .json({ error: errorMessage });

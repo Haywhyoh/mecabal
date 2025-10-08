@@ -19,6 +19,7 @@
     "start:marketplace": "nest start marketplace-service --watch",
     "start:events": "nest start events-service --watch",
     "seed:neighborhoods": "ts-node scripts/seed-neighborhoods.ts",
+    "seed:event-categories": "ts-node seed-event-categories.ts",
     "seed:all": "ts-node scripts/run-seeder.ts",
     "start:notification": "nest start notification-service --watch",
     "start:gateway": "nest start api-gateway --watch",

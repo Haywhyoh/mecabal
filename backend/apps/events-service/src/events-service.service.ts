@@ -46,6 +46,15 @@ export class EventsServiceService {
       throw new NotFoundException('Neighborhood not found');
     }
 
+    // Validate location data
+    if (!dto.location) {
+      throw new BadRequestException('Location information is required');
+    }
+
+    if (!dto.location.name || !dto.location.address || dto.location.latitude === undefined || dto.location.longitude === undefined) {
+      throw new BadRequestException('Location name, address, latitude, and longitude are required');
+    }
+
     // Create event with raw SQL for geography field
     const eventData: Partial<Event> = {
       userId,
@@ -808,7 +817,7 @@ export class EventsServiceService {
       id: event.id,
       title: event.title,
       description: event.description,
-      eventDate: event.eventDate.toISOString().split('T')[0],
+      eventDate: event.eventDate instanceof Date ? event.eventDate.toISOString().split('T')[0] : new Date(event.eventDate).toISOString().split('T')[0],
       startTime: event.startTime,
       endTime: event.endTime,
       timezone: event.timezone,
@@ -834,8 +843,8 @@ export class EventsServiceService {
       viewsCount: event.viewsCount,
       attendeesCount: event.attendeesCount,
       specialRequirements: event.specialRequirements,
-      createdAt: event.createdAt.toISOString(),
-      updatedAt: event.updatedAt.toISOString(),
+      createdAt: event.createdAt instanceof Date ? event.createdAt.toISOString() : new Date(event.createdAt).toISOString(),
+      updatedAt: event.updatedAt instanceof Date ? event.updatedAt.toISOString() : new Date(event.updatedAt).toISOString(),
       category: {
         id: event.category.id,
         name: event.category.name,
