@@ -6,6 +6,392 @@
 
 ---
 
+## 🚀 Quick API Reference
+
+### Events Service Endpoints
+**Base URL:** `http://localhost:3006` (Direct) or `http://localhost:3000/events` (via Gateway)
+
+### Authentication
+All protected endpoints require JWT token in Authorization header:
+```
+Authorization: Bearer <your-jwt-token>
+```
+
+### Key Endpoints
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| GET | `/` | Get all events with filters | No |
+| GET | `/nearby` | Get nearby events by location | No |
+| GET | `/my-events` | Get user's events (organizing/attending) | Yes |
+| GET | `/featured` | Get featured events | No |
+| GET | `/:id` | Get event by ID | No |
+| POST | `/` | Create new event | Yes |
+| PATCH | `/:id` | Update event | Yes (owner only) |
+| DELETE | `/:id` | Delete event | Yes (owner only) |
+| POST | `/:id/rsvp` | RSVP to event | Yes |
+| DELETE | `/:id/rsvp` | Cancel RSVP | Yes |
+| GET | `/:id/attendees` | Get event attendees | Yes |
+| POST | `/:id/increment-views` | Increment view count | No |
+
+### Example API Calls
+
+**Create Event:**
+```bash
+curl -X POST http://localhost:3006 \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{
+    "categoryId": 3,
+    "title": "Community Cleanup Drive",
+    "description": "Join us for a community cleanup drive...",
+    "eventDate": "2025-01-25",
+    "startTime": "09:00",
+    "endTime": "17:00",
+    "location": {
+      "name": "Victoria Island Community Center",
+      "address": "123 Ahmadu Bello Way, Victoria Island, Lagos",
+      "latitude": 6.4281,
+      "longitude": 3.4219,
+      "landmark": "Near Eko Hotel"
+    },
+    "isFree": true,
+    "maxAttendees": 50,
+    "allowGuests": true,
+    "languages": ["English", "Yoruba"]
+  }'
+```
+
+**Get Events with Filters:**
+```bash
+curl "http://localhost:3006?page=1&limit=20&categoryId=3&search=cleanup&isFree=true"
+```
+
+**RSVP to Event:**
+```bash
+curl -X POST http://localhost:3006/event-id/rsvp \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{
+    "rsvpStatus": "going",
+    "guestsCount": 2
+  }'
+```
+
+### Event Categories
+| ID | Name | Icon | Color |
+|----|------|------|-------|
+| 1 | Religious Services | church | #7B68EE |
+| 2 | Cultural Festivals | festival | #FF6B35 |
+| 3 | Community Events | account-group | #4CAF50 |
+| 4 | Sports & Fitness | dumbbell | #FF9800 |
+| 5 | Educational | school | #2196F3 |
+| 6 | Business & Networking | briefcase | #9C27B0 |
+| 7 | Entertainment | music | #E91E63 |
+| 8 | Food & Dining | food | #FF5722 |
+| 9 | Health & Wellness | heart-pulse | #00BCD4 |
+| 10 | Technology | laptop | #607D8B |
+
+### TypeScript Types for Mobile Integration
+
+**Create these types in your mobile app:**
+
+```typescript
+// Event Types
+export interface Event {
+  id: string;
+  title: string;
+  description: string;
+  eventDate: string; // YYYY-MM-DD format
+  startTime: string; // HH:mm format
+  endTime?: string; // HH:mm format
+  timezone: string;
+  location: EventLocation;
+  isFree: boolean;
+  price?: number;
+  currency: string;
+  formattedPrice: string;
+  maxAttendees?: number;
+  allowGuests: boolean;
+  requireVerification: boolean;
+  ageRestriction?: string;
+  languages: string[];
+  isPrivate: boolean;
+  coverImageUrl?: string;
+  status: 'draft' | 'published' | 'cancelled' | 'completed';
+  viewsCount: number;
+  attendeesCount: number;
+  specialRequirements?: string;
+  createdAt: string;
+  updatedAt: string;
+  category: EventCategory;
+  organizer: EventOrganizer;
+  media: EventMedia[];
+  userRsvpStatus?: 'going' | 'maybe' | 'not_going';
+  canRsvp: boolean;
+  isAtCapacity: boolean;
+  isUpcoming: boolean;
+  isToday: boolean;
+  durationString: string;
+}
+
+export interface EventLocation {
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  landmark?: string;
+}
+
+export interface EventCategory {
+  id: number;
+  name: string;
+  icon: string;
+  colorCode: string;
+  description?: string;
+}
+
+export interface EventOrganizer {
+  id: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  profilePictureUrl?: string;
+  trustScore: number;
+  isVerified: boolean;
+}
+
+export interface EventMedia {
+  id: string;
+  url: string;
+  type: 'image' | 'video';
+  caption?: string;
+  displayOrder: number;
+}
+
+// DTOs for API calls
+export interface CreateEventDto {
+  categoryId: number;
+  title: string;
+  description: string;
+  eventDate: string; // YYYY-MM-DD
+  startTime: string; // HH:mm
+  endTime?: string; // HH:mm
+  location: EventLocation;
+  isFree: boolean;
+  price?: number;
+  maxAttendees?: number;
+  allowGuests?: boolean;
+  requireVerification?: boolean;
+  ageRestriction?: string;
+  languages?: string[];
+  isPrivate?: boolean;
+  coverImageUrl?: string;
+  media?: EventMediaDto[];
+  specialRequirements?: string;
+}
+
+export interface EventMediaDto {
+  url: string;
+  type: 'image' | 'video';
+  caption?: string;
+  displayOrder?: number;
+}
+
+export interface UpdateEventDto extends Partial<CreateEventDto> {}
+
+export interface EventFilterDto {
+  page?: number;
+  limit?: number;
+  categoryId?: number;
+  status?: 'draft' | 'published' | 'cancelled' | 'completed';
+  search?: string;
+  dateFrom?: string; // YYYY-MM-DD
+  dateTo?: string; // YYYY-MM-DD
+  neighborhoodId?: string;
+  isFree?: boolean;
+  sortBy?: 'createdAt' | 'eventDate' | 'attendeesCount';
+  sortOrder?: 'ASC' | 'DESC';
+}
+
+export interface RsvpDto {
+  rsvpStatus: 'going' | 'maybe' | 'not_going';
+  guestsCount?: number;
+}
+
+export interface AttendeeFilterDto {
+  page?: number;
+  limit?: number;
+  rsvpStatus?: 'going' | 'maybe' | 'not_going';
+  search?: string;
+}
+
+// Response Types
+export interface PaginatedResponse<T> {
+  data: T[];
+  meta: PaginationMeta;
+}
+
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
+export interface EventAttendee {
+  id: string;
+  rsvpStatus: 'going' | 'maybe' | 'not_going';
+  guestsCount: number;
+  rsvpAt: string;
+  checkedIn: boolean;
+  checkedInAt?: string;
+  user: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    fullName: string;
+    profilePictureUrl?: string;
+    trustScore: number;
+    isVerified: boolean;
+  };
+}
+```
+
+### Common Integration Patterns
+
+**1. Fetching Events with Loading States:**
+```typescript
+const [events, setEvents] = useState<Event[]>([]);
+const [loading, setLoading] = useState(true);
+const [error, setError] = useState<string | null>(null);
+
+const fetchEvents = async (filters: EventFilterDto = {}) => {
+  try {
+    setLoading(true);
+    setError(null);
+    const response = await EventsApi.getEvents(filters);
+    setEvents(response.data);
+  } catch (err) {
+    setError(handleApiError(err));
+  } finally {
+    setLoading(false);
+  }
+};
+```
+
+**2. Optimistic RSVP Updates:**
+```typescript
+const handleRSVP = async (eventId: string, status: 'going' | 'maybe' | 'not_going') => {
+  // Optimistic update
+  setEvents(prev => prev.map(event => 
+    event.id === eventId 
+      ? { 
+          ...event, 
+          userRsvpStatus: status,
+          attendeesCount: event.userRsvpStatus ? event.attendeesCount : event.attendeesCount + 1
+        }
+      : event
+  ));
+
+  try {
+    await EventsApi.rsvpEvent(eventId, { rsvpStatus: status });
+  } catch (err) {
+    // Rollback on error
+    setEvents(prev => prev.map(event => 
+      event.id === eventId 
+        ? { 
+            ...event, 
+            userRsvpStatus: undefined,
+            attendeesCount: event.attendeesCount - 1
+          }
+        : event
+    ));
+    Alert.alert('Error', handleApiError(err));
+  }
+};
+```
+
+**3. Pull-to-Refresh Implementation:**
+```typescript
+const [refreshing, setRefreshing] = useState(false);
+
+const onRefresh = async () => {
+  setRefreshing(true);
+  await fetchEvents();
+  setRefreshing(false);
+};
+
+// In your FlatList/ScrollView
+<FlatList
+  data={events}
+  refreshControl={
+    <RefreshControl
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+      tintColor={colors.primary}
+    />
+  }
+  // ... other props
+/>
+```
+
+**4. Debounced Search:**
+```typescript
+import { useDebounce } from 'use-debounce';
+
+const [searchQuery, setSearchQuery] = useState('');
+const [debouncedSearchQuery] = useDebounce(searchQuery, 300);
+
+useEffect(() => {
+  if (debouncedSearchQuery) {
+    fetchEvents({ search: debouncedSearchQuery });
+  }
+}, [debouncedSearchQuery]);
+```
+
+**5. Location-based Events:**
+```typescript
+const getNearbyEvents = async (latitude: number, longitude: number) => {
+  try {
+    const response = await EventsApi.getNearbyEvents({
+      latitude,
+      longitude,
+      radiusKm: 10, // 10km radius
+      filters: { isFree: true } // Optional filters
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching nearby events:', error);
+    return [];
+  }
+};
+```
+
+### Environment Configuration
+
+**Development:**
+```typescript
+// config/environment.ts
+export const API_CONFIG = {
+  EVENTS_BASE_URL: __DEV__ 
+    ? 'http://localhost:3006' 
+    : 'https://api.mecabal.com/events',
+  TIMEOUT: 10000,
+  RETRY_ATTEMPTS: 3,
+};
+```
+
+**Production:**
+```typescript
+// Use environment variables
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://api.mecabal.com';
+```
+
+---
+
 ## 📋 Task Overview
 
 This document breaks down the Events System implementation into small, manageable tasks that can be completed independently. Each task includes acceptance criteria and estimated time.
@@ -722,18 +1108,216 @@ export class EventsServiceController {
 2. Configure axios instance with base URL
 3. Add auth token interceptor
 4. Implement all API methods:
-   - `getEvents(filters)`
-   - `getEvent(id)`
-   - `createEvent(data)`
-   - `updateEvent(id, data)`
-   - `deleteEvent(id)`
-   - `rsvpEvent(id, data)`
-   - `cancelRsvp(id)`
-   - `getAttendees(id, filters)`
-   - `getNearbyEvents(params)`
-   - `getMyEvents(type)`
-   - `incrementViews(id)`
-   - `uploadImage(file)`
+
+**API Base Configuration:**
+```typescript
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const API_BASE_URL = 'http://localhost:3006'; // Events service direct URL
+// Or use gateway: 'http://localhost:3000/events' if using API gateway
+
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Add auth token interceptor
+api.interceptors.request.use(async (config) => {
+  const token = await AsyncStorage.getItem('authToken');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+```
+
+**API Methods Implementation:**
+
+```typescript
+export class EventsApi {
+  // Get all events with filters
+  static async getEvents(filters: EventFilterDto) {
+    const response = await api.get('/', { params: filters });
+    return response.data;
+  }
+
+  // Get single event by ID
+  static async getEvent(id: string) {
+    const response = await api.get(`/${id}`);
+    return response.data;
+  }
+
+  // Create new event
+  static async createEvent(data: CreateEventDto) {
+    const response = await api.post('/', data);
+    return response.data;
+  }
+
+  // Update event (owner only)
+  static async updateEvent(id: string, data: UpdateEventDto) {
+    const response = await api.patch(`/${id}`, data);
+    return response.data;
+  }
+
+  // Delete event (owner only)
+  static async deleteEvent(id: string) {
+    await api.delete(`/${id}`);
+  }
+
+  // RSVP to event
+  static async rsvpEvent(id: string, data: RsvpDto) {
+    const response = await api.post(`/${id}/rsvp`, data);
+    return response.data;
+  }
+
+  // Cancel RSVP
+  static async cancelRsvp(id: string) {
+    await api.delete(`/${id}/rsvp`);
+  }
+
+  // Get event attendees
+  static async getAttendees(id: string, filters: AttendeeFilterDto) {
+    const response = await api.get(`/${id}/attendees`, { params: filters });
+    return response.data;
+  }
+
+  // Get nearby events
+  static async getNearbyEvents(params: {
+    latitude: number;
+    longitude: number;
+    radiusKm?: number;
+    filters?: EventFilterDto;
+  }) {
+    const response = await api.get('/nearby', { params });
+    return response.data;
+  }
+
+  // Get user's events (organizing/attending)
+  static async getMyEvents(type: 'organizing' | 'attending' | 'all' = 'all', filters?: EventFilterDto) {
+    const response = await api.get('/my-events', { 
+      params: { type, ...filters } 
+    });
+    return response.data;
+  }
+
+  // Get featured events
+  static async getFeaturedEvents(limit: number = 5) {
+    const response = await api.get('/featured', { params: { limit } });
+    return response.data;
+  }
+
+  // Increment view count (fire and forget)
+  static async incrementViews(id: string) {
+    try {
+      await api.post(`/${id}/increment-views`);
+    } catch (error) {
+      // Silently fail - view counting is not critical
+      console.warn('Failed to increment view count:', error);
+    }
+  }
+
+  // Upload event image (if media service is available)
+  static async uploadImage(file: FormData) {
+    const response = await api.post('/upload', file, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data;
+  }
+}
+```
+
+**Example API Call for Creating an Event:**
+```typescript
+const createEventExample = async () => {
+  try {
+    const eventData = {
+      categoryId: 3, // Community Events
+      title: "Tech Meetup Lagos",
+      description: "Monthly tech meetup for developers and tech enthusiasts in Lagos.",
+      eventDate: "2025-02-15",
+      startTime: "18:00",
+      endTime: "21:00",
+      location: {
+        name: "Lagos Tech Hub",
+        address: "456 Broad Street, Lagos Island, Lagos",
+        latitude: 6.4474,
+        longitude: 3.3903,
+        landmark: "Near Lagos Central Mosque"
+      },
+      isFree: false,
+      price: 2000,
+      maxAttendees: 100,
+      allowGuests: true,
+      requireVerification: false,
+      ageRestriction: "18+",
+      languages: ["English"],
+      isPrivate: false,
+      coverImageUrl: "https://example.com/tech-meetup-cover.jpg",
+      specialRequirements: "Bring your laptop for hands-on coding session"
+    };
+
+    const createdEvent = await EventsApi.createEvent(eventData);
+    console.log('Event created:', createdEvent);
+    return createdEvent;
+  } catch (error) {
+    console.error('Error creating event:', error);
+    throw error;
+  }
+};
+```
+
+**Available Event Categories (for reference):**
+```typescript
+const EVENT_CATEGORIES = [
+  { id: 1, name: 'Religious Services', icon: 'church', colorCode: '#7B68EE' },
+  { id: 2, name: 'Cultural Festivals', icon: 'festival', colorCode: '#FF6B35' },
+  { id: 3, name: 'Community Events', icon: 'account-group', colorCode: '#4CAF50' },
+  { id: 4, name: 'Sports & Fitness', icon: 'dumbbell', colorCode: '#FF9800' },
+  { id: 5, name: 'Educational', icon: 'school', colorCode: '#2196F3' },
+  { id: 6, name: 'Business & Networking', icon: 'briefcase', colorCode: '#9C27B0' },
+  { id: 7, name: 'Entertainment', icon: 'music', colorCode: '#E91E63' },
+  { id: 8, name: 'Food & Dining', icon: 'food', colorCode: '#FF5722' },
+  { id: 9, name: 'Health & Wellness', icon: 'heart-pulse', colorCode: '#00BCD4' },
+  { id: 10, name: 'Technology', icon: 'laptop', colorCode: '#607D8B' }
+];
+```
+
+**Error Handling:**
+```typescript
+const handleApiError = (error: any): string => {
+  if (error.response) {
+    // Server responded with error status
+    const { status, data } = error.response;
+    switch (status) {
+      case 400:
+        return data.message || 'Invalid request data';
+      case 401:
+        return 'Please log in to continue';
+      case 403:
+        return 'You do not have permission to perform this action';
+      case 404:
+        return 'Event not found';
+      case 409:
+        return 'Event is at capacity';
+      case 500:
+        return 'Server error. Please try again later';
+      default:
+        return data.message || 'An error occurred';
+    }
+  } else if (error.request) {
+    // Network error
+    return 'No internet connection. Please check your network.';
+  } else {
+    // Other error
+    return 'An unexpected error occurred';
+  }
+};
+```
+
 5. Add error handling wrapper
 6. Export service and types
 
@@ -743,6 +1327,8 @@ export class EventsServiceController {
 - [ ] Error handling works correctly
 - [ ] Auth token is automatically added
 - [ ] Network errors are handled gracefully
+- [ ] Example API calls work correctly
+- [ ] Event categories are properly referenced
 
 ---
 

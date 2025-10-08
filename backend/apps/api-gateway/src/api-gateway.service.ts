@@ -351,7 +351,9 @@ export class ApiGatewayService {
     user?: any,
   ) {
     try {
-      const url = `${this.eventsServiceUrl}${path}`;
+      // Strip the /events prefix when forwarding to the events service
+      const eventsPath = path.startsWith('/events') ? path.substring(7) : path;
+      const url = `${this.eventsServiceUrl}${eventsPath}`;
 
       console.log('🌐 API Gateway - Proxying to events service:');
       console.log('  - URL:', url);

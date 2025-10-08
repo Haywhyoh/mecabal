@@ -302,7 +302,8 @@ export class Event {
   }
 
   getEventDateTime(): Date {
-    const dateStr = this.eventDate.toISOString().split('T')[0];
+    const eventDate = this.eventDate instanceof Date ? this.eventDate : new Date(this.eventDate);
+    const dateStr = eventDate.toISOString().split('T')[0];
     return new Date(`${dateStr}T${this.startTime}`);
   }
 
@@ -310,7 +311,8 @@ export class Event {
     if (!this.endTime) {
       return null;
     }
-    const dateStr = this.eventDate.toISOString().split('T')[0];
+    const eventDate = this.eventDate instanceof Date ? this.eventDate : new Date(this.eventDate);
+    const dateStr = eventDate.toISOString().split('T')[0];
     return new Date(`${dateStr}T${this.endTime}`);
   }
 

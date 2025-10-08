@@ -456,8 +456,6 @@ export class ApiGatewayController {
 
   // Events routes
   @All('events/nearby')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
   async proxyEventsNearby(@Req() req: Request, @Res() res: Response) {
     return this.proxyEventsRequest(req, res);
   }
@@ -470,8 +468,6 @@ export class ApiGatewayController {
   }
 
   @All('events/featured')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
   async proxyFeaturedEvents(@Req() req: Request, @Res() res: Response) {
     return this.proxyEventsRequest(req, res);
   }
@@ -491,22 +487,16 @@ export class ApiGatewayController {
   }
 
   @All('events/:id/increment-views')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
   async proxyEventIncrementViews(@Req() req: Request, @Res() res: Response) {
     return this.proxyEventsRequest(req, res);
   }
 
   @All('events/:id')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
   async proxyEventById(@Req() req: Request, @Res() res: Response) {
     return this.proxyEventsRequest(req, res);
   }
 
   @All('events')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
   async proxyEvents(@Req() req: Request, @Res() res: Response) {
     return this.proxyEventsRequest(req, res);
   }
@@ -629,5 +619,40 @@ export class ApiGatewayController {
         .status(HttpStatus.INTERNAL_SERVER_ERROR)
         .json({ error: errorMessage });
     }
+  }
+
+  private eventsEndpointRequiresAuth(url: string, method: string): boolean {
+    // Public endpoints (no auth required)
+    const publicEndpoints = [
+      { method: 'GET', path: '/events' }, // GET all events
+      { method: 'GET', path: '/events/nearby' }, // GET nearby events
+      { method: 'GET', path: '/events/featured' }, // GET featured events
+      { method: 'GET', path: '/events/' }, // GET single event (if it matches pattern)
+      { method: 'POST', path: '/events/' }, // POST increment views (if it matches pattern)
+    ];
+
+    // Check if this is a public endpoint
+    for (const endpoint of publicEndpoints) {
+      if (endpoint.method === method) {
+        if (endpoint.path === '/events' && url === '/events') {
+          return false; // GET /events is public
+        }
+        if (endpoint.path === '/events/nearby' && url.startsWith('/events/nearby')) {
+          return false; // GET /events/nearby is public
+        }
+        if (endpoint.path === '/events/featured' && url.startsWith('/events/featured')) {
+          return false; // GET /events/featured is public
+        }
+        if (endpoint.path === '/events/' && method === 'GET' && url.match(/^\/events\/[^\/]+$/)) {
+          return false; // GET /events/:id is public
+        }
+        if (endpoint.path === '/events/' && method === 'POST' && url.match(/^\/events\/[^\/]+\/increment-views$/)) {
+          return false; // POST /events/:id/increment-views is public
+        }
+      }
+    }
+
+    // All other endpoints require authentication
+    return true;
   }
 }
