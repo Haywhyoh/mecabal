@@ -23,6 +23,10 @@ import {
   ListingCategory,
   ListingMedia,
   ListingSave,
+  EventCategory,
+  Event,
+  EventMedia,
+  EventAttendee,
 } from './entities';
 
 @Module({
@@ -58,6 +62,10 @@ import {
           ListingCategory,
           ListingMedia,
           ListingSave,
+          EventCategory,
+          Event,
+          EventMedia,
+          EventAttendee,
         ],
         synchronize: configService.get('NODE_ENV') === 'development',
         logging: configService.get('NODE_ENV') === 'development',
@@ -91,6 +99,10 @@ import {
       ListingCategory,
       ListingMedia,
       ListingSave,
+      EventCategory,
+      Event,
+      EventMedia,
+      EventAttendee,
     ]),
   ],
   providers: [DatabaseService],

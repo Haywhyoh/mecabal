@@ -27,3 +27,9 @@ export { ListingSave } from './listing-save.entity';
 
 // Media Entities
 export { Media } from './media.entity';
+
+// Events Entities
+export { EventCategory } from './event-category.entity';
+export { Event } from './event.entity';
+export { EventMedia } from './event-media.entity';
+export { EventAttendee } from './event-attendee.entity';
