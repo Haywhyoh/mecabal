@@ -22,7 +22,7 @@ interface PostCreatorProps {
   visible: boolean;
   onClose: () => void;
   onPostCreated?: (post: any) => void;
-  initialPostType?: 'general' | 'safety' | 'marketplace' | 'event' | 'recommendation' | 'civic';
+  initialPostType?: 'general' | 'alert' | 'marketplace' | 'event' | 'help' | 'lost_found';
 }
 
 const { width } = Dimensions.get('window');

@@ -240,18 +240,20 @@ export const POST_CATEGORIES = [
   'Transportation',
 ];
 
-// Marketplace Categories (Nigerian Context)
+// Marketplace Categories - Mapped to backend listing_categories table
+// Backend IDs from migration: Property (1-4), Item (5-9), Service (10-14)
 export const MARKETPLACE_CATEGORIES = [
-  { id: 'all', name: 'All', icon: '🏪' },
-  { id: 'electronics', name: 'Electronics', icon: '📱' },
-  { id: 'services', name: 'Services', icon: '🔧' },
-  { id: 'furniture', name: 'Furniture', icon: '🪑' },
-  { id: 'vehicles', name: 'Vehicles', icon: '🚗' },
-  { id: 'fashion', name: 'Fashion', icon: '👕' },
-  { id: 'food', name: 'Food & Drinks', icon: '🍽️' },
-  { id: 'beauty', name: 'Beauty', icon: '💄' },
-  { id: 'home', name: 'Home & Garden', icon: '🏠' },
-  { id: 'jobs', name: 'Jobs', icon: '💼' },
+  { id: 'all', name: 'All', icon: '🏪', backendId: null, type: null }, // Filter only
+  { id: 'electronics', name: 'Electronics', icon: '📱', backendId: 5, type: 'item' },
+  { id: 'furniture', name: 'Furniture', icon: '🪑', backendId: 6, type: 'item' },
+  { id: 'vehicles', name: 'Vehicles', icon: '🚗', backendId: 7, type: 'item' },
+  { id: 'fashion', name: 'Fashion', icon: '👕', backendId: 8, type: 'item' },
+  { id: 'home', name: 'Home & Garden', icon: '🏠', backendId: 9, type: 'item' },
+  { id: 'plumbing', name: 'Plumbing', icon: '🔧', backendId: 10, type: 'service' },
+  { id: 'electrical', name: 'Electrical', icon: '⚡', backendId: 11, type: 'service' },
+  { id: 'cleaning', name: 'Cleaning', icon: '🧹', backendId: 12, type: 'service' },
+  { id: 'security', name: 'Security', icon: '🛡️', backendId: 13, type: 'service' },
+  { id: 'repairs', name: 'Repairs', icon: '🔨', backendId: 14, type: 'service' },
 ];
 
 // Nigerian-Specific Service Categories

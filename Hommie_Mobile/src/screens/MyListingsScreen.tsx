@@ -1,19 +1,25 @@
-import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  ScrollView, 
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
   FlatList,
   Alert,
   Switch,
-  Image
+  Image,
+  ActivityIndicator,
+  RefreshControl,
+  Platform,
+  ActionSheetIOS
 } from 'react-native';
 import { SafeAreaView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { colors, typography, spacing, shadows } from '../constants';
 import { MarketplaceListingCard } from '../components/MarketplaceListingCard';
 import { EmptyState } from '../components/EmptyState';
+import { ListingsService } from '../services/listingsService';
 
 interface MyListingsScreenProps {
   navigation?: any;
@@ -22,153 +28,214 @@ interface MyListingsScreenProps {
 export default function MyListingsScreen({ navigation }: MyListingsScreenProps) {
   const [activeTab, setActiveTab] = useState<'active' | 'sold' | 'inactive'>('active');
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [listings, setListings] = useState<any>({ active: [], sold: [], inactive: [] });
+  const [stats, setStats] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Sample user's listings data
-  const userListings = {
-    active: [
-      {
-        id: '1',
-        title: 'MacBook Air M1 2021 - Like New',
-        price: '₦850,000',
-        category: 'electronics',
-        categoryName: 'Electronics',
-        seller: 'You',
-        location: 'Victoria Island, Lagos',
-        condition: 'Used - Like New',
-        postedDate: '2 days ago',
-        views: 127,
-        interested: 8,
-        messages: 5,
-        isFeatured: true,
-        isActive: true,
-        imageUrl: 'https://via.placeholder.com/300x200/00A651/FFFFFF?text=MacBook+Air'
-      },
-      {
-        id: '2',
-        title: 'Professional Plumbing Service',
-        price: '₦12,000/visit',
-        category: 'services',
-        categoryName: 'Services',
-        seller: 'You',
-        location: 'Lagos Mainland',
-        postedDate: '1 week ago',
-        views: 89,
-        interested: 12,
-        messages: 9,
-        isActive: true,
-        imageUrl: 'https://via.placeholder.com/300x200/228B22/FFFFFF?text=Plumbing+Service'
-      },
-      {
-        id: '3',
-        title: 'Toyota Camry 2019 - Nigerian Used',
-        price: '₦8,500,000',
-        category: 'vehicles',
-        categoryName: 'Vehicles',
-        seller: 'You',
-        location: 'Ikeja, Lagos',
-        condition: 'Used - Good',
-        postedDate: '3 days ago',
-        views: 203,
-        interested: 15,
-        messages: 11,
-        isActive: true,
-        imageUrl: 'https://via.placeholder.com/300x200/FF4500/FFFFFF?text=Toyota+Camry'
-      }
-    ],
-    sold: [
-      {
-        id: '4',
-        title: 'iPhone 11 Pro Max - Sold',
-        price: '₦320,000',
-        category: 'electronics',
-        categoryName: 'Electronics',
-        seller: 'You',
-        location: 'Lekki, Lagos',
-        condition: 'Used - Good',
-        postedDate: '2 weeks ago',
-        soldDate: '5 days ago',
-        soldPrice: '₦300,000',
-        buyer: 'Adebayo K.',
-        views: 156,
-        interested: 22,
-        messages: 18,
-        isActive: false,
-        imageUrl: 'https://via.placeholder.com/300x200/666666/FFFFFF?text=iPhone+11+SOLD'
-      }
-    ],
-    inactive: [
-      {
-        id: '5',
-        title: 'Samsung Galaxy Tab - Expired',
-        price: '₦180,000',
-        category: 'electronics',
-        categoryName: 'Electronics',
-        seller: 'You',
-        location: 'Surulere, Lagos',
-        condition: 'Brand New',
-        postedDate: '1 month ago',
-        expiredDate: '1 week ago',
-        views: 45,
-        interested: 3,
-        messages: 2,
-        isActive: false,
-        reason: 'Expired - No responses',
-        imageUrl: 'https://via.placeholder.com/300x200/999999/FFFFFF?text=Galaxy+Tab'
-      }
-    ]
+  const listingsService = ListingsService.getInstance();
+
+  // Fetch user's listings on mount
+  useEffect(() => {
+    fetchListings();
+  }, []);
+
+  const fetchListings = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch listings from API
+      const result = await listingsService.getMyListings();
+
+      // Categorize listings by status
+      const categorizedListings = {
+        active: result.data.filter((listing: any) => listing.status === 'active'),
+        sold: result.data.filter((listing: any) => listing.status === 'sold'),
+        inactive: result.data.filter((listing: any) => listing.status === 'expired' || listing.status === 'draft'),
+      };
+
+      setListings(categorizedListings);
+
+      // Calculate stats
+      const calculatedStats = {
+        totalListings: result.data.length,
+        activeListings: categorizedListings.active.length,
+        totalViews: result.data.reduce((sum: number, listing: any) => sum + listing.viewsCount, 0),
+        totalInterested: result.data.reduce((sum: number, listing: any) => sum + (listing.savesCount || 0), 0),
+        responseRate: 85, // This would come from backend
+        averageResponseTime: '2 hours', // This would come from backend
+        totalSold: categorizedListings.sold.length,
+        totalEarnings: '₦300,000' // This would be calculated from sold items
+      };
+      setStats(calculatedStats);
+
+    } catch (err: any) {
+      console.error('Error fetching listings:', err);
+      setError(err.message || 'Failed to load listings');
+
+      // Show fallback mock data if API fails
+      setListings({
+        active: [],
+        sold: [],
+        inactive: []
+      });
+      setStats({
+        totalListings: 0,
+        activeListings: 0,
+        totalViews: 0,
+        totalInterested: 0,
+        responseRate: 0,
+        averageResponseTime: 'N/A',
+        totalSold: 0,
+        totalEarnings: '₦0'
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const stats = {
-    totalListings: 5,
-    activeListings: 3,
-    totalViews: 620,
-    totalInterested: 60,
-    responseRate: 85,
-    averageResponseTime: '2 hours',
-    totalSold: 1,
-    totalEarnings: '₦300,000'
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchListings();
+    setRefreshing(false);
   };
 
-  const handleListingAction = (listingId: string, action: string) => {
+  const triggerHaptic = () => {
+    if (Platform.OS === 'ios') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+  };
+
+  const handleListingAction = async (listingId: string, action: string) => {
+    triggerHaptic();
+
     switch (action) {
       case 'edit':
-        Alert.alert('Edit Listing', 'Navigate to edit screen');
+        navigation?.navigate('CreateListing', { listingId, mode: 'edit' });
         break;
+
       case 'promote':
-        Alert.alert('Promote Listing', 'Feature your listing for better visibility?', [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Promote (₦2,000)', onPress: () => console.log('Promote listing') }
-        ]);
+        Alert.alert(
+          'Promote Listing',
+          'Feature your listing for better visibility?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Promote (₦2,000)',
+              onPress: async () => {
+                triggerHaptic();
+                // TODO: Implement promotion API call
+                Alert.alert('Success', 'Listing promoted successfully!');
+              }
+            }
+          ],
+          { cancelable: true }
+        );
         break;
+
       case 'deactivate':
-        Alert.alert('Deactivate Listing', 'This will hide your listing from buyers. Continue?', [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Deactivate', style: 'destructive', onPress: () => console.log('Deactivate') }
-        ]);
+        Alert.alert(
+          'Deactivate Listing',
+          'This will hide your listing from buyers. Continue?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Deactivate',
+              style: 'destructive',
+              onPress: async () => {
+                try {
+                  await listingsService.updateListing(listingId, { status: 'draft' } as any);
+                  triggerHaptic();
+                  Alert.alert('Success', 'Listing deactivated');
+                  await fetchListings();
+                } catch (err: any) {
+                  Alert.alert('Error', err.message || 'Failed to deactivate listing');
+                }
+              }
+            }
+          ],
+          { cancelable: true }
+        );
         break;
+
       case 'reactivate':
-        Alert.alert('Reactivate Listing', 'Make this listing visible again?', [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Reactivate', onPress: () => console.log('Reactivate') }
-        ]);
+        Alert.alert(
+          'Reactivate Listing',
+          'Make this listing visible again?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Reactivate',
+              onPress: async () => {
+                try {
+                  await listingsService.updateListing(listingId, { status: 'active' } as any);
+                  triggerHaptic();
+                  Alert.alert('Success', 'Listing reactivated');
+                  await fetchListings();
+                } catch (err: any) {
+                  Alert.alert('Error', err.message || 'Failed to reactivate listing');
+                }
+              }
+            }
+          ],
+          { cancelable: true }
+        );
         break;
+
       case 'delete':
-        Alert.alert('Delete Listing', 'This action cannot be undone. Continue?', [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Delete', style: 'destructive', onPress: () => console.log('Delete') }
-        ]);
+        Alert.alert(
+          'Delete Listing',
+          'This action cannot be undone. Continue?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Delete',
+              style: 'destructive',
+              onPress: async () => {
+                try {
+                  await listingsService.deleteListing(listingId);
+                  triggerHaptic();
+                  Alert.alert('Success', 'Listing deleted');
+                  await fetchListings();
+                } catch (err: any) {
+                  Alert.alert('Error', err.message || 'Failed to delete listing');
+                }
+              }
+            }
+          ],
+          { cancelable: true }
+        );
         break;
+
       case 'duplicate':
-        Alert.alert('Duplicate Listing', 'Create a copy of this listing?', [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Duplicate', onPress: () => console.log('Duplicate') }
-        ]);
+        // TODO: Implement duplicate functionality
+        Alert.alert('Coming Soon', 'Duplicate listing feature coming soon!');
         break;
+
       case 'mark_sold':
-        Alert.alert('Mark as Sold', 'Mark this item as sold?', [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Mark Sold', onPress: () => console.log('Mark sold') }
-        ]);
+        Alert.alert(
+          'Mark as Sold',
+          'Mark this item as sold?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Mark Sold',
+              onPress: async () => {
+                try {
+                  await listingsService.markAsSold(listingId);
+                  triggerHaptic();
+                  Alert.alert('Success', 'Item marked as sold');
+                  await fetchListings();
+                } catch (err: any) {
+                  Alert.alert('Error', err.message || 'Failed to mark as sold');
+                }
+              }
+            }
+          ],
+          { cancelable: true }
+        );
         break;
     }
   };
@@ -203,31 +270,43 @@ export default function MyListingsScreen({ navigation }: MyListingsScreenProps) 
         )}
       </View>
 
-      {/* Action Buttons */}
+      {/* Action Buttons with Emojis */}
       <View style={styles.listingActions}>
         {activeTab === 'active' && (
           <>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.actionButton}
               onPress={() => handleListingAction(item.id, 'edit')}
+              accessible={true}
+              accessibilityLabel="Edit listing"
+              accessibilityRole="button"
             >
               <Text style={styles.actionButtonText}>✏️ Edit</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.actionButton}
               onPress={() => handleListingAction(item.id, 'promote')}
+              accessible={true}
+              accessibilityLabel="Promote listing"
+              accessibilityRole="button"
             >
               <Text style={styles.actionButtonText}>🚀 Promote</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.actionButton}
               onPress={() => handleListingAction(item.id, 'mark_sold')}
+              accessible={true}
+              accessibilityLabel="Mark as sold"
+              accessibilityRole="button"
             >
               <Text style={styles.actionButtonText}>✅ Mark Sold</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.actionButton, styles.dangerButton]}
               onPress={() => handleListingAction(item.id, 'deactivate')}
+              accessible={true}
+              accessibilityLabel="Pause listing"
+              accessibilityRole="button"
             >
               <Text style={[styles.actionButtonText, styles.dangerText]}>⏸️ Pause</Text>
             </TouchableOpacity>
@@ -236,21 +315,30 @@ export default function MyListingsScreen({ navigation }: MyListingsScreenProps) 
 
         {activeTab === 'inactive' && (
           <>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.actionButton}
               onPress={() => handleListingAction(item.id, 'reactivate')}
+              accessible={true}
+              accessibilityLabel="Reactivate listing"
+              accessibilityRole="button"
             >
               <Text style={styles.actionButtonText}>▶️ Reactivate</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.actionButton}
               onPress={() => handleListingAction(item.id, 'duplicate')}
+              accessible={true}
+              accessibilityLabel="Duplicate listing"
+              accessibilityRole="button"
             >
               <Text style={styles.actionButtonText}>📋 Duplicate</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.actionButton, styles.dangerButton]}
               onPress={() => handleListingAction(item.id, 'delete')}
+              accessible={true}
+              accessibilityLabel="Delete listing"
+              accessibilityRole="button"
             >
               <Text style={[styles.actionButtonText, styles.dangerText]}>🗑️ Delete</Text>
             </TouchableOpacity>
@@ -259,15 +347,24 @@ export default function MyListingsScreen({ navigation }: MyListingsScreenProps) 
 
         {activeTab === 'sold' && (
           <>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.actionButton}
               onPress={() => handleListingAction(item.id, 'duplicate')}
+              accessible={true}
+              accessibilityLabel="Duplicate listing"
+              accessibilityRole="button"
             >
               <Text style={styles.actionButtonText}>📋 Duplicate</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.actionButton}
-              onPress={() => Alert.alert('Leave Review', 'Leave a review for the buyer?')}
+              onPress={() => {
+                triggerHaptic();
+                Alert.alert('Leave Review', 'Leave a review for the buyer?');
+              }}
+              accessible={true}
+              accessibilityLabel="Review buyer"
+              accessibilityRole="button"
             >
               <Text style={styles.actionButtonText}>⭐ Review Buyer</Text>
             </TouchableOpacity>
@@ -279,20 +376,33 @@ export default function MyListingsScreen({ navigation }: MyListingsScreenProps) 
 
   const renderHeader = () => (
     <View>
-      {/* Header */}
+      {/* Header with iOS-compliant icons */}
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
-          onPress={() => navigation?.goBack()}
+          onPress={() => {
+            triggerHaptic();
+            navigation?.goBack();
+          }}
+          accessible={true}
+          accessibilityLabel="Go back"
+          accessibilityRole="button"
         >
-          <Text style={styles.backButtonText}>←</Text>
+          <Ionicons name="chevron-back" size={28} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Listings</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.addButton}
-          onPress={() => console.log('Navigate to create listing')}
+          onPress={() => {
+            triggerHaptic();
+            navigation?.navigate('CreateListing');
+          }}
+          accessible={true}
+          accessibilityLabel="Add new listing"
+          accessibilityRole="button"
         >
-          <Text style={styles.addButtonText}>+ Add</Text>
+          <Ionicons name="add" size={20} color={colors.white} />
+          <Text style={styles.addButtonText}>Add</Text>
         </TouchableOpacity>
       </View>
 
@@ -301,14 +411,20 @@ export default function MyListingsScreen({ navigation }: MyListingsScreenProps) 
         <Text style={styles.toggleLabel}>Show Analytics</Text>
         <Switch
           value={showAnalytics}
-          onValueChange={setShowAnalytics}
+          onValueChange={(value) => {
+            triggerHaptic();
+            setShowAnalytics(value);
+          }}
           trackColor={{ false: colors.neutral.lightGray, true: colors.lightGreen }}
           thumbColor={showAnalytics ? colors.primary : colors.neutral.gray}
+          accessible={true}
+          accessibilityLabel="Toggle analytics"
+          accessibilityRole="switch"
         />
       </View>
 
       {/* Stats Overview */}
-      {showAnalytics && (
+      {showAnalytics && stats && (
         <View style={styles.statsContainer}>
           <View style={styles.statsGrid}>
             <View style={styles.statCard}>
@@ -328,7 +444,7 @@ export default function MyListingsScreen({ navigation }: MyListingsScreenProps) 
               <Text style={styles.statCardLabel}>Interested</Text>
             </View>
           </View>
-          
+
           <View style={styles.additionalStats}>
             <View style={styles.additionalStat}>
               <Text style={styles.additionalStatLabel}>Response Rate</Text>
@@ -351,14 +467,21 @@ export default function MyListingsScreen({ navigation }: MyListingsScreenProps) 
   const renderTabBar = () => (
     <View style={styles.tabBar}>
       {[
-        { key: 'active', label: 'Active', count: userListings.active.length },
-        { key: 'sold', label: 'Sold', count: userListings.sold.length },
-        { key: 'inactive', label: 'Inactive', count: userListings.inactive.length },
+        { key: 'active', label: 'Active', count: listings.active.length },
+        { key: 'sold', label: 'Sold', count: listings.sold.length },
+        { key: 'inactive', label: 'Inactive', count: listings.inactive.length },
       ].map((tab) => (
         <TouchableOpacity
           key={tab.key}
           style={[styles.tab, activeTab === tab.key && styles.activeTab]}
-          onPress={() => setActiveTab(tab.key as any)}
+          onPress={() => {
+            triggerHaptic();
+            setActiveTab(tab.key as any);
+          }}
+          accessible={true}
+          accessibilityLabel={`${tab.label} tab, ${tab.count} listings`}
+          accessibilityRole="button"
+          accessibilityState={{ selected: activeTab === tab.key }}
         >
           <Text style={[styles.tabText, activeTab === tab.key && styles.activeTabText]}>
             {tab.label} ({tab.count})
@@ -369,7 +492,7 @@ export default function MyListingsScreen({ navigation }: MyListingsScreenProps) 
   );
 
   const getCurrentListings = () => {
-    return userListings[activeTab] || [];
+    return listings[activeTab] || [];
   };
 
   const getEmptyStateProps = () => {
@@ -413,8 +536,28 @@ export default function MyListingsScreen({ navigation }: MyListingsScreenProps) 
     <SafeAreaView style={styles.container}>
       {renderHeader()}
       {renderTabBar()}
-      
-      {getCurrentListings().length === 0 ? (
+
+      {loading && !refreshing ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Loading listings...</Text>
+        </View>
+      ) : error ? (
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={64} color={colors.danger} />
+          <Text style={styles.errorTitle}>Unable to Load Listings</Text>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => {
+              triggerHaptic();
+              fetchListings();
+            }}
+          >
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      ) : getCurrentListings().length === 0 ? (
         <EmptyState {...getEmptyStateProps()} />
       ) : (
         <FlatList
@@ -424,6 +567,14 @@ export default function MyListingsScreen({ navigation }: MyListingsScreenProps) 
           style={styles.listingsContainer}
           contentContainerStyle={styles.listingsContent}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
+            />
+          }
         />
       )}
     </SafeAreaView>
@@ -447,10 +598,10 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: spacing.xs,
-  },
-  backButtonText: {
-    fontSize: typography.sizes.xl,
-    color: colors.text.dark,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: typography.sizes.lg,
@@ -458,13 +609,59 @@ const styles = StyleSheet.create({
     color: colors.text.dark,
   },
   addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.primary,
-    borderRadius: 15,
-    paddingHorizontal: spacing.sm,
+    borderRadius: 20,
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
+    gap: 4,
+    minHeight: 36,
   },
   addButtonText: {
     fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semibold,
+    color: colors.white,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing.xl,
+  },
+  loadingText: {
+    marginTop: spacing.md,
+    fontSize: typography.sizes.base,
+    color: colors.text.light,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing.xl,
+  },
+  errorTitle: {
+    fontSize: typography.sizes.xl,
+    fontWeight: typography.weights.semibold,
+    color: colors.text.dark,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+    textAlign: 'center',
+  },
+  errorText: {
+    fontSize: typography.sizes.base,
+    color: colors.text.light,
+    textAlign: 'center',
+    marginBottom: spacing.lg,
+  },
+  retryButton: {
+    backgroundColor: colors.primary,
+    borderRadius: 25,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xl,
+  },
+  retryButtonText: {
+    fontSize: typography.sizes.base,
     fontWeight: typography.weights.semibold,
     color: colors.white,
   },

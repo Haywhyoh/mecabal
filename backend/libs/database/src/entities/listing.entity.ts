@@ -114,13 +114,13 @@ export class Listing {
   @Column({ length: 100, nullable: true })
   brand?: string;
 
-  // Location (using separate lat/lng columns for better compatibility)
+  // Location stored as separate latitude/longitude columns
   @ApiProperty({ description: 'Latitude coordinate' })
-  @Column({ type: 'decimal', precision: 10, scale: 8 })
+  @Column({ type: 'decimal', precision: 10, scale: 8, default: 0 })
   latitude: number;
 
   @ApiProperty({ description: 'Longitude coordinate' })
-  @Column({ type: 'decimal', precision: 11, scale: 8 })
+  @Column({ type: 'decimal', precision: 11, scale: 8, default: 0 })
   longitude: number;
 
   @ApiProperty({ description: 'Full address text' })

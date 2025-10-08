@@ -59,17 +59,17 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ navigation 
       id: 'event',
       title: 'Create Event',
       description: 'Organize a community gathering',
-      icon: 'calendar-plus',
+      icon: 'calendar-outline',
       color: colors.accent.trustBlue,
       onPress: () => handlePostType('event'),
     },
     {
-      id: 'safety',
+      id: 'alert',
       title: 'Safety Alert',
       description: 'Report security or emergency situations',
       icon: 'shield-alert',
       color: colors.accent.safetyRed,
-      onPress: () => handlePostType('safety'),
+      onPress: () => handlePostType('alert'),
     },
   ];
 
@@ -88,7 +88,7 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ navigation 
 
     switch (type) {
       case 'general':
-        navigation?.navigate('CreatePost', { type: 'general' });
+        navigation?.navigate('CreatePost', { postType: 'general' });
         break;
       case 'help':
         navigation?.navigate('CreateHelpPost');
@@ -101,8 +101,8 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ navigation 
       case 'event':
         navigation?.navigate('CreateEvent');
         break;
-      case 'safety':
-        navigation?.navigate('CreatePost', { type: 'alert' });
+      case 'alert':
+        navigation?.navigate('CreatePost', { postType: 'alert' });
         break;
     }
   };

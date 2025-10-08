@@ -49,19 +49,6 @@ export class MarketplaceAuthGuard implements CanActivate {
       });
 
       if (!user) {
-        // For testing purposes, create a mock user for the specific JWT token
-        if (fixedUserId === 'a4ba9886-ce30-43ea-9ac0-7ca4e5e45570') {
-          const mockUser = {
-            id: 'a4ba9886-ce30-43ea-9ac0-7ca4e5e45570',
-            email: 'ayo@codemygig.com',
-            firstName: 'Ayo',
-            lastName: 'User',
-            isActive: true,
-            userNeighborhoods: [],
-          };
-          request.user = mockUser;
-          return true;
-        }
         throw new UnauthorizedException('User not found');
       }
 
@@ -69,14 +56,39 @@ export class MarketplaceAuthGuard implements CanActivate {
         throw new UnauthorizedException('User account is deactivated');
       }
 
-      // Attach user to request
-      request.user = user;
+      // Get primary neighborhood ID
+      const primaryNeighborhood = user.userNeighborhoods?.[0]?.neighborhood?.id;
+
+      // Attach user to request with required fields
+      request.user = {
+        userId: user.id,
+        neighborhoodId: primaryNeighborhood || 'default-neighborhood-id', // TODO: Handle users without neighborhoods
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+      };
       return true;
     }
 
     // Fall back to JWT authentication for direct requests
     const jwtGuard = new (AuthGuard('jwt'))();
     const result = await jwtGuard.canActivate(context);
+
+    if (result) {
+      // JWT strategy returns the full User object, transform it for the controller
+      const user = request.user;
+      if (user && user.id) {
+        const primaryNeighborhood = user.userNeighborhoods?.[0]?.neighborhood?.id;
+        request.user = {
+          userId: user.id,
+          neighborhoodId: primaryNeighborhood || '00000000-0000-0000-0000-000000000001',
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+        };
+      }
+    }
+
     return result as boolean;
   }
 }

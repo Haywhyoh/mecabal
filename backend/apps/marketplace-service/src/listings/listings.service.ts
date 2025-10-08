@@ -58,20 +58,44 @@ export class ListingsService {
       );
     }
 
-    // Create listing
-    const listing = this.listingRepository.create({
-      ...createListingDto,
-      userId,
-      neighborhoodId,
-      latitude: createListingDto.location.latitude,
-      longitude: createListingDto.location.longitude,
-      address: createListingDto.location.address,
-      expiresAt: createListingDto.expiresAt
-        ? new Date(createListingDto.expiresAt)
-        : undefined,
-    });
+    // Create listing using raw SQL
+    const { latitude, longitude, address } = createListingDto.location;
 
-    const savedListing = await this.listingRepository.save(listing);
+    const result = await this.listingRepository.query(
+      `
+      INSERT INTO listings (
+        user_id, neighborhood_id, listing_type, category_id, title, description,
+        price, currency, price_type, property_type, bedrooms, bathrooms, rental_period,
+        condition, brand, latitude, longitude, address, status, expires_at
+      ) VALUES (
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20
+      ) RETURNING *
+      `,
+      [
+        userId,
+        neighborhoodId,
+        createListingDto.listingType,
+        createListingDto.categoryId,
+        createListingDto.title,
+        createListingDto.description,
+        createListingDto.price,
+        'NGN',
+        createListingDto.priceType,
+        createListingDto.propertyType || null,
+        createListingDto.bedrooms || null,
+        createListingDto.bathrooms || null,
+        createListingDto.rentalPeriod || null,
+        createListingDto.condition || null,
+        createListingDto.brand || null,
+        latitude,
+        longitude,
+        address,
+        'active',
+        createListingDto.expiresAt || null,
+      ],
+    );
+
+    const savedListing = result[0];
 
     // Create media attachments if provided
     if (createListingDto.media && createListingDto.media.length > 0) {

@@ -15,7 +15,7 @@ interface CreatePostScreenProps {
   navigation: any;
   route?: {
     params?: {
-      postType?: 'general' | 'safety' | 'marketplace' | 'event' | 'recommendation' | 'civic';
+      postType?: 'general' | 'alert' | 'marketplace' | 'event' | 'help' | 'lost_found';
     };
   };
 }

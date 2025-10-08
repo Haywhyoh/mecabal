@@ -71,6 +71,14 @@ export class LocationDto {
 }
 
 export class ListingMediaDto {
+  @ApiPropertyOptional({
+    description: 'Temporary ID from client (ignored by server)',
+    example: '0',
+  })
+  @IsOptional()
+  @IsString()
+  id?: string;
+
   @ApiProperty({
     description: 'Media file URL',
     example: 'https://storage.mecabal.com/listings/image1.jpg',
