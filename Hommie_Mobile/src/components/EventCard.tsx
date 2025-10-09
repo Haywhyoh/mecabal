@@ -8,11 +8,11 @@ import {
   Dimensions,
 } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { EventData, eventCategories } from '../data/eventsData';
+import { Event, EVENT_CATEGORIES } from '../services/EventsApi';
 import { colors, spacing, typography, shadows } from '../constants';
 
 interface EventCardProps {
-  event: EventData;
+  event: Event;
   onPress?: () => void;
   variant?: 'default' | 'featured' | 'compact';
 }
@@ -25,7 +25,7 @@ const EventCard: React.FC<EventCardProps> = ({
   onPress, 
   variant = 'default' 
 }) => {
-  const category = eventCategories.find(cat => cat.id === event.category);
+  const category = EVENT_CATEGORIES.find(cat => cat.id === event.category.id);
   
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -47,6 +47,7 @@ const EventCard: React.FC<EventCardProps> = ({
   };
 
   const formatTime = (timeString: string) => {
+    if (!timeString) return '';
     const [hours, minutes] = timeString.split(':');
     const hour = parseInt(hours);
     const ampm = hour >= 12 ? 'PM' : 'AM';
@@ -55,20 +56,16 @@ const EventCard: React.FC<EventCardProps> = ({
   };
 
   const getVerificationIcon = () => {
-    switch (event.organizer.verificationLevel) {
-      case 'full':
-        return <MaterialCommunityIcons name="check-decagram" size={16} color={colors.success} />;
-      case 'identity':
-        return <MaterialCommunityIcons name="check-circle" size={16} color={colors.primary} />;
-      case 'phone':
-        return <MaterialCommunityIcons name="check" size={16} color={colors.secondary} />;
-      default:
-        return null;
+    if (event.organizer.isVerified) {
+      return <MaterialCommunityIcons name="check-decagram" size={16} color={colors.success} />;
+    } else if (event.organizer.trustScore >= 50) {
+      return <MaterialCommunityIcons name="check-circle" size={16} color={colors.warning} />;
     }
+    return null;
   };
 
   const getPriceDisplay = () => {
-    if (event.price.isFree) {
+    if (event.isFree) {
       return (
         <View style={styles.priceTag}>
           <Text style={styles.priceText}>Free</Text>
@@ -78,7 +75,7 @@ const EventCard: React.FC<EventCardProps> = ({
       return (
         <View style={[styles.priceTag, styles.paidPriceTag]}>
           <Text style={[styles.priceText, styles.paidPriceText]}>
-            ₦{event.price.amount?.toLocaleString()}
+            {event.formattedPrice}
           </Text>
         </View>
       );
@@ -86,7 +83,7 @@ const EventCard: React.FC<EventCardProps> = ({
   };
 
   const getRSVPStatusColor = () => {
-    switch (event.rsvpStatus) {
+    switch (event.userRsvpStatus) {
       case 'going':
         return colors.success;
       case 'maybe':
@@ -103,19 +100,19 @@ const EventCard: React.FC<EventCardProps> = ({
       <TouchableOpacity style={styles.compactCard} onPress={onPress}>
         <View style={styles.compactContent}>
           <View style={styles.compactHeader}>
-            <View style={[styles.categoryIndicator, { backgroundColor: category?.color }]} />
+            <View style={[styles.categoryIndicator, { backgroundColor: category?.colorCode }]} />
             <Text style={styles.compactTitle} numberOfLines={1}>
               {event.title}
             </Text>
           </View>
           <Text style={styles.compactDate}>
-            {formatDate(event.date)} • {formatTime(event.time)}
+            {formatDate(event.eventDate)} • {formatTime(event.startTime)}
           </Text>
           <Text style={styles.compactLocation} numberOfLines={1}>
-            {event.location.estate}
+            {event.location.name}
           </Text>
         </View>
-        {event.rsvpStatus && (
+        {event.userRsvpStatus && (
           <View style={[styles.rsvpIndicator, { backgroundColor: getRSVPStatusColor() }]} />
         )}
       </TouchableOpacity>
@@ -136,14 +133,14 @@ const EventCard: React.FC<EventCardProps> = ({
     >
       {/* Event Image */}
       <View style={styles.imageContainer}>
-        {event.media.coverImage ? (
+        {event.coverImageUrl ? (
           <Image 
-            source={{ uri: event.media.coverImage }} 
+            source={{ uri: event.coverImageUrl }} 
             style={styles.eventImage}
             resizeMode="cover"
           />
         ) : (
-          <View style={[styles.placeholderImage, { backgroundColor: category?.color || colors.neutral.lightGray }]}>
+          <View style={[styles.placeholderImage, { backgroundColor: category?.colorCode || colors.neutral.lightGray }]}>
             <MaterialCommunityIcons 
               name={category?.icon as any || 'calendar'} 
               size={40} 
@@ -158,7 +155,7 @@ const EventCard: React.FC<EventCardProps> = ({
         </View>
 
         {/* Category Badge */}
-        <View style={[styles.categoryBadge, { backgroundColor: category?.color }]}>
+        <View style={[styles.categoryBadge, { backgroundColor: category?.colorCode }]}>
           <MaterialCommunityIcons 
             name={category?.icon as any} 
             size={12} 
@@ -168,11 +165,11 @@ const EventCard: React.FC<EventCardProps> = ({
         </View>
 
         {/* RSVP Status */}
-        {event.rsvpStatus && (
+        {event.userRsvpStatus && (
           <View style={[styles.rsvpBadge, { backgroundColor: getRSVPStatusColor() }]}>
             <Text style={styles.rsvpText}>
-              {event.rsvpStatus === 'going' ? 'Going' : 
-               event.rsvpStatus === 'maybe' ? 'Maybe' : 'Not Going'}
+              {event.userRsvpStatus === 'going' ? 'Going' : 
+               event.userRsvpStatus === 'maybe' ? 'Maybe' : 'Not Going'}
             </Text>
           </View>
         )}
@@ -182,10 +179,10 @@ const EventCard: React.FC<EventCardProps> = ({
       <View style={styles.content}>
         {/* Header with date and time */}
         <View style={styles.dateTimeContainer}>
-          <Text style={styles.dateText}>{formatDate(event.date)}</Text>
+          <Text style={styles.dateText}>{formatDate(event.eventDate)}</Text>
           <View style={styles.timeContainer}>
             <MaterialCommunityIcons name="clock-outline" size={14} color={colors.neutral.gray} />
-            <Text style={styles.timeText}>{formatTime(event.time)}</Text>
+            <Text style={styles.timeText}>{formatTime(event.startTime)}</Text>
           </View>
         </View>
 
@@ -198,74 +195,55 @@ const EventCard: React.FC<EventCardProps> = ({
         <View style={styles.locationContainer}>
           <MaterialCommunityIcons name="map-marker-outline" size={16} color={colors.neutral.gray} />
           <Text style={styles.locationText} numberOfLines={1}>
-            {event.location.estate}, {event.location.city}
+            {event.location.name}, {event.location.address}
           </Text>
         </View>
 
         {/* Organizer */}
         <View style={styles.organizerContainer}>
           <View style={styles.organizerInfo}>
-            {event.organizer.avatar ? (
-              <Image source={{ uri: event.organizer.avatar }} style={styles.organizerAvatar} />
+            {event.organizer.profilePictureUrl ? (
+              <Image source={{ uri: event.organizer.profilePictureUrl }} style={styles.organizerAvatar} />
             ) : (
               <View style={styles.organizerAvatarPlaceholder}>
                 <Text style={styles.organizerInitials}>
-                  {event.organizer.name.split(' ').map(n => n[0]).join('')}
+                  {event.organizer.fullName ? event.organizer.fullName.split(' ').map(n => n[0]).join('') : '??'}
                 </Text>
               </View>
             )}
             <View style={styles.organizerDetails}>
               <View style={styles.organizerNameContainer}>
                 <Text style={styles.organizerName} numberOfLines={1}>
-                  {event.organizer.name}
+                  {event.organizer.fullName}
                 </Text>
                 {getVerificationIcon()}
               </View>
-              {event.organizer.verificationBadge && (
-                <Text style={styles.verificationBadge}>
-                  {event.organizer.verificationBadge}
-                </Text>
-              )}
             </View>
           </View>
 
-          {/* Rating */}
-          {event.organizer.rating && (
-            <View style={styles.ratingContainer}>
-              <MaterialCommunityIcons name="star" size={14} color={colors.warning} />
-              <Text style={styles.ratingText}>{event.organizer.rating}</Text>
-            </View>
-          )}
         </View>
 
         {/* Attendees */}
         <View style={styles.attendeesContainer}>
           <View style={styles.attendeeAvatars}>
-            {event.attendees.avatars.slice(0, 3).map((avatar, index) => (
-              <Image 
-                key={index}
-                source={{ uri: avatar }} 
-                style={[styles.attendeeAvatar, { marginLeft: index > 0 ? -8 : 0 }]} 
-              />
-            ))}
-            {event.attendees.count > 3 && (
-              <View style={[styles.attendeeAvatar, styles.moreAttendeesIndicator]}>
-                <Text style={styles.moreAttendeesText}>+{event.attendees.count - 3}</Text>
-              </View>
-            )}
+            {/* Since we don't have attendee avatars in the basic event data, 
+                we'll show a placeholder or just the count */}
+            <View style={[styles.attendeeAvatar, styles.attendeePlaceholder]}>
+              <MaterialCommunityIcons name="account-group" size={16} color={colors.neutral.gray} />
+            </View>
           </View>
           <Text style={styles.attendeeCount}>
-            {event.attendees.count} going
-            {event.attendees.limit && ` • ${event.attendees.limit} max`}
+            {event.attendeesCount} going
+            {event.maxAttendees && ` • ${event.maxAttendees} max`}
           </Text>
         </View>
 
         {/* Languages */}
-        {event.language.length > 0 && (
+        {event.languages && event.languages.length > 0 && (
           <View style={styles.languagesContainer}>
             <MaterialCommunityIcons name="translate" size={14} color={colors.neutral.gray} />
             <Text style={styles.languagesText}>
-              {event.language.join(', ')}
+              {event.languages.join(', ')}
             </Text>
           </View>
         )}
@@ -321,7 +299,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   paidPriceText: {
-    color: colors.text.dark,
+    color: colors.text,
   },
   categoryBadge: {
     position: 'absolute',
@@ -378,7 +356,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: typography.sizes.lg,
     fontWeight: '600',
-    color: colors.text.dark,
+    color: colors.text,
     marginBottom: spacing.sm,
     lineHeight: 24,
   },
@@ -434,7 +412,7 @@ const styles = StyleSheet.create({
   organizerName: {
     fontSize: typography.sizes.sm,
     fontWeight: '500',
-    color: colors.text.dark,
+    color: colors.text,
     marginRight: 4,
     flex: 1,
   },
@@ -449,7 +427,7 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: typography.sizes.sm,
-    color: colors.text.dark,
+    color: colors.text,
     marginLeft: 2,
     fontWeight: '500',
   },
@@ -469,6 +447,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 2,
     borderColor: colors.white,
+  },
+  attendeePlaceholder: {
+    backgroundColor: colors.neutral.lightGray,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   moreAttendeesIndicator: {
     backgroundColor: colors.neutral.gray,
@@ -524,7 +507,7 @@ const styles = StyleSheet.create({
   compactTitle: {
     fontSize: typography.sizes.base,
     fontWeight: '600',
-    color: colors.text.dark,
+    color: colors.text,
     flex: 1,
   },
   compactDate: {

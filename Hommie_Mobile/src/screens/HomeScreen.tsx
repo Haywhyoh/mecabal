@@ -6,6 +6,7 @@ import NotificationService from '../services/NotificationService';
 import { PostsService } from '../services/postsService';
 import { ListingsService } from '../services/listingsService';
 import { DataService } from '../services/data';
+import { EventsApi } from '../services/EventsApi';
 import FloatingActionButton from '../components/FloatingActionButton';
 import { useAuth } from '../contexts/AuthContext';
 import { FeedScreen } from '../screens/FeedScreen';
@@ -74,11 +75,13 @@ export default function HomeScreen() {
       const query = searchText.trim();
       
       // Search across all content types in parallel
-      const [posts, events, listings] = await Promise.all([
+      const [posts, eventsResult, listings] = await Promise.all([
         PostsService.getInstance().searchPosts(query, { limit: 5 }),
-        DataService.searchContent(query, ['events']).then(result => result.events || []),
+        EventsApi.getEvents({ search: query, limit: 5 }),
         ListingsService.getInstance().searchListings(query, { limit: 5 })
       ]);
+      
+      const events = eventsResult.data || [];
       
       setSearchResults({
         posts: posts || [],
@@ -310,6 +313,15 @@ export default function HomeScreen() {
                 >
                   <MaterialCommunityIcons name="office-building" size={24} color="#228B22" />
                   <Text style={styles.menuItemText}>Local Businesses</Text>
+                  <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E8E" />
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={styles.menuItem}
+                  onPress={() => handleMenuItemPress(() => navigation.navigate('Events' as never))}
+                >
+                  <MaterialCommunityIcons name="calendar" size={24} color="#FF6B35" />
+                  <Text style={styles.menuItemText}>Events</Text>
                   <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E8E" />
                 </TouchableOpacity>
               </View>

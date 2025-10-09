@@ -10,9 +10,10 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import useFeed from '../hooks/useFeed';
+import useUnifiedFeed from '../hooks/useUnifiedFeed';
 import { Post } from '../services/postsService';
-import FeedList from '../components/FeedList';
+import { Event } from '../services/EventsApi';
+import UnifiedFeedList from '../components/UnifiedFeedList';
 import PostFilter from '../components/PostFilter';
 import PostCreator from '../components/PostCreator';
 import SegmentedControl from '../components/SegmentedControl';
@@ -29,9 +30,9 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
   const [showPostCreator, setShowPostCreator] = useState(false);
   const { user: currentUser } = useAuth();
 
-  // Initialize feed with auto-refresh
+  // Initialize unified feed with auto-refresh
   const {
-    posts,
+    items,
     loading,
     refreshing,
     hasMore,
@@ -47,7 +48,7 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
     reportPost,
     editPost,
     deletePost,
-  } = useFeed({
+  } = useUnifiedFeed({
     autoRefresh: true,
     refreshInterval: 30000, // 30 seconds
   });
@@ -57,6 +58,12 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
   const handlePostPress = useCallback((post: Post) => {
     // Navigate to post detail screen
     navigation.navigate('PostDetail', { postId: post.id });
+  }, [navigation]);
+
+  // Handle event actions
+  const handleEventPress = useCallback((event: Event) => {
+    // Navigate to event detail screen
+    navigation.navigate('EventDetails', { eventId: event.id });
   }, [navigation]);
 
   const handleReaction = useCallback(async (postId: string, reactionType: string) => {
@@ -150,20 +157,23 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
     { id: 'alert', label: 'Alerts', icon: 'warning-outline' },
   ];
 
-  // Render post card based on type
-  const renderPostCard = useCallback((post: Post) => {
-    if (post.postType === 'help') {
-      return (
-        <HelpPostCard
-          post={post}
-          onPress={() => handlePostPress(post)}
-          onReact={handleReaction}
-          onComment={() => handleComment(post.id)}
-          onShare={() => handleShare(post)}
-        />
-      );
+  // Render custom card based on item type
+  const renderCustomCard = useCallback((item: any) => {
+    if (item.type === 'post') {
+      const post = item.data as Post;
+      if (post.postType === 'help') {
+        return (
+          <HelpPostCard
+            post={post}
+            onPress={() => handlePostPress(post)}
+            onReact={handleReaction}
+            onComment={() => handleComment(post.id)}
+            onShare={() => handleShare(post)}
+          />
+        );
+      }
     }
-    // Return null here - FeedList will render the default PostCard
+    // Return null here - UnifiedFeedList will render the default cards
     return null;
   }, [handlePostPress, handleReaction, handleComment, handleShare]);
 
@@ -187,9 +197,9 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Feed List */}
-      <FeedList
-        posts={posts}
+      {/* Unified Feed List */}
+      <UnifiedFeedList
+        items={items}
         loading={loading}
         refreshing={refreshing}
         hasMore={hasMore}
@@ -197,6 +207,7 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
         onRefresh={refreshFeed}
         onLoadMore={loadMore}
         onPostPress={handlePostPress}
+        onEventPress={handleEventPress}
         onReaction={handleReaction}
         onComment={handleComment}
         onShare={handleShare}
@@ -204,7 +215,7 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
         onEdit={handleEdit}
         onDelete={handleDelete}
         currentUserId={currentUser?.id}
-        renderCustomCard={renderPostCard}
+        renderCustomCard={renderCustomCard}
       />
 
 

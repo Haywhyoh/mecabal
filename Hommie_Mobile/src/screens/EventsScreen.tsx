@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,19 +11,15 @@ import {
   Modal,
   Dimensions,
   RefreshControl,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import EventCard from '../components/EventCard';
-import {
-  demoEvents,
-  EventData,
-  EventCategory,
-  eventCategories,
-  getUpcomingEvents,
-  getFeaturedEvents,
-  searchEvents,
-  getEventsByCategory,
-} from '../data/eventsData';
+import EventCardSkeleton from '../components/EventCardSkeleton';
+import ErrorView from '../components/ErrorView';
+import { EventsApi, handleApiError, EVENT_CATEGORIES } from '../services/EventsApi';
+import type { Event, EventFilterDto } from '../services/EventsApi';
 import { colors, spacing, typography, shadows } from '../constants';
 
 const { width } = Dimensions.get('window');
@@ -36,71 +32,112 @@ interface EventsScreenProps {
 }
 
 export default function EventsScreen({ navigation }: EventsScreenProps) {
-  const [events, setEvents] = useState<EventData[]>(demoEvents);
-  const [filteredEvents, setFilteredEvents] = useState<EventData[]>(demoEvents);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [featuredEvents, setFeaturedEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
-  const [selectedCategories, setSelectedCategories] = useState<EventCategory[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [userEstate] = useState('Victoria Island Estate'); // This would come from user context
   const [userCity] = useState('Ikeja'); // This would come from user context
 
+  // Fetch events from API
+  const fetchEvents = useCallback(async (filters: EventFilterDto = {}) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      let response;
+      switch (activeTab) {
+        case 'my_events':
+          response = await EventsApi.getMyEvents('all', filters);
+          break;
+        case 'today':
+          const today = new Date().toISOString().split('T')[0];
+          response = await EventsApi.getEvents({ ...filters, dateFrom: today, dateTo: today });
+          break;
+        case 'this_week':
+          const weekFromNow = new Date();
+          weekFromNow.setDate(weekFromNow.getDate() + 7);
+          const todayStr = new Date().toISOString().split('T')[0];
+          const weekStr = weekFromNow.toISOString().split('T')[0];
+          response = await EventsApi.getEvents({ ...filters, dateFrom: todayStr, dateTo: weekStr });
+          break;
+        default:
+          response = await EventsApi.getEvents(filters);
+      }
+      
+      setEvents(response.data);
+    } catch (err) {
+      const errorMessage = handleApiError(err);
+      setError(errorMessage);
+      console.error('Error fetching events:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [activeTab]);
+
+  // Fetch featured events
+  const fetchFeaturedEvents = useCallback(async () => {
+    try {
+      const featured = await EventsApi.getFeaturedEvents(5);
+      setFeaturedEvents(featured);
+    } catch (err) {
+      console.error('Error fetching featured events:', err);
+    }
+  }, []);
+
+  // Debounced search effect
   useEffect(() => {
-    applyFilters();
-  }, [activeTab, searchQuery, selectedCategories, events]);
+    const timeoutId = setTimeout(() => {
+      if (searchQuery.trim()) {
+        fetchEvents({ search: searchQuery.trim() });
+      } else {
+        fetchEvents();
+      }
+    }, 300);
 
-  const applyFilters = () => {
-    let filtered = [...events];
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, fetchEvents]);
 
-    // Apply tab filter
-    switch (activeTab) {
-      case 'today':
-        const today = new Date().toDateString();
-        filtered = filtered.filter(event => new Date(event.date).toDateString() === today);
-        break;
-      case 'this_week':
-        const weekFromNow = new Date();
-        weekFromNow.setDate(weekFromNow.getDate() + 7);
-        filtered = filtered.filter(event => {
-          const eventDate = new Date(event.date);
-          return eventDate >= new Date() && eventDate <= weekFromNow;
-        });
-        break;
-      case 'my_events':
-        filtered = filtered.filter(event => event.rsvpStatus === 'going' || event.organizer.id === 'current_user');
-        break;
-    }
-
-    // Apply search filter
-    if (searchQuery.trim()) {
-      filtered = searchEvents(searchQuery).filter(event => 
-        filtered.some(f => f.id === event.id)
-      );
-    }
-
-    // Apply category filter
+  // Category filter effect
+  useEffect(() => {
     if (selectedCategories.length > 0) {
-      filtered = filtered.filter(event => selectedCategories.includes(event.category));
+      fetchEvents({ categoryId: selectedCategories[0] });
+    } else {
+      fetchEvents();
     }
+  }, [selectedCategories, fetchEvents]);
 
-    setFilteredEvents(filtered);
-  };
+  // Initial load
+  useEffect(() => {
+    fetchEvents();
+    fetchFeaturedEvents();
+  }, [fetchEvents, fetchFeaturedEvents]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      await Promise.all([
+        fetchEvents(),
+        fetchFeaturedEvents()
+      ]);
+    } catch (err) {
+      console.error('Error refreshing events:', err);
+    } finally {
       setRefreshing(false);
-    }, 1000);
+    }
   };
 
-  const toggleCategoryFilter = (category: EventCategory) => {
+  const toggleCategoryFilter = (categoryId: number) => {
     setSelectedCategories(prev => 
-      prev.includes(category)
-        ? prev.filter(c => c !== category)
-        : [...prev, category]
+      prev.includes(categoryId)
+        ? prev.filter(c => c !== categoryId)
+        : [categoryId] // Only allow one category selection for now
     );
   };
 
@@ -111,22 +148,9 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
   };
 
   const getTabCount = (tab: FilterTab): number => {
-    switch (tab) {
-      case 'today':
-        const today = new Date().toDateString();
-        return events.filter(event => new Date(event.date).toDateString() === today).length;
-      case 'this_week':
-        const weekFromNow = new Date();
-        weekFromNow.setDate(weekFromNow.getDate() + 7);
-        return events.filter(event => {
-          const eventDate = new Date(event.date);
-          return eventDate >= new Date() && eventDate <= weekFromNow;
-        }).length;
-      case 'my_events':
-        return events.filter(event => event.rsvpStatus === 'going').length;
-      default:
-        return events.length;
-    }
+    // For now, return the current events length since we're fetching filtered data
+    // In a real app, you might want to fetch counts separately for better UX
+    return events.length;
   };
 
   const renderTabButton = (tab: FilterTab, label: string) => {
@@ -153,14 +177,13 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
   };
 
   const renderFeaturedEvents = () => {
-    const featured = getFeaturedEvents();
-    if (featured.length === 0) return null;
+    if (featuredEvents.length === 0) return null;
 
     return (
       <View style={styles.featuredSection}>
         <Text style={styles.sectionTitle}>Featured Events in {userEstate}</Text>
         <FlatList
-          data={featured}
+          data={featuredEvents}
           renderItem={({ item }) => (
             <EventCard 
               event={item} 
@@ -183,26 +206,26 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.categoryFilters}
     >
-      {eventCategories.map((category) => {
+      {EVENT_CATEGORIES.map((category) => {
         const isSelected = selectedCategories.includes(category.id);
         return (
           <TouchableOpacity
             key={category.id}
             style={[
               styles.categoryFilter,
-              { borderColor: category.color },
-              isSelected && { backgroundColor: category.color }
+              { borderColor: category.colorCode },
+              isSelected && { backgroundColor: category.colorCode }
             ]}
             onPress={() => toggleCategoryFilter(category.id)}
           >
             <MaterialCommunityIcons 
               name={category.icon as any} 
               size={16} 
-              color={isSelected ? colors.white : category.color} 
+              color={isSelected ? colors.white : category.colorCode} 
             />
             <Text style={[
               styles.categoryFilterText,
-              { color: isSelected ? colors.white : category.color }
+              { color: isSelected ? colors.white : category.colorCode }
             ]}>
               {category.name}
             </Text>
@@ -305,11 +328,22 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
                'My Events'}
             </Text>
             <Text style={styles.eventsCount}>
-              {filteredEvents.length} event{filteredEvents.length !== 1 ? 's' : ''}
+              {events.length} event{events.length !== 1 ? 's' : ''}
             </Text>
           </View>
           
-          {filteredEvents.length === 0 ? (
+          {loading ? (
+            <View style={styles.eventsList}>
+              {[1, 2, 3, 4, 5].map((index) => (
+                <EventCardSkeleton key={index} />
+              ))}
+            </View>
+          ) : error ? (
+            <ErrorView 
+              error={error} 
+              onRetry={() => fetchEvents()} 
+            />
+          ) : events.length === 0 ? (
             <View style={styles.emptyState}>
               <MaterialCommunityIcons name="calendar-remove" size={64} color={colors.neutral.lightGray} />
               <Text style={styles.emptyStateTitle}>No Events Found</Text>
@@ -328,7 +362,7 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
             </View>
           ) : (
             <View style={styles.eventsList}>
-              {filteredEvents.map((event) => (
+              {events.map((event) => (
                 <EventCard
                   key={event.id}
                   event={event}
@@ -370,21 +404,21 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
           <ScrollView style={styles.modalContent}>
             <Text style={styles.filterSectionTitle}>Categories</Text>
             <View style={styles.categoryGrid}>
-              {eventCategories.map((category) => {
+              {EVENT_CATEGORIES.map((category) => {
                 const isSelected = selectedCategories.includes(category.id);
                 return (
                   <TouchableOpacity
                     key={category.id}
                     style={[
                       styles.categoryGridItem,
-                      isSelected && { backgroundColor: category.color }
+                      isSelected && { backgroundColor: category.colorCode }
                     ]}
                     onPress={() => toggleCategoryFilter(category.id)}
                   >
                     <MaterialCommunityIcons 
                       name={category.icon as any} 
                       size={24} 
-                      color={isSelected ? colors.white : category.color} 
+                      color={isSelected ? colors.white : category.colorCode} 
                     />
                     <Text style={[
                       styles.categoryGridText,
@@ -597,6 +631,46 @@ const styles = StyleSheet.create({
   },
   eventsList: {
     paddingBottom: spacing['3xl'],
+  },
+  loadingState: {
+    alignItems: 'center',
+    paddingVertical: spacing['3xl'],
+    paddingHorizontal: spacing.lg,
+  },
+  loadingText: {
+    fontSize: typography.sizes.base,
+    color: colors.neutral.gray,
+    marginTop: spacing.md,
+  },
+  errorState: {
+    alignItems: 'center',
+    paddingVertical: spacing['3xl'],
+    paddingHorizontal: spacing.lg,
+  },
+  errorTitle: {
+    fontSize: typography.sizes.xl,
+    fontWeight: '600',
+    color: colors.text.dark,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  errorText: {
+    fontSize: typography.sizes.base,
+    color: colors.neutral.gray,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: spacing.lg,
+  },
+  retryButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: 8,
+  },
+  retryText: {
+    color: colors.white,
+    fontSize: typography.sizes.base,
+    fontWeight: '500',
   },
   emptyState: {
     alignItems: 'center',

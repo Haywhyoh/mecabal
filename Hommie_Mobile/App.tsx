@@ -65,6 +65,29 @@ import PostDetailScreen from './src/screens/PostDetailScreen';
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
+// Deep linking configuration
+const linking = {
+  prefixes: ['mecabal://', 'https://mecabal.com'],
+  config: {
+    screens: {
+      MainTabs: {
+        screens: {
+          Home: 'home',
+          Inbox: 'inbox',
+          Market: 'market',
+          More: 'more',
+        },
+      },
+      Events: 'events',
+      EventDetails: 'events/:id',
+      EventAttendees: 'events/:id/attendees',
+      CreateEvent: 'events/create',
+      Profile: 'profile',
+      Notifications: 'notifications',
+    },
+  },
+};
+
 // Home Stack Navigator to keep tabs visible
 function HomeStackNavigator() {
   return (
@@ -159,6 +182,7 @@ function MainStackNavigator() {
       <Stack.Screen name="NeighborConnections" component={NeighborConnectionsScreen} />
       
       {/* Event Screens */}
+      <Stack.Screen name="Events" component={EventsScreen} />
       <Stack.Screen name="CreateEvent" component={CreateEventScreen} />
       <Stack.Screen name="EventDetails" component={EventDetailsScreen} />
       <Stack.Screen name="EventAttendees" component={EventAttendeesScreen} />
@@ -217,7 +241,7 @@ function AppContent() {
   if (isLoading) {
     return (
       <PaperProvider>
-        <NavigationContainer>
+        <NavigationContainer linking={linking}>
           <StatusBar style="auto" />
           <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen name="Loading" component={LoadingScreen} />
@@ -229,7 +253,7 @@ function AppContent() {
 
   return (
     <PaperProvider>
-      <NavigationContainer>
+      <NavigationContainer linking={linking}>
         <StatusBar style="auto" />
         {isAuthenticated ? (
           <MainStackNavigator />

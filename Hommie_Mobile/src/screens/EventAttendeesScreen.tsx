@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,28 +11,17 @@ import {
   Image,
   TextInput,
   Share,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { EventData, demoEvents } from '../data/eventsData';
+import AttendeeCardSkeleton from '../components/AttendeeCardSkeleton';
+import ErrorView from '../components/ErrorView';
+import { EventsApi, handleApiError } from '../services/EventsApi';
+import type { EventAttendee, AttendeeFilterDto, PaginatedResponse } from '../services/EventsApi';
 import { colors, spacing, typography, shadows } from '../constants';
 
-interface Attendee {
-  id: string;
-  name: string;
-  avatar?: string;
-  verificationLevel: 'unverified' | 'phone' | 'identity' | 'full';
-  verificationBadge?: string;
-  rsvpStatus: 'going' | 'maybe' | 'not_going';
-  rsvpDate: string;
-  guestsCount: number;
-  culturalBackground?: string;
-  languages: string[];
-  isOrganizer: boolean;
-  neighborhood: string;
-  joinedDate: string;
-  attendedEvents: number;
-  rating?: number;
-}
+// Using EventAttendee from EventsApi instead of local interface
 
 interface EventAttendeesScreenProps {
   route: {
@@ -43,102 +32,98 @@ interface EventAttendeesScreenProps {
   navigation: any;
 }
 
-const demoAttendees: Attendee[] = [
-  {
-    id: '1',
-    name: 'Adebayo Williams',
-    avatar: 'https://via.placeholder.com/100/00A651/FFFFFF?text=AW',
-    verificationLevel: 'full',
-    verificationBadge: 'Estate Manager',
-    rsvpStatus: 'going',
-    rsvpDate: '2024-02-10T10:00:00Z',
-    guestsCount: 0,
-    culturalBackground: 'Yoruba',
-    languages: ['English', 'Yoruba'],
-    isOrganizer: true,
-    neighborhood: 'Victoria Island Estate',
-    joinedDate: '2023-01-15T00:00:00Z',
-    attendedEvents: 25,
-    rating: 4.8,
-  },
-  {
-    id: '2',
-    name: 'Fatima Ibrahim',
-    avatar: 'https://via.placeholder.com/100/7B68EE/FFFFFF?text=FI',
-    verificationLevel: 'identity',
-    verificationBadge: 'Community Leader',
-    rsvpStatus: 'going',
-    rsvpDate: '2024-02-11T14:30:00Z',
-    guestsCount: 2,
-    culturalBackground: 'Hausa',
-    languages: ['English', 'Hausa'],
-    isOrganizer: false,
-    neighborhood: 'Victoria Island Estate',
-    joinedDate: '2023-03-20T00:00:00Z',
-    attendedEvents: 18,
-    rating: 4.7,
-  },
-  {
-    id: '3',
-    name: 'Chioma Okafor',
-    avatar: 'https://via.placeholder.com/100/FF69B4/FFFFFF?text=CO',
-    verificationLevel: 'phone',
-    rsvpStatus: 'maybe',
-    rsvpDate: '2024-02-12T09:15:00Z',
-    guestsCount: 1,
-    culturalBackground: 'Igbo',
-    languages: ['English', 'Igbo'],
-    isOrganizer: false,
-    neighborhood: 'Victoria Island Estate',
-    joinedDate: '2023-07-10T00:00:00Z',
-    attendedEvents: 8,
-  },
-  {
-    id: '4',
-    name: 'Emmanuel Johnson',
-    avatar: 'https://via.placeholder.com/100/228B22/FFFFFF?text=EJ',
-    verificationLevel: 'full',
-    verificationBadge: 'Sports Coordinator',
-    rsvpStatus: 'going',
-    rsvpDate: '2024-02-08T16:45:00Z',
-    guestsCount: 0,
-    languages: ['English', 'Pidgin'],
-    isOrganizer: false,
-    neighborhood: 'Victoria Island Estate',
-    joinedDate: '2022-11-30T00:00:00Z',
-    attendedEvents: 32,
-    rating: 4.9,
-  },
-  {
-    id: '5',
-    name: 'Aisha Mohammed',
-    verificationLevel: 'phone',
-    rsvpStatus: 'going',
-    rsvpDate: '2024-02-13T11:20:00Z',
-    guestsCount: 3,
-    culturalBackground: 'Fulani',
-    languages: ['English', 'Hausa', 'Fulani'],
-    isOrganizer: false,
-    neighborhood: 'Victoria Island Estate',
-    joinedDate: '2024-01-05T00:00:00Z',
-    attendedEvents: 2,
-  },
-];
+// Demo data removed - now using API data
 
 const EventAttendeesScreen: React.FC<EventAttendeesScreenProps> = ({ route, navigation }) => {
   const { eventId } = route.params;
-  const [event, setEvent] = useState<EventData | null>(null);
-  const [attendees, setAttendees] = useState<Attendee[]>(demoAttendees);
-  const [filteredAttendees, setFilteredAttendees] = useState<Attendee[]>(demoAttendees);
+  const [event, setEvent] = useState<any>(null);
+  const [attendees, setAttendees] = useState<EventAttendee[]>([]);
+  const [filteredAttendees, setFilteredAttendees] = useState<EventAttendee[]>([]);
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'going' | 'maybe' | 'organizers'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showInviteModal, setShowInviteModal] = useState(false);
-  const [selectedAttendee, setSelectedAttendee] = useState<Attendee | null>(null);
+  const [selectedAttendee, setSelectedAttendee] = useState<EventAttendee | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    hasMore: true,
+  });
+
+  // Fetch event details and attendees
+  const fetchEventAndAttendees = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Fetch event details
+      const eventData = await EventsApi.getEvent(eventId);
+      setEvent(eventData);
+      
+      // Fetch attendees
+      const filters: AttendeeFilterDto = {
+        page: 1,
+        limit: pagination.limit,
+        rsvpStatus: selectedFilter === 'all' ? undefined : selectedFilter,
+        search: searchQuery || undefined,
+      };
+      
+      const response = await EventsApi.getAttendees(eventId, filters);
+      setAttendees(response.data);
+      setFilteredAttendees(response.data);
+      setPagination(prev => ({
+        ...prev,
+        hasMore: response.meta.hasNextPage,
+      }));
+    } catch (err) {
+      const errorMessage = handleApiError(err);
+      setError(errorMessage);
+      console.error('Error fetching event and attendees:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [eventId, selectedFilter, searchQuery, pagination.limit]);
 
   useEffect(() => {
-    const foundEvent = demoEvents.find(e => e.id === eventId);
-    setEvent(foundEvent || null);
-  }, [eventId]);
+    fetchEventAndAttendees();
+  }, [fetchEventAndAttendees]);
+
+  // Refresh function
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchEventAndAttendees();
+    setRefreshing(false);
+  }, [fetchEventAndAttendees]);
+
+  // Load more attendees
+  const loadMoreAttendees = useCallback(async () => {
+    if (!pagination.hasMore || loading) return;
+    
+    try {
+      const nextPage = pagination.page + 1;
+      const filters: AttendeeFilterDto = {
+        page: nextPage,
+        limit: pagination.limit,
+        rsvpStatus: selectedFilter === 'all' ? undefined : selectedFilter,
+        search: searchQuery || undefined,
+      };
+      
+      const response = await EventsApi.getAttendees(eventId, filters);
+      setAttendees(prev => [...prev, ...response.data]);
+      setFilteredAttendees(prev => [...prev, ...response.data]);
+      setPagination(prev => ({
+        ...prev,
+        page: nextPage,
+        hasMore: response.meta.hasNextPage,
+      }));
+    } catch (err) {
+      const errorMessage = handleApiError(err);
+      setError(errorMessage);
+      console.error('Error loading more attendees:', err);
+    }
+  }, [eventId, selectedFilter, searchQuery, pagination, loading]);
 
   useEffect(() => {
     filterAttendees();
@@ -156,46 +141,45 @@ const EventAttendeesScreen: React.FC<EventAttendeesScreenProps> = ({ route, navi
         filtered = filtered.filter(a => a.rsvpStatus === 'maybe');
         break;
       case 'organizers':
-        filtered = filtered.filter(a => a.isOrganizer || a.verificationBadge?.includes('Manager') || a.verificationBadge?.includes('Leader'));
+        // For organizers, we'll need to check if the user is the event organizer
+        // This would require additional API data or checking against event.organizerId
+        filtered = filtered.filter(a => a.user.isVerified && a.user.trustScore > 80);
         break;
     }
 
     // Filter by search query
     if (searchQuery.trim()) {
       filtered = filtered.filter(attendee =>
-        attendee.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        attendee.neighborhood.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        attendee.culturalBackground?.toLowerCase().includes(searchQuery.toLowerCase())
+        attendee.user.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        attendee.user.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        attendee.user.lastName.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
     setFilteredAttendees(filtered);
   };
 
-  const getVerificationIcon = (level: string) => {
-    switch (level) {
-      case 'full':
-        return <MaterialCommunityIcons name="check-decagram" size={16} color={colors.success} />;
-      case 'identity':
-        return <MaterialCommunityIcons name="check-circle" size={16} color={colors.primary} />;
-      case 'phone':
-        return <MaterialCommunityIcons name="check" size={16} color={colors.secondary} />;
-      default:
-        return <MaterialCommunityIcons name="account-outline" size={16} color={colors.neutral.gray} />;
+  const getVerificationIcon = (isVerified: boolean, trustScore: number) => {
+    if (isVerified && trustScore >= 90) {
+      return <MaterialCommunityIcons name="check-decagram" size={16} color={colors.success} />;
+    } else if (isVerified && trustScore >= 70) {
+      return <MaterialCommunityIcons name="check-circle" size={16} color={colors.primary} />;
+    } else if (isVerified) {
+      return <MaterialCommunityIcons name="check" size={16} color={colors.secondary} />;
+    } else {
+      return <MaterialCommunityIcons name="account-outline" size={16} color={colors.neutral.gray} />;
     }
   };
 
-  const getVerificationText = (level: string, badge?: string) => {
-    if (badge) return badge;
-    switch (level) {
-      case 'full':
-        return 'Verified Resident';
-      case 'identity':
-        return 'Identity Verified';
-      case 'phone':
-        return 'Phone Verified';
-      default:
-        return 'Unverified';
+  const getVerificationText = (isVerified: boolean, trustScore: number) => {
+    if (isVerified && trustScore >= 90) {
+      return 'Verified Resident';
+    } else if (isVerified && trustScore >= 70) {
+      return 'Identity Verified';
+    } else if (isVerified) {
+      return 'Phone Verified';
+    } else {
+      return 'Unverified';
     }
   };
 
@@ -290,7 +274,7 @@ const EventAttendeesScreen: React.FC<EventAttendeesScreenProps> = ({ route, navi
     </View>
   );
 
-  const renderAttendeeCard = ({ item }: { item: Attendee }) => {
+  const renderAttendeeCard = ({ item }: { item: EventAttendee }) => {
     const totalGuests = item.guestsCount + 1; // Include the attendee themselves
 
     return (
@@ -301,21 +285,22 @@ const EventAttendeesScreen: React.FC<EventAttendeesScreenProps> = ({ route, navi
       >
         <View style={styles.attendeeHeader}>
           <View style={styles.attendeeInfo}>
-            {item.avatar ? (
-              <Image source={{ uri: item.avatar }} style={styles.attendeeAvatar} />
+            {item.user.profilePictureUrl ? (
+              <Image source={{ uri: item.user.profilePictureUrl }} style={styles.attendeeAvatar} />
             ) : (
               <View style={styles.attendeeAvatarPlaceholder}>
                 <Text style={styles.attendeeInitials}>
-                  {item.name.split(' ').map(n => n[0]).join('')}
+                  {item.user.fullName.split(' ').map(n => n[0]).join('')}
                 </Text>
               </View>
             )}
             
             <View style={styles.attendeeDetails}>
               <View style={styles.attendeeNameRow}>
-                <Text style={styles.attendeeName}>{item.name}</Text>
-                {getVerificationIcon(item.verificationLevel)}
-                {item.isOrganizer && (
+                <Text style={styles.attendeeName}>{item.user.fullName}</Text>
+                {getVerificationIcon(item.user.isVerified, item.user.trustScore)}
+                {/* Check if this user is the event organizer */}
+                {event && event.organizer && event.organizer.id === item.user.id && (
                   <View style={styles.organizerBadge}>
                     <Text style={styles.organizerText}>ORGANIZER</Text>
                   </View>
@@ -323,17 +308,17 @@ const EventAttendeesScreen: React.FC<EventAttendeesScreenProps> = ({ route, navi
               </View>
               
               <Text style={styles.verificationText}>
-                {getVerificationText(item.verificationLevel, item.verificationBadge)}
+                {getVerificationText(item.user.isVerified, item.user.trustScore)}
               </Text>
               
               <View style={styles.attendeeMetrics}>
                 <Text style={styles.metricText}>
-                  {item.neighborhood} • {item.attendedEvents} events attended
+                  Trust Score: {item.user.trustScore} • RSVP: {new Date(item.rsvpAt).toLocaleDateString()}
                 </Text>
-                {item.rating && (
-                  <View style={styles.ratingContainer}>
-                    <MaterialCommunityIcons name="star" size={14} color={colors.warning} />
-                    <Text style={styles.ratingText}>{item.rating}</Text>
+                {item.checkedIn && (
+                  <View style={styles.checkedInContainer}>
+                    <MaterialCommunityIcons name="check-circle" size={14} color={colors.success} />
+                    <Text style={styles.checkedInText}>Checked In</Text>
                   </View>
                 )}
               </View>
@@ -533,22 +518,53 @@ const EventAttendeesScreen: React.FC<EventAttendeesScreenProps> = ({ route, navi
       {renderFilterButtons()}
 
       {/* Attendees List */}
-      <FlatList
-        data={filteredAttendees}
-        renderItem={renderAttendeeCard}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.attendeesList}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <MaterialCommunityIcons name="account-group-outline" size={64} color={colors.neutral.lightGray} />
-            <Text style={styles.emptyStateTitle}>No attendees found</Text>
-            <Text style={styles.emptyStateText}>
-              {searchQuery ? 'Try adjusting your search' : 'Be the first to RSVP!'}
-            </Text>
-          </View>
-        }
-      />
+      {loading ? (
+        <View style={styles.attendeesList}>
+          {[1, 2, 3, 4, 5, 6].map((index) => (
+            <AttendeeCardSkeleton key={index} />
+          ))}
+        </View>
+      ) : error ? (
+        <ErrorView 
+          error={error} 
+          onRetry={fetchEventAndAttendees} 
+        />
+      ) : (
+        <FlatList
+          data={filteredAttendees}
+          renderItem={renderAttendeeCard}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.attendeesList}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[colors.primary]}
+              tintColor={colors.primary}
+            />
+          }
+          onEndReached={loadMoreAttendees}
+          onEndReachedThreshold={0.1}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <MaterialCommunityIcons name="account-group-outline" size={64} color={colors.neutral.lightGray} />
+              <Text style={styles.emptyStateTitle}>No attendees found</Text>
+              <Text style={styles.emptyStateText}>
+                {searchQuery ? 'Try adjusting your search' : 'Be the first to RSVP!'}
+              </Text>
+            </View>
+          }
+          ListFooterComponent={
+            pagination.hasMore && !loading ? (
+              <View style={styles.loadingMore}>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text style={styles.loadingMoreText}>Loading more...</Text>
+              </View>
+            ) : null
+          }
+        />
+      )}
 
       {/* Invite Button */}
       <TouchableOpacity
@@ -980,6 +996,70 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.base,
     fontWeight: '600',
     marginLeft: spacing.sm,
+  },
+  // New styles for API integration
+  loadingState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: spacing.xl * 2,
+  },
+  loadingText: {
+    fontSize: typography.sizes.base,
+    color: colors.neutral.gray,
+    marginTop: spacing.md,
+  },
+  errorState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: spacing.xl * 2,
+    paddingHorizontal: spacing.lg,
+  },
+  errorTitle: {
+    fontSize: typography.sizes.lg,
+    fontWeight: '600',
+    color: colors.text.dark,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  errorText: {
+    fontSize: typography.sizes.base,
+    color: colors.neutral.gray,
+    textAlign: 'center',
+    marginBottom: spacing.lg,
+  },
+  retryButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: spacing.sm,
+  },
+  retryButtonText: {
+    color: colors.white,
+    fontSize: typography.sizes.base,
+    fontWeight: '600',
+  },
+  loadingMore: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: spacing.lg,
+  },
+  loadingMoreText: {
+    fontSize: typography.sizes.sm,
+    color: colors.neutral.gray,
+    marginLeft: spacing.sm,
+  },
+  checkedInContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.xs,
+  },
+  checkedInText: {
+    fontSize: typography.sizes.sm,
+    color: colors.success,
+    marginLeft: spacing.xs,
   },
 });
 

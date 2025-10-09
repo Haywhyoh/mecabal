@@ -38,6 +38,9 @@ export { default as OfflineService } from './offlineService';
 export { default as ListingsService } from './listingsService';
 export { default as ListingCategoriesService } from './listingCategoriesService';
 
+// Events services
+export { default as EventsApi, EventsApi as EventsService } from './EventsApi';
+
 // Type exports for convenience
 export type {
   NigerianUser,
@@ -76,6 +79,23 @@ export type {
 export type {
   ListingCategory
 } from './listingCategoriesService';
+
+export type {
+  Event,
+  EventLocation,
+  EventCategory,
+  EventOrganizer,
+  EventMedia,
+  CreateEventDto,
+  EventMediaDto,
+  UpdateEventDto,
+  EventFilterDto,
+  RsvpDto,
+  AttendeeFilterDto,
+  PaginatedResponse,
+  PaginationMeta,
+  EventAttendee
+} from './EventsApi';
 
 // Nigerian-specific types
 export type {

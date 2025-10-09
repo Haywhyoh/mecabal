@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -14,10 +14,14 @@ import {
   Dimensions,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { EventCategory, eventCategories, nigerianStates } from '../data/eventsData';
+import * as ImagePicker from 'expo-image-picker';
+import { EventsApi, handleApiError, EVENT_CATEGORIES } from '../services/EventsApi';
+import type { CreateEventDto, EventMediaDto } from '../services/EventsApi';
 import { colors, spacing, typography, shadows } from '../constants';
 
 const { width } = Dimensions.get('window');
@@ -29,16 +33,19 @@ interface CreateEventScreenProps {
 interface EventFormData {
   title: string;
   description: string;
-  category: EventCategory | '';
-  date: Date | null;
-  time: Date | null;
-  endTime: Date | null;
+  categoryId: string;
+  eventDate: Date | null;
+  endDate: Date | null;
   location: {
     name: string;
-    estate: string;
+    address: string;
     city: string;
     state: string;
     landmark: string;
+    coordinates?: {
+      latitude: number;
+      longitude: number;
+    };
   };
   isFree: boolean;
   price: string;
@@ -49,6 +56,7 @@ interface EventFormData {
   allowGuests: boolean;
   ageRestriction: string;
   specialRequirements: string;
+  media: EventMediaDto[];
 }
 
 const nigerianLanguages = ['English', 'Hausa', 'Yoruba', 'Igbo', 'Pidgin', 'Fulani', 'Kanuri', 'Ibibio'];
@@ -66,13 +74,12 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
   const [formData, setFormData] = useState<EventFormData>({
     title: '',
     description: '',
-    category: '',
-    date: null,
-    time: null,
-    endTime: null,
+    categoryId: '',
+    eventDate: null,
+    endDate: null,
     location: {
       name: '',
-      estate: '',
+      address: '',
       city: '',
       state: '',
       landmark: '',
@@ -86,6 +93,7 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
     allowGuests: true,
     ageRestriction: '',
     specialRequirements: '',
+    media: [],
   });
 
   const [showCategoryModal, setShowCategoryModal] = useState(false);
@@ -98,6 +106,11 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [showEndTimePicker, setShowEndTimePicker] = useState(false);
   const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
+  
+  // API integration states
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const totalSteps = 5;
 
@@ -122,11 +135,11 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
   const validateStep = (step: number): boolean => {
     switch (step) {
       case 1:
-        return !!(formData.title.trim() && formData.description.trim() && formData.category);
+        return !!(formData.title.trim() && formData.description.trim() && formData.categoryId);
       case 2:
-        return !!(formData.date && formData.time);
+        return !!(formData.eventDate);
       case 3:
-        return !!(formData.location.name.trim() && formData.location.estate.trim() && 
+        return !!(formData.location.name.trim() && formData.location.address.trim() && 
                  formData.location.city.trim() && formData.location.state);
       case 4:
         return formData.isFree || (formData.price.trim() && parseFloat(formData.price) > 0);
@@ -143,7 +156,7 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
     }
     
     if (selectedDate && event.type !== 'dismissed') {
-      updateFormData('date', selectedDate);
+      updateFormData('eventDate', selectedDate);
     }
     
     if (Platform.OS === 'android' || event.type === 'dismissed') {
@@ -157,7 +170,16 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
     }
     
     if (selectedTime && event.type !== 'dismissed') {
-      updateFormData('time', selectedTime);
+      // Combine the selected time with the existing date
+      const currentDate = formData.eventDate || new Date();
+      const combinedDateTime = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth(),
+        currentDate.getDate(),
+        selectedTime.getHours(),
+        selectedTime.getMinutes()
+      );
+      updateFormData('eventDate', combinedDateTime);
     }
     
     if (Platform.OS === 'android' || event.type === 'dismissed') {
@@ -171,7 +193,16 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
     }
     
     if (selectedTime && event.type !== 'dismissed') {
-      updateFormData('endTime', selectedTime);
+      // Combine the selected time with the event date
+      const eventDate = formData.eventDate || new Date();
+      const combinedEndDateTime = new Date(
+        eventDate.getFullYear(),
+        eventDate.getMonth(),
+        eventDate.getDate(),
+        selectedTime.getHours(),
+        selectedTime.getMinutes()
+      );
+      updateFormData('endDate', combinedEndDateTime);
     }
     
     if (Platform.OS === 'android' || event.type === 'dismissed') {
@@ -198,6 +229,81 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
     });
   };
 
+  // Image picker functions
+  const pickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const asset = result.assets[0];
+        const newMedia: EventMediaDto = {
+          type: 'image',
+          url: asset.uri,
+          altText: `Event image ${formData.media.length + 1}`,
+        };
+        
+        setFormData(prev => ({
+          ...prev,
+          media: [...prev.media, newMedia]
+        }));
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image. Please try again.');
+    }
+  };
+
+  const takePhoto = async () => {
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const asset = result.assets[0];
+        const newMedia: EventMediaDto = {
+          type: 'image',
+          url: asset.uri,
+          altText: `Event photo ${formData.media.length + 1}`,
+        };
+        
+        setFormData(prev => ({
+          ...prev,
+          media: [...prev.media, newMedia]
+        }));
+      }
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      Alert.alert('Error', 'Failed to take photo. Please try again.');
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      media: prev.media.filter((_, i) => i !== index)
+    }));
+  };
+
+  const showImagePicker = () => {
+    Alert.alert(
+      'Add Image',
+      'Choose how you want to add an image',
+      [
+        { text: 'Camera', onPress: takePhoto },
+        { text: 'Photo Library', onPress: pickImage },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+  };
+
   const nextStep = () => {
     if (!validateStep(currentStep)) {
       Alert.alert('Incomplete Information', 'Please fill in all required fields before continuing.');
@@ -214,7 +320,7 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!validateStep(currentStep)) {
       Alert.alert('Incomplete Information', 'Please fill in all required fields.');
       return;
@@ -224,9 +330,11 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
     const missingFields = [];
     if (!formData.title.trim()) missingFields.push('title');
     if (!formData.description.trim()) missingFields.push('description');
-    if (!formData.category) missingFields.push('category');
-    if (!formData.date) missingFields.push('date');
-    if (!formData.time) missingFields.push('time');
+    if (!formData.categoryId) missingFields.push('category');
+    if (!formData.eventDate) missingFields.push('date');
+    if (!formData.location.name.trim()) missingFields.push('location name');
+    if (!formData.location.city.trim()) missingFields.push('city');
+    if (!formData.location.state.trim()) missingFields.push('state');
     
     if (missingFields.length > 0) {
       Alert.alert('Missing Information', 'Please complete all required steps.');
@@ -240,19 +348,89 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
         { text: 'Cancel', style: 'cancel' },
         { 
           text: 'Create Event', 
-          onPress: () => {
-            // Here you would send to API
-            console.log('Creating event:', formData);
-            Alert.alert(
-              'Event Created!',
-              'Your event has been submitted for review. You\'ll receive a notification when it\'s approved.',
-              [{ text: 'OK', onPress: () => navigation.goBack() }]
-            );
+          onPress: async () => {
+            try {
+              setIsSubmitting(true);
+              
+              // Upload images first if any
+              let uploadedMedia: EventMediaDto[] = [];
+              if (formData.media.length > 0) {
+                setUploadingImages(true);
+                for (const media of formData.media) {
+                  if (media.url.startsWith('file://')) {
+                    try {
+                      const uploadedUrl = await EventsApi.uploadImage(media.url);
+                      uploadedMedia.push({
+                        ...media,
+                        url: uploadedUrl
+                      });
+                    } catch (error) {
+                      console.error('Error uploading image:', error);
+                      // Continue with other images even if one fails
+                    }
+                  } else {
+                    uploadedMedia.push(media);
+                  }
+                }
+                setUploadingImages(false);
+              }
+
+              // Prepare the event data
+              const eventData: CreateEventDto = {
+                title: formData.title,
+                description: formData.description,
+                categoryId: formData.categoryId,
+                eventDate: formData.eventDate!.toISOString(),
+                endDate: formData.endDate?.toISOString(),
+                location: {
+                  name: formData.location.name,
+                  address: formData.location.address,
+                  city: formData.location.city,
+                  state: formData.location.state,
+                  landmark: formData.location.landmark,
+                  coordinates: formData.location.coordinates,
+                },
+                isFree: formData.isFree,
+                price: formData.isFree ? undefined : parseFloat(formData.price),
+                maxAttendees: formData.maxAttendees ? parseInt(formData.maxAttendees) : undefined,
+                requireVerification: formData.requireVerification,
+                languages: formData.languages,
+                isPrivate: formData.isPrivate,
+                allowGuests: formData.allowGuests,
+                ageRestriction: formData.ageRestriction || undefined,
+                specialRequirements: formData.specialRequirements || undefined,
+                media: uploadedMedia,
+              };
+
+              // Create the event
+              const createdEvent = await EventsApi.createEvent(eventData);
+              
+              Alert.alert(
+                'Event Created!',
+                'Your event has been created successfully and is now visible to your community.',
+                [{ text: 'OK', onPress: () => navigation.goBack() }]
+              );
+            } catch (error) {
+              const errorMessage = handleApiError(error);
+              Alert.alert('Error', errorMessage);
+            } finally {
+              setIsSubmitting(false);
+              setUploadingImages(false);
+            }
           }
         }
       ]
     );
   };
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    // For a form screen, refresh could reset the form or reload any dynamic data
+    // For now, we'll just simulate a refresh
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  }, []);
 
   const renderProgressBar = () => (
     <View style={styles.progressContainer}>
@@ -331,10 +509,10 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
         >
           <Text style={[
             styles.selectInputText,
-            !formData.category && styles.selectInputPlaceholder
+            !formData.categoryId && styles.selectInputPlaceholder
           ]}>
-            {formData.category ? 
-              eventCategories.find(c => c.id === formData.category)?.name : 
+            {formData.categoryId ? 
+              EVENT_CATEGORIES.find(c => c.id === formData.categoryId)?.name : 
               'Select event category'
             }
           </Text>
@@ -353,12 +531,12 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
             <View style={{ width: 60 }} />
           </View>
           <ScrollView style={styles.modalContent}>
-            {eventCategories.map((category) => (
+            {EVENT_CATEGORIES.map((category) => (
               <TouchableOpacity
                 key={category.id}
                 style={styles.categoryOption}
                 onPress={() => {
-                  updateFormData('category', category.id);
+                  updateFormData('categoryId', category.id);
                   setShowCategoryModal(false);
                 }}
               >
@@ -369,7 +547,7 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
                   <Text style={styles.categoryName}>{category.name}</Text>
                   <Text style={styles.categoryDescription}>{category.description}</Text>
                 </View>
-                {formData.category === category.id && (
+                {formData.categoryId === category.id && (
                   <MaterialCommunityIcons name="check" size={24} color={colors.primary} />
                 )}
               </TouchableOpacity>
@@ -393,9 +571,9 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
         >
           <Text style={[
             styles.selectInputText,
-            !formData.date && styles.selectInputPlaceholder
+            !formData.eventDate && styles.selectInputPlaceholder
           ]}>
-            {formatDisplayDate(formData.date)}
+            {formatDisplayDate(formData.eventDate)}
           </Text>
           <MaterialCommunityIcons name="calendar" size={20} color={colors.neutral.gray} />
         </TouchableOpacity>
@@ -410,9 +588,9 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
           >
             <Text style={[
               styles.selectInputText,
-              !formData.time && styles.selectInputPlaceholder
+              !formData.eventDate && styles.selectInputPlaceholder
             ]}>
-              {formatDisplayTime(formData.time)}
+              {formData.eventDate ? formatDisplayTime(formData.eventDate) : 'Select time'}
             </Text>
             <MaterialCommunityIcons name="clock-outline" size={20} color={colors.neutral.gray} />
           </TouchableOpacity>
@@ -426,9 +604,9 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
           >
             <Text style={[
               styles.selectInputText,
-              !formData.endTime && styles.selectInputPlaceholder
+              !formData.endDate && styles.selectInputPlaceholder
             ]}>
-              {formatDisplayTime(formData.endTime)}
+              {formData.endDate ? formatDisplayTime(formData.endDate) : 'Select end time (optional)'}
             </Text>
             <MaterialCommunityIcons name="clock-outline" size={20} color={colors.neutral.gray} />
           </TouchableOpacity>
@@ -444,8 +622,13 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
 
       {/* Date Picker */}
       {showDatePicker && Platform.OS === 'ios' && (
-        <Modal visible={showDatePicker} animationType="slide" presentationStyle="pageSheet">
-          <SafeAreaView style={styles.modalContainer}>
+        <Modal
+          visible={showDatePicker}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          transparent={false}
+        >
+          <SafeAreaView style={[styles.modalContainer, { backgroundColor: colors.white }]}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowDatePicker(false)}>
                 <Text style={styles.modalCancel}>Cancel</Text>
@@ -455,13 +638,15 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
                 <Text style={styles.modalSend}>Done</Text>
               </TouchableOpacity>
             </View>
-            <View style={styles.pickerContainer}>
+            <View style={[styles.pickerContainer, { backgroundColor: colors.white }]}>
               <DateTimePicker
-                value={formData.date || new Date()}
+                value={formData.eventDate || new Date()}
                 mode="date"
                 display="spinner"
                 onChange={handleDateChange}
                 minimumDate={new Date()}
+                textColor={colors.text.dark}
+                style={{ backgroundColor: colors.white, height: 200 }}
               />
             </View>
           </SafeAreaView>
@@ -470,7 +655,7 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
 
       {showDatePicker && Platform.OS === 'android' && (
         <DateTimePicker
-          value={formData.date || new Date()}
+          value={formData.eventDate || new Date()}
           mode="date"
           display="default"
           onChange={handleDateChange}
@@ -480,8 +665,13 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
 
       {/* Time Picker */}
       {showTimePicker && Platform.OS === 'ios' && (
-        <Modal visible={showTimePicker} animationType="slide" presentationStyle="pageSheet">
-          <SafeAreaView style={styles.modalContainer}>
+        <Modal
+          visible={showTimePicker}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          transparent={false}
+        >
+          <SafeAreaView style={[styles.modalContainer, { backgroundColor: colors.white }]}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowTimePicker(false)}>
                 <Text style={styles.modalCancel}>Cancel</Text>
@@ -491,12 +681,14 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
                 <Text style={styles.modalSend}>Done</Text>
               </TouchableOpacity>
             </View>
-            <View style={styles.pickerContainer}>
+            <View style={[styles.pickerContainer, { backgroundColor: colors.white }]}>
               <DateTimePicker
-                value={formData.time || new Date()}
+                value={formData.eventDate || new Date()}
                 mode="time"
                 display="spinner"
                 onChange={handleTimeChange}
+                textColor={colors.text.dark}
+                style={{ backgroundColor: colors.white, height: 200 }}
               />
             </View>
           </SafeAreaView>
@@ -505,7 +697,7 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
 
       {showTimePicker && Platform.OS === 'android' && (
         <DateTimePicker
-          value={formData.time || new Date()}
+          value={formData.eventDate || new Date()}
           mode="time"
           display="default"
           onChange={handleTimeChange}
@@ -514,8 +706,13 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
 
       {/* End Time Picker */}
       {showEndTimePicker && Platform.OS === 'ios' && (
-        <Modal visible={showEndTimePicker} animationType="slide" presentationStyle="pageSheet">
-          <SafeAreaView style={styles.modalContainer}>
+        <Modal
+          visible={showEndTimePicker}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          transparent={false}
+        >
+          <SafeAreaView style={[styles.modalContainer, { backgroundColor: colors.white }]}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowEndTimePicker(false)}>
                 <Text style={styles.modalCancel}>Cancel</Text>
@@ -525,12 +722,14 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
                 <Text style={styles.modalSend}>Done</Text>
               </TouchableOpacity>
             </View>
-            <View style={styles.pickerContainer}>
+            <View style={[styles.pickerContainer, { backgroundColor: colors.white }]}>
               <DateTimePicker
-                value={formData.endTime || new Date()}
+                value={formData.endDate || new Date()}
                 mode="time"
                 display="spinner"
                 onChange={handleEndTimeChange}
+                textColor={colors.text.dark}
+                style={{ backgroundColor: colors.white, height: 200 }}
               />
             </View>
           </SafeAreaView>
@@ -539,7 +738,7 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
 
       {showEndTimePicker && Platform.OS === 'android' && (
         <DateTimePicker
-          value={formData.endTime || new Date()}
+          value={formData.endDate || new Date()}
           mode="time"
           display="default"
           onChange={handleEndTimeChange}
@@ -568,8 +767,8 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
         <Text style={styles.inputLabel}>Estate/Compound *</Text>
         <TextInput
           style={styles.textInput}
-          value={formData.location.estate}
-          onChangeText={(value) => updateFormData('location.estate', value)}
+          value={formData.location.address}
+          onChangeText={(value) => updateFormData('location.address', value)}
           placeholder="e.g., Victoria Island Estate"
           placeholderTextColor={colors.neutral.gray}
         />
@@ -787,6 +986,33 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
         </View>
       </View>
 
+      {/* Image Picker Section */}
+      <View style={styles.inputGroup}>
+        <Text style={styles.inputLabel}>Event Images (Optional)</Text>
+        <Text style={styles.inputSubLabel}>Add up to 5 images to showcase your event</Text>
+        
+        <View style={styles.imageGrid}>
+          {formData.media.map((media, index) => (
+            <View key={index} style={styles.imageItem}>
+              <Image source={{ uri: media.url }} style={styles.previewImage} />
+              <TouchableOpacity
+                style={styles.removeImageButton}
+                onPress={() => removeImage(index)}
+              >
+                <MaterialCommunityIcons name="close" size={16} color={colors.white} />
+              </TouchableOpacity>
+            </View>
+          ))}
+          
+          {formData.media.length < 5 && (
+            <TouchableOpacity style={styles.addImageButton} onPress={showImagePicker}>
+              <MaterialCommunityIcons name="plus" size={24} color={colors.primary} />
+              <Text style={styles.addImageText}>Add Image</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
       {/* Language Modal */}
       <Modal visible={showLanguageModal} animationType="slide" presentationStyle="pageSheet">
         <SafeAreaView style={styles.modalContainer}>
@@ -894,7 +1120,18 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
         {renderProgressBar()}
 
         {/* Content */}
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          style={styles.content} 
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[colors.primary]}
+              tintColor={colors.primary}
+            />
+          }
+        >
           {renderCurrentStep()}
         </ScrollView>
 
@@ -914,20 +1151,31 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
               !validateStep(currentStep) && styles.nextButtonDisabled
             ]} 
             onPress={currentStep === totalSteps ? handleSubmit : nextStep}
-            disabled={!validateStep(currentStep)}
+            disabled={!validateStep(currentStep) || isSubmitting}
           >
-            <Text style={[
-              styles.nextButtonText,
-              !validateStep(currentStep) && styles.nextButtonTextDisabled
-            ]}>
-              {currentStep === totalSteps ? 'Create Event' : 'Continue'}
-            </Text>
-            {currentStep < totalSteps && (
-              <MaterialCommunityIcons 
-                name="arrow-right" 
-                size={20} 
-                color={validateStep(currentStep) ? colors.white : colors.neutral.gray} 
-              />
+            {isSubmitting ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color={colors.white} />
+                <Text style={[styles.nextButtonText, { marginLeft: spacing.sm }]}>
+                  {uploadingImages ? 'Uploading images...' : 'Creating event...'}
+                </Text>
+              </View>
+            ) : (
+              <>
+                <Text style={[
+                  styles.nextButtonText,
+                  !validateStep(currentStep) && styles.nextButtonTextDisabled
+                ]}>
+                  {currentStep === totalSteps ? 'Create Event' : 'Continue'}
+                </Text>
+                {currentStep < totalSteps && (
+                  <MaterialCommunityIcons 
+                    name="arrow-right" 
+                    size={20} 
+                    color={validateStep(currentStep) ? colors.white : colors.neutral.gray} 
+                  />
+                )}
+              </>
             )}
           </TouchableOpacity>
         </View>
@@ -1195,7 +1443,9 @@ const styles = StyleSheet.create({
   pickerContainer: {
     flex: 1,
     justifyContent: 'center',
-    paddingHorizontal: spacing.md,
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    paddingVertical: spacing.xl,
   },
   categoryOption: {
     flexDirection: 'row',
@@ -1260,6 +1510,59 @@ const styles = StyleSheet.create({
   ageText: {
     fontSize: typography.sizes.base,
     color: colors.text.dark,
+  },
+  // Image picker styles
+  imageGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  imageItem: {
+    position: 'relative',
+    width: (width - spacing.lg * 2 - spacing.sm * 2) / 3,
+    height: (width - spacing.lg * 2 - spacing.sm * 2) / 3,
+  },
+  previewImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: spacing.sm,
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: colors.danger,
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addImageButton: {
+    width: (width - spacing.lg * 2 - spacing.sm * 2) / 3,
+    height: (width - spacing.lg * 2 - spacing.sm * 2) / 3,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    borderStyle: 'dashed',
+    borderRadius: spacing.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.neutral.lightGray,
+  },
+  addImageText: {
+    fontSize: typography.sizes.sm,
+    color: colors.primary,
+    marginTop: spacing.xs,
+  },
+  inputSubLabel: {
+    fontSize: typography.sizes.sm,
+    color: colors.neutral.gray,
+    marginBottom: spacing.sm,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

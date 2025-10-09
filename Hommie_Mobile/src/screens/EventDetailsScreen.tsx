@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,9 +11,14 @@ import {
   Share,
   Alert,
   Linking,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { EventData, demoEvents, eventCategories } from '../data/eventsData';
+import EventDetailsSkeleton from '../components/EventDetailsSkeleton';
+import ErrorView from '../components/ErrorView';
+import { EventsApi, handleApiError, EVENT_CATEGORIES } from '../services/EventsApi';
+import type { Event } from '../services/EventsApi';
 import { colors, spacing, typography, shadows } from '../constants';
 
 const { width, height } = Dimensions.get('window');
@@ -29,31 +34,85 @@ interface EventDetailsScreenProps {
 
 const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ route, navigation }) => {
   const { eventId } = route.params;
-  const [event, setEvent] = useState<EventData | null>(null);
+  const [event, setEvent] = useState<Event | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isRSVPing, setIsRSVPing] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   useEffect(() => {
-    // In a real app, this would fetch from API
-    const foundEvent = demoEvents.find(e => e.id === eventId);
-    setEvent(foundEvent || null);
+    const fetchEvent = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await EventsApi.getEvent(eventId);
+        setEvent(data);
+
+        // Increment views (fire and forget)
+        EventsApi.incrementViews(eventId).catch(() => {});
+      } catch (err) {
+        const errorMessage = handleApiError(err);
+        setError(errorMessage);
+        console.error('Error fetching event:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEvent();
   }, [eventId]);
 
-  if (!event) {
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      setError(null);
+      const data = await EventsApi.getEvent(eventId);
+      setEvent(data);
+      // Increment views (fire and forget)
+      EventsApi.incrementViews(eventId).catch(() => {});
+    } catch (err) {
+      const errorMessage = handleApiError(err);
+      setError(errorMessage);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [eventId]);
+
+  if (loading) {
+    return <EventDetailsSkeleton />;
+  }
+
+  if (error || !event) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <MaterialCommunityIcons name="calendar-remove" size={64} color={colors.neutral.gray} />
-          <Text style={styles.loadingText}>Event not found</Text>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Text style={styles.backButtonText}>Go Back</Text>
-          </TouchableOpacity>
-        </View>
+        <ErrorView 
+          error={error || 'Event not found'} 
+          onRetry={() => {
+            // Refetch the event
+            const fetchEvent = async () => {
+              try {
+                setLoading(true);
+                setError(null);
+                const data = await EventsApi.getEvent(eventId);
+                setEvent(data);
+                EventsApi.incrementViews(eventId).catch(() => {});
+              } catch (err) {
+                const errorMessage = handleApiError(err);
+                setError(errorMessage);
+              } finally {
+                setLoading(false);
+              }
+            };
+            fetchEvent();
+          }}
+          title={error ? "Oops!" : "Event Not Found"}
+        />
       </SafeAreaView>
     );
   }
 
-  const category = eventCategories.find(cat => cat.id === event.category);
+  const category = EVENT_CATEGORIES.find(cat => cat.id === event.category.id);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -73,35 +132,38 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ route, navigati
     return `${displayHour}:${minutes} ${ampm}`;
   };
 
-  const getVerificationIcon = () => {
-    switch (event.organizer.verificationLevel) {
-      case 'full':
-        return <MaterialCommunityIcons name="check-decagram" size={20} color={colors.success} />;
-      case 'identity':
-        return <MaterialCommunityIcons name="check-circle" size={20} color={colors.primary} />;
-      case 'phone':
-        return <MaterialCommunityIcons name="check" size={20} color={colors.secondary} />;
-      default:
-        return null;
-    }
-  };
 
   const handleRSVP = async (status: 'going' | 'maybe' | 'not_going') => {
+    if (!event) return;
+
     setIsRSVPing(true);
+    
+    // Optimistic update
+    const prevStatus = event.userRsvpStatus;
+    const prevCount = event.attendeesCount;
+    
+    setEvent({
+      ...event,
+      userRsvpStatus: status,
+      attendeesCount: prevStatus ? prevCount : prevCount + 1,
+    });
+
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Update event RSVP status
-      setEvent(prev => prev ? { ...prev, rsvpStatus: status } : null);
-      
+      await EventsApi.rsvpEvent(eventId, { rsvpStatus: status });
       Alert.alert(
         'RSVP Updated',
         `You have marked yourself as ${status === 'going' ? 'Going' : status === 'maybe' ? 'Maybe' : 'Not Going'} to this event.`,
         [{ text: 'OK' }]
       );
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update RSVP. Please try again.');
+    } catch (err) {
+      // Rollback on error
+      setEvent({ 
+        ...event, 
+        userRsvpStatus: prevStatus, 
+        attendeesCount: prevCount 
+      });
+      const errorMessage = handleApiError(err);
+      Alert.alert('Error', errorMessage);
     } finally {
       setIsRSVPing(false);
     }
@@ -110,7 +172,7 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ route, navigati
   const handleShare = async () => {
     try {
       await Share.share({
-        message: `Check out this event: ${event.title}\n\n${event.description}\n\nDate: ${formatDate(event.date)} at ${formatTime(event.time)}\nLocation: ${event.location.name}, ${event.location.estate}`,
+        message: `Check out this event: ${event.title}\n\n${event.description}\n\nDate: ${formatDate(event.eventDate)} at ${formatTime(event.startTime)}\nLocation: ${event.location.name}, ${event.location.address}`,
         title: event.title,
       });
     } catch (error) {
@@ -119,12 +181,12 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ route, navigati
   };
 
   const handleDirections = () => {
-    const { coordinates } = event.location;
-    if (coordinates) {
-      const url = `https://www.google.com/maps/dir/?api=1&destination=${coordinates.latitude},${coordinates.longitude}`;
+    const { latitude, longitude } = event.location;
+    if (latitude && longitude) {
+      const url = `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`;
       Linking.openURL(url);
     } else {
-      const query = `${event.location.name}, ${event.location.estate}, ${event.location.city}`;
+      const query = `${event.location.name}, ${event.location.address}`;
       const url = `https://www.google.com/maps/search/${encodeURIComponent(query)}`;
       Linking.openURL(url);
     }
@@ -143,11 +205,11 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ route, navigati
   };
 
   const renderImageGallery = () => {
-    const images = event.media.gallery || (event.media.coverImage ? [event.media.coverImage] : []);
+    const images = event.media?.map(m => m.url) || (event.coverImageUrl ? [event.coverImageUrl] : []);
     
     if (images.length === 0) {
       return (
-        <View style={[styles.heroImage, { backgroundColor: category?.color || colors.primary }]}>
+        <View style={[styles.heroImage, { backgroundColor: category?.colorCode || colors.primary }]}>
           <MaterialCommunityIcons 
             name={category?.icon as any || 'calendar'} 
             size={80} 
@@ -247,22 +309,33 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ route, navigati
             onPress={() => console.log('Toggle favorite')}
           >
             <MaterialCommunityIcons 
-              name={event.rsvpStatus === 'going' ? 'bookmark' : 'bookmark-outline'} 
+              name={event.userRsvpStatus === 'going' ? 'bookmark' : 'bookmark-outline'} 
               size={24} 
-              color={event.rsvpStatus === 'going' ? colors.primary : colors.text.dark} 
+              color={event.userRsvpStatus === 'going' ? colors.primary : colors.text.dark} 
             />
           </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
+      >
         {/* Hero Image */}
         {renderImageGallery()}
 
         {/* Event Info */}
         <View style={styles.eventInfo}>
           {/* Category Badge */}
-          <View style={[styles.categoryBadge, { backgroundColor: category?.color }]}>
+          <View style={[styles.categoryBadge, { backgroundColor: category?.colorCode }]}>
             <MaterialCommunityIcons 
               name={category?.icon as any} 
               size={16} 
@@ -275,10 +348,10 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ route, navigati
           <View style={styles.titleContainer}>
             <Text style={styles.title}>{event.title}</Text>
             <View style={styles.priceContainer}>
-              {event.price.isFree ? (
+              {event.isFree ? (
                 <Text style={styles.freePrice}>Free</Text>
               ) : (
-                <Text style={styles.paidPrice}>₦{event.price.amount?.toLocaleString()}</Text>
+                <Text style={styles.paidPrice}>₦{event.price?.toLocaleString()}</Text>
               )}
             </View>
           </View>
@@ -289,9 +362,9 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ route, navigati
               <MaterialCommunityIcons name="calendar" size={24} color={colors.primary} />
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Date & Time</Text>
-                <Text style={styles.infoValue}>{formatDate(event.date)}</Text>
+                <Text style={styles.infoValue}>{formatDate(event.eventDate)}</Text>
                 <Text style={styles.infoSubValue}>
-                  {formatTime(event.time)}{event.endTime && ` - ${formatTime(event.endTime)}`}
+                  {formatTime(event.startTime)}{event.endTime && ` - ${formatTime(event.endTime)}`}
                 </Text>
               </View>
             </View>
@@ -305,7 +378,7 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ route, navigati
                 <Text style={styles.infoLabel}>Location</Text>
                 <Text style={styles.infoValue}>{event.location.name}</Text>
                 <Text style={styles.infoSubValue}>
-                  {event.location.estate}, {event.location.city}, {event.location.state}
+                  {event.location.address}
                 </Text>
                 {event.location.landmark && (
                   <Text style={styles.landmarkText}>Near {event.location.landmark}</Text>
@@ -325,29 +398,26 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ route, navigati
             <Text style={styles.sectionTitle}>Organized by</Text>
             <View style={styles.organizerCard}>
               <View style={styles.organizerInfo}>
-                {event.organizer.avatar ? (
-                  <Image source={{ uri: event.organizer.avatar }} style={styles.organizerAvatar} />
+                {event.organizer.profilePictureUrl ? (
+                  <Image source={{ uri: event.organizer.profilePictureUrl }} style={styles.organizerAvatar} />
                 ) : (
                   <View style={styles.organizerAvatarPlaceholder}>
                     <Text style={styles.organizerInitials}>
-                      {event.organizer.name.split(' ').map(n => n[0]).join('')}
+                      {event.organizer.fullName.split(' ').map(n => n[0]).join('')}
                     </Text>
                   </View>
                 )}
                 <View style={styles.organizerDetails}>
                   <View style={styles.organizerNameContainer}>
-                    <Text style={styles.organizerName}>{event.organizer.name}</Text>
-                    {getVerificationIcon()}
+                    <Text style={styles.organizerName}>{event.organizer.fullName}</Text>
+                    {event.organizer.isVerified && (
+                      <MaterialCommunityIcons name="check-decagram" size={20} color={colors.success} />
+                    )}
                   </View>
-                  {event.organizer.verificationBadge && (
-                    <Text style={styles.verificationBadge}>{event.organizer.verificationBadge}</Text>
-                  )}
-                  {event.organizer.rating && (
-                    <View style={styles.ratingContainer}>
-                      <MaterialCommunityIcons name="star" size={16} color={colors.warning} />
-                      <Text style={styles.ratingText}>{event.organizer.rating} rating</Text>
-                    </View>
-                  )}
+                  <View style={styles.ratingContainer}>
+                    <MaterialCommunityIcons name="star" size={16} color={colors.warning} />
+                    <Text style={styles.ratingText}>{event.organizer.trustScore} trust score</Text>
+                  </View>
                 </View>
               </View>
               <TouchableOpacity style={styles.contactButton} onPress={handleContact}>
@@ -363,26 +433,26 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ route, navigati
           </View>
 
           {/* Requirements */}
-          {event.requirements && (
+          {(event.requireVerification || event.ageRestriction || event.languages.length > 0) && (
             <View style={styles.requirementsSection}>
               <Text style={styles.sectionTitle}>Requirements</Text>
               <View style={styles.requirementsList}>
-                {event.requirements.verificationRequired && (
+                {event.requireVerification && (
                   <View style={styles.requirementItem}>
                     <MaterialCommunityIcons name="check-decagram" size={16} color={colors.primary} />
                     <Text style={styles.requirementText}>Verification required</Text>
                   </View>
                 )}
-                {event.requirements.ageRestriction && (
+                {event.ageRestriction && (
                   <View style={styles.requirementItem}>
                     <MaterialCommunityIcons name="account-group" size={16} color={colors.primary} />
-                    <Text style={styles.requirementText}>{event.requirements.ageRestriction}</Text>
+                    <Text style={styles.requirementText}>{event.ageRestriction}</Text>
                   </View>
                 )}
-                {event.language.length > 0 && (
+                {event.languages.length > 0 && (
                   <View style={styles.requirementItem}>
                     <MaterialCommunityIcons name="translate" size={16} color={colors.primary} />
-                    <Text style={styles.requirementText}>Languages: {event.language.join(', ')}</Text>
+                    <Text style={styles.requirementText}>Languages: {event.languages.join(', ')}</Text>
                   </View>
                 )}
               </View>
@@ -392,22 +462,14 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ route, navigati
           {/* Attendees */}
           <View style={styles.attendeesSection}>
             <Text style={styles.sectionTitle}>
-              Who's going ({event.attendees.count})
-              {event.attendees.limit && ` • ${event.attendees.limit} max`}
+              Who's going ({event.attendeesCount})
+              {event.maxAttendees && ` • ${event.maxAttendees} max`}
             </Text>
             <View style={styles.attendeesList}>
-              {event.attendees.avatars.slice(0, 8).map((avatar, index) => (
-                <Image 
-                  key={index}
-                  source={{ uri: avatar }} 
-                  style={[styles.attendeeAvatar, { marginLeft: index > 0 ? -8 : 0 }]} 
-                />
-              ))}
-              {event.attendees.count > 8 && (
-                <View style={[styles.attendeeAvatar, styles.moreAttendeesIndicator]}>
-                  <Text style={styles.moreAttendeesText}>+{event.attendees.count - 8}</Text>
-                </View>
-              )}
+              {/* For now, we'll show a placeholder since we don't have attendee avatars in the API response */}
+              <View style={[styles.attendeeAvatar, styles.moreAttendeesIndicator]}>
+                <Text style={styles.moreAttendeesText}>{event.attendeesCount}</Text>
+              </View>
             </View>
           </View>
 
