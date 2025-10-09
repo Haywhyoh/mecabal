@@ -501,6 +501,209 @@ export class ApiGatewayController {
     return this.proxyEventsRequest(req, res);
   }
 
+  // Business service routes
+  @All('business/search/featured')
+  async proxyBusinessFeatured(@Req() req: Request, @Res() res: Response) {
+    return this.proxyBusinessRequest(req, res);
+  }
+
+  @All('business/search/trending')
+  async proxyBusinessTrending(@Req() req: Request, @Res() res: Response) {
+    return this.proxyBusinessRequest(req, res);
+  }
+
+  @All('business/search/by-service-area')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyBusinessSearchByServiceArea(@Req() req: Request, @Res() res: Response) {
+    return this.proxyBusinessRequest(req, res);
+  }
+
+  @All('business/search')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyBusinessSearch(@Req() req: Request, @Res() res: Response) {
+    return this.proxyBusinessRequest(req, res);
+  }
+
+  @All('business-categories')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyBusinessCategories(@Req() req: Request, @Res() res: Response) {
+    return this.proxyBusinessRequest(req, res);
+  }
+
+  @All('business-categories/*path')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyBusinessCategoriesWildcard(@Req() req: Request, @Res() res: Response) {
+    return this.proxyBusinessRequest(req, res);
+  }
+
+  @All('user/inquiries')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyUserInquiries(@Req() req: Request, @Res() res: Response) {
+    return this.proxyBusinessRequest(req, res);
+  }
+
+  @All('business/:businessId/inquiries/stats')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyBusinessInquiryStats(@Req() req: Request, @Res() res: Response) {
+    return this.proxyBusinessRequest(req, res);
+  }
+
+  @All('business/:businessId/inquiries/:inquiryId/respond')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyBusinessInquiryRespond(@Req() req: Request, @Res() res: Response) {
+    return this.proxyBusinessRequest(req, res);
+  }
+
+  @All('business/:businessId/inquiries/:inquiryId/status')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyBusinessInquiryStatus(@Req() req: Request, @Res() res: Response) {
+    return this.proxyBusinessRequest(req, res);
+  }
+
+  @All('business/:businessId/inquiries')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyBusinessInquiries(@Req() req: Request, @Res() res: Response) {
+    return this.proxyBusinessRequest(req, res);
+  }
+
+  @All('business/:businessId/analytics/daily')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyBusinessAnalyticsDaily(@Req() req: Request, @Res() res: Response) {
+    return this.proxyBusinessRequest(req, res);
+  }
+
+  @All('business/:businessId/analytics')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyBusinessAnalytics(@Req() req: Request, @Res() res: Response) {
+    return this.proxyBusinessRequest(req, res);
+  }
+
+  @All('business/:businessId/activity/contact-click')
+  async proxyBusinessActivityContactClick(@Req() req: Request, @Res() res: Response) {
+    return this.proxyBusinessRequest(req, res);
+  }
+
+  @All('business/:businessId/activity/view')
+  async proxyBusinessActivityView(@Req() req: Request, @Res() res: Response) {
+    return this.proxyBusinessRequest(req, res);
+  }
+
+  @All('business/:businessId/activity')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyBusinessActivity(@Req() req: Request, @Res() res: Response) {
+    return this.proxyBusinessRequest(req, res);
+  }
+
+  @All('business/:businessId/reviews/stats')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyBusinessReviewStats(@Req() req: Request, @Res() res: Response) {
+    return this.proxyBusinessRequest(req, res);
+  }
+
+  @All('business/:businessId/reviews/:reviewId/respond')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyBusinessReviewRespond(@Req() req: Request, @Res() res: Response) {
+    return this.proxyBusinessRequest(req, res);
+  }
+
+  @All('business/:businessId/reviews/:reviewId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyBusinessReviewById(@Req() req: Request, @Res() res: Response) {
+    return this.proxyBusinessRequest(req, res);
+  }
+
+  @All('business/:businessId/reviews')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyBusinessReviews(@Req() req: Request, @Res() res: Response) {
+    return this.proxyBusinessRequest(req, res);
+  }
+
+  @All('business/:businessId/licenses/:licenseId/verify')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyBusinessLicenseVerify(@Req() req: Request, @Res() res: Response) {
+    return this.proxyBusinessRequest(req, res);
+  }
+
+  @All('business/:businessId/licenses/:licenseId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyBusinessLicenseById(@Req() req: Request, @Res() res: Response) {
+    return this.proxyBusinessRequest(req, res);
+  }
+
+  @All('business/:businessId/licenses')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyBusinessLicenses(@Req() req: Request, @Res() res: Response) {
+    return this.proxyBusinessRequest(req, res);
+  }
+
+  @All('business/:businessId/services/:serviceId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyBusinessServiceById(@Req() req: Request, @Res() res: Response) {
+    return this.proxyBusinessRequest(req, res);
+  }
+
+  @All('business/:businessId/services')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyBusinessServices(@Req() req: Request, @Res() res: Response) {
+    return this.proxyBusinessRequest(req, res);
+  }
+
+  @All('business/my-business')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyMyBusiness(@Req() req: Request, @Res() res: Response) {
+    return this.proxyBusinessRequest(req, res);
+  }
+
+  @All('business/register')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyBusinessRegister(@Req() req: Request, @Res() res: Response) {
+    return this.proxyBusinessRequest(req, res);
+  }
+
+  @All('business/:id/status')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyBusinessStatus(@Req() req: Request, @Res() res: Response) {
+    return this.proxyBusinessRequest(req, res);
+  }
+
+  @All('business/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyBusinessById(@Req() req: Request, @Res() res: Response) {
+    return this.proxyBusinessRequest(req, res);
+  }
+
+  @All('business')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyBusiness(@Req() req: Request, @Res() res: Response) {
+    return this.proxyBusinessRequest(req, res);
+  }
+
   @Get('states')
   @ApiOperation({ summary: 'Get all Nigerian states' })
   @ApiResponse({
@@ -683,5 +886,47 @@ export class ApiGatewayController {
 
     // All other endpoints require authentication
     return true;
+  }
+
+  // Helper method to proxy requests to business service
+  @ApiOperation({ summary: 'Proxy all business service requests' })
+  @ApiResponse({
+    status: 200,
+    description: 'Request proxied to business service',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  private async proxyBusinessRequest(req: Request, res: Response) {
+    try {
+      console.log(
+        '🌐 API Gateway - Proxying business service request:',
+        req.url,
+        req.method,
+      );
+
+      const result: unknown =
+        await this.apiGatewayService.proxyToBusinessService(
+          req.url,
+          req.method,
+          req.body,
+          req.headers as Record<string, string | string[] | undefined>,
+          req.user,
+        );
+
+      let statusCode = HttpStatus.OK;
+      if (req.method === 'POST') {
+        statusCode = HttpStatus.CREATED;
+      } else if (req.method === 'DELETE') {
+        statusCode = HttpStatus.NO_CONTENT;
+      }
+
+      res.status(statusCode).json(result);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error proxying business service request:', errorMessage);
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: errorMessage });
+    }
   }
 }

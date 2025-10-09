@@ -15,6 +15,8 @@ export class ApiGatewayService {
     process.env.MARKETPLACE_SERVICE_URL || 'http://localhost:3005';
   private readonly eventsServiceUrl =
     process.env.EVENTS_SERVICE_URL || 'http://localhost:3006';
+  private readonly businessServiceUrl =
+    process.env.BUSINESS_SERVICE_URL || 'http://localhost:3008';
 
   constructor(
     private readonly httpService: HttpService,
@@ -26,6 +28,7 @@ export class ApiGatewayService {
     console.log('  - Auth Service URL:', this.authServiceUrl);
     console.log('  - Marketplace Service URL:', this.marketplaceServiceUrl);
     console.log('  - Events Service URL:', this.eventsServiceUrl);
+    console.log('  - Business Service URL:', this.businessServiceUrl);
   }
 
   getHello(): string {
@@ -459,6 +462,108 @@ export class ApiGatewayService {
 
         throw new Error(
           `Events request failed with status code ${status}: ${statusText}`,
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  // Proxy methods for business service
+  async proxyToBusinessService(
+    path: string,
+    method: string,
+    data?: unknown,
+    headers?: Record<string, string | string[] | undefined>,
+    user?: any,
+  ) {
+    try {
+      const url = `${this.businessServiceUrl}${path}`;
+
+      console.log('🌐 API Gateway - Proxying to business service:');
+      console.log('  - URL:', url);
+      console.log('  - Method:', method);
+      console.log(
+        '  - User:',
+        user
+          ? {
+              id: (user as { id: string; email: string }).id,
+              email: (user as { id: string; email: string }).email,
+            }
+          : 'No user',
+      );
+
+      const baseHeaders: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        Pragma: 'no-cache',
+        Expires: '0',
+        // Forward the original Authorization header for JWT authentication
+        ...(headers && headers.authorization && {
+          'Authorization': Array.isArray(headers.authorization) 
+            ? headers.authorization[0] 
+            : headers.authorization,
+        }),
+        ...(user && {
+          'X-User-Id':
+            (user as { id: string }).id.length === 37 &&
+            (user as { id: string }).id.endsWith('f')
+              ? (user as { id: string }).id.slice(0, -1)
+              : (user as { id: string }).id,
+        }),
+      };
+
+      const config: Record<string, unknown> = {
+        headers: baseHeaders,
+        timeout: 60000,
+        maxRedirects: 5,
+        transformRequest: [(data: unknown) => JSON.stringify(data)],
+      };
+
+      let response;
+      switch (method.toLowerCase()) {
+        case 'get':
+          response = await firstValueFrom(this.httpService.get(url, config));
+          break;
+        case 'post':
+          response = await firstValueFrom(
+            this.httpService.post(url, data, config),
+          );
+          break;
+        case 'patch':
+          response = await firstValueFrom(
+            this.httpService.patch(url, data, config),
+          );
+          break;
+        case 'put':
+          response = await firstValueFrom(
+            this.httpService.put(url, data, config),
+          );
+          break;
+        case 'delete':
+          response = await firstValueFrom(
+            this.httpService.delete(url, config),
+          );
+          break;
+        default:
+          throw new Error(`Unsupported method: ${method}`);
+      }
+
+      return response.data as unknown;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      console.error(`Error proxying to business service: ${errorMessage}`);
+
+      if (error && typeof error === 'object' && 'response' in error) {
+        const response = (
+          error as { response: { status: number; statusText: string } }
+        ).response;
+        const status = response.status;
+        const statusText = response.statusText;
+
+        throw new Error(
+          `Business request failed with status code ${status}: ${statusText}`,
         );
       }
 

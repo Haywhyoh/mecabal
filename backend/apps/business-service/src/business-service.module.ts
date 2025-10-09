@@ -14,6 +14,7 @@ import { BusinessLicenseModule } from './business-license/business-license.modul
 import { BusinessSearchModule } from './business-search/business-search.module';
 import { BusinessReviewModule } from './business-review/business-review.module';
 import { BusinessActivityModule } from './business-activity/business-activity.module';
+import { BusinessInquiryModule } from './business-inquiry/business-inquiry.module';
 import {
   BusinessProfile,
   BusinessCategory,
@@ -43,6 +44,7 @@ import {
     BusinessSearchModule,
     BusinessReviewModule,
     BusinessActivityModule,
+    BusinessInquiryModule,
     TypeOrmModule.forFeature([
       BusinessProfile,
       BusinessCategory,
