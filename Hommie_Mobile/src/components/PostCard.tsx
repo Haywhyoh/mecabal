@@ -280,7 +280,7 @@ export const PostCard: React.FC<PostCardProps> = ({
       </View>
 
       {/* Media */}
-      {post.media && post.media.length > 0 && (
+      {post.media && Array.isArray(post.media) && post.media.length > 0 && (
         <View style={styles.mediaContainer}>
           {post.media.map((media, index) => (
             <View key={index} style={styles.mediaItem}>

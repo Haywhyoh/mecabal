@@ -208,7 +208,7 @@ export default function DashboardTestScreen() {
                 />
               </View>
               <Text style={styles.percentageText}>{profileCompletion.percentage}% Complete</Text>
-              {profileCompletion.missingFields.length > 0 && (
+              {profileCompletion && profileCompletion.missingFields && profileCompletion.missingFields.length > 0 && (
                 <View style={styles.missingFieldsContainer}>
                   <Text style={styles.missingFieldsTitle}>Missing Fields:</Text>
                   {profileCompletion.missingFields.map((field, index) => (
