@@ -2,12 +2,24 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class AddHelpAndListings20251007133042 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // 1. Add help to post_type enum
+    // 1. Create post_type enum if it doesn't exist
+    await queryRunner.query(`
+      DO $$ BEGIN
+        CREATE TYPE post_type_enum AS ENUM ('general', 'announcement', 'event', 'help', 'alert');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+
+    // 2. Add missing values to post_type enum if not already added
     await queryRunner.query(`
       ALTER TYPE post_type_enum ADD VALUE IF NOT EXISTS 'help';
     `);
+    await queryRunner.query(`
+      ALTER TYPE post_type_enum ADD VALUE IF NOT EXISTS 'alert';
+    `);
 
-    // 2. Add help metadata columns to posts
+    // 3. Add help metadata columns to posts
     await queryRunner.query(`
       ALTER TABLE posts
       ADD COLUMN IF NOT EXISTS help_category VARCHAR(50),
@@ -16,9 +28,17 @@ export class AddHelpAndListings20251007133042 implements MigrationInterface {
       ADD COLUMN IF NOT EXISTS deadline TIMESTAMP;
     `);
 
-    // 3. Create listing_categories table
+    // 4. Update posts table to use post_type_enum
     await queryRunner.query(`
-      CREATE TABLE listing_categories (
+      ALTER TABLE posts 
+      ALTER COLUMN post_type DROP DEFAULT,
+      ALTER COLUMN post_type TYPE post_type_enum USING post_type::post_type_enum,
+      ALTER COLUMN post_type SET DEFAULT 'general'::post_type_enum;
+    `);
+
+    // 5. Create listing_categories table
+    await queryRunner.query(`
+      CREATE TABLE IF NOT EXISTS listing_categories (
         id SERIAL PRIMARY KEY,
         listing_type VARCHAR(20) NOT NULL,
         name VARCHAR(100) NOT NULL,
@@ -31,9 +51,9 @@ export class AddHelpAndListings20251007133042 implements MigrationInterface {
       );
     `);
 
-    // 4. Create listings table
+    // 6. Create listings table
     await queryRunner.query(`
-      CREATE TABLE listings (
+      CREATE TABLE IF NOT EXISTS listings (
         id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
         user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         neighborhood_id UUID NOT NULL REFERENCES neighborhoods(id),
@@ -61,9 +81,9 @@ export class AddHelpAndListings20251007133042 implements MigrationInterface {
       );
     `);
 
-    // 5. Create listing_media table
+    // 7. Create listing_media table
     await queryRunner.query(`
-      CREATE TABLE listing_media (
+      CREATE TABLE IF NOT EXISTS listing_media (
         id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
         listing_id UUID NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
         url TEXT NOT NULL,
@@ -74,9 +94,9 @@ export class AddHelpAndListings20251007133042 implements MigrationInterface {
       );
     `);
 
-    // 6. Create listing_saves table
+    // 8. Create listing_saves table
     await queryRunner.query(`
-      CREATE TABLE listing_saves (
+      CREATE TABLE IF NOT EXISTS listing_saves (
         id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
         listing_id UUID NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
         user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -85,19 +105,28 @@ export class AddHelpAndListings20251007133042 implements MigrationInterface {
       );
     `);
 
-    // 7. Create indexes
+    // 9. Create indexes
     await queryRunner.query(`
-      CREATE INDEX idx_listings_neighborhood ON listings(neighborhood_id);
-      CREATE INDEX idx_listings_user ON listings(user_id);
-      CREATE INDEX idx_listings_type ON listings(listing_type);
-      CREATE INDEX idx_listings_category ON listings(category_id);
-      CREATE INDEX idx_listings_status ON listings(status);
-      CREATE INDEX idx_listings_location ON listings USING GIST(location);
-      CREATE INDEX idx_listing_media_listing ON listing_media(listing_id);
-      CREATE INDEX idx_posts_type ON posts(post_type);
+      CREATE INDEX IF NOT EXISTS idx_listings_neighborhood ON listings(neighborhood_id);
+      CREATE INDEX IF NOT EXISTS idx_listings_user ON listings(user_id);
+      CREATE INDEX IF NOT EXISTS idx_listings_type ON listings(listing_type);
+      CREATE INDEX IF NOT EXISTS idx_listings_category ON listings(category_id);
+      CREATE INDEX IF NOT EXISTS idx_listings_status ON listings(status);
+      CREATE INDEX IF NOT EXISTS idx_listing_media_listing ON listing_media(listing_id);
+      CREATE INDEX IF NOT EXISTS idx_posts_type ON posts(post_type);
+    `);
+    
+    // Create location index only if location column exists
+    await queryRunner.query(`
+      DO $$ 
+      BEGIN
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'listings' AND column_name = 'location') THEN
+          CREATE INDEX IF NOT EXISTS idx_listings_location ON listings USING GIST(location);
+        END IF;
+      END $$;
     `);
 
-    // 8. Seed listing categories
+    // 10. Seed listing categories
     await queryRunner.query(`
       INSERT INTO listing_categories (listing_type, name, icon_url, color_code, display_order) VALUES
       ('property', 'Apartment', 'apartment', '#FF6B35', 1),

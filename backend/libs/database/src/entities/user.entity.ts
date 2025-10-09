@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
+  OneToOne,
   ManyToMany,
   JoinTable,
   Index,
@@ -19,6 +20,8 @@ import { UserSession } from './user-session.entity';
 import { OtpVerification } from './otp-verification.entity';
 import { Role } from './role.entity';
 import { Neighborhood } from './neighborhood.entity';
+import type { UserBookmark } from './user-bookmark.entity';
+import type { UserDashboardStats } from './user-dashboard-stats.entity';
 import type { Listing } from './listing.entity';
 
 @Entity('users')
@@ -262,6 +265,9 @@ export class User {
     inverseJoinColumn: { name: 'role_id', referencedColumnName: 'id' },
   })
   roles: Role[];
+
+  // Unidirectional relations - no inverse side to avoid circular dependencies
+  // Relations are defined only in the child entities (UserBookmark, UserDashboardStats)
 
   // Virtual properties
   @ApiProperty({ description: 'Full name of the user' })

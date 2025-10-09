@@ -5,6 +5,10 @@ export { EmailOtp } from './email-otp.entity';
 export { UserSession } from './user-session.entity';
 export { Role } from './role.entity';
 
+// User Dashboard & Bookmarks Entities
+export { UserBookmark } from './user-bookmark.entity';
+export { UserDashboardStats } from './user-dashboard-stats.entity';
+
 // Location & Neighborhood Entities
 export { State } from './state.entity';
 export { LocalGovernmentArea } from './local-government-area.entity';
@@ -33,3 +37,10 @@ export { EventCategory } from './event-category.entity';
 export { Event } from './event.entity';
 export { EventMedia } from './event-media.entity';
 export { EventAttendee } from './event-attendee.entity';
+
+// Verification Entities
+export { NinVerification, VerificationStatus, VerificationMethod } from './nin-verification.entity';
+export { IdentityDocument, DocumentType } from './identity-document.entity';
+export { VerificationAudit } from './verification-audit.entity';
+export { UserBadge, BadgeCategory } from './user-badge.entity';
+export { CommunityEndorsement, EndorsementType } from './community-endorsement.entity';

@@ -120,7 +120,7 @@ export class UserProfileService {
    */
   async updateAvatar(
     userId: string,
-    avatarUrl: string,
+    avatarUrl: string | null,
   ): Promise<UserResponseDto> {
     const user = await this.userRepository.findOne({
       where: { id: userId },
@@ -130,7 +130,7 @@ export class UserProfileService {
       throw new NotFoundException(`User with ID ${userId} not found`);
     }
 
-    user.profilePictureUrl = avatarUrl;
+    user.profilePictureUrl = avatarUrl || undefined;
     const updatedUser = await this.userRepository.save(user);
 
     return this.transformUserToResponse(updatedUser);
