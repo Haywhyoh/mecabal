@@ -52,4 +52,5 @@ export { Badge, BadgeType } from './badge.entity';
 export { GamificationBadge } from './gamification-badge.entity';
 export { UserActivityLog, ActivityType } from './user-activity-log.entity';
 export { UserPoints } from './user-points.entity';
-export { LeaderboardSnapshot, LeaderboardCategory, LeaderboardPeriod, LeaderboardRanking } from './leaderboard-snapshot.entity';
+export { LeaderboardSnapshot, LeaderboardCategory, LeaderboardPeriod } from './leaderboard-snapshot.entity';
+export type { LeaderboardRanking } from './leaderboard-snapshot.entity';

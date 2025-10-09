@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DatabaseService } from './database.service';
+import { SeederService } from './seeds/seeder.service';
 import {
   User,
   UserSession,
@@ -147,7 +148,7 @@ import {
       LeaderboardSnapshot,
     ]),
   ],
-  providers: [DatabaseService],
-  exports: [DatabaseService, TypeOrmModule],
+  providers: [DatabaseService, SeederService],
+  exports: [DatabaseService, TypeOrmModule, SeederService],
 })
 export class DatabaseModule {}

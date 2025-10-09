@@ -21,6 +21,7 @@ import { BadgeService } from './services/badge.service';
 import { DocumentService } from './services/document.service';
 import { AuditTrailService } from './services/audit-trail.service';
 import { VerificationIntegrationService } from './services/verification-integration.service';
+import { SeederService } from '@app/database';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { VerificationIntegrationService } from './services/verification-integrat
     DocumentService,
     AuditTrailService,
     VerificationIntegrationService,
+    SeederService,
   ],
   exports: [
     UserProfileService,

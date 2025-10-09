@@ -55,7 +55,7 @@ export class ApiGatewayController {
   }
 
   // Dynamic routing for auth service - handles ALL /auth/* routes
-  @All('auth/*')
+  @All('auth/*path')
   @ApiOperation({ summary: 'Proxy all auth requests to auth service' })
   @ApiResponse({ status: 200, description: 'Request proxied to auth service' })
   async proxyAuth(@Req() req: Request, @Res() res: Response) {
@@ -275,7 +275,7 @@ export class ApiGatewayController {
     return this.proxySocialRequest(req, res);
   }
 
-  @All('posts/categories/*')
+  @All('posts/categories/*path')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   async proxyPostCategoriesWildcard(@Req() req: Request, @Res() res: Response) {
@@ -297,7 +297,7 @@ export class ApiGatewayController {
   }
 
   // Comments routes
-  @All('comments/posts/:postId/*')
+  @All('comments/posts/:postId/*path')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   async proxyCommentsPostsWildcard(@Req() req: Request, @Res() res: Response) {
@@ -311,7 +311,7 @@ export class ApiGatewayController {
     return this.proxySocialRequest(req, res);
   }
 
-  @All('comments/*')
+  @All('comments/*path')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   async proxyCommentsWildcard(@Req() req: Request, @Res() res: Response) {
@@ -333,7 +333,7 @@ export class ApiGatewayController {
     return this.proxySocialRequest(req, res);
   }
 
-  @All('reactions/*')
+  @All('reactions/*path')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   async proxyReactionsWildcard(@Req() req: Request, @Res() res: Response) {
@@ -348,7 +348,7 @@ export class ApiGatewayController {
   }
 
   // Categories routes
-  @All('categories/*')
+  @All('categories/*path')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   async proxyCategoriesWildcard(@Req() req: Request, @Res() res: Response) {

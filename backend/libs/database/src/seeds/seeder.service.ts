@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { State, LocalGovernmentArea, PostCategory } from '../entities';
+import { State, LocalGovernmentArea, PostCategory, Achievement, Badge } from '../entities';
+import { ACHIEVEMENT_SEEDS, BADGE_SEEDS } from './gamification.seed';
 
 @Injectable()
 export class SeederService {
@@ -14,6 +15,10 @@ export class SeederService {
     private lgaRepository: Repository<LocalGovernmentArea>,
     @InjectRepository(PostCategory)
     private postCategoryRepository: Repository<PostCategory>,
+    @InjectRepository(Achievement)
+    private achievementRepository: Repository<Achievement>,
+    @InjectRepository(Badge)
+    private badgeRepository: Repository<Badge>,
   ) {}
 
   async seedAll(): Promise<void> {
@@ -23,6 +28,8 @@ export class SeederService {
       await this.seedStates();
       await this.seedLgas();
       await this.seedPostCategories();
+      await this.seedAchievements();
+      await this.seedBadges();
 
       this.logger.log('Database seeding completed successfully');
     } catch (error) {
@@ -183,5 +190,31 @@ export class SeederService {
 
     await this.postCategoryRepository.save(categories);
     this.logger.log(`Seeded ${categories.length} post categories`);
+  }
+
+  private async seedAchievements(): Promise<void> {
+    this.logger.log('Seeding achievements...');
+
+    const existingAchievements = await this.achievementRepository.count();
+    if (existingAchievements > 0) {
+      this.logger.log('Achievements already exist, skipping...');
+      return;
+    }
+
+    await this.achievementRepository.save(ACHIEVEMENT_SEEDS);
+    this.logger.log(`Seeded ${ACHIEVEMENT_SEEDS.length} achievements`);
+  }
+
+  private async seedBadges(): Promise<void> {
+    this.logger.log('Seeding badges...');
+
+    const existingBadges = await this.badgeRepository.count();
+    if (existingBadges > 0) {
+      this.logger.log('Badges already exist, skipping...');
+      return;
+    }
+
+    await this.badgeRepository.save(BADGE_SEEDS);
+    this.logger.log(`Seeded ${BADGE_SEEDS.length} badges`);
   }
 }
