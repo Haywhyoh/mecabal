@@ -89,6 +89,24 @@ export class CreateBusinessProfileDto {
   @IsOptional()
   businessAddress?: string;
 
+  @ApiPropertyOptional({ example: 6.5244 })
+  @IsOptional()
+  latitude?: number;
+
+  @ApiPropertyOptional({ example: 3.3792 })
+  @IsOptional()
+  longitude?: number;
+
+  @ApiPropertyOptional({ example: 'Lagos' })
+  @IsString()
+  @IsOptional()
+  state?: string;
+
+  @ApiPropertyOptional({ example: 'Lekki' })
+  @IsString()
+  @IsOptional()
+  city?: string;
+
   @ApiProperty({ example: 5 })
   @IsInt()
   @Min(0)

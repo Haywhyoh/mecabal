@@ -1,0 +1,743 @@
+{
+  "info": {
+    "name": "Business Service API",
+    "description": "Complete API collection for MeCabal Business Service",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{authToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3008",
+      "type": "string"
+    },
+    {
+      "key": "gatewayUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhNGJhOTg4Ni1jZTMwLTQzZWEtOWFjMC03Y2E0NWU0NTU3MGYiLCJ1c2VySWQiOiJhNGJhOTg4Ni1jZTMwLTQzZWEtOWFjMC03Y2E0NWU0NTU3MGYiLCJlbWFpbCI6ImF5b0Bjb2RlbXlnaWcuY29tIiwicGhvbmVOdW1iZXIiOiIrMjM0ODE0MjM2NDQ3NCIsInNlc3Npb25JZCI6IjNiZjMxZjA3LWEzZDEtNGY0Yy1iOWViLTNjZTgxZTAwYmJiOCIsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NjAwNDYxMzcsImV4cCI6MTc2MDA1NjkzN30.-zqDuB4LKVf3a-E-iBPYzALWjdOVaR5_1YnheT52vhM",
+      "type": "string"
+    },
+    {
+      "key": "businessId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reviewId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "inquiryId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Business Profile",
+      "item": [
+        {
+          "name": "Register Business",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"businessName\": \"Test Business\",\n  \"category\": \"household-services\",\n  \"subcategory\": \"Plumbing\",\n  \"serviceArea\": \"5km\",\n  \"pricingModel\": \"hourly\",\n  \"availability\": \"business-hours\",\n  \"yearsOfExperience\": 5,\n  \"description\": \"Professional plumbing services\",\n  \"phoneNumber\": \"+2348012345678\",\n  \"businessAddress\": \"123 Test Street, Lagos\",\n  \"state\": \"Lagos\",\n  \"city\": \"Lekki\",\n  \"latitude\": 6.5244,\n  \"longitude\": 3.3792\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/business/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["business", "register"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Business",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/business/my-business",
+              "host": ["{{baseUrl}}"],
+              "path": ["business", "my-business"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Business by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/business/{{businessId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["business", "{{businessId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Business",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"businessName\": \"Updated Business Name\",\n  \"description\": \"Updated description\",\n  \"phoneNumber\": \"+2348012345679\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/business/{{businessId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["business", "{{businessId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Business Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/business/{{businessId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["business", "{{businessId}}", "status"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Business",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/business/{{businessId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["business", "{{businessId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Business Search",
+      "item": [
+        {
+          "name": "Search Businesses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/business/search?query=plumber&page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["business", "search"],
+              "query": [
+                {
+                  "key": "query",
+                  "value": "plumber"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Search with Geographic Filters",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/business/search?query=plumber&latitude=6.5244&longitude=3.3792&radius=5&state=Lagos&city=Lekki",
+              "host": ["{{baseUrl}}"],
+              "path": ["business", "search"],
+              "query": [
+                {
+                  "key": "query",
+                  "value": "plumber"
+                },
+                {
+                  "key": "latitude",
+                  "value": "6.5244"
+                },
+                {
+                  "key": "longitude",
+                  "value": "3.3792"
+                },
+                {
+                  "key": "radius",
+                  "value": "5"
+                },
+                {
+                  "key": "state",
+                  "value": "Lagos"
+                },
+                {
+                  "key": "city",
+                  "value": "Lekki"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Search by Service Area",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/business/search/by-service-area?latitude=6.5244&longitude=3.3792&category=household-services",
+              "host": ["{{baseUrl}}"],
+              "path": ["business", "search", "by-service-area"],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "6.5244"
+                },
+                {
+                  "key": "longitude",
+                  "value": "3.3792"
+                },
+                {
+                  "key": "category",
+                  "value": "household-services"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Featured Businesses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/business/search/featured?limit=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["business", "search", "featured"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Trending Businesses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/business/search/trending?limit=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["business", "search", "trending"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Business Categories",
+      "item": [
+        {
+          "name": "Get All Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/business-categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["business-categories"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Search Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/business-categories/search?name=household",
+              "host": ["{{baseUrl}}"],
+              "path": ["business-categories", "search"],
+              "query": [
+                {
+                  "key": "name",
+                  "value": "household"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Category by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/business-categories/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["business-categories", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Subcategories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/business-categories/1/subcategories",
+              "host": ["{{baseUrl}}"],
+              "path": ["business-categories", "1", "subcategories"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Business Reviews",
+      "item": [
+        {
+          "name": "Create Review",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 5,\n  \"reviewText\": \"Excellent service! Very professional and timely.\",\n  \"serviceQuality\": 5,\n  \"professionalism\": 4,\n  \"valueForMoney\": 5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/business/{{businessId}}/reviews",
+              "host": ["{{baseUrl}}"],
+              "path": ["business", "{{businessId}}", "reviews"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Business Reviews",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/business/{{businessId}}/reviews?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["business", "{{businessId}}", "reviews"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Review Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/business/{{businessId}}/reviews/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["business", "{{businessId}}", "reviews", "stats"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Review",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 4,\n  \"reviewText\": \"Updated review - still good service!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/business/{{businessId}}/reviews/{{reviewId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["business", "{{businessId}}", "reviews", "{{reviewId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Respond to Review",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"response\": \"Thank you for your feedback! We appreciate your business.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/business/{{businessId}}/reviews/{{reviewId}}/respond",
+              "host": ["{{baseUrl}}"],
+              "path": ["business", "{{businessId}}", "reviews", "{{reviewId}}", "respond"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Review",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/business/{{businessId}}/reviews/{{reviewId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["business", "{{businessId}}", "reviews", "{{reviewId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Business Inquiries",
+      "item": [
+        {
+          "name": "Send Inquiry",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inquiryType\": \"booking\",\n  \"message\": \"I need plumbing services for a burst pipe. Available tomorrow?\",\n  \"phoneNumber\": \"+2348012345678\",\n  \"preferredContact\": \"whatsapp\",\n  \"preferredDate\": \"2025-10-15T09:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/business/{{businessId}}/inquiries",
+              "host": ["{{baseUrl}}"],
+              "path": ["business", "{{businessId}}", "inquiries"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Business Inquiries",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/business/{{businessId}}/inquiries",
+              "host": ["{{baseUrl}}"],
+              "path": ["business", "{{businessId}}", "inquiries"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Inquiry Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/business/{{businessId}}/inquiries/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["business", "{{businessId}}", "inquiries", "stats"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Respond to Inquiry",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"response\": \"Thank you for your inquiry! I can help with your plumbing needs. I'm available tomorrow at 9 AM.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/business/{{businessId}}/inquiries/{{inquiryId}}/respond",
+              "host": ["{{baseUrl}}"],
+              "path": ["business", "{{businessId}}", "inquiries", "{{inquiryId}}", "respond"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Inquiry Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"closed\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/business/{{businessId}}/inquiries/{{inquiryId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["business", "{{businessId}}", "inquiries", "{{inquiryId}}", "status"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Inquiries",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/user/inquiries",
+              "host": ["{{baseUrl}}"],
+              "path": ["user", "inquiries"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Business Analytics",
+      "item": [
+        {
+          "name": "Get Analytics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/business/{{businessId}}/analytics?period=30d",
+              "host": ["{{baseUrl}}"],
+              "path": ["business", "{{businessId}}", "analytics"],
+              "query": [
+                {
+                  "key": "period",
+                  "value": "30d"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Daily Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/business/{{businessId}}/analytics/daily?days=30",
+              "host": ["{{baseUrl}}"],
+              "path": ["business", "{{businessId}}", "analytics", "daily"],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "30"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Activity Log",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/business/{{businessId}}/activity?limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["business", "{{businessId}}", "activity"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Log Profile View",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/business/{{businessId}}/activity/view",
+              "host": ["{{baseUrl}}"],
+              "path": ["business", "{{businessId}}", "activity", "view"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Log Contact Click",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/business/{{businessId}}/activity/contact-click",
+              "host": ["{{baseUrl}}"],
+              "path": ["business", "{{businessId}}", "activity", "contact-click"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "API Gateway Tests",
+      "item": [
+        {
+          "name": "Search via Gateway",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{gatewayUrl}}/business/search?query=plumber&page=1&limit=10",
+              "host": ["{{gatewayUrl}}"],
+              "path": ["business", "search"],
+              "query": [
+                {
+                  "key": "query",
+                  "value": "plumber"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Categories via Gateway",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{gatewayUrl}}/business-categories",
+              "host": ["{{gatewayUrl}}"],
+              "path": ["business-categories"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Featured via Gateway",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{gatewayUrl}}/business/search/featured?limit=5",
+              "host": ["{{gatewayUrl}}"],
+              "path": ["business", "search", "featured"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

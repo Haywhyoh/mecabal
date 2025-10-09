@@ -7,6 +7,7 @@ import { JwtStrategy } from '@app/auth/strategies/jwt.strategy';
 import { BusinessServiceController } from './business-service.controller';
 import { BusinessServiceService } from './business-service.service';
 import { DatabaseModule } from '@app/database/database.module';
+import { AuthModule } from '@app/auth';
 import { BusinessProfileModule } from './business-profile/business-profile.module';
 import { BusinessCategoryModule } from './business-category/business-category.module';
 import { BusinessServicesModule } from './business-services/business-services.module';
@@ -37,6 +38,7 @@ import {
       signOptions: { expiresIn: '1h' },
     }),
     DatabaseModule,
+    AuthModule,
     BusinessProfileModule,
     BusinessCategoryModule,
     BusinessServicesModule,
