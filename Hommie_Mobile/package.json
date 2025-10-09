@@ -11,7 +11,7 @@
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
     "@react-native-async-storage/async-storage": "^2.1.2",
-    "@react-native-community/datetimepicker": "^8.4.4",
+    "@react-native-community/datetimepicker": "^8.4.5",
     "@react-native-community/netinfo": "^11.4.1",
     "@react-navigation/bottom-tabs": "^7.4.6",
     "@react-navigation/native": "^7.1.17",
@@ -19,6 +19,7 @@
     "@supabase/supabase-js": "^2.57.2",
     "expo": "~53.0.20",
     "expo-av": "~15.1.7",
+    "expo-calendar": "^15.0.7",
     "expo-camera": "~16.1.11",
     "expo-device": "^7.1.4",
     "expo-file-system": "~18.1.11",

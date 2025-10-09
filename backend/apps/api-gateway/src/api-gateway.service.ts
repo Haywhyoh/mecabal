@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { firstValueFrom } from 'rxjs';
+import { State } from '@libs/database';
 
 @Injectable()
 export class ApiGatewayService {
@@ -13,7 +16,11 @@ export class ApiGatewayService {
   private readonly eventsServiceUrl =
     process.env.EVENTS_SERVICE_URL || 'http://localhost:3006';
 
-  constructor(private readonly httpService: HttpService) {
+  constructor(
+    private readonly httpService: HttpService,
+    @InjectRepository(State)
+    private readonly stateRepository: Repository<State>,
+  ) {
     console.log('🔧 API Gateway Service initialized:');
     console.log('  - Social Service URL:', this.socialServiceUrl);
     console.log('  - Auth Service URL:', this.authServiceUrl);
@@ -23,6 +30,19 @@ export class ApiGatewayService {
 
   getHello(): string {
     return 'MeCabal API Gateway is running!';
+  }
+
+  // Get all Nigerian states
+  async getStates(): Promise<State[]> {
+    try {
+      const states = await this.stateRepository.find({
+        order: { name: 'ASC' },
+      });
+      return states;
+    } catch (error) {
+      console.error('Error fetching states:', error);
+      throw new Error('Failed to fetch states from database');
+    }
   }
 
   // Proxy methods for social service

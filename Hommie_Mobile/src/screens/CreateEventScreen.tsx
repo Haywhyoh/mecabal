@@ -17,11 +17,14 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import * as ImagePicker from 'expo-image-picker';
 import { EventsApi, handleApiError, EVENT_CATEGORIES } from '../services/EventsApi';
+import { StatesApi, handleStatesApiError } from '../services/StatesApi';
 import type { CreateEventDto, EventMediaDto } from '../services/EventsApi';
+import type { State } from '../services/StatesApi';
 import { colors, spacing, typography, shadows } from '../constants';
 
 const { width } = Dimensions.get('window');
@@ -110,9 +113,31 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
   // API integration states
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [states, setStates] = useState<State[]>([]);
+  const [loadingStates, setLoadingStates] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const totalSteps = 5;
+
+  // Fetch states from API
+  const fetchStates = async () => {
+    try {
+      setLoadingStates(true);
+      const statesData = await StatesApi.getStates();
+      setStates(statesData);
+    } catch (error) {
+      const errorMessage = handleStatesApiError(error);
+      Alert.alert('Error', errorMessage);
+      console.error('Error fetching states:', error);
+    } finally {
+      setLoadingStates(false);
+    }
+  };
+
+  // Load states on component mount
+  useEffect(() => {
+    fetchStates();
+  }, []);
 
   const updateFormData = (field: keyof EventFormData | string, value: any) => {
     if (field.includes('.')) {
@@ -306,22 +331,26 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
 
   const nextStep = () => {
     if (!validateStep(currentStep)) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert('Incomplete Information', 'Please fill in all required fields before continuing.');
       return;
     }
     if (currentStep < totalSteps) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       setCurrentStep(currentStep + 1);
     }
   };
 
   const prevStep = () => {
     if (currentStep > 1) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       setCurrentStep(currentStep - 1);
     }
   };
 
   const handleSubmit = async () => {
     if (!validateStep(currentStep)) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert('Incomplete Information', 'Please fill in all required fields.');
       return;
     }
@@ -337,6 +366,7 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
     if (!formData.location.state.trim()) missingFields.push('state');
     
     if (missingFields.length > 0) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert('Missing Information', 'Please complete all required steps.');
       return;
     }
@@ -349,6 +379,7 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
         { 
           text: 'Create Event', 
           onPress: async () => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
             try {
               setIsSubmitting(true);
               
@@ -405,12 +436,14 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
               // Create the event
               const createdEvent = await EventsApi.createEvent(eventData);
               
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
               Alert.alert(
                 'Event Created!',
                 'Your event has been created successfully and is now visible to your community.',
                 [{ text: 'OK', onPress: () => navigation.goBack() }]
               );
             } catch (error) {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
               const errorMessage = handleApiError(error);
               Alert.alert('Error', errorMessage);
             } finally {
@@ -482,6 +515,11 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
           placeholder="e.g., Estate Monthly Meeting"
           placeholderTextColor={colors.neutral.gray}
           maxLength={100}
+          allowFontScaling={true}
+          accessible={true}
+          accessibilityLabel="Event title"
+          accessibilityHint="Enter the name of your event"
+          accessibilityRole="text"
         />
         <Text style={styles.charCount}>{formData.title.length}/100</Text>
       </View>
@@ -497,6 +535,11 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
           multiline
           numberOfLines={4}
           maxLength={500}
+          allowFontScaling={true}
+          accessible={true}
+          accessibilityLabel="Event description"
+          accessibilityHint="Describe your event and what attendees can expect"
+          accessibilityRole="text"
         />
         <Text style={styles.charCount}>{formData.description.length}/500</Text>
       </View>
@@ -825,21 +868,28 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
             <View style={{ width: 60 }} />
           </View>
           <ScrollView style={styles.modalContent}>
-            {nigerianStates.map((state) => (
-              <TouchableOpacity
-                key={state}
-                style={styles.stateOption}
-                onPress={() => {
-                  updateFormData('location.state', state);
-                  setShowStateModal(false);
-                }}
-              >
-                <Text style={styles.stateText}>{state}</Text>
-                {formData.location.state === state && (
-                  <MaterialCommunityIcons name="check" size={24} color={colors.primary} />
-                )}
-              </TouchableOpacity>
-            ))}
+            {loadingStates ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={styles.loadingText}>Loading states...</Text>
+              </View>
+            ) : (
+              states.map((state) => (
+                <TouchableOpacity
+                  key={state.id}
+                  style={styles.stateOption}
+                  onPress={() => {
+                    updateFormData('location.state', state.name);
+                    setShowStateModal(false);
+                  }}
+                >
+                  <Text style={styles.stateText}>{state.name}</Text>
+                  {formData.location.state === state.name && (
+                    <MaterialCommunityIcons name="check" size={24} color={colors.primary} />
+                  )}
+                </TouchableOpacity>
+              ))
+            )}
           </ScrollView>
         </SafeAreaView>
       </Modal>
@@ -1138,7 +1188,14 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
         {/* Navigation Buttons */}
         <View style={styles.navigationButtons}>
           {currentStep > 1 && (
-            <TouchableOpacity style={styles.backButton} onPress={prevStep}>
+            <TouchableOpacity 
+              style={styles.backButton} 
+              onPress={prevStep}
+              accessible={true}
+              accessibilityLabel="Go back"
+              accessibilityHint="Return to previous step"
+              accessibilityRole="button"
+            >
               <MaterialCommunityIcons name="arrow-left" size={20} color={colors.neutral.gray} />
               <Text style={styles.backButtonText}>Back</Text>
             </TouchableOpacity>
@@ -1152,6 +1209,11 @@ const CreateEventScreen: React.FC<CreateEventScreenProps> = ({ navigation }) => 
             ]} 
             onPress={currentStep === totalSteps ? handleSubmit : nextStep}
             disabled={!validateStep(currentStep) || isSubmitting}
+            accessible={true}
+            accessibilityLabel={currentStep === totalSteps ? 'Create event' : 'Continue to next step'}
+            accessibilityHint={currentStep === totalSteps ? 'Submit the event for creation' : 'Proceed to next form step'}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !validateStep(currentStep) || isSubmitting }}
           >
             {isSubmitting ? (
               <View style={styles.loadingContainer}>
@@ -1201,16 +1263,21 @@ const styles = StyleSheet.create({
   headerButton: {
     padding: spacing.sm,
     minWidth: 60,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: typography.sizes.lg,
-    fontWeight: '600',
+    fontSize: typography.sizes.title3,
+    fontWeight: typography.weights.semibold,
+    lineHeight: typography.lineHeights.title3,
     color: colors.text.dark,
   },
   saveDraftText: {
-    fontSize: typography.sizes.base,
+    fontSize: typography.sizes.body,
+    fontWeight: typography.weights.medium,
+    lineHeight: typography.lineHeights.body,
     color: colors.primary,
-    fontWeight: '500',
   },
   progressContainer: {
     paddingHorizontal: spacing.md,
@@ -1228,7 +1295,9 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   progressText: {
-    fontSize: typography.sizes.sm,
+    fontSize: typography.sizes.subhead,
+    fontWeight: typography.weights.regular,
+    lineHeight: typography.lineHeights.subhead,
     color: colors.neutral.gray,
     textAlign: 'center',
   },
@@ -1254,9 +1323,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.success,
   },
   stepNumber: {
-    fontSize: typography.sizes.sm,
+    fontSize: typography.sizes.subhead,
+    fontWeight: typography.weights.semibold,
+    lineHeight: typography.lineHeights.subhead,
     color: colors.neutral.gray,
-    fontWeight: '600',
   },
   activeStepNumber: {
     color: colors.white,
@@ -1272,22 +1342,28 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
   },
   stepTitle: {
-    fontSize: typography.sizes['2xl'],
-    fontWeight: '700',
+    fontSize: typography.sizes.title2,
+    fontWeight: typography.weights.bold,
+    lineHeight: typography.lineHeights.title2,
     color: colors.text.dark,
     marginBottom: spacing.sm,
+    allowFontScaling: true,
   },
   stepSubtitle: {
-    fontSize: typography.sizes.base,
+    fontSize: typography.sizes.body,
+    fontWeight: typography.weights.regular,
+    lineHeight: typography.lineHeights.body,
     color: colors.neutral.gray,
     marginBottom: spacing.lg,
+    allowFontScaling: true,
   },
   inputGroup: {
     marginBottom: spacing.lg,
   },
   inputLabel: {
-    fontSize: typography.sizes.base,
-    fontWeight: '500',
+    fontSize: typography.sizes.body,
+    fontWeight: typography.weights.medium,
+    lineHeight: typography.lineHeights.body,
     color: colors.text.dark,
     marginBottom: spacing.sm,
   },
@@ -1297,7 +1373,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
-    fontSize: typography.sizes.base,
+    fontSize: typography.sizes.body,
+    fontWeight: typography.weights.regular,
+    lineHeight: typography.lineHeights.body,
     color: colors.text.dark,
     backgroundColor: colors.white,
   },
@@ -1317,7 +1395,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   selectInputText: {
-    fontSize: typography.sizes.base,
+    fontSize: typography.sizes.body,
+    fontWeight: typography.weights.regular,
+    lineHeight: typography.lineHeights.body,
     color: colors.text.dark,
     flex: 1,
   },
@@ -1325,7 +1405,9 @@ const styles = StyleSheet.create({
     color: colors.neutral.gray,
   },
   charCount: {
-    fontSize: typography.sizes.sm,
+    fontSize: typography.sizes.subhead,
+    fontWeight: typography.weights.regular,
+    lineHeight: typography.lineHeights.subhead,
     color: colors.neutral.gray,
     textAlign: 'right',
     marginTop: 4,
@@ -1345,13 +1427,16 @@ const styles = StyleSheet.create({
     marginRight: spacing.md,
   },
   switchLabel: {
-    fontSize: typography.sizes.base,
-    fontWeight: '500',
+    fontSize: typography.sizes.body,
+    fontWeight: typography.weights.medium,
+    lineHeight: typography.lineHeights.body,
     color: colors.text.dark,
     marginBottom: 2,
   },
   switchSubLabel: {
-    fontSize: typography.sizes.sm,
+    fontSize: typography.sizes.subhead,
+    fontWeight: typography.weights.regular,
+    lineHeight: typography.lineHeights.subhead,
     color: colors.neutral.gray,
   },
   helperText: {
@@ -1363,11 +1448,12 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   helperTextContent: {
-    fontSize: typography.sizes.sm,
+    fontSize: typography.sizes.subhead,
+    fontWeight: typography.weights.regular,
+    lineHeight: typography.lineHeights.subhead,
     color: colors.neutral.gray,
     marginLeft: spacing.sm,
     flex: 1,
-    lineHeight: 20,
   },
   navigationButtons: {
     flexDirection: 'row',
@@ -1385,11 +1471,14 @@ const styles = StyleSheet.create({
     marginRight: spacing.sm,
     borderRadius: 12,
     backgroundColor: colors.neutral.offWhite,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   backButtonText: {
-    fontSize: typography.sizes.base,
+    fontSize: typography.sizes.body,
+    fontWeight: typography.weights.medium,
+    lineHeight: typography.lineHeights.body,
     color: colors.neutral.gray,
-    fontWeight: '500',
     marginLeft: spacing.sm,
   },
   nextButton: {
@@ -1400,14 +1489,16 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     borderRadius: 12,
     backgroundColor: colors.primary,
+    minHeight: 44,
   },
   nextButtonDisabled: {
     backgroundColor: colors.neutral.lightGray,
   },
   nextButtonText: {
-    fontSize: typography.sizes.base,
+    fontSize: typography.sizes.body,
+    fontWeight: typography.weights.semibold,
+    lineHeight: typography.lineHeights.body,
     color: colors.white,
-    fontWeight: '600',
     marginRight: spacing.sm,
   },
   nextButtonTextDisabled: {
@@ -1428,12 +1519,15 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.neutral.lightGray,
   },
   modalCancel: {
-    fontSize: typography.sizes.base,
+    fontSize: typography.sizes.body,
+    fontWeight: typography.weights.regular,
+    lineHeight: typography.lineHeights.body,
     color: colors.neutral.gray,
   },
   modalTitle: {
-    fontSize: typography.sizes.lg,
-    fontWeight: '600',
+    fontSize: typography.sizes.title3,
+    fontWeight: typography.weights.semibold,
+    lineHeight: typography.lineHeights.title3,
     color: colors.text.dark,
   },
   modalContent: {
@@ -1453,6 +1547,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.neutral.lightGray,
+    minHeight: 44,
   },
   categoryIcon: {
     width: 40,
@@ -1466,13 +1561,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   categoryName: {
-    fontSize: typography.sizes.base,
-    fontWeight: '500',
+    fontSize: typography.sizes.body,
+    fontWeight: typography.weights.medium,
+    lineHeight: typography.lineHeights.body,
     color: colors.text.dark,
     marginBottom: 2,
   },
   categoryDescription: {
-    fontSize: typography.sizes.sm,
+    fontSize: typography.sizes.subhead,
+    fontWeight: typography.weights.regular,
+    lineHeight: typography.lineHeights.subhead,
     color: colors.neutral.gray,
   },
   stateOption: {
@@ -1482,9 +1580,12 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.neutral.lightGray,
+    minHeight: 44,
   },
   stateText: {
-    fontSize: typography.sizes.base,
+    fontSize: typography.sizes.body,
+    fontWeight: typography.weights.regular,
+    lineHeight: typography.lineHeights.body,
     color: colors.text.dark,
   },
   languageOption: {
@@ -1496,7 +1597,9 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.neutral.lightGray,
   },
   languageText: {
-    fontSize: typography.sizes.base,
+    fontSize: typography.sizes.body,
+    fontWeight: typography.weights.regular,
+    lineHeight: typography.lineHeights.body,
     color: colors.text.dark,
   },
   ageOption: {
@@ -1508,7 +1611,9 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.neutral.lightGray,
   },
   ageText: {
-    fontSize: typography.sizes.base,
+    fontSize: typography.sizes.body,
+    fontWeight: typography.weights.regular,
+    lineHeight: typography.lineHeights.body,
     color: colors.text.dark,
   },
   // Image picker styles
@@ -1537,6 +1642,8 @@ const styles = StyleSheet.create({
     height: 24,
     justifyContent: 'center',
     alignItems: 'center',
+    minWidth: 44,
+    minHeight: 44,
   },
   addImageButton: {
     width: (width - spacing.lg * 2 - spacing.sm * 2) / 3,
@@ -1548,14 +1655,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: colors.neutral.lightGray,
+    minWidth: 44,
+    minHeight: 44,
   },
   addImageText: {
-    fontSize: typography.sizes.sm,
+    fontSize: typography.sizes.subhead,
+    fontWeight: typography.weights.regular,
+    lineHeight: typography.lineHeights.subhead,
     color: colors.primary,
     marginTop: spacing.xs,
   },
   inputSubLabel: {
-    fontSize: typography.sizes.sm,
+    fontSize: typography.sizes.subhead,
+    fontWeight: typography.weights.regular,
+    lineHeight: typography.lineHeights.subhead,
     color: colors.neutral.gray,
     marginBottom: spacing.sm,
   },

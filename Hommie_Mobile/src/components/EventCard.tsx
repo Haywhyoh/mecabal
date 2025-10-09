@@ -6,7 +6,9 @@ import {
   TouchableOpacity,
   Image,
   Dimensions,
+  ImageStyle,
 } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Event, EVENT_CATEGORIES } from '../services/EventsApi';
 import { colors, spacing, typography, shadows } from '../constants';
@@ -26,6 +28,33 @@ const EventCard: React.FC<EventCardProps> = ({
   variant = 'default' 
 }) => {
   const category = EVENT_CATEGORIES.find(cat => cat.id === event.category.id);
+  
+  // Spring animation values
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(1);
+
+  // Animated styles
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: opacity.value,
+  }));
+
+  // Press handlers
+  const onPressIn = () => {
+    scale.value = withSpring(0.95, {
+      damping: 15,
+      stiffness: 300,
+    });
+    opacity.value = withSpring(0.8);
+  };
+
+  const onPressOut = () => {
+    scale.value = withSpring(1, {
+      damping: 15,
+      stiffness: 300,
+    });
+    opacity.value = withSpring(1);
+  };
   
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -97,8 +126,17 @@ const EventCard: React.FC<EventCardProps> = ({
 
   if (variant === 'compact') {
     return (
-      <TouchableOpacity style={styles.compactCard} onPress={onPress}>
-        <View style={styles.compactContent}>
+      <TouchableOpacity 
+        style={styles.compactCard} 
+        onPress={onPress}
+        onPressIn={onPressIn}
+        onPressOut={onPressOut}
+        accessible={true}
+        accessibilityLabel={`${event.title}, ${formatDate(event.eventDate)} at ${formatTime(event.startTime)}, ${event.location.name}`}
+        accessibilityHint="Tap to view event details"
+        accessibilityRole="button"
+      >
+        <Animated.View style={[styles.compactContent, animatedStyle]}>
           <View style={styles.compactHeader}>
             <View style={[styles.categoryIndicator, { backgroundColor: category?.colorCode }]} />
             <Text style={styles.compactTitle} numberOfLines={1}>
@@ -111,7 +149,7 @@ const EventCard: React.FC<EventCardProps> = ({
           <Text style={styles.compactLocation} numberOfLines={1}>
             {event.location.name}
           </Text>
-        </View>
+        </Animated.View>
         {event.userRsvpStatus && (
           <View style={[styles.rsvpIndicator, { backgroundColor: getRSVPStatusColor() }]} />
         )}
@@ -129,125 +167,131 @@ const EventCard: React.FC<EventCardProps> = ({
         { width: isFeatured ? CARD_WIDTH * 0.85 : CARD_WIDTH }
       ]}
       onPress={onPress}
-      activeOpacity={0.8}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
+      accessible={true}
+      accessibilityLabel={`${event.title}, ${formatDate(event.eventDate)} at ${formatTime(event.startTime)}, ${event.location.name}, ${event.attendeesCount} attendees`}
+      accessibilityHint="Tap to view event details"
+      accessibilityRole="button"
     >
-      {/* Event Image */}
-      <View style={styles.imageContainer}>
-        {event.coverImageUrl ? (
-          <Image 
-            source={{ uri: event.coverImageUrl }} 
-            style={styles.eventImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={[styles.placeholderImage, { backgroundColor: category?.colorCode || colors.neutral.lightGray }]}>
+      <Animated.View style={animatedStyle}>
+        {/* Event Image */}
+        <View style={styles.imageContainer}>
+          {event.coverImageUrl ? (
+            <Image 
+              source={{ uri: event.coverImageUrl }} 
+              style={styles.eventImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={[styles.placeholderImage, { backgroundColor: category?.colorCode || colors.neutral.lightGray }]}>
+              <MaterialCommunityIcons 
+                name={category?.icon as any || 'calendar'} 
+                size={40} 
+                color={colors.white} 
+              />
+            </View>
+          )}
+          
+          {/* Price Tag */}
+          <View style={styles.priceContainer}>
+            {getPriceDisplay()}
+          </View>
+
+          {/* Category Badge */}
+          <View style={[styles.categoryBadge, { backgroundColor: category?.colorCode }]}>
             <MaterialCommunityIcons 
-              name={category?.icon as any || 'calendar'} 
-              size={40} 
+              name={category?.icon as any} 
+              size={12} 
               color={colors.white} 
             />
+            <Text style={styles.categoryText}>{category?.name}</Text>
           </View>
-        )}
-        
-        {/* Price Tag */}
-        <View style={styles.priceContainer}>
-          {getPriceDisplay()}
+
+          {/* RSVP Status */}
+          {event.userRsvpStatus && (
+            <View style={[styles.rsvpBadge, { backgroundColor: getRSVPStatusColor() }]}>
+              <Text style={styles.rsvpText}>
+                {event.userRsvpStatus === 'going' ? 'Going' : 
+                 event.userRsvpStatus === 'maybe' ? 'Maybe' : 'Not Going'}
+              </Text>
+            </View>
+          )}
         </View>
 
-        {/* Category Badge */}
-        <View style={[styles.categoryBadge, { backgroundColor: category?.colorCode }]}>
-          <MaterialCommunityIcons 
-            name={category?.icon as any} 
-            size={12} 
-            color={colors.white} 
-          />
-          <Text style={styles.categoryText}>{category?.name}</Text>
-        </View>
+        {/* Event Content */}
+        <View style={styles.content}>
+          {/* Header with date and time */}
+          <View style={styles.dateTimeContainer}>
+            <Text style={styles.dateText}>{formatDate(event.eventDate)}</Text>
+            <View style={styles.timeContainer}>
+              <MaterialCommunityIcons name="clock-outline" size={14} color={colors.neutral.gray} />
+              <Text style={styles.timeText}>{formatTime(event.startTime)}</Text>
+            </View>
+          </View>
 
-        {/* RSVP Status */}
-        {event.userRsvpStatus && (
-          <View style={[styles.rsvpBadge, { backgroundColor: getRSVPStatusColor() }]}>
-            <Text style={styles.rsvpText}>
-              {event.userRsvpStatus === 'going' ? 'Going' : 
-               event.userRsvpStatus === 'maybe' ? 'Maybe' : 'Not Going'}
+          {/* Title */}
+          <Text style={styles.title} numberOfLines={2}>
+            {event.title}
+          </Text>
+
+          {/* Location */}
+          <View style={styles.locationContainer}>
+            <MaterialCommunityIcons name="map-marker-outline" size={16} color={colors.neutral.gray} />
+            <Text style={styles.locationText} numberOfLines={1}>
+              {event.location.name}, {event.location.address}
             </Text>
           </View>
-        )}
-      </View>
 
-      {/* Event Content */}
-      <View style={styles.content}>
-        {/* Header with date and time */}
-        <View style={styles.dateTimeContainer}>
-          <Text style={styles.dateText}>{formatDate(event.eventDate)}</Text>
-          <View style={styles.timeContainer}>
-            <MaterialCommunityIcons name="clock-outline" size={14} color={colors.neutral.gray} />
-            <Text style={styles.timeText}>{formatTime(event.startTime)}</Text>
-          </View>
-        </View>
-
-        {/* Title */}
-        <Text style={styles.title} numberOfLines={2}>
-          {event.title}
-        </Text>
-
-        {/* Location */}
-        <View style={styles.locationContainer}>
-          <MaterialCommunityIcons name="map-marker-outline" size={16} color={colors.neutral.gray} />
-          <Text style={styles.locationText} numberOfLines={1}>
-            {event.location.name}, {event.location.address}
-          </Text>
-        </View>
-
-        {/* Organizer */}
-        <View style={styles.organizerContainer}>
-          <View style={styles.organizerInfo}>
-            {event.organizer.profilePictureUrl ? (
-              <Image source={{ uri: event.organizer.profilePictureUrl }} style={styles.organizerAvatar} />
-            ) : (
-              <View style={styles.organizerAvatarPlaceholder}>
-                <Text style={styles.organizerInitials}>
-                  {event.organizer.fullName ? event.organizer.fullName.split(' ').map(n => n[0]).join('') : '??'}
-                </Text>
-              </View>
-            )}
-            <View style={styles.organizerDetails}>
-              <View style={styles.organizerNameContainer}>
-                <Text style={styles.organizerName} numberOfLines={1}>
-                  {event.organizer.fullName}
-                </Text>
-                {getVerificationIcon()}
+          {/* Organizer */}
+          <View style={styles.organizerContainer}>
+            <View style={styles.organizerInfo}>
+              {event.organizer.profilePictureUrl ? (
+                <Image source={{ uri: event.organizer.profilePictureUrl }} style={styles.organizerAvatar} />
+              ) : (
+                <View style={styles.organizerAvatarPlaceholder}>
+                  <Text style={styles.organizerInitials}>
+                    {event.organizer.fullName ? event.organizer.fullName.split(' ').map(n => n[0]).join('') : '??'}
+                  </Text>
+                </View>
+              )}
+              <View style={styles.organizerDetails}>
+                <View style={styles.organizerNameContainer}>
+                  <Text style={styles.organizerName} numberOfLines={1}>
+                    {event.organizer.fullName}
+                  </Text>
+                  {getVerificationIcon()}
+                </View>
               </View>
             </View>
           </View>
 
-        </View>
-
-        {/* Attendees */}
-        <View style={styles.attendeesContainer}>
-          <View style={styles.attendeeAvatars}>
-            {/* Since we don't have attendee avatars in the basic event data, 
-                we'll show a placeholder or just the count */}
-            <View style={[styles.attendeeAvatar, styles.attendeePlaceholder]}>
-              <MaterialCommunityIcons name="account-group" size={16} color={colors.neutral.gray} />
+          {/* Attendees */}
+          <View style={styles.attendeesContainer}>
+            <View style={styles.attendeeAvatars}>
+              {/* Since we don't have attendee avatars in the basic event data, 
+                  we'll show a placeholder or just the count */}
+              <View style={[styles.attendeeAvatar, styles.attendeePlaceholder]}>
+                <MaterialCommunityIcons name="account-group" size={16} color={colors.neutral.gray} />
+              </View>
             </View>
-          </View>
-          <Text style={styles.attendeeCount}>
-            {event.attendeesCount} going
-            {event.maxAttendees && ` • ${event.maxAttendees} max`}
-          </Text>
-        </View>
-
-        {/* Languages */}
-        {event.languages && event.languages.length > 0 && (
-          <View style={styles.languagesContainer}>
-            <MaterialCommunityIcons name="translate" size={14} color={colors.neutral.gray} />
-            <Text style={styles.languagesText}>
-              {event.languages.join(', ')}
+            <Text style={styles.attendeeCount}>
+              {event.attendeesCount} going
+              {event.maxAttendees && ` • ${event.maxAttendees} max`}
             </Text>
           </View>
-        )}
-      </View>
+
+          {/* Languages */}
+          {event.languages && event.languages.length > 0 && (
+            <View style={styles.languagesContainer}>
+              <MaterialCommunityIcons name="translate" size={14} color={colors.neutral.gray} />
+              <Text style={styles.languagesText}>
+                {event.languages.join(', ')}
+              </Text>
+            </View>
+          )}
+        </View>
+      </Animated.View>
     </TouchableOpacity>
   );
 };
@@ -272,7 +316,7 @@ const styles = StyleSheet.create({
   eventImage: {
     width: '100%',
     height: '100%',
-  },
+  } as ImageStyle,
   placeholderImage: {
     width: '100%',
     height: '100%',
@@ -340,8 +384,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   dateText: {
-    fontSize: typography.sizes.sm,
+    fontSize: typography.sizes.subhead,
     fontWeight: '600',
+    lineHeight: typography.lineHeights.subhead,
     color: colors.primary,
   },
   timeContainer: {
@@ -349,16 +394,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   timeText: {
-    fontSize: typography.sizes.sm,
+    fontSize: typography.sizes.subhead,
+    fontWeight: '500',
+    lineHeight: typography.lineHeights.subhead,
     color: colors.neutral.gray,
     marginLeft: 4,
   },
   title: {
-    fontSize: typography.sizes.lg,
+    fontSize: typography.sizes.headline,
     fontWeight: '600',
+    lineHeight: typography.lineHeights.headline,
     color: colors.text,
     marginBottom: spacing.sm,
-    lineHeight: 24,
   },
   locationContainer: {
     flexDirection: 'row',
@@ -366,7 +413,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   locationText: {
-    fontSize: typography.sizes.sm,
+    fontSize: typography.sizes.subhead,
+    fontWeight: '500',
+    lineHeight: typography.lineHeights.subhead,
     color: colors.neutral.gray,
     marginLeft: 4,
     flex: 1,
@@ -387,7 +436,7 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     marginRight: spacing.sm,
-  },
+  } as ImageStyle,
   organizerAvatarPlaceholder: {
     width: 32,
     height: 32,
@@ -410,8 +459,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   organizerName: {
-    fontSize: typography.sizes.sm,
-    fontWeight: '500',
+    fontSize: typography.sizes.subhead,
+    fontWeight: '600',
+    lineHeight: typography.lineHeights.subhead,
     color: colors.text,
     marginRight: 4,
     flex: 1,
@@ -426,10 +476,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   ratingText: {
-    fontSize: typography.sizes.sm,
+    fontSize: typography.sizes.subhead,
+    fontWeight: '600',
+    lineHeight: typography.lineHeights.subhead,
     color: colors.text,
     marginLeft: 2,
-    fontWeight: '500',
   },
   attendeesContainer: {
     flexDirection: 'row',
@@ -465,16 +516,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   attendeeCount: {
-    fontSize: typography.sizes.sm,
-    color: colors.neutral.gray,
+    fontSize: typography.sizes.subhead,
     fontWeight: '500',
+    lineHeight: typography.lineHeights.subhead,
+    color: colors.neutral.gray,
   },
   languagesContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   languagesText: {
-    fontSize: typography.sizes.xs,
+    fontSize: typography.sizes.caption1,
+    fontWeight: '500',
+    lineHeight: typography.lineHeights.caption1,
     color: colors.neutral.gray,
     marginLeft: 4,
   },
@@ -505,19 +559,23 @@ const styles = StyleSheet.create({
     marginRight: spacing.sm,
   },
   compactTitle: {
-    fontSize: typography.sizes.base,
-    fontWeight: '600',
+    fontSize: typography.sizes.body,
+    fontWeight: '700',
+    lineHeight: typography.lineHeights.body,
     color: colors.text,
     flex: 1,
   },
   compactDate: {
-    fontSize: typography.sizes.sm,
+    fontSize: typography.sizes.subhead,
+    fontWeight: '600',
+    lineHeight: typography.lineHeights.subhead,
     color: colors.primary,
-    fontWeight: '500',
     marginBottom: 2,
   },
   compactLocation: {
-    fontSize: typography.sizes.sm,
+    fontSize: typography.sizes.subhead,
+    fontWeight: '500',
+    lineHeight: typography.lineHeights.subhead,
     color: colors.neutral.gray,
   },
   rsvpIndicator: {

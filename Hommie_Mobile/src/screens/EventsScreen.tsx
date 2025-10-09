@@ -14,6 +14,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import EventCard from '../components/EventCard';
 import EventCardSkeleton from '../components/EventCardSkeleton';
@@ -120,6 +121,7 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
   }, [fetchEvents, fetchFeaturedEvents]);
 
   const onRefresh = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setRefreshing(true);
     try {
       await Promise.all([
@@ -134,6 +136,7 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
   };
 
   const toggleCategoryFilter = (categoryId: number) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedCategories(prev => 
       prev.includes(categoryId)
         ? prev.filter(c => c !== categoryId)
@@ -142,9 +145,15 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
   };
 
   const clearFilters = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setSelectedCategories([]);
     setSearchQuery('');
     setActiveTab('all');
+  };
+
+  const handleTabSwitch = (tab: FilterTab) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setActiveTab(tab);
   };
 
   const getTabCount = (tab: FilterTab): number => {
@@ -160,7 +169,12 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
     return (
       <TouchableOpacity
         style={[styles.tabButton, isActive && styles.activeTabButton]}
-        onPress={() => setActiveTab(tab)}
+        onPress={() => handleTabSwitch(tab)}
+        accessible={true}
+        accessibilityLabel={`${label} tab${count > 0 ? `, ${count} events` : ''}`}
+        accessibilityHint={`Switch to ${label} events view`}
+        accessibilityRole="tab"
+        accessibilityState={{ selected: isActive }}
       >
         <Text style={[styles.tabButtonText, isActive && styles.activeTabButtonText]}>
           {label}
@@ -250,6 +264,10 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
           <TouchableOpacity 
             style={styles.viewModeButton}
             onPress={() => console.log('Toggle view mode')}
+            accessible={true}
+            accessibilityLabel={`Switch to ${viewMode === 'list' ? 'calendar' : viewMode === 'calendar' ? 'map' : 'list'} view`}
+            accessibilityHint="Toggle between list, calendar, and map view modes"
+            accessibilityRole="button"
           >
             <MaterialCommunityIcons 
               name={viewMode === 'list' ? 'view-list' : viewMode === 'calendar' ? 'calendar' : 'map'} 
@@ -271,10 +289,19 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
             placeholderTextColor={colors.neutral.gray}
             value={searchQuery}
             onChangeText={setSearchQuery}
+            allowFontScaling={true}
+            accessible={true}
+            accessibilityLabel="Search events"
+            accessibilityHint="Search for events by title, organizer, or location"
+            accessibilityRole="search"
           />
           <TouchableOpacity 
             style={styles.filterButton}
             onPress={() => setShowFilters(true)}
+            accessible={true}
+            accessibilityLabel={`Filter events${selectedCategories.length > 0 ? `, ${selectedCategories.length} filter applied` : ''}`}
+            accessibilityHint="Open filter options to refine event search"
+            accessibilityRole="button"
           >
             <MaterialCommunityIcons 
               name="filter-variant" 
@@ -377,8 +404,15 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
       {/* Floating Action Button */}
       <TouchableOpacity 
         style={styles.fab}
-        onPress={() => navigation.navigate('CreateEvent')}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          navigation.navigate('CreateEvent');
+        }}
         activeOpacity={0.8}
+        accessible={true}
+        accessibilityLabel="Create new event"
+        accessibilityHint="Tap to create a new community event"
+        accessibilityRole="button"
       >
         <MaterialCommunityIcons name="plus" size={24} color={colors.white} />
       </TouchableOpacity>
@@ -473,29 +507,41 @@ const styles = StyleSheet.create({
     marginLeft: spacing.sm,
   },
   estateText: {
-    fontSize: typography.sizes.base,
-    fontWeight: '600',
+    fontSize: typography.sizes.headline,
+    fontWeight: typography.weights.semibold,
+    lineHeight: typography.lineHeights.headline,
     color: colors.text.dark,
   },
   cityText: {
-    fontSize: typography.sizes.sm,
+    fontSize: typography.sizes.subhead,
+    fontWeight: typography.weights.regular,
+    lineHeight: typography.lineHeights.subhead,
     color: colors.neutral.gray,
   },
   viewModeButton: {
     padding: spacing.sm,
     borderRadius: 8,
     backgroundColor: colors.neutral.lightGray,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   title: {
-    fontSize: typography.sizes['3xl'],
-    fontWeight: '700',
+    fontSize: typography.sizes.largeTitle,
+    fontWeight: typography.weights.bold,
+    lineHeight: typography.lineHeights.largeTitle,
     color: colors.text.dark,
     marginBottom: 4,
+    allowFontScaling: true,
   },
   subtitle: {
-    fontSize: typography.sizes.base,
+    fontSize: typography.sizes.body,
+    fontWeight: typography.weights.regular,
+    lineHeight: typography.lineHeights.body,
     color: colors.neutral.gray,
     marginBottom: spacing.lg,
+    allowFontScaling: true,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -508,13 +554,19 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: typography.sizes.base,
+    fontSize: typography.sizes.body,
+    fontWeight: typography.weights.regular,
+    lineHeight: typography.lineHeights.body,
     color: colors.text.dark,
     marginLeft: spacing.sm,
   },
   filterButton: {
     position: 'relative',
     padding: spacing.sm,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   filterBadge: {
     position: 'absolute',
@@ -544,14 +596,19 @@ const styles = StyleSheet.create({
     marginRight: spacing.sm,
     borderRadius: 20,
     backgroundColor: colors.neutral.lightGray,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   activeTabButton: {
     backgroundColor: colors.primary,
   },
   tabButtonText: {
-    fontSize: typography.sizes.sm,
-    fontWeight: '500',
+    fontSize: typography.sizes.subhead,
+    fontWeight: typography.weights.medium,
+    lineHeight: typography.lineHeights.subhead,
     color: colors.neutral.gray,
+    allowFontScaling: true,
   },
   activeTabButtonText: {
     color: colors.white,
@@ -569,8 +626,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.neutral.offWhite,
   },
   tabBadgeText: {
-    fontSize: typography.sizes.xs,
-    fontWeight: '600',
+    fontSize: typography.sizes.caption1,
+    fontWeight: typography.weights.semibold,
+    lineHeight: typography.lineHeights.caption1,
     color: colors.primary,
   },
   activeTabBadgeText: {
@@ -583,8 +641,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   sectionTitle: {
-    fontSize: typography.sizes.xl,
-    fontWeight: '600',
+    fontSize: typography.sizes.title3,
+    fontWeight: typography.weights.semibold,
+    lineHeight: typography.lineHeights.title3,
     color: colors.text.dark,
     marginHorizontal: spacing.md,
     marginBottom: spacing.md,
@@ -608,10 +667,14 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     backgroundColor: colors.white,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   categoryFilterText: {
-    fontSize: typography.sizes.sm,
-    fontWeight: '500',
+    fontSize: typography.sizes.subhead,
+    fontWeight: typography.weights.medium,
+    lineHeight: typography.lineHeights.subhead,
     marginLeft: spacing.xs,
   },
   eventsSection: {
@@ -625,9 +688,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   eventsCount: {
-    fontSize: typography.sizes.sm,
+    fontSize: typography.sizes.subhead,
+    fontWeight: typography.weights.medium,
+    lineHeight: typography.lineHeights.subhead,
     color: colors.neutral.gray,
-    fontWeight: '500',
   },
   eventsList: {
     paddingBottom: spacing['3xl'],
@@ -638,7 +702,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   loadingText: {
-    fontSize: typography.sizes.base,
+    fontSize: typography.sizes.body,
+    fontWeight: typography.weights.regular,
+    lineHeight: typography.lineHeights.body,
     color: colors.neutral.gray,
     marginTop: spacing.md,
   },
@@ -648,17 +714,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   errorTitle: {
-    fontSize: typography.sizes.xl,
-    fontWeight: '600',
+    fontSize: typography.sizes.title3,
+    fontWeight: typography.weights.semibold,
+    lineHeight: typography.lineHeights.title3,
     color: colors.text.dark,
     marginTop: spacing.md,
     marginBottom: spacing.sm,
   },
   errorText: {
-    fontSize: typography.sizes.base,
+    fontSize: typography.sizes.body,
+    fontWeight: typography.weights.regular,
+    lineHeight: typography.lineHeights.body,
     color: colors.neutral.gray,
     textAlign: 'center',
-    lineHeight: 22,
     marginBottom: spacing.lg,
   },
   retryButton: {
@@ -669,8 +737,9 @@ const styles = StyleSheet.create({
   },
   retryText: {
     color: colors.white,
-    fontSize: typography.sizes.base,
-    fontWeight: '500',
+    fontSize: typography.sizes.body,
+    fontWeight: typography.weights.medium,
+    lineHeight: typography.lineHeights.body,
   },
   emptyState: {
     alignItems: 'center',
@@ -678,17 +747,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   emptyStateTitle: {
-    fontSize: typography.sizes.xl,
-    fontWeight: '600',
+    fontSize: typography.sizes.title3,
+    fontWeight: typography.weights.semibold,
+    lineHeight: typography.lineHeights.title3,
     color: colors.text.dark,
     marginTop: spacing.md,
     marginBottom: spacing.sm,
   },
   emptyStateText: {
-    fontSize: typography.sizes.base,
+    fontSize: typography.sizes.body,
+    fontWeight: typography.weights.regular,
+    lineHeight: typography.lineHeights.body,
     color: colors.neutral.gray,
     textAlign: 'center',
-    lineHeight: 22,
     marginBottom: spacing.lg,
   },
   clearFiltersButton: {
@@ -696,11 +767,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     borderRadius: 8,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   clearFiltersText: {
     color: colors.white,
-    fontSize: typography.sizes.base,
-    fontWeight: '500',
+    fontSize: typography.sizes.body,
+    fontWeight: typography.weights.medium,
+    lineHeight: typography.lineHeights.body,
   },
   fab: {
     position: 'absolute',
@@ -730,26 +806,31 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.neutral.lightGray,
   },
   modalCancelText: {
-    fontSize: typography.sizes.base,
+    fontSize: typography.sizes.body,
+    fontWeight: typography.weights.regular,
+    lineHeight: typography.lineHeights.body,
     color: colors.neutral.gray,
   },
   modalTitle: {
-    fontSize: typography.sizes.lg,
-    fontWeight: '600',
+    fontSize: typography.sizes.title3,
+    fontWeight: typography.weights.semibold,
+    lineHeight: typography.lineHeights.title3,
     color: colors.text.dark,
   },
   modalClearText: {
-    fontSize: typography.sizes.base,
+    fontSize: typography.sizes.body,
+    fontWeight: typography.weights.medium,
+    lineHeight: typography.lineHeights.body,
     color: colors.primary,
-    fontWeight: '500',
   },
   modalContent: {
     flex: 1,
     padding: spacing.md,
   },
   filterSectionTitle: {
-    fontSize: typography.sizes.lg,
-    fontWeight: '600',
+    fontSize: typography.sizes.title3,
+    fontWeight: typography.weights.semibold,
+    lineHeight: typography.lineHeights.title3,
     color: colors.text.dark,
     marginBottom: spacing.md,
   },
@@ -767,10 +848,13 @@ const styles = StyleSheet.create({
     borderColor: colors.neutral.lightGray,
     alignItems: 'center',
     backgroundColor: colors.white,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   categoryGridText: {
-    fontSize: typography.sizes.sm,
-    fontWeight: '500',
+    fontSize: typography.sizes.subhead,
+    fontWeight: typography.weights.medium,
+    lineHeight: typography.lineHeights.subhead,
     marginTop: spacing.sm,
     textAlign: 'center',
   },
@@ -784,10 +868,13 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     borderRadius: 12,
     alignItems: 'center',
+    minHeight: 44,
+    justifyContent: 'center',
   },
   applyFiltersText: {
     color: colors.white,
-    fontSize: typography.sizes.base,
-    fontWeight: '600',
+    fontSize: typography.sizes.body,
+    fontWeight: typography.weights.semibold,
+    lineHeight: typography.lineHeights.body,
   },
 });

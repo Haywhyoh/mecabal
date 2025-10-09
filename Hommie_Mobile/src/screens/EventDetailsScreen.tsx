@@ -14,6 +14,9 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
+import * as Calendar from 'expo-calendar';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import EventDetailsSkeleton from '../components/EventDetailsSkeleton';
 import ErrorView from '../components/ErrorView';
@@ -31,6 +34,67 @@ interface EventDetailsScreenProps {
   };
   navigation: any;
 }
+
+// Animated RSVP Button Component
+const AnimatedRSVPButton: React.FC<{
+  button: { status: string; label: string; icon: string; color: string };
+  isSelected: boolean;
+  isRSVPing: boolean;
+  onPress: () => void;
+}> = ({ button, isSelected, isRSVPing, onPress }) => {
+  const scale = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const onPressIn = () => {
+    scale.value = withSpring(0.95, {
+      damping: 15,
+      stiffness: 300,
+    });
+  };
+
+  const onPressOut = () => {
+    scale.value = withSpring(1, {
+      damping: 15,
+      stiffness: 300,
+    });
+  };
+
+  return (
+    <TouchableOpacity
+      style={[
+        styles.rsvpButton,
+        { borderColor: button.color },
+        isSelected && { backgroundColor: button.color }
+      ]}
+      onPress={onPress}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
+      disabled={isRSVPing}
+      accessible={true}
+      accessibilityLabel={`${button.label}${isSelected ? ', currently selected' : ''}`}
+      accessibilityHint={`Mark yourself as ${button.label.toLowerCase()} for this event`}
+      accessibilityRole="button"
+      accessibilityState={{ selected: isSelected, disabled: isRSVPing }}
+    >
+      <Animated.View style={animatedStyle}>
+        <MaterialCommunityIcons 
+          name={button.icon as any} 
+          size={20} 
+          color={isSelected ? colors.white : button.color} 
+        />
+        <Text style={[
+          styles.rsvpButtonText,
+          { color: isSelected ? colors.white : button.color }
+        ]}>
+          {button.label}
+        </Text>
+      </Animated.View>
+    </TouchableOpacity>
+  );
+};
 
 const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ route, navigation }) => {
   const { eventId } = route.params;
@@ -64,6 +128,7 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ route, navigati
   }, [eventId]);
 
   const onRefresh = useCallback(async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setRefreshing(true);
     try {
       setError(null);
@@ -136,6 +201,7 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ route, navigati
   const handleRSVP = async (status: 'going' | 'maybe' | 'not_going') => {
     if (!event) return;
 
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsRSVPing(true);
     
     // Optimistic update
@@ -150,6 +216,7 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ route, navigati
 
     try {
       await EventsApi.rsvpEvent(eventId, { rsvpStatus: status });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert(
         'RSVP Updated',
         `You have marked yourself as ${status === 'going' ? 'Going' : status === 'maybe' ? 'Maybe' : 'Not Going'} to this event.`,
@@ -162,6 +229,7 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ route, navigati
         userRsvpStatus: prevStatus, 
         attendeesCount: prevCount 
       });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       const errorMessage = handleApiError(err);
       Alert.alert('Error', errorMessage);
     } finally {
@@ -170,10 +238,18 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ route, navigati
   };
 
   const handleShare = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
+      const eventUrl = `https://mecabal.com/events/${event.id}`;
+      const shareMessage = `Check out this event: ${event.title}\n\n${event.description}\n\n📅 Date: ${formatDate(event.eventDate)} at ${formatTime(event.startTime)}\n📍 Location: ${event.location.name}, ${event.location.address}\n\nJoin me at: ${eventUrl}`;
+      
       await Share.share({
-        message: `Check out this event: ${event.title}\n\n${event.description}\n\nDate: ${formatDate(event.eventDate)} at ${formatTime(event.startTime)}\nLocation: ${event.location.name}, ${event.location.address}`,
+        message: shareMessage,
+        url: eventUrl,
         title: event.title,
+      }, {
+        subject: event.title,
+        dialogTitle: 'Share Event',
       });
     } catch (error) {
       console.error('Error sharing:', error);
@@ -181,6 +257,7 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ route, navigati
   };
 
   const handleDirections = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const { latitude, longitude } = event.location;
     if (latitude && longitude) {
       const url = `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`;
@@ -192,7 +269,61 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ route, navigati
     }
   };
 
+  const addToCalendar = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      // Request calendar permissions
+      const { status } = await Calendar.requestCalendarPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission Required',
+          'Please allow access to your calendar to add events.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      // Get available calendars
+      const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
+      const defaultCalendar = calendars.find(cal => cal.allowsModifications) || calendars[0];
+
+      if (!defaultCalendar) {
+        Alert.alert('Error', 'No writable calendar found on your device.');
+        return;
+      }
+
+      // Create event date/time
+      const eventDate = new Date(`${event.eventDate} ${event.startTime}`);
+      const endDate = event.endTime ? new Date(`${event.eventDate} ${event.endTime}`) : 
+        new Date(eventDate.getTime() + 2 * 60 * 60 * 1000); // Default 2 hours if no end time
+
+      // Create calendar event
+      await Calendar.createEventAsync(defaultCalendar.id, {
+        title: event.title,
+        startDate: eventDate,
+        endDate: endDate,
+        location: `${event.location.name}, ${event.location.address}`,
+        notes: `${event.description}\n\nOrganized by: ${event.organizer.fullName}\n\nEvent URL: https://mecabal.com/events/${event.id}`,
+        timeZone: 'UTC',
+      });
+
+      Alert.alert(
+        'Success',
+        'Event added to your calendar!',
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.error('Error adding to calendar:', error);
+      Alert.alert(
+        'Error',
+        'Failed to add event to calendar. Please try again.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
   const handleContact = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     Alert.alert(
       'Contact Organizer',
       'How would you like to contact the organizer?',
@@ -257,28 +388,13 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ route, navigati
           {buttons.map((button) => {
             const isSelected = event.rsvpStatus === button.status;
             return (
-              <TouchableOpacity
+              <AnimatedRSVPButton
                 key={button.status}
-                style={[
-                  styles.rsvpButton,
-                  { borderColor: button.color },
-                  isSelected && { backgroundColor: button.color }
-                ]}
+                button={button}
+                isSelected={isSelected}
+                isRSVPing={isRSVPing}
                 onPress={() => handleRSVP(button.status as any)}
-                disabled={isRSVPing}
-              >
-                <MaterialCommunityIcons 
-                  name={button.icon as any} 
-                  size={20} 
-                  color={isSelected ? colors.white : button.color} 
-                />
-                <Text style={[
-                  styles.rsvpButtonText,
-                  { color: isSelected ? colors.white : button.color }
-                ]}>
-                  {button.label}
-                </Text>
-              </TouchableOpacity>
+              />
             );
           })}
         </View>
@@ -293,6 +409,10 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ route, navigati
         <TouchableOpacity 
           style={styles.headerButton}
           onPress={() => navigation.goBack()}
+          accessible={true}
+          accessibilityLabel="Go back"
+          accessibilityHint="Return to previous screen"
+          accessibilityRole="button"
         >
           <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text.dark} />
         </TouchableOpacity>
@@ -301,12 +421,20 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ route, navigati
           <TouchableOpacity 
             style={styles.headerButton}
             onPress={handleShare}
+            accessible={true}
+            accessibilityLabel="Share event"
+            accessibilityHint="Share this event with others"
+            accessibilityRole="button"
           >
             <MaterialCommunityIcons name="share-variant" size={24} color={colors.text.dark} />
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.headerButton}
             onPress={() => console.log('Toggle favorite')}
+            accessible={true}
+            accessibilityLabel="Add to favorites"
+            accessibilityHint="Save this event to your favorites"
+            accessibilityRole="button"
           >
             <MaterialCommunityIcons 
               name={event.userRsvpStatus === 'going' ? 'bookmark' : 'bookmark-outline'} 
@@ -387,6 +515,10 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ route, navigati
               <TouchableOpacity 
                 style={styles.directionsButton}
                 onPress={handleDirections}
+                accessible={true}
+                accessibilityLabel="Get directions"
+                accessibilityHint="Open directions to event location in maps app"
+                accessibilityRole="button"
               >
                 <MaterialCommunityIcons name="directions" size={20} color={colors.primary} />
               </TouchableOpacity>
@@ -420,10 +552,32 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ route, navigati
                   </View>
                 </View>
               </View>
-              <TouchableOpacity style={styles.contactButton} onPress={handleContact}>
+              <TouchableOpacity 
+                style={styles.contactButton} 
+                onPress={handleContact}
+                accessible={true}
+                accessibilityLabel="Contact organizer"
+                accessibilityHint="Send a message or call the event organizer"
+                accessibilityRole="button"
+              >
                 <MaterialCommunityIcons name="message-outline" size={20} color={colors.primary} />
               </TouchableOpacity>
             </View>
+          </View>
+
+          {/* Calendar Action */}
+          <View style={styles.calendarSection}>
+            <TouchableOpacity 
+              style={styles.calendarButton}
+              onPress={addToCalendar}
+              accessible={true}
+              accessibilityLabel="Add to calendar"
+              accessibilityHint="Add this event to your device calendar"
+              accessibilityRole="button"
+            >
+              <MaterialCommunityIcons name="calendar-plus" size={20} color={colors.primary} />
+              <Text style={styles.calendarButtonText}>Add to Calendar</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Description */}
@@ -503,6 +657,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     borderRadius: 8,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   backButtonText: {
     color: colors.white,
@@ -523,6 +681,10 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     borderRadius: 8,
     backgroundColor: colors.neutral.offWhite,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerActions: {
     flexDirection: 'row',
@@ -587,23 +749,25 @@ const styles = StyleSheet.create({
   },
   title: {
     flex: 1,
-    fontSize: typography.sizes['2xl'],
-    fontWeight: '700',
+    fontSize: typography.sizes.title2,
+    fontWeight: typography.weights.bold,
+    lineHeight: typography.lineHeights.title2,
     color: colors.text.dark,
     marginRight: spacing.md,
-    lineHeight: 32,
   },
   priceContainer: {
     alignItems: 'flex-end',
   },
   freePrice: {
-    fontSize: typography.sizes.lg,
-    fontWeight: '600',
+    fontSize: typography.sizes.title3,
+    fontWeight: typography.weights.semibold,
+    lineHeight: typography.lineHeights.title3,
     color: colors.success,
   },
   paidPrice: {
-    fontSize: typography.sizes.lg,
-    fontWeight: '600',
+    fontSize: typography.sizes.title3,
+    fontWeight: typography.weights.semibold,
+    lineHeight: typography.lineHeights.title3,
     color: colors.warning,
   },
   dateTimeSection: {
@@ -621,23 +785,29 @@ const styles = StyleSheet.create({
     marginLeft: spacing.md,
   },
   infoLabel: {
-    fontSize: typography.sizes.sm,
+    fontSize: typography.sizes.subhead,
+    fontWeight: typography.weights.medium,
+    lineHeight: typography.lineHeights.subhead,
     color: colors.neutral.gray,
-    fontWeight: '500',
     marginBottom: 4,
   },
   infoValue: {
-    fontSize: typography.sizes.base,
+    fontSize: typography.sizes.body,
+    fontWeight: typography.weights.semibold,
+    lineHeight: typography.lineHeights.body,
     color: colors.text.dark,
-    fontWeight: '600',
     marginBottom: 2,
   },
   infoSubValue: {
-    fontSize: typography.sizes.base,
+    fontSize: typography.sizes.body,
+    fontWeight: typography.weights.regular,
+    lineHeight: typography.lineHeights.body,
     color: colors.text.dark,
   },
   landmarkText: {
-    fontSize: typography.sizes.sm,
+    fontSize: typography.sizes.subhead,
+    fontWeight: typography.weights.regular,
+    lineHeight: typography.lineHeights.subhead,
     color: colors.neutral.gray,
     fontStyle: 'italic',
     marginTop: 2,
@@ -651,8 +821,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   sectionTitle: {
-    fontSize: typography.sizes.lg,
-    fontWeight: '600',
+    fontSize: typography.sizes.title3,
+    fontWeight: typography.weights.semibold,
+    lineHeight: typography.lineHeights.title3,
     color: colors.text.dark,
     marginBottom: spacing.md,
   },
@@ -698,8 +869,9 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   organizerName: {
-    fontSize: typography.sizes.base,
-    fontWeight: '600',
+    fontSize: typography.sizes.body,
+    fontWeight: typography.weights.semibold,
+    lineHeight: typography.lineHeights.body,
     color: colors.text.dark,
     marginRight: spacing.sm,
   },
@@ -714,7 +886,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   ratingText: {
-    fontSize: typography.sizes.sm,
+    fontSize: typography.sizes.subhead,
+    fontWeight: typography.weights.regular,
+    lineHeight: typography.lineHeights.subhead,
     color: colors.neutral.gray,
     marginLeft: 4,
   },
@@ -722,14 +896,41 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     borderRadius: 8,
     backgroundColor: colors.white,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  calendarSection: {
+    marginBottom: spacing.lg,
+  },
+  calendarButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.white,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    minHeight: 44,
+  },
+  calendarButtonText: {
+    fontSize: typography.sizes.body,
+    fontWeight: typography.weights.medium,
+    lineHeight: typography.lineHeights.body,
+    color: colors.primary,
+    marginLeft: spacing.sm,
   },
   descriptionSection: {
     marginBottom: spacing.lg,
   },
   description: {
-    fontSize: typography.sizes.base,
+    fontSize: typography.sizes.body,
+    fontWeight: typography.weights.regular,
+    lineHeight: typography.lineHeights.body,
     color: colors.text.dark,
-    lineHeight: 24,
   },
   requirementsSection: {
     marginBottom: spacing.lg,
@@ -745,7 +946,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   requirementText: {
-    fontSize: typography.sizes.base,
+    fontSize: typography.sizes.body,
+    fontWeight: typography.weights.regular,
+    lineHeight: typography.lineHeights.body,
     color: colors.text.dark,
     marginLeft: spacing.sm,
     flex: 1,
@@ -772,8 +975,9 @@ const styles = StyleSheet.create({
   },
   moreAttendeesText: {
     color: colors.white,
-    fontSize: typography.sizes.sm,
-    fontWeight: '600',
+    fontSize: typography.sizes.subhead,
+    fontWeight: typography.weights.semibold,
+    lineHeight: typography.lineHeights.subhead,
   },
   rsvpContainer: {
     marginBottom: spacing.lg,
@@ -782,8 +986,9 @@ const styles = StyleSheet.create({
     borderTopColor: colors.neutral.lightGray,
   },
   rsvpTitle: {
-    fontSize: typography.sizes.lg,
-    fontWeight: '600',
+    fontSize: typography.sizes.title3,
+    fontWeight: typography.weights.semibold,
+    lineHeight: typography.lineHeights.title3,
     color: colors.text.dark,
     marginBottom: spacing.md,
     textAlign: 'center',
@@ -801,11 +1006,13 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     backgroundColor: colors.white,
     minWidth: 100,
+    minHeight: 44,
     justifyContent: 'center',
   },
   rsvpButtonText: {
-    fontSize: typography.sizes.sm,
-    fontWeight: '500',
+    fontSize: typography.sizes.subhead,
+    fontWeight: typography.weights.medium,
+    lineHeight: typography.lineHeights.subhead,
     marginLeft: spacing.xs,
   },
 });

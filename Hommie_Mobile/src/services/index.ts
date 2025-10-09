@@ -41,6 +41,9 @@ export { default as ListingCategoriesService } from './listingCategoriesService'
 // Events services
 export { default as EventsApi, EventsApi as EventsService } from './EventsApi';
 
+// States services
+export { default as StatesApi, StatesApi as StatesService } from './StatesApi';
+
 // Type exports for convenience
 export type {
   NigerianUser,

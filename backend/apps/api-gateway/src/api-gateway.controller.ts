@@ -501,6 +501,35 @@ export class ApiGatewayController {
     return this.proxyEventsRequest(req, res);
   }
 
+  @Get('states')
+  @ApiOperation({ summary: 'Get all Nigerian states' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of Nigerian states',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'number', example: 1 },
+          name: { type: 'string', example: 'Lagos' },
+          code: { type: 'string', example: 'LA' },
+        },
+      },
+    },
+  })
+  async getStates(@Res() res: Response) {
+    try {
+      const states = await this.apiGatewayService.getStates();
+      res.status(HttpStatus.OK).json(states);
+    } catch (error) {
+      console.error('Error fetching states:', error);
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        error: 'Failed to fetch states',
+      });
+    }
+  }
+
   // Helper method to proxy requests to social service
   @ApiOperation({ summary: 'Proxy all social service requests' })
   @ApiResponse({
