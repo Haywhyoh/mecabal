@@ -10,8 +10,10 @@ import { DatabaseModule } from '@app/database/database.module';
 import { BusinessProfileModule } from './business-profile/business-profile.module';
 import { BusinessCategoryModule } from './business-category/business-category.module';
 import { BusinessServicesModule } from './business-services/business-services.module';
-import { BusinessLicensesModule } from './business-licenses/business-licenses.module';
+import { BusinessLicenseModule } from './business-license/business-license.module';
 import { BusinessSearchModule } from './business-search/business-search.module';
+import { BusinessReviewModule } from './business-review/business-review.module';
+import { BusinessActivityModule } from './business-activity/business-activity.module';
 import {
   BusinessProfile,
   BusinessCategory,
@@ -37,8 +39,10 @@ import {
     BusinessProfileModule,
     BusinessCategoryModule,
     BusinessServicesModule,
-    BusinessLicensesModule,
+    BusinessLicenseModule,
     BusinessSearchModule,
+    BusinessReviewModule,
+    BusinessActivityModule,
     TypeOrmModule.forFeature([
       BusinessProfile,
       BusinessCategory,
