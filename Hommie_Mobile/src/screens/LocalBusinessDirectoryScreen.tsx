@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, TextInput, Image, Alert } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, TextInput, Image, Alert, ActivityIndicator, RefreshControl } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import { contextAwareGoBack } from '../utils/navigationUtils';
 import { BUSINESS_CATEGORIES, SERVICE_AREAS, formatNairaCurrency } from '../constants/businessData';
 import { NIGERIAN_STATES } from '../constants/nigerianData';
+import { businessSearchApi } from '../services/api';
+import { BusinessProfile } from '../services/types/business.types';
+import { SearchFilters } from './AdvancedSearchFiltersScreen';
 
 interface BusinessListing {
   id: string;
@@ -48,8 +51,85 @@ export default function LocalBusinessDirectoryScreen() {
   const [sortBy, setSortBy] = useState<'rating' | 'distance' | 'price'>('rating');
   const [showFilters, setShowFilters] = useState(false);
 
-  // Mock business listings
-  const [businesses] = useState<BusinessListing[]>([
+  // API state
+  const [businesses, setBusinesses] = useState<BusinessProfile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [advancedFilters, setAdvancedFilters] = useState<SearchFilters>({});
+
+  // Load businesses on mount
+  useEffect(() => {
+    loadBusinesses();
+  }, [selectedCategory, selectedServiceArea, sortBy, advancedFilters]);
+
+  const loadBusinesses = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const searchParams = {
+        category: selectedCategory !== 'all' ? selectedCategory : undefined,
+        serviceArea: selectedServiceArea,
+        isActive: true,
+        sortBy: sortBy === 'rating' ? 'rating' : sortBy === 'distance' ? 'distance' : undefined,
+        sortOrder: 'DESC' as const,
+        ...advancedFilters,
+      };
+
+      const response = await businessSearchApi.searchBusinesses(searchParams);
+      setBusinesses(response.businesses);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load businesses');
+      console.error('Error loading businesses:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadBusinesses();
+    setRefreshing(false);
+  }, [selectedCategory, selectedServiceArea, sortBy]);
+
+  // Debounced search
+  useEffect(() => {
+    if (searchText.trim()) {
+      const timer = setTimeout(() => {
+        performSearch();
+      }, 500);
+      return () => clearTimeout(timer);
+    } else {
+      loadBusinesses();
+    }
+  }, [searchText]);
+
+  const performSearch = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await businessSearchApi.searchBusinesses({
+        search: searchText.trim(),
+        category: selectedCategory !== 'all' ? selectedCategory : undefined,
+        serviceArea: selectedServiceArea,
+        isActive: true,
+        sortBy: sortBy === 'rating' ? 'rating' : sortBy === 'distance' ? 'distance' : undefined,
+        sortOrder: 'DESC' as const,
+      });
+
+      setBusinesses(response.businesses);
+    } catch (err: any) {
+      setError(err.message || 'Search failed');
+      console.error('Error searching businesses:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Mock business listings (kept for fallback/reference)
+  const mockBusinesses: BusinessListing[] = [
     {
       id: '1',
       businessName: "Adebayo's Home Repairs",
@@ -145,43 +225,23 @@ export default function LocalBusinessDirectoryScreen() {
       specialties: ['Laptop Repair', 'Data Recovery', 'Virus Removal'],
       badges: ['Verified', 'Tech Expert']
     }
-  ]);
+  ];
 
-  const filteredBusinesses = businesses.filter(business => {
-    const matchesSearch = business.businessName.toLowerCase().includes(searchText.toLowerCase()) ||
-                         business.subcategory.toLowerCase().includes(searchText.toLowerCase()) ||
-                         business.description.toLowerCase().includes(searchText.toLowerCase());
-    
-    const matchesCategory = selectedCategory === 'all' || business.category === selectedCategory;
-    
-    return matchesSearch && matchesCategory && business.isActive;
-  });
+  // Businesses are already filtered and sorted by the API
+  const displayedBusinesses = businesses;
 
-  const sortedBusinesses = [...filteredBusinesses].sort((a, b) => {
-    switch (sortBy) {
-      case 'rating':
-        return b.rating - a.rating;
-      case 'distance':
-        return a.location.distance - b.location.distance;
-      case 'price':
-        return a.pricing.range.min - b.pricing.range.min;
-      default:
-        return 0;
-    }
-  });
-
-  const handleContactBusiness = (business: BusinessListing) => {
+  const handleContactBusiness = (business: BusinessProfile) => {
     Alert.alert(
       `Contact ${business.businessName}`,
       'Choose how to contact this business:',
       [
         {
           text: 'Call',
-          onPress: () => Alert.alert('Call Business', `Calling ${business.contactInfo.phone}`)
+          onPress: () => Alert.alert('Call Business', `Calling ${business.phone}`)
         },
-        ...(business.contactInfo.whatsapp ? [{
+        ...(business.whatsapp ? [{
           text: 'WhatsApp',
-          onPress: () => Alert.alert('WhatsApp Business', `Opening WhatsApp for ${business.contactInfo.whatsapp}`)
+          onPress: () => Alert.alert('WhatsApp Business', `Opening WhatsApp for ${business.whatsapp}`)
         }] : []),
         {
           text: 'Message',
@@ -192,7 +252,7 @@ export default function LocalBusinessDirectoryScreen() {
     );
   };
 
-  const handleBookService = (business: BusinessListing) => {
+  const handleBookService = (business: BusinessProfile) => {
     Alert.alert(
       'Book Service',
       `Request a service quote from ${business.businessName}?`,
@@ -206,8 +266,23 @@ export default function LocalBusinessDirectoryScreen() {
     );
   };
 
-  const handleViewProfile = (business: BusinessListing) => {
-    Alert.alert('Business Profile', `Navigate to full profile for ${business.businessName}`);
+  const handleViewProfile = (business: BusinessProfile) => {
+    navigation?.navigate('BusinessDetail', { businessId: business.id });
+  };
+
+  const handleOpenAdvancedFilters = () => {
+    navigation?.navigate('AdvancedSearchFilters', {
+      currentFilters: advancedFilters,
+      onApplyFilters: (filters: SearchFilters) => {
+        setAdvancedFilters(filters);
+      },
+    });
+  };
+
+  const getActiveFilterCount = () => {
+    return Object.keys(advancedFilters).filter(
+      key => advancedFilters[key as keyof SearchFilters] !== undefined
+    ).length;
   };
 
   const getVerificationIcon = (level: string) => {
@@ -228,12 +303,13 @@ export default function LocalBusinessDirectoryScreen() {
     }
   };
 
-  const renderBusinessCard = (business: BusinessListing) => {
+  const renderBusinessCard = (business: BusinessProfile) => {
     const category = BUSINESS_CATEGORIES.find(cat => cat.id === business.category);
+    const verificationLevel = business.isVerified ? 'enhanced' : 'basic';
 
     return (
-      <TouchableOpacity 
-        key={business.id} 
+      <TouchableOpacity
+        key={business.id}
         style={styles.businessCard}
         onPress={() => handleViewProfile(business)}
       >
@@ -244,10 +320,10 @@ export default function LocalBusinessDirectoryScreen() {
                 <Image source={{ uri: business.profileImage }} style={styles.businessAvatar} />
               ) : (
                 <View style={[styles.businessAvatar, { backgroundColor: category?.color || '#00A651' }]}>
-                  <MaterialCommunityIcons 
-                    name={category?.icon as any || 'store'} 
-                    size={20} 
-                    color="#FFFFFF" 
+                  <MaterialCommunityIcons
+                    name={category?.icon as any || 'store'}
+                    size={20}
+                    color="#FFFFFF"
                   />
                 </View>
               )}
@@ -255,52 +331,40 @@ export default function LocalBusinessDirectoryScreen() {
                 <View style={styles.statusDotOnAvatar} />
               )}
             </View>
-            
+
             <View style={styles.businessDetails}>
               <View style={styles.businessHeader}>
                 <Text style={styles.businessName}>{business.businessName}</Text>
-                <MaterialCommunityIcons 
-                  name={getVerificationIcon(business.verificationLevel)} 
-                  size={16} 
-                  color={getVerificationColor(business.verificationLevel)} 
+                <MaterialCommunityIcons
+                  name={getVerificationIcon(verificationLevel)}
+                  size={16}
+                  color={getVerificationColor(verificationLevel)}
                 />
               </View>
-              
-              <Text style={styles.subcategory}>{business.subcategory}</Text>
-              
+
+              <Text style={styles.subcategory}>{business.subcategory || business.category}</Text>
+
               <View style={styles.ratingContainer}>
                 <MaterialCommunityIcons name="star" size={14} color="#FFC107" />
-                <Text style={styles.rating}>{business.rating}</Text>
-                <Text style={styles.reviewCount}>({business.reviewCount} reviews)</Text>
-                <Text style={styles.distance}>• {business.location.distance}km away</Text>
+                <Text style={styles.rating}>{business.rating?.toFixed(1) || '0.0'}</Text>
+                <Text style={styles.reviewCount}>({business.reviewCount || 0} reviews)</Text>
               </View>
             </View>
           </View>
         </View>
 
-        <Text style={styles.description} numberOfLines={2}>{business.description}</Text>
-
-
-        {business.badges.length > 0 && (
-          <View style={styles.badgeContainer}>
-            {business.badges.map((badge, index) => (
-              <View key={index} style={styles.badge}>
-                <Text style={styles.badgeText}>{badge}</Text>
-              </View>
-            ))}
-          </View>
-        )}
+        <Text style={styles.description} numberOfLines={2}>{business.description || 'No description available'}</Text>
 
         <View style={styles.cardActions}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.contactButton}
             onPress={() => handleContactBusiness(business)}
           >
             <MaterialCommunityIcons name="phone" size={16} color="#0066CC" />
             <Text style={styles.contactButtonText}>Contact</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.bookButton}
             onPress={() => handleBookService(business)}
           >
@@ -323,9 +387,19 @@ export default function LocalBusinessDirectoryScreen() {
           <MaterialCommunityIcons name="arrow-left" size={24} color="#2C2C2C" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Local Businesses</Text>
-        <TouchableOpacity onPress={() => setShowFilters(!showFilters)}>
-          <MaterialCommunityIcons name="filter-variant" size={24} color="#00A651" />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity onPress={() => setShowFilters(!showFilters)} style={styles.headerButton}>
+            <MaterialCommunityIcons name="filter-variant" size={24} color="#00A651" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleOpenAdvancedFilters} style={styles.headerButton}>
+            <MaterialCommunityIcons name="tune" size={24} color="#00A651" />
+            {getActiveFilterCount() > 0 && (
+              <View style={styles.filterBadge}>
+                <Text style={styles.filterBadgeText}>{getActiveFilterCount()}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Search Bar */}
@@ -396,28 +470,52 @@ export default function LocalBusinessDirectoryScreen() {
       )}
 
       {/* Results Header */}
-      <View style={styles.resultsHeader}>
-        <Text style={styles.resultsCount}>
-          {sortedBusinesses.length} business{sortedBusinesses.length !== 1 ? 'es' : ''} found
-        </Text>
-        <Text style={styles.resultsLocation}>in your area</Text>
-      </View>
+      {!loading && (
+        <View style={styles.resultsHeader}>
+          <Text style={styles.resultsCount}>
+            {displayedBusinesses.length} business{displayedBusinesses.length !== 1 ? 'es' : ''} found
+          </Text>
+          <Text style={styles.resultsLocation}>in your area</Text>
+        </View>
+      )}
 
       {/* Business Listings */}
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {sortedBusinesses.map(renderBusinessCard)}
-        
-        {sortedBusinesses.length === 0 && (
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
+      >
+        {loading && !refreshing ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#00A651" />
+            <Text style={styles.loadingText}>Finding businesses...</Text>
+          </View>
+        ) : error ? (
+          <View style={styles.emptyState}>
+            <MaterialCommunityIcons name="alert-circle" size={64} color="#FF3B30" />
+            <Text style={styles.emptyTitle}>Error Loading</Text>
+            <Text style={styles.emptySubtitle}>{error}</Text>
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={loadBusinesses}
+            >
+              <Text style={styles.retryButtonText}>Try Again</Text>
+            </TouchableOpacity>
+          </View>
+        ) : displayedBusinesses.length === 0 ? (
           <View style={styles.emptyState}>
             <MaterialCommunityIcons name="store-search" size={64} color="#8E8E8E" />
             <Text style={styles.emptyTitle}>No Businesses Found</Text>
             <Text style={styles.emptySubtitle}>
-              {searchText ? 
-                `No businesses match "${searchText}". Try a different search term.` :
-                'No businesses available in the selected category.'
-              }
+              {searchText
+                ? `No businesses match "${searchText}". Try a different search term.`
+                : 'No businesses available in the selected category.'}
             </Text>
           </View>
+        ) : (
+          displayedBusinesses.map(renderBusinessCard)
         )}
       </ScrollView>
     </SafeAreaView>
@@ -449,6 +547,32 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#2C2C2C',
     textAlign: 'center',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerButton: {
+    padding: 8,
+    position: 'relative',
+  },
+  filterBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: '#FF3B30',
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  filterBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   searchContainer: {
     backgroundColor: '#FFFFFF',
@@ -717,5 +841,27 @@ const styles = StyleSheet.create({
     color: '#8E8E8E',
     textAlign: 'center',
     lineHeight: 20,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#8E8E8E',
+    marginTop: 16,
+  },
+  retryButton: {
+    backgroundColor: '#0066CC',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  retryButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });

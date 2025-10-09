@@ -33,8 +33,16 @@ import CulturalProfileScreen from './src/screens/CulturalProfileScreen';
 import NINVerificationScreen from './src/screens/NINVerificationScreen';
 import BadgeSystemScreen from './src/screens/BadgeSystemScreen';
 import BusinessRegistrationScreen from './src/screens/BusinessRegistrationScreen';
+import EditBusinessProfileScreen from './src/screens/EditBusinessProfileScreen';
 import ProfessionalSkillsScreen from './src/screens/ProfessionalSkillsScreen';
 import LocalBusinessDirectoryScreen from './src/screens/LocalBusinessDirectoryScreen';
+import BusinessDetailScreen from './src/screens/BusinessDetailScreen';
+import BusinessReviewsScreen from './src/screens/BusinessReviewsScreen';
+import WriteReviewScreen from './src/screens/WriteReviewScreen';
+import BusinessAnalyticsScreen from './src/screens/BusinessAnalyticsScreen';
+import BusinessInquiriesScreen from './src/screens/BusinessInquiriesScreen';
+import MyInquiriesScreen from './src/screens/MyInquiriesScreen';
+import AdvancedSearchFiltersScreen from './src/screens/AdvancedSearchFiltersScreen';
 import CommunityActivityScreen from './src/screens/CommunityActivityScreen';
 import NeighborRatingScreen from './src/screens/NeighborRatingScreen';
 import CommunityEngagementScreen from './src/screens/CommunityEngagementScreen';
@@ -84,6 +92,9 @@ const linking = {
       CreateEvent: 'events/create',
       Profile: 'profile',
       Notifications: 'notifications',
+      BusinessReviews: 'business/:businessId/reviews',
+      WriteReview: 'business/:businessId/review/write',
+      BusinessAnalytics: 'business/:businessId/analytics',
     },
   },
 };
@@ -172,8 +183,16 @@ function MainStackNavigator() {
       
       {/* Business Screens */}
       <Stack.Screen name="BusinessRegistration" component={BusinessRegistrationScreen} />
+      <Stack.Screen name="EditBusinessProfile" component={EditBusinessProfileScreen} />
       <Stack.Screen name="ProfessionalSkills" component={ProfessionalSkillsScreen} />
       <Stack.Screen name="LocalBusinessDirectory" component={LocalBusinessDirectoryScreen} />
+      <Stack.Screen name="BusinessDetail" component={BusinessDetailScreen} />
+      <Stack.Screen name="BusinessReviews" component={BusinessReviewsScreen} />
+      <Stack.Screen name="WriteReview" component={WriteReviewScreen} />
+      <Stack.Screen name="BusinessAnalytics" component={BusinessAnalyticsScreen} />
+      <Stack.Screen name="BusinessInquiries" component={BusinessInquiriesScreen} />
+      <Stack.Screen name="MyInquiries" component={MyInquiriesScreen} />
+      <Stack.Screen name="AdvancedSearchFilters" component={AdvancedSearchFiltersScreen} />
       
       {/* Community Screens */}
       <Stack.Screen name="CommunityActivity" component={CommunityActivityScreen} />

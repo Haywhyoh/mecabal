@@ -54,7 +54,9 @@ export default function BusinessProfileScreen({ navigation }: BusinessProfileScr
   };
 
   const handleManageServices = () => {
-    Alert.alert('Manage Services', 'Navigate to services management screen');
+    if (businessProfile) {
+      navigation?.navigate('BusinessInquiries', { businessId: businessProfile.id });
+    }
   };
 
   const handleViewReviews = () => {
@@ -306,10 +308,10 @@ export default function BusinessProfileScreen({ navigation }: BusinessProfileScr
           <Text style={styles.cardTitle}>Manage Your Business</Text>
           
           <TouchableOpacity style={styles.actionItem} onPress={handleManageServices}>
-            <MaterialCommunityIcons name="wrench" size={24} color="#00A651" />
+            <MaterialCommunityIcons name="message-text" size={24} color="#00A651" />
             <View style={styles.actionContent}>
-              <Text style={styles.actionTitle}>Manage Services</Text>
-              <Text style={styles.actionDesc}>Update pricing, availability, and service details</Text>
+              <Text style={styles.actionTitle}>Customer Inquiries</Text>
+              <Text style={styles.actionDesc}>View and respond to customer inquiries</Text>
             </View>
             <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E8E" />
           </TouchableOpacity>
