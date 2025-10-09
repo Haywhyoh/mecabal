@@ -44,3 +44,12 @@ export { IdentityDocument, DocumentType } from './identity-document.entity';
 export { VerificationAudit } from './verification-audit.entity';
 export { UserBadge, BadgeCategory } from './user-badge.entity';
 export { CommunityEndorsement, EndorsementType } from './community-endorsement.entity';
+
+// Gamification Entities
+export { Achievement, AchievementCategory, AchievementRarity } from './achievement.entity';
+export { UserAchievement } from './user-achievement.entity';
+export { Badge, BadgeType } from './badge.entity';
+export { GamificationBadge } from './gamification-badge.entity';
+export { UserActivityLog, ActivityType } from './user-activity-log.entity';
+export { UserPoints } from './user-points.entity';
+export { LeaderboardSnapshot, LeaderboardCategory, LeaderboardPeriod, LeaderboardRanking } from './leaderboard-snapshot.entity';
