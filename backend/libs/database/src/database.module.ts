@@ -118,6 +118,10 @@ import {
                 rejectUnauthorized: false,
               }
             : false,
+        // Enable PostGIS support
+        extra: {
+          application_name: 'mecabal-backend',
+        },
       }),
       inject: [ConfigService],
     }),

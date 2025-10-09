@@ -45,12 +45,6 @@
       ],
       "@app/storage/*": [
         "libs/storage/src/*"
-      ],
-      "@app/validation": [
-        "libs/validation/src"
-      ],
-      "@app/validation/*": [
-        "libs/validation/src/*"
       ]
     }
   }

@@ -58,6 +58,19 @@ export class BusinessProfile {
   @Column({ type: 'text', nullable: true })
   businessAddress: string;
 
+  // Geographic coordinates (regular decimal fields for now)
+  @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true })
+  latitude: number;
+
+  @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true })
+  longitude: number;
+
+  @Column({ length: 100, nullable: true })
+  state: string; // Nigerian state
+
+  @Column({ length: 100, nullable: true })
+  city: string; // City or LGA
+
   @Column({ type: 'int', default: 0 })
   yearsOfExperience: number;
 
