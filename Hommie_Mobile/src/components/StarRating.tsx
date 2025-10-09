@@ -142,18 +142,18 @@ const styles = StyleSheet.create({
   label: {
     fontSize: typography.sizes.callout,
     fontWeight: typography.weights.semibold as any,
-    color: colors.text.dark,
+    color: '#1F2937',
   },
   disabledLabel: {
-    color: colors.text.tertiary,
+    color: '#9CA3AF',
   },
   ratingText: {
     fontSize: typography.sizes.caption1,
-    color: colors.text.secondary,
+    color: '#4B5563',
     fontWeight: typography.weights.medium as any,
   },
   disabledText: {
-    color: colors.text.tertiary,
+    color: '#9CA3AF',
   },
   starsContainer: {
     flexDirection: 'row',
