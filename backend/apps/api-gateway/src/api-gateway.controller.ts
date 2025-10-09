@@ -898,15 +898,26 @@ export class ApiGatewayController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   private async proxyBusinessRequest(req: Request, res: Response) {
     try {
+      // Transform the URL to remove /business prefix for the business service
+      let businessPath = req.url;
+      if (businessPath.startsWith('/business')) {
+        businessPath = businessPath.replace('/business', '');
+        // If the path is empty after removing /business, set it to /
+        if (businessPath === '') {
+          businessPath = '/';
+        }
+      }
+
       console.log(
         '🌐 API Gateway - Proxying business service request:',
-        req.url,
-        req.method,
+        'Original URL:', req.url,
+        'Transformed URL:', businessPath,
+        'Method:', req.method,
       );
 
       const result: unknown =
         await this.apiGatewayService.proxyToBusinessService(
-          req.url,
+          businessPath,
           req.method,
           req.body,
           req.headers as Record<string, string | string[] | undefined>,

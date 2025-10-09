@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, TextInput, Modal, FlatList } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, TextInput, Modal, FlatList, Alert, ActivityIndicator } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { ScreenHeader } from '../components/ScreenHeader';
+import { businessApi } from '../services/api';
+import { ServiceArea, PricingModel, Availability } from '../services/types/business.types';
 import { 
   BUSINESS_CATEGORIES, 
   SERVICE_AREAS, 
@@ -37,6 +39,7 @@ interface BusinessRegistrationScreenProps {
 
 export default function BusinessRegistrationScreen({ navigation }: BusinessRegistrationScreenProps) {
   const [currentStep, setCurrentStep] = useState(1);
+  const [submitting, setSubmitting] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showSubcategoryModal, setShowSubcategoryModal] = useState(false);
   const [showServiceAreaModal, setShowServiceAreaModal] = useState(false);
@@ -130,31 +133,75 @@ export default function BusinessRegistrationScreen({ navigation }: BusinessRegis
   };
 
   const handleSubmitRegistration = async () => {
+    if (submitting) return;
+
     try {
-      // Simulate API submission
-      console.log('Submitting business registration:', registration);
-      
-      // In real implementation, this would call your API
-      // const response = await api.registerBusiness(registration);
-      
+      setSubmitting(true);
+
+      // Map form data to API DTO
+      const businessData = {
+        businessName: registration.businessName.trim(),
+        description: registration.description.trim() || undefined,
+        category: registration.category,
+        subcategory: registration.subcategory || undefined,
+        serviceArea: registration.serviceArea as ServiceArea,
+        pricingModel: registration.pricingModel as PricingModel,
+        availability: registration.availability as Availability,
+        phoneNumber: registration.phoneNumber.trim() || undefined,
+        whatsappNumber: registration.whatsappNumber.trim() || undefined,
+        businessAddress: registration.businessAddress.trim() || undefined,
+        yearsOfExperience: registration.yearsOfExperience,
+        paymentMethods: registration.paymentMethods.length > 0 ? registration.paymentMethods : undefined,
+        hasInsurance: registration.hasInsurance,
+      };
+
+      console.log('Submitting business registration:', businessData);
+
+      // Call the API
+      const response = await businessApi.registerBusiness(businessData);
+
+      console.log('Business registered successfully:', response);
+
       Alert.alert(
-        'Registration Submitted!', 
-        'Your business registration has been submitted for review. You will receive a notification within 24-48 hours.',
+        'Registration Successful!',
+        `Welcome to MeCabal Business! Your profile "${response.businessName}" has been created.`,
         [
           {
-            text: 'OK',
+            text: 'View Profile',
             onPress: () => {
-              // Navigate back to profile or business management screen
-              console.log('Navigate to business profile');
+              // Navigate back to business profile
+              navigation?.navigate('BusinessProfile');
             }
           }
         ]
       );
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Registration error:', error);
+
+      let errorMessage = 'Unable to submit your registration. Please try again.';
+
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.status === 400) {
+        errorMessage = 'You already have a business profile. Please edit your existing profile instead.';
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Please log in to register a business.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
       Alert.alert(
-        'Submission Failed',
-        'Unable to submit your registration. Please check your connection and try again.'
+        'Registration Failed',
+        errorMessage,
+        [
+          {
+            text: 'OK',
+            style: 'cancel'
+          }
+        ]
       );
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -740,11 +787,11 @@ export default function BusinessRegistrationScreen({ navigation }: BusinessRegis
           </TouchableOpacity>
         )}
         
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[
-            styles.nextButton, 
+            styles.nextButton,
             currentStep === 1 && styles.nextButtonFull,
-            !validateStep(currentStep) && styles.nextButtonDisabled
+            (!validateStep(currentStep) || submitting) && styles.nextButtonDisabled
           ]}
           onPress={() => {
             if (currentStep < 4) {
@@ -757,14 +804,18 @@ export default function BusinessRegistrationScreen({ navigation }: BusinessRegis
               handleSubmitRegistration();
             }
           }}
-          disabled={!validateStep(currentStep)}
+          disabled={!validateStep(currentStep) || submitting}
         >
-          <Text style={[
-            styles.nextButtonText,
-            !validateStep(currentStep) && styles.nextButtonTextDisabled
-          ]}>
-            {currentStep === 4 ? 'Submit for Approval' : 'Continue'}
-          </Text>
+          {submitting && currentStep === 4 ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Text style={[
+              styles.nextButtonText,
+              (!validateStep(currentStep) || submitting) && styles.nextButtonTextDisabled
+            ]}>
+              {currentStep === 4 ? (submitting ? 'Submitting...' : 'Submit Registration') : 'Continue'}
+            </Text>
+          )}
         </TouchableOpacity>
       </View>
 

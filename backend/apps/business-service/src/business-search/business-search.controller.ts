@@ -10,7 +10,7 @@ import { SearchBusinessDto } from '../dto/search-business.dto';
 import { JwtAuthGuard } from '@app/auth/guards/jwt-auth.guard';
 
 @ApiTags('Business Search')
-@Controller('business/search')
+@Controller('search')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class BusinessSearchController {

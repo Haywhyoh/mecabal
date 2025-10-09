@@ -1,74 +1,56 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, Image, Alert } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, Image, Alert, ActivityIndicator, RefreshControl } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BUSINESS_VERIFICATION_LEVELS, formatNairaCurrency, calculateAverageRating } from '../constants/businessData';
 import { ScreenHeader } from '../components/ScreenHeader';
-
-interface BusinessProfile {
-  id: string;
-  businessName: string;
-  description: string;
-  category: string;
-  subcategory: string;
-  serviceArea: string;
-  phoneNumber: string;
-  whatsappNumber: string;
-  businessAddress: string;
-  yearsOfExperience: number;
-  isVerified: boolean;
-  verificationLevel: 'basic' | 'enhanced' | 'premium';
-  profileImage: string;
-  coverImage: string;
-  rating: number;
-  reviewCount: number;
-  completedJobs: number;
-  responseTime: string;
-  availability: string;
-  pricingModel: string;
-  licenses: string[];
-  hasInsurance: boolean;
-  isActive: boolean;
-  joinedDate: string;
-}
+import { businessApi } from '../services/api';
+import { BusinessProfile } from '../services/types/business.types';
 
 interface BusinessProfileScreenProps {
   navigation?: any;
 }
 
 export default function BusinessProfileScreen({ navigation }: BusinessProfileScreenProps) {
-  const [businessProfile] = useState<BusinessProfile>({
-    id: 'biz_001',
-    businessName: "Adebayo's Home Repairs",
-    description: 'Professional home repair and maintenance services for your estate. Specializing in plumbing, electrical work, and general handyman services with over 8 years of experience.',
-    category: 'household-services',
-    subcategory: 'Home Repairs',
-    serviceArea: 'neighborhood',
-    phoneNumber: '+234 803 123 4567',
-    whatsappNumber: '+234 803 123 4567',
-    businessAddress: 'Block 5, Flat 3, Victoria Island Estate',
-    yearsOfExperience: 8,
-    isVerified: true,
-    verificationLevel: 'enhanced',
-    profileImage: '',
-    coverImage: '',
-    rating: 4.7,
-    reviewCount: 43,
-    completedJobs: 127,
-    responseTime: '< 2 hours',
-    availability: 'business-hours',
-    pricingModel: 'fixed-rate',
-    licenses: ['Certificate of Incorporation (CAC)', 'Tax Identification Number (TIN)'],
-    hasInsurance: true,
-    isActive: true,
-    joinedDate: '2024-03-15',
-  });
+  const [businessProfile, setBusinessProfile] = useState<BusinessProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+
+  // Load business profile on mount
+  useEffect(() => {
+    loadBusinessProfile();
+  }, []);
+
+  const loadBusinessProfile = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const business = await businessApi.getMyBusiness();
+      setBusinessProfile(business);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load business profile');
+      console.error('Error loading business profile:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadBusinessProfile();
+    setRefreshing(false);
+  }, []);
 
   const getVerificationInfo = () => {
-    return BUSINESS_VERIFICATION_LEVELS.find(level => level.id === businessProfile.verificationLevel);
+    if (!businessProfile) return null;
+    return BUSINESS_VERIFICATION_LEVELS.find(level => level.id === businessProfile.isVerified ? 'basic' : 'basic');
   };
 
   const handleEditProfile = () => {
-    Alert.alert('Edit Business Profile', 'Navigate to business profile editing screen');
+    if (businessProfile) {
+      navigation?.navigate('EditBusinessProfile', { business: businessProfile });
+    }
   };
 
   const handleManageServices = () => {
@@ -83,23 +65,99 @@ export default function BusinessProfileScreen({ navigation }: BusinessProfileScr
     Alert.alert('Business Settings', 'Navigate to business settings screen');
   };
 
-  const handleToggleAvailability = () => {
+  const handleToggleAvailability = async () => {
+    if (!businessProfile || updatingStatus) return;
+
     Alert.alert(
       businessProfile.isActive ? 'Go Offline?' : 'Go Online?',
-      businessProfile.isActive 
+      businessProfile.isActive
         ? 'Your business will be hidden from neighbor searches'
         : 'Your business will be visible to neighbors in your service area',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
+        {
           text: businessProfile.isActive ? 'Go Offline' : 'Go Online',
-          onPress: () => console.log('Toggle business availability')
+          onPress: async () => {
+            try {
+              setUpdatingStatus(true);
+              const updated = await businessApi.updateBusinessStatus(
+                businessProfile.id,
+                !businessProfile.isActive
+              );
+              setBusinessProfile(updated);
+              Alert.alert(
+                'Success',
+                `Your business is now ${updated.isActive ? 'online' : 'offline'}`
+              );
+            } catch (err: any) {
+              Alert.alert('Error', 'Failed to update status. Please try again.');
+              console.error('Error updating status:', err);
+            } finally {
+              setUpdatingStatus(false);
+            }
+          }
         }
       ]
     );
   };
 
   const verificationInfo = getVerificationInfo();
+
+  // Loading state
+  if (loading && !businessProfile) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ScreenHeader title="Business Profile" navigation={navigation} />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#00A651" />
+          <Text style={styles.loadingText}>Loading business profile...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // No business profile state
+  if (!businessProfile && !loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ScreenHeader title="Business Profile" navigation={navigation} />
+        <View style={styles.emptyContainer}>
+          <MaterialCommunityIcons name="store-off" size={64} color="#8E8E8E" />
+          <Text style={styles.emptyTitle}>No Business Profile</Text>
+          <Text style={styles.emptyMessage}>
+            You haven't registered a business yet. Create your business profile to start
+            connecting with neighbors.
+          </Text>
+          <TouchableOpacity
+            style={styles.createButton}
+            onPress={() => navigation?.navigate('BusinessRegistration')}
+          >
+            <Text style={styles.createButtonText}>Create Business Profile</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Error state (still show UI with error message)
+  if (error && !businessProfile) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ScreenHeader title="Business Profile" navigation={navigation} />
+        <View style={styles.errorContainer}>
+          <MaterialCommunityIcons name="alert-circle" size={64} color="#FF3B30" />
+          <Text style={styles.errorTitle}>Failed to Load</Text>
+          <Text style={styles.errorMessage}>{error}</Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={loadBusinessProfile}
+          >
+            <Text style={styles.retryButtonText}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -114,7 +172,13 @@ export default function BusinessProfileScreen({ navigation }: BusinessProfileScr
         }
       />
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
+      >
         {/* Cover & Profile Section */}
         <View style={styles.profileSection}>
           <View style={styles.coverImage}>
@@ -210,36 +274,24 @@ export default function BusinessProfileScreen({ navigation }: BusinessProfileScr
           <View style={styles.businessDetails}>
             <View style={styles.detailItem}>
               <MaterialCommunityIcons name="map-marker" size={16} color="#8E8E8E" />
-              <Text style={styles.detailText}>Service Area: Neighborhood (2km radius)</Text>
+              <Text style={styles.detailText}>Service Area: {businessProfile.serviceArea}</Text>
             </View>
             <View style={styles.detailItem}>
               <MaterialCommunityIcons name="currency-ngn" size={16} color="#8E8E8E" />
-              <Text style={styles.detailText}>Pricing: Fixed rate per service</Text>
+              <Text style={styles.detailText}>Pricing: {businessProfile.pricingModel}</Text>
             </View>
             <View style={styles.detailItem}>
               <MaterialCommunityIcons name="clock" size={16} color="#8E8E8E" />
-              <Text style={styles.detailText}>Hours: 9 AM - 5 PM, Monday to Friday</Text>
+              <Text style={styles.detailText}>Availability: {businessProfile.availability}</Text>
             </View>
           </View>
         </View>
 
         {/* Verification & Licenses */}
-        {(businessProfile.licenses.length > 0 || businessProfile.hasInsurance) && (
+        {businessProfile.hasInsurance && (
           <View style={styles.credentialsCard}>
             <Text style={styles.cardTitle}>Credentials & Verification</Text>
-            
-            {businessProfile.licenses.length > 0 && (
-              <View style={styles.licenseSection}>
-                <Text style={styles.subSectionTitle}>Professional Licenses</Text>
-                {businessProfile.licenses.map((license, index) => (
-                  <View key={index} style={styles.licenseItem}>
-                    <MaterialCommunityIcons name="certificate" size={16} color="#00A651" />
-                    <Text style={styles.licenseText}>{license}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
-            
+
             {businessProfile.hasInsurance && (
               <View style={styles.insuranceSection}>
                 <MaterialCommunityIcons name="shield-check" size={16} color="#0066CC" />
@@ -281,34 +333,6 @@ export default function BusinessProfileScreen({ navigation }: BusinessProfileScr
           </TouchableOpacity>
         </View>
 
-        {/* Recent Activity */}
-        <View style={styles.activityCard}>
-          <Text style={styles.cardTitle}>Recent Activity</Text>
-          
-          <View style={styles.activityItem}>
-            <MaterialCommunityIcons name="star" size={16} color="#FFC107" />
-            <View style={styles.activityContent}>
-              <Text style={styles.activityText}>New 5-star review from Sarah O.</Text>
-              <Text style={styles.activityTime}>2 hours ago</Text>
-            </View>
-          </View>
-          
-          <View style={styles.activityItem}>
-            <MaterialCommunityIcons name="check-circle" size={16} color="#00A651" />
-            <View style={styles.activityContent}>
-              <Text style={styles.activityText}>Completed job for John A. - Plumbing repair</Text>
-              <Text style={styles.activityTime}>1 day ago</Text>
-            </View>
-          </View>
-          
-          <View style={styles.activityItem}>
-            <MaterialCommunityIcons name="message" size={16} color="#0066CC" />
-            <View style={styles.activityContent}>
-              <Text style={styles.activityText}>New booking request from Mary K.</Text>
-              <Text style={styles.activityTime}>2 days ago</Text>
-            </View>
-          </View>
-        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -618,5 +642,86 @@ const styles = StyleSheet.create({
   activityTime: {
     fontSize: 10,
     color: '#8E8E8E',
+  },
+  // Loading state styles
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#8E8E8E',
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  // Empty state styles
+  emptyContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+  },
+  emptyTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#2C2C2C',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyMessage: {
+    fontSize: 16,
+    color: '#8E8E8E',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 24,
+  },
+  createButton: {
+    backgroundColor: '#00A651',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 12,
+    minWidth: 200,
+    alignItems: 'center',
+  },
+  createButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  // Error state styles
+  errorContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+  },
+  errorTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#FF3B30',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorMessage: {
+    fontSize: 16,
+    color: '#8E8E8E',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 24,
+  },
+  retryButton: {
+    backgroundColor: '#0066CC',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 12,
+    minWidth: 150,
+    alignItems: 'center',
+  },
+  retryButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });

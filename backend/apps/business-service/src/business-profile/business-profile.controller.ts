@@ -31,7 +31,7 @@ import { UpdateBusinessProfileDto } from '../dto/update-business-profile.dto';
 import { JwtAuthGuard } from '@app/auth/guards/jwt-auth.guard';
 
 @ApiTags('Business Profile')
-@Controller('business')
+@Controller()
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class BusinessProfileController {
