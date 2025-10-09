@@ -85,7 +85,7 @@ export class VerificationIntegrationService {
         ninStatus.status,
         documentStats.verifiedDocuments,
         badgeStats.totalBadges,
-        trustScore.score,
+        trustScore.totalScore,
       );
 
       return {
@@ -93,7 +93,6 @@ export class VerificationIntegrationService {
         ninVerification: {
           status: ninStatus.status,
           verifiedAt: ninStatus.verifiedAt,
-          ninNumber: ninStatus.ninNumber,
         },
         documents: {
           total: documentStats.totalDocuments,
@@ -108,9 +107,9 @@ export class VerificationIntegrationService {
           recent: badgeStats.recentBadges,
         },
         trustScore: {
-          score: trustScore.score,
+          score: trustScore.totalScore,
           breakdown: trustScore.breakdown,
-          level: this.getTrustLevel(trustScore.score),
+          level: this.getTrustLevel(trustScore.totalScore),
         },
         overallStatus,
         lastUpdated: new Date(),
@@ -341,16 +340,16 @@ export class VerificationIntegrationService {
         id: 'profile_completion',
         name: 'Complete Profile',
         description: 'Fill in your basic profile information',
-        status: status.ninVerification.status !== VerificationStatus.NOT_STARTED ? 'completed' : 'pending',
+        status: (status.ninVerification.status !== VerificationStatus.PENDING ? 'completed' : 'pending') as 'pending' | 'in_progress' | 'completed' | 'failed',
         required: true,
-        completedAt: status.ninVerification.status !== VerificationStatus.NOT_STARTED ? new Date() : undefined,
+        completedAt: status.ninVerification.status !== VerificationStatus.PENDING ? new Date() : undefined,
       },
       {
         id: 'nin_verification',
         name: 'NIN Verification',
         description: 'Verify your National Identification Number',
-        status: status.ninVerification.status === VerificationStatus.VERIFIED ? 'completed' : 
-                status.ninVerification.status === VerificationStatus.PENDING ? 'in_progress' : 'pending',
+        status: (status.ninVerification.status === VerificationStatus.VERIFIED ? 'completed' : 
+                status.ninVerification.status === VerificationStatus.PENDING ? 'in_progress' : 'pending') as 'pending' | 'in_progress' | 'completed' | 'failed',
         required: true,
         completedAt: status.ninVerification.verifiedAt,
       },
@@ -358,8 +357,8 @@ export class VerificationIntegrationService {
         id: 'document_upload',
         name: 'Upload Documents',
         description: 'Upload identity documents for verification',
-        status: status.documents.verified > 0 ? 'completed' : 
-                status.documents.pending > 0 ? 'in_progress' : 'pending',
+        status: (status.documents.verified > 0 ? 'completed' : 
+                status.documents.pending > 0 ? 'in_progress' : 'pending') as 'pending' | 'in_progress' | 'completed' | 'failed',
         required: true,
         completedAt: status.documents.verified > 0 ? new Date() : undefined,
       },
@@ -367,14 +366,14 @@ export class VerificationIntegrationService {
         id: 'phone_verification',
         name: 'Phone Verification',
         description: 'Verify your phone number',
-        status: 'pending', // This would be determined by actual phone verification status
+        status: 'pending' as 'pending' | 'in_progress' | 'completed' | 'failed', // This would be determined by actual phone verification status
         required: false,
       },
       {
         id: 'address_verification',
         name: 'Address Verification',
         description: 'Verify your residential address',
-        status: 'pending', // This would be determined by actual address verification status
+        status: 'pending' as 'pending' | 'in_progress' | 'completed' | 'failed', // This would be determined by actual address verification status
         required: false,
       },
     ];

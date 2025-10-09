@@ -127,6 +127,7 @@ export class UserDocumentsResponseDto {
   @ApiProperty({
     description: 'User documents data',
     type: 'object',
+    additionalProperties: true,
   })
   data: {
     documents: any[];

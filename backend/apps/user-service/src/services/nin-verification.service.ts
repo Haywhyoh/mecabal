@@ -84,7 +84,7 @@ export class NinVerificationService {
       // Perform mock NIN verification
       const mockResponse = await this.performMockNinVerification(request);
 
-      if (mockResponse.success) {
+      if (mockResponse.success && mockResponse.data) {
         // Create or update verification record
         const verificationData = {
           userId,

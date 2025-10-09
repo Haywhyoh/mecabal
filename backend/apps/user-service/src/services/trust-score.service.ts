@@ -145,7 +145,7 @@ export class TrustScoreService {
   }> {
     // Check if user has verified phone number
     const user = await this.userRepository.findOne({ where: { id: userId } });
-    const hasVerifiedPhone = user?.isPhoneVerified || false;
+    const hasVerifiedPhone = user?.phoneVerified || false;
 
     return {
       score: hasVerifiedPhone ? this.config.phoneVerificationPoints : 0,
@@ -206,7 +206,7 @@ export class TrustScoreService {
     return {
       score: hasVerifiedAddress ? this.config.addressVerificationPoints : 0,
       maxScore: this.config.addressVerificationPoints,
-      status: hasVerifiedAddress,
+      status: hasVerifiedAddress || false,
     };
   }
 

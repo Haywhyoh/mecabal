@@ -178,6 +178,7 @@ export class AuditTrailResponseDto {
   @ApiProperty({
     description: 'Audit trail data',
     type: 'object',
+    additionalProperties: true,
   })
   data: {
     audits: any[];

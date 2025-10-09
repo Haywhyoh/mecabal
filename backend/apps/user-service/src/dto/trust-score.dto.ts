@@ -22,6 +22,7 @@ export class TrustScoreBreakdownDto {
   @ApiProperty({
     description: 'Detailed breakdown of trust score components',
     type: 'object',
+    additionalProperties: true,
   })
   breakdown: {
     phoneVerification: {

@@ -11,7 +11,7 @@ import {
   Logger,
   Res,
 } from '@nestjs/common';
-import { Response } from 'express';
+import type { Response } from 'express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@app/auth';
 import { AuditTrailService } from '../services/audit-trail.service';

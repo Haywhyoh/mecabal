@@ -123,6 +123,7 @@ export class UserBadgesResponseDto {
   @ApiProperty({
     description: 'User badges data',
     type: 'object',
+    additionalProperties: true,
   })
   data: {
     activeBadges: any[];
@@ -141,6 +142,7 @@ export class AvailableBadgeTypesDto {
   @ApiProperty({
     description: 'Available badge types by category',
     type: 'object',
+    additionalProperties: true,
     example: {
       verification: ['NIN Verified', 'Identity Verified'],
       leadership: ['Estate Manager', 'Community Leader'],
