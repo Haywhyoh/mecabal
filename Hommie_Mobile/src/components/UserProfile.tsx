@@ -15,6 +15,7 @@ interface UserProfileProps {
   onPress?: () => void;
   onAvatarPress?: () => void;
   onCameraPress?: () => void;
+  onAvatarUpdated?: (avatarUrl: string) => void;
 }
 
 export const UserProfile: React.FC<UserProfileProps> = ({
@@ -28,6 +29,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   onPress,
   onAvatarPress,
   onCameraPress,
+  onAvatarUpdated,
 }) => {
   // Helper function to get full user name
   const getUserName = () => {
@@ -84,6 +86,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
         showCameraButton={showCameraButton}
         onPress={onAvatarPress}
         onCameraPress={onCameraPress}
+        onAvatarUpdated={onAvatarUpdated}
       />
 
       <View style={[

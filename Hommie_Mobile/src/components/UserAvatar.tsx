@@ -1,7 +1,8 @@
-import React from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, Image, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { NigerianUser } from '../types/supabase';
+import { AvatarUploadService } from '../services/avatarUpload';
 
 interface UserAvatarProps {
   user?: NigerianUser | null;
@@ -10,6 +11,7 @@ interface UserAvatarProps {
   showCameraButton?: boolean;
   onPress?: () => void;
   onCameraPress?: () => void;
+  onAvatarUpdated?: (avatarUrl: string) => void;
 }
 
 export const UserAvatar: React.FC<UserAvatarProps> = ({
@@ -19,7 +21,37 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   showCameraButton = false,
   onPress,
   onCameraPress,
+  onAvatarUpdated,
 }) => {
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+
+  const handleAvatarPress = async () => {
+    if (onCameraPress) {
+      onCameraPress();
+      return;
+    }
+
+    // Default avatar change behavior
+    try {
+      const imageUri = await AvatarUploadService.showAvatarPicker();
+      if (imageUri) {
+        setIsUploadingAvatar(true);
+        const result = await AvatarUploadService.uploadAvatar(imageUri);
+
+        if (result.success && result.data) {
+          onAvatarUpdated?.(result.data.avatarUrl);
+          Alert.alert('Success', 'Profile photo updated!');
+        } else {
+          Alert.alert('Error', result.error || 'Failed to upload photo');
+        }
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to change avatar');
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
   // Helper function to get user initials
   const getUserInitials = () => {
     if (user?.firstName && user?.lastName) {
@@ -94,13 +126,18 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
       {showCameraButton && (
         <TouchableOpacity
           style={[styles.cameraButton, cameraSizeStyles[size]]}
-          onPress={onCameraPress}
+          onPress={handleAvatarPress}
+          disabled={isUploadingAvatar}
         >
-          <MaterialCommunityIcons
-            name="camera"
-            size={cameraIconSizes[size]}
-            color="#2C2C2C"
-          />
+          {isUploadingAvatar ? (
+            <ActivityIndicator size="small" color="#2C2C2C" />
+          ) : (
+            <MaterialCommunityIcons
+              name="camera"
+              size={cameraIconSizes[size]}
+              color="#2C2C2C"
+            />
+          )}
         </TouchableOpacity>
       )}
     </View>

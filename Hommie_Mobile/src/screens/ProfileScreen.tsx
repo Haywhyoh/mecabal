@@ -1,14 +1,127 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Alert, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Alert, Image, RefreshControl, ActivityIndicator } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import { contextAwareGoBack } from '../utils/navigationUtils';
 import { useAuth } from '../contexts/AuthContext';
 import { UserProfile } from '../components/UserProfile';
+import { UserDashboardService, DashboardStats } from '../services/userDashboard';
+import { UserProfileService, ProfileCompletionResponse } from '../services/userProfile';
+import { AvatarUploadService } from '../services/avatarUpload';
+import { LoadingState } from '../components/LoadingState';
+import { ErrorState } from '../components/ErrorState';
+import { SkeletonPlaceholder } from '../components/SkeletonPlaceholder';
+import { ToastService } from '../services/toastService';
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
-  const { logout, user } = useAuth();
+  const { logout, user, refreshUser } = useAuth();
+
+  // State for dashboard data
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
+  const [profileCompletion, setProfileCompletion] = useState<ProfileCompletionResponse | null>(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch dashboard data on mount
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setIsLoadingStats(true);
+      setError(null);
+
+      // Fetch dashboard stats
+      const statsResponse = await UserDashboardService.getDashboardStats();
+      if (statsResponse.success && statsResponse.data) {
+        setDashboardStats(statsResponse.data);
+      } else {
+        setError(statsResponse.error || 'Failed to load dashboard stats');
+      }
+
+      // Fetch profile completion
+      const completionResponse = await UserProfileService.getProfileCompletion();
+      if (completionResponse.success && completionResponse.data) {
+        setProfileCompletion(completionResponse.data);
+      } else {
+        setError(completionResponse.error || 'Failed to load profile completion');
+      }
+
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      setError('Network error. Please check your connection and try again.');
+    } finally {
+      setIsLoadingStats(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([
+      fetchDashboardData(),
+      refreshUser()
+    ]);
+    setRefreshing(false);
+  };
+
+  const handleAvatarChange = async () => {
+    Alert.alert(
+      'Change Profile Photo',
+      'Choose an option',
+      [
+        {
+          text: 'Take Photo',
+          onPress: async () => {
+            try {
+              const imageUri = await AvatarUploadService.pickImageFromCamera();
+              if (imageUri) {
+                await uploadAvatar(imageUri);
+              }
+            } catch (error) {
+              Alert.alert('Error', 'Failed to take photo');
+            }
+          },
+        },
+        {
+          text: 'Choose from Library',
+          onPress: async () => {
+            try {
+              const imageUri = await AvatarUploadService.pickImageFromLibrary();
+              if (imageUri) {
+                await uploadAvatar(imageUri);
+              }
+            } catch (error) {
+              Alert.alert('Error', 'Failed to choose photo');
+            }
+          },
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+      ]
+    );
+  };
+
+  const uploadAvatar = async (imageUri: string) => {
+    try {
+      const result = await AvatarUploadService.uploadAvatar(imageUri);
+
+      if (result.success && result.data) {
+        // Update user context with new avatar URL
+        await refreshUser();
+        ToastService.showSuccess('Success', 'Profile photo updated successfully!');
+      } else {
+        ToastService.showError('Error', result.error || 'Failed to upload photo');
+      }
+    } catch (error) {
+      console.error('Avatar upload error:', error);
+      ToastService.showError('Error', 'An unexpected error occurred');
+    }
+  };
 
 
   const handleSignOut = async () => {
@@ -36,6 +149,29 @@ export default function ProfileScreen() {
       ]
     );
   };
+
+  // Show error state if there's an error
+  if (error && !isLoadingStats) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => contextAwareGoBack(navigation, 'main')}>
+            <MaterialCommunityIcons name="arrow-left" size={24} color="#2C2C2C" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Profile</Text>
+          <TouchableOpacity style={styles.settingsButton}>
+            <MaterialCommunityIcons name="cog" size={24} color="#2C2C2C" />
+          </TouchableOpacity>
+        </View>
+        <ErrorState
+          title="Failed to Load Profile"
+          message={error}
+          onRetry={fetchDashboardData}
+        />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -49,7 +185,17 @@ export default function ProfileScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor="#00A651"
+          />
+        }
+      >
         {/* Profile Section */}
         <View style={styles.profileSection}>
           <UserProfile
@@ -59,16 +205,19 @@ export default function ProfileScreen() {
             showJoinDate={true}
             showVerificationBadge={true}
             showCameraButton={true}
-            onCameraPress={() => {
-              // TODO: Implement camera/photo picker
-              Alert.alert('Change Photo', 'Photo upload feature coming soon!');
+            onCameraPress={handleAvatarChange}
+            onAvatarUpdated={async (avatarUrl: string) => {
+              // Update user context with new avatar URL
+              await refreshUser();
             }}
           />
 
           <TouchableOpacity style={styles.locationContainer} onPress={() => navigation.navigate('EstateManager' as never)}>
             <MaterialCommunityIcons name="map-marker" size={16} color="#8E8E8E" />
-            <Text style={styles.userLocation}>Victoria Island, Lagos</Text>
-            <Text style={styles.estateCount}>• 3 estates</Text>
+            <Text style={styles.userLocation}>
+              {user?.city || 'Unknown'}, {user?.state || 'Unknown'}
+            </Text>
+            <Text style={styles.estateCount}>• {user?.estate ? '1 estate' : 'No estates'}</Text>
             <MaterialCommunityIcons name="chevron-right" size={16} color="#8E8E8E" style={styles.chevron} />
           </TouchableOpacity>
         </View>
@@ -83,7 +232,10 @@ export default function ProfileScreen() {
         </TouchableOpacity>
 
         {/* Edit Profile Button */}
-        <TouchableOpacity style={styles.editProfileButton}>
+        <TouchableOpacity 
+          style={styles.editProfileButton}
+          onPress={() => navigation.navigate('EditProfile' as never)}
+        >
           <MaterialCommunityIcons name="pencil" size={20} color="#2C2C2C" />
           <Text style={styles.editProfileText}>Edit Profile</Text>
         </TouchableOpacity>
@@ -97,26 +249,53 @@ export default function ProfileScreen() {
               <Text style={styles.privacyText}>Only visible to you</Text>
             </View>
           </View>
-          
-          <View style={styles.dashboardGrid}>
-            <TouchableOpacity style={styles.dashboardCard}>
-              <MaterialCommunityIcons name="bookmark" size={24} color="#0066CC" />
-              <Text style={styles.dashboardTitle}>Bookmarks</Text>
-              <Text style={styles.dashboardCount}>12 saved posts</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.dashboardCard}>
-              <MaterialCommunityIcons name="tag" size={24} color="#FF6B35" />
-              <Text style={styles.dashboardTitle}>Saved Deals</Text>
-              <Text style={styles.dashboardCount}>3 local offers</Text>
-            </TouchableOpacity>
-          </View>
-          
-          <TouchableOpacity style={styles.dashboardCard}>
-            <MaterialCommunityIcons name="calendar" size={24} color="#7B68EE" />
-            <Text style={styles.dashboardTitle}>Events</Text>
-            <Text style={styles.dashboardCount}>5 upcoming events you're attending</Text>
-          </TouchableOpacity>
+
+          {isLoadingStats ? (
+            <View style={styles.skeletonContainer}>
+              <View style={styles.dashboardGrid}>
+                <SkeletonPlaceholder width="48%" height={120} borderRadius={12} />
+                <SkeletonPlaceholder width="48%" height={120} borderRadius={12} />
+              </View>
+              <SkeletonPlaceholder width="100%" height={80} borderRadius={12} style={{ marginTop: 12 }} />
+            </View>
+          ) : (
+            <>
+              <View style={styles.dashboardGrid}>
+                <TouchableOpacity
+                  style={styles.dashboardCard}
+                  onPress={() => navigation.navigate('Bookmarks' as never, { type: 'post' })}
+                >
+                  <MaterialCommunityIcons name="bookmark" size={24} color="#0066CC" />
+                  <Text style={styles.dashboardTitle}>Bookmarks</Text>
+                  <Text style={styles.dashboardCount}>
+                    {dashboardStats?.bookmarks.count || 0} saved posts
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.dashboardCard}
+                  onPress={() => navigation.navigate('Bookmarks' as never, { type: 'listing' })}
+                >
+                  <MaterialCommunityIcons name="tag" size={24} color="#FF6B35" />
+                  <Text style={styles.dashboardTitle}>Saved Deals</Text>
+                  <Text style={styles.dashboardCount}>
+                    {dashboardStats?.savedDeals.count || 0} local offers
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity
+                style={styles.dashboardCard}
+                onPress={() => navigation.navigate('MyEvents' as never)}
+              >
+                <MaterialCommunityIcons name="calendar" size={24} color="#7B68EE" />
+                <Text style={styles.dashboardTitle}>Events</Text>
+                <Text style={styles.dashboardCount}>
+                  {dashboardStats?.events.attending || 0} upcoming events you're attending
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
 
         {/* Profile Enhancement */}
@@ -138,20 +317,28 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Your Community Impact</Text>
           
-          <View style={styles.statsGrid}>
-            <View style={styles.statCard}>
-              <Text style={styles.statNumber}>23</Text>
-              <Text style={styles.statLabel}>Posts Shared</Text>
+          {isLoadingStats ? (
+            <View style={styles.statsGrid}>
+              <SkeletonPlaceholder width="30%" height={80} borderRadius={8} />
+              <SkeletonPlaceholder width="30%" height={80} borderRadius={8} />
+              <SkeletonPlaceholder width="30%" height={80} borderRadius={8} />
             </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statNumber}>47</Text>
-              <Text style={styles.statLabel}>Neighbors Helped</Text>
+          ) : (
+            <View style={styles.statsGrid}>
+              <View style={styles.statCard}>
+                <Text style={styles.statNumber}>{dashboardStats?.posts.shared || 0}</Text>
+                <Text style={styles.statLabel}>Posts Shared</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statNumber}>{dashboardStats?.community.neighborsHelped || 0}</Text>
+                <Text style={styles.statLabel}>Neighbors Helped</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statNumber}>{dashboardStats?.events.joined || 0}</Text>
+                <Text style={styles.statLabel}>Events Joined</Text>
+              </View>
             </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statNumber}>8</Text>
-              <Text style={styles.statLabel}>Events Joined</Text>
-            </View>
-          </View>
+          )}
         </View>
 
         {/* Quick Actions */}
@@ -463,5 +650,8 @@ const styles = StyleSheet.create({
     color: '#E74C3C',
     fontWeight: '500',
     marginLeft: 8,
+  },
+  skeletonContainer: {
+    marginTop: 16,
   },
 });

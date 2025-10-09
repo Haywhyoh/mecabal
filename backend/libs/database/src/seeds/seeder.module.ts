@@ -1,11 +1,37 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SeederService } from './seeder.service';
-import { State, LocalGovernmentArea, PostCategory } from '../entities';
+import { State, LocalGovernmentArea, PostCategory, Achievement, Badge } from '../entities';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([State, LocalGovernmentArea, PostCategory]),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        type: 'postgres',
+        host: configService.get('DATABASE_HOST', 'localhost'),
+        port: configService.get('DATABASE_PORT', 5432),
+        username: configService.get('DATABASE_USERNAME', 'MeCabal_user'),
+        password: configService.get('DATABASE_PASSWORD', 'MeCabal_password'),
+        database: configService.get('DATABASE_NAME', 'MeCabal_dev'),
+        entities: [__dirname + '/../**/*.entity{.ts,.js}'],
+        synchronize: false,
+        logging: true,
+      }),
+      inject: [ConfigService],
+    }),
+    TypeOrmModule.forFeature([
+      State,
+      LocalGovernmentArea,
+      PostCategory,
+      Achievement,
+      Badge,
+    ]),
   ],
   providers: [SeederService],
   exports: [SeederService],

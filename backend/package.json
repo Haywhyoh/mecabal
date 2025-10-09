@@ -35,7 +35,7 @@
     "migration:run": "npm run typeorm -- migration:run -d ormconfig.ts",
     "migration:revert": "npm run typeorm -- migration:revert -d ormconfig.ts",
     "schema:sync": "npm run typeorm -- schema:sync -d ormconfig.ts",
-    "db:seed": "nest start --entryFile=seeder"
+    "db:seed": "ts-node -r tsconfig-paths/register libs/database/src/seeds/seeder.ts"
   },
   "dependencies": {
     "@getbrevo/brevo": "^3.0.1",

@@ -3,6 +3,7 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { MeCabalAuth } from '../services/auth';
+import { UserProfileService } from '../services/userProfile';
 import type { NigerianUser } from '../types/supabase';
 
 interface AuthContextType {
@@ -148,24 +149,108 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const refreshUser = async (): Promise<void> => {
     try {
-      const currentUser = await MeCabalAuth.getCurrentUser();
-      setUser(currentUser);
+      // Try to get user from backend first
+      const profileResult = await UserProfileService.getCurrentUserProfile();
+      
+      if (profileResult.success && profileResult.data) {
+        // Convert backend response to NigerianUser format
+        const backendUser: NigerianUser = {
+          id: profileResult.data.id,
+          firstName: profileResult.data.firstName,
+          lastName: profileResult.data.lastName,
+          fullName: profileResult.data.fullName,
+          email: profileResult.data.email,
+          phoneNumber: profileResult.data.phoneNumber,
+          profilePictureUrl: profileResult.data.profilePictureUrl,
+          dateOfBirth: profileResult.data.dateOfBirth,
+          gender: profileResult.data.gender,
+          isVerified: profileResult.data.isVerified,
+          phoneVerified: profileResult.data.phoneVerified,
+          identityVerified: profileResult.data.identityVerified,
+          addressVerified: profileResult.data.addressVerified,
+          trustScore: profileResult.data.trustScore,
+          verificationLevel: profileResult.data.verificationLevel,
+          verificationBadge: profileResult.data.verificationBadge,
+          bio: profileResult.data.bio,
+          occupation: profileResult.data.occupation,
+          professionalSkills: profileResult.data.professionalSkills,
+          culturalBackground: profileResult.data.culturalBackground,
+          nativeLanguages: profileResult.data.nativeLanguages,
+          preferredLanguage: profileResult.data.preferredLanguage,
+          state: profileResult.data.state,
+          city: profileResult.data.city,
+          estate: profileResult.data.estate,
+          locationString: profileResult.data.locationString,
+          landmark: profileResult.data.landmark,
+          address: profileResult.data.address,
+          isActive: profileResult.data.isActive,
+          memberSince: profileResult.data.memberSince,
+          lastLoginAt: profileResult.data.lastLoginAt,
+          createdAt: profileResult.data.createdAt,
+          updatedAt: profileResult.data.updatedAt,
+          joinDate: profileResult.data.joinDate,
+          profileCompleteness: profileResult.data.profileCompleteness,
+        };
+        
+        setUser(backendUser);
+      } else {
+        // Fallback to old method if backend fails
+        const currentUser = await MeCabalAuth.getCurrentUser();
+        setUser(currentUser);
+      }
     } catch (error) {
       console.error('User refresh error:', error);
+      // Fallback to old method on error
+      try {
+        const currentUser = await MeCabalAuth.getCurrentUser();
+        setUser(currentUser);
+      } catch (fallbackError) {
+        console.error('Fallback user refresh error:', fallbackError);
+      }
     }
   };
 
   const updateProfile = async (updates: Partial<NigerianUser>): Promise<boolean> => {
     if (!user) return false;
-    
+
     try {
-      const result = await MeCabalAuth.updateProfile(user.id, updates);
-      
+      // Use the new UserProfileService instead of old method
+      const result = await UserProfileService.updateCurrentUserProfile(updates as any);
+
       if (result.success && result.data) {
-        setUser(result.data);
+        // Convert backend response to NigerianUser format
+        const updatedUser: NigerianUser = {
+          ...user,
+          ...updates,
+          // Map backend response fields to user object
+          firstName: result.data.firstName || user.firstName,
+          lastName: result.data.lastName || user.lastName,
+          profilePictureUrl: result.data.profilePictureUrl || user.profilePictureUrl,
+          bio: result.data.bio || user.bio,
+          occupation: result.data.occupation || user.occupation,
+          professionalSkills: result.data.professionalSkills || user.professionalSkills,
+          culturalBackground: result.data.culturalBackground || user.culturalBackground,
+          nativeLanguages: result.data.nativeLanguages || user.nativeLanguages,
+          preferredLanguage: result.data.preferredLanguage || user.preferredLanguage,
+          state: result.data.state || user.state,
+          city: result.data.city || user.city,
+          estate: result.data.estate || user.estate,
+          landmark: result.data.landmark || user.landmark,
+          address: result.data.address || user.address,
+          isVerified: result.data.isVerified || user.isVerified,
+          phoneVerified: result.data.phoneVerified || user.phoneVerified,
+          identityVerified: result.data.identityVerified || user.identityVerified,
+          addressVerified: result.data.addressVerified || user.addressVerified,
+          trustScore: result.data.trustScore || user.trustScore,
+          verificationLevel: result.data.verificationLevel || user.verificationLevel,
+          verificationBadge: result.data.verificationBadge || user.verificationBadge,
+          profileCompleteness: result.data.profileCompleteness || user.profileCompleteness,
+        };
+
+        setUser(updatedUser);
         return true;
       }
-      
+
       return false;
     } catch (error) {
       console.error('Profile update error:', error);

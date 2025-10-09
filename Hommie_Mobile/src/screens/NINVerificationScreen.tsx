@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView, Alert, Modal } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView, Alert, Modal, ActivityIndicator } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useNavigation } from '@react-navigation/native';
+import { useAuth } from '../contexts/AuthContext';
+import { NINVerificationService, NINVerificationResponse } from '../services/ninVerification';
 
 interface NINData {
   nin: string;
@@ -13,24 +16,21 @@ interface NINData {
 }
 
 export default function NINVerificationScreen() {
+  const navigation = useNavigation();
+  const { refreshUser } = useAuth();
+
   const [nin, setNin] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [verificationStep, setVerificationStep] = useState<'input' | 'preview' | 'success'>('input');
-  const [ninData, setNinData] = useState<NINData | null>(null);
+  const [ninData, setNinData] = useState<NINVerificationResponse | null>(null);
 
   const validateNIN = (ninNumber: string) => {
-    // NIN should be 11 digits
-    const cleanNIN = ninNumber.replace(/\s+/g, '');
-    return /^\d{11}$/.test(cleanNIN);
+    return NINVerificationService.validateNIN(ninNumber);
   };
 
   const formatNIN = (ninNumber: string) => {
-    // Format NIN as XXXX XXX XXXX
-    const cleaned = ninNumber.replace(/\s+/g, '');
-    if (cleaned.length <= 4) return cleaned;
-    if (cleaned.length <= 7) return `${cleaned.slice(0, 4)} ${cleaned.slice(4)}`;
-    return `${cleaned.slice(0, 4)} ${cleaned.slice(4, 7)} ${cleaned.slice(7, 11)}`;
+    return NINVerificationService.formatNIN(ninNumber);
   };
 
   const handleNINChange = (text: string) => {
@@ -47,37 +47,46 @@ export default function NINVerificationScreen() {
     }
 
     setIsLoading(true);
-    
+
     try {
-      // Simulate API call to verify NIN
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      // Mock successful verification response
-      const mockData: NINData = {
-        nin: nin,
-        firstName: 'Adebayo',
-        lastName: 'Ogundimu',
-        dateOfBirth: '1990-05-15',
-        gender: 'Male',
-        stateOfOrigin: 'Lagos',
-        isVerified: true,
-      };
-      
-      setNinData(mockData);
-      setVerificationStep('preview');
+      // Call real backend API
+      const result = await NINVerificationService.verifyNIN(nin);
+
+      if (result.success && result.data) {
+        // Verification successful - show preview
+        setNinData(result.data);
+        setVerificationStep('preview');
+      } else {
+        // Verification failed
+        Alert.alert(
+          'Verification Failed',
+          result.error || 'Unable to verify NIN. Please check your number and try again.'
+        );
+      }
     } catch (error) {
-      Alert.alert('Verification Failed', 'Unable to verify NIN. Please check your number and try again.');
+      console.error('NIN verification error:', error);
+      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleConfirmVerification = () => {
-    setVerificationStep('success');
-    Alert.alert(
-      'NIN Verified Successfully', 
-      'Your National ID has been verified and linked to your profile. This helps build trust in the community.'
-    );
+  const handleConfirmVerification = async () => {
+    try {
+      // Refresh user data to get updated verification status
+      await refreshUser();
+
+      // Show success screen
+      setVerificationStep('success');
+
+      // Optionally show alert
+      Alert.alert(
+        'NIN Verified Successfully',
+        'Your National ID has been verified and linked to your profile. This helps build trust in the community.'
+      );
+    } catch (error) {
+      console.error('Error refreshing user data:', error);
+    }
   };
 
   const handleSkipVerification = () => {
@@ -85,7 +94,15 @@ export default function NINVerificationScreen() {
       'Skip NIN Verification?',
       'You can verify your NIN later in your profile settings. Some community features may be limited without verification.',
       [
-        { text: 'Continue Without NIN', style: 'destructive' },
+        {
+          text: 'Continue Without NIN',
+          style: 'destructive',
+          onPress: async () => {
+            // Mark as skipped in backend
+            await NINVerificationService.skipVerification();
+            navigation.goBack();
+          }
+        },
         { text: 'Verify Now', style: 'cancel' }
       ]
     );
@@ -178,7 +195,10 @@ export default function NINVerificationScreen() {
               </View>
             </View>
 
-            <TouchableOpacity style={styles.continueButton}>
+            <TouchableOpacity 
+              style={styles.continueButton}
+              onPress={() => navigation.goBack()}
+            >
               <Text style={styles.continueButtonText}>Continue to Profile</Text>
             </TouchableOpacity>
           </View>
@@ -226,7 +246,7 @@ export default function NINVerificationScreen() {
             </View>
             <View style={styles.dataRow}>
               <Text style={styles.dataLabel}>NIN</Text>
-              <Text style={styles.dataValue}>{formatNIN(ninData.nin)}</Text>
+              <Text style={styles.dataValue}>{formatNIN(ninData.ninNumber)}</Text>
             </View>
           </View>
 
@@ -253,7 +273,10 @@ export default function NINVerificationScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
           <MaterialCommunityIcons name="arrow-left" size={24} color="#2C2C2C" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>NIN Verification</Text>
@@ -333,7 +356,10 @@ export default function NINVerificationScreen() {
           disabled={!validateNIN(nin) || isLoading}
         >
           {isLoading ? (
-            <MaterialCommunityIcons name="loading" size={20} color="#FFFFFF" />
+            <>
+              <ActivityIndicator size="small" color="#FFFFFF" />
+              <Text style={styles.verifyButtonText}>Verifying...</Text>
+            </>
           ) : (
             <>
               <MaterialCommunityIcons name="shield-check" size={20} color="#FFFFFF" />

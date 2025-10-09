@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/mecabal.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "projectId": "jjmuogczhcunpehsocly",
     "splash": {
       "image": "./assets/mecabal.png",
