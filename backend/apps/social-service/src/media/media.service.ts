@@ -7,7 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { Media, User } from '@app/database';
-import { DigitalOceanSpacesService } from './digitalocean-spaces.service';
+import { FileUploadService } from '@app/storage';
 import {
   UploadMediaDto,
   MediaResponseDto,
@@ -24,7 +24,7 @@ export class MediaService {
     private readonly mediaRepository: Repository<Media>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    private readonly spacesService: DigitalOceanSpacesService,
+    private readonly fileUploadService: FileUploadService,
     private readonly configService: ConfigService,
   ) {}
 
@@ -54,47 +54,15 @@ export class MediaService {
           size: file.size,
         };
 
-        // Check if DigitalOcean Spaces is configured
-        const doSpacesKey = this.configService.get<string>('DO_SPACES_KEY');
-        const doSpacesSecret =
-          this.configService.get<string>('DO_SPACES_SECRET');
-        const doSpacesBucket =
-          this.configService.get<string>('DO_SPACES_BUCKET');
-
-        let uploadResult;
-
-        if (!doSpacesKey || !doSpacesSecret || !doSpacesBucket) {
-          // For development, skip DigitalOcean Spaces and use local fallback
-          const mockUrl = `http://localhost:3003/media/fallback/${Date.now()}-${file.originalname}`;
-          uploadResult = {
-            url: mockUrl,
-            key: `posts/${Date.now()}-${file.originalname}`,
-            size: file.size,
-            mimeType: file.mimetype,
-          };
-        } else {
-          // Use DigitalOcean Spaces
-          try {
-            uploadResult = await this.spacesService.uploadFile(
-              mediaFile,
-              'posts',
-              {
-                quality: uploadDto.quality,
-                maxWidth: uploadDto.maxWidth,
-                maxHeight: uploadDto.maxHeight,
-              },
-            );
-          } catch (error) {
-            // Fallback for development - create a mock upload result
-            const mockUrl = `http://localhost:3003/media/fallback/${Date.now()}-${file.originalname}`;
-            uploadResult = {
-              url: mockUrl,
-              key: `posts/${Date.now()}-${file.originalname}`,
-              size: file.size,
-              mimeType: file.mimetype,
-            };
-          }
-        }
+        // Use shared file upload service
+        const uploadResult = await this.fileUploadService.uploadMedia(
+          mediaFile,
+          userId,
+          {
+            quality: uploadDto.quality,
+            maxWidth: uploadDto.maxWidth,
+          },
+        );
 
         // Save to database
         const media = this.mediaRepository.create({
@@ -223,8 +191,8 @@ export class MediaService {
     }
 
     try {
-      // Delete from DigitalOcean Spaces
-      await this.spacesService.deleteFile(media.storagePath);
+      // Delete from storage
+      await this.fileUploadService.deleteFile(media.storagePath);
 
       // Delete from database
       await this.mediaRepository.remove(media);

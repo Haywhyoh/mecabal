@@ -73,6 +73,7 @@
     "react-native-skeleton-placeholder": "^5.2.4",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "sharp": "^0.34.4",
     "typeorm": "^0.3.25"
   },
   "devDependencies": {
@@ -88,6 +89,7 @@
     "@types/passport-jwt": "^4.0.1",
     "@types/passport-local": "^1.0.38",
     "@types/pg": "^8.15.5",
+    "@types/sharp": "^0.31.1",
     "@types/supertest": "^6.0.2",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
@@ -129,6 +131,7 @@
       "^@app/common(|/.*)$": "<rootDir>/libs/common/src/$1",
       "^@app/database(|/.*)$": "<rootDir>/libs/database/src/$1",
       "^@app/validation(|/.*)$": "<rootDir>/libs/validation/src/$1",
+      "^@app/storage(|/.*)$": "<rootDir>/libs/storage/src/$1",
       "^yes/email(|/.*)$": "<rootDir>/libs/email/src/$1"
     }
   }

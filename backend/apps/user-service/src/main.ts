@@ -58,7 +58,7 @@ async function bootstrap() {
     customSiteTitle: 'MeCabal User API Docs',
   });
 
-  const port = process.env.PORT ?? 3002;
+  const port = process.env.USER_SERVICE_PORT ?? 3002;
   await app.listen(port);
 
   console.log(`🚀 User Service running on: http://localhost:${port}`);

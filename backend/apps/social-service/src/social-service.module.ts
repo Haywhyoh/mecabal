@@ -11,6 +11,7 @@ import { CategoriesModule } from './categories/categories.module';
 import { MediaModule } from './media/media.module';
 import { DatabaseModule } from '@app/database';
 import { AuthModule } from '@app/auth';
+import { StorageModule } from '@app/storage';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { AuthModule } from '@app/auth';
     }),
     DatabaseModule,
     AuthModule,
+    StorageModule,
     PostsModule,
     ReactionsModule,
     CommentsModule,
