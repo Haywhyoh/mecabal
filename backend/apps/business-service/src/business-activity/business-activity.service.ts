@@ -147,8 +147,15 @@ export class BusinessActivityService {
       order: { createdAt: 'ASC' },
     });
 
-    // Group by date
-    const dailyStats = {};
+      // Group by date
+      const dailyStats: Record<string, {
+        date: string;
+        views: number;
+        inquiries: number;
+        reviews: number;
+        jobs: number;
+        contacts: number;
+      }> = {};
 
     activities.forEach((activity) => {
       const date = activity.createdAt.toISOString().split('T')[0];

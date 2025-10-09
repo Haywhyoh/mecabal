@@ -9,6 +9,7 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
+import { Request as ExpressRequest } from 'express';
 import {
   ApiTags,
   ApiOperation,
@@ -24,6 +25,13 @@ import {
 } from '../dto/inquiry.dto';
 import { JwtAuthGuard } from '@app/auth/guards/jwt-auth.guard';
 
+interface AuthenticatedRequest extends ExpressRequest {
+  user: {
+    id: string;
+    email: string;
+  };
+}
+
 @ApiTags('Business Inquiries')
 @Controller('business/:businessId/inquiries')
 @UseGuards(JwtAuthGuard)
@@ -36,12 +44,12 @@ export class BusinessInquiryController {
   @ApiResponse({ status: 201, description: 'Inquiry sent successfully' })
   async create(
     @Param('businessId') businessId: string,
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Body() createDto: CreateBusinessInquiryDto,
   ) {
     const inquiry = await this.inquiryService.create(
       businessId,
-      req.user.userId,
+      req.user.id,
       createDto,
     );
     return {
@@ -84,12 +92,12 @@ export class BusinessInquiryController {
   @ApiResponse({ status: 200, description: 'Response sent successfully' })
   async respond(
     @Param('inquiryId') inquiryId: string,
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Body() respondDto: RespondToInquiryDto,
   ) {
     const inquiry = await this.inquiryService.respond(
       inquiryId,
-      req.user.userId,
+      req.user.id,
       respondDto,
     );
     return {
@@ -104,12 +112,12 @@ export class BusinessInquiryController {
   @ApiResponse({ status: 200, description: 'Status updated successfully' })
   async updateStatus(
     @Param('inquiryId') inquiryId: string,
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Body() updateDto: UpdateInquiryStatusDto,
   ) {
     const inquiry = await this.inquiryService.updateStatus(
       inquiryId,
-      req.user.userId,
+      req.user.id,
       updateDto,
     );
     return {
@@ -130,8 +138,8 @@ export class UserInquiryController {
   @Get()
   @ApiOperation({ summary: 'Get all inquiries sent by current user' })
   @ApiResponse({ status: 200, description: 'User inquiries retrieved' })
-  async getMyInquiries(@Request() req) {
-    const inquiries = await this.inquiryService.findByUser(req.user.userId);
+  async getMyInquiries(@Request() req: AuthenticatedRequest) {
+    const inquiries = await this.inquiryService.findByUser(req.user.id);
     return {
       success: true,
       data: inquiries,

@@ -95,9 +95,9 @@ export class BusinessActivityController {
   async getActivity(
     @Param('businessId') businessId: string,
     @Query('limit') limit: number = 50,
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
   ) {
-    await this.verifyBusinessOwnership(businessId, req.user.userId);
+    await this.verifyBusinessOwnership(businessId, req.user.id);
 
     const activities = await this.activityService.getRecentActivity(
       businessId,

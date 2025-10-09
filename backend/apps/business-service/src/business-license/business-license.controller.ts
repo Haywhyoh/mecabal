@@ -11,6 +11,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { Request as ExpressRequest } from 'express';
 import {
   ApiTags,
   ApiOperation,
@@ -24,6 +25,15 @@ import {
   VerifyLicenseDto,
 } from '../dto/license.dto';
 import { JwtAuthGuard } from '@app/auth/guards/jwt-auth.guard';
+import { RolesGuard } from '@app/auth/guards/roles.guard';
+import { Roles } from '@app/auth/decorators/roles.decorator';
+
+interface AuthenticatedRequest extends ExpressRequest {
+  user: {
+    id: string;
+    email: string;
+  };
+}
 
 @ApiTags('Business Licenses')
 @Controller('business/:businessId/licenses')
@@ -38,12 +48,12 @@ export class BusinessLicenseController {
   @ApiResponse({ status: 403, description: 'Forbidden' })
   async create(
     @Param('businessId') businessId: string,
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Body() createDto: CreateBusinessLicenseDto,
   ) {
     const license = await this.licenseService.create(
       businessId,
-      req.user.userId,
+      req.user.id,
       createDto,
     );
     return {
@@ -70,12 +80,12 @@ export class BusinessLicenseController {
   @ApiResponse({ status: 403, description: 'Forbidden' })
   async update(
     @Param('licenseId') licenseId: string,
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Body() updateDto: UpdateBusinessLicenseDto,
   ) {
     const license = await this.licenseService.update(
       licenseId,
-      req.user.userId,
+      req.user.id,
       updateDto,
     );
     return {
@@ -90,8 +100,8 @@ export class BusinessLicenseController {
   @ApiOperation({ summary: 'Delete a license' })
   @ApiResponse({ status: 204, description: 'License deleted successfully' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
-  async delete(@Param('licenseId') licenseId: string, @Request() req) {
-    await this.licenseService.delete(licenseId, req.user.userId);
+  async delete(@Param('licenseId') licenseId: string, @Request() req: AuthenticatedRequest) {
+    await this.licenseService.delete(licenseId, req.user.id);
   }
 
   @Post(':licenseId/verify')

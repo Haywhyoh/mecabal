@@ -72,7 +72,7 @@ export class BusinessReviewService {
     businessId: string,
     queryDto: ReviewQueryDto,
   ): Promise<{ data: BusinessReview[]; meta: any }> {
-    const { page, limit, rating } = queryDto;
+    const { page = 1, limit = 20, rating } = queryDto;
     const skip = (page - 1) * limit;
 
     const queryBuilder = this.reviewRepo
@@ -184,7 +184,7 @@ export class BusinessReviewService {
       };
     }
 
-    const ratingDistribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+      const ratingDistribution: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
     let totalServiceQuality = 0;
     let totalProfessionalism = 0;
     let totalValueForMoney = 0;
