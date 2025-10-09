@@ -54,3 +54,12 @@ export { UserActivityLog, ActivityType } from './user-activity-log.entity';
 export { UserPoints } from './user-points.entity';
 export { LeaderboardSnapshot, LeaderboardCategory, LeaderboardPeriod } from './leaderboard-snapshot.entity';
 export type { LeaderboardRanking } from './leaderboard-snapshot.entity';
+
+// Business Account Entities
+export { BusinessProfile } from './business-profile.entity';
+export { BusinessCategory } from './business-category.entity';
+export { BusinessLicense } from './business-license.entity';
+export { BusinessService } from './business-service.entity';
+export { BusinessReview } from './business-review.entity';
+export { BusinessInquiry } from './business-inquiry.entity';
+export { BusinessActivityLog } from './business-activity-log.entity';

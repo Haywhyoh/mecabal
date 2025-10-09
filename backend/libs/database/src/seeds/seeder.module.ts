@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SeederService } from './seeder.service';
-import { State, LocalGovernmentArea, PostCategory, Achievement, Badge } from '../entities';
+import { State, LocalGovernmentArea, PostCategory, Achievement, Badge, BusinessCategory } from '../entities';
 
 @Module({
   imports: [
@@ -31,6 +31,7 @@ import { State, LocalGovernmentArea, PostCategory, Achievement, Badge } from '..
       PostCategory,
       Achievement,
       Badge,
+      BusinessCategory,
     ]),
   ],
   providers: [SeederService],

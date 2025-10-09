@@ -1,8 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { State, LocalGovernmentArea, PostCategory, Achievement, Badge } from '../entities';
+import { State, LocalGovernmentArea, PostCategory, Achievement, Badge, BusinessCategory } from '../entities';
 import { ACHIEVEMENT_SEEDS, BADGE_SEEDS } from './gamification.seed';
+import { businessCategoriesData } from './business-categories.seed';
 
 @Injectable()
 export class SeederService {
@@ -19,6 +20,8 @@ export class SeederService {
     private achievementRepository: Repository<Achievement>,
     @InjectRepository(Badge)
     private badgeRepository: Repository<Badge>,
+    @InjectRepository(BusinessCategory)
+    private businessCategoryRepository: Repository<BusinessCategory>,
   ) {}
 
   async seedAll(): Promise<void> {
@@ -30,6 +33,7 @@ export class SeederService {
       await this.seedPostCategories();
       await this.seedAchievements();
       await this.seedBadges();
+      await this.seedBusinessCategories();
 
       this.logger.log('Database seeding completed successfully');
     } catch (error) {
@@ -216,5 +220,18 @@ export class SeederService {
 
     await this.badgeRepository.save(BADGE_SEEDS);
     this.logger.log(`Seeded ${BADGE_SEEDS.length} badges`);
+  }
+
+  private async seedBusinessCategories(): Promise<void> {
+    this.logger.log('Seeding business categories...');
+
+    const existingCategories = await this.businessCategoryRepository.count();
+    if (existingCategories > 0) {
+      this.logger.log('Business categories already exist, skipping...');
+      return;
+    }
+
+    await this.businessCategoryRepository.save(businessCategoriesData);
+    this.logger.log(`Seeded ${businessCategoriesData.length} business categories`);
   }
 }

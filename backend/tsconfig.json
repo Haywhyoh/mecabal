@@ -21,9 +21,13 @@
     "noImplicitAny": true,
     "strictBindCallApply": true,
     "noFallthroughCasesInSwitch": true,
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
     "paths": {
+      "@app/auth": [
+        "libs/auth/src"
+      ],
+      "@app/auth/*": [
+        "libs/auth/src/*"
+      ],
       "@app/common": [
         "libs/common/src"
       ],
@@ -36,23 +40,17 @@
       "@app/database/*": [
         "libs/database/src/*"
       ],
-      "@app/auth": [
-        "libs/auth/src"
+      "@app/storage": [
+        "libs/storage/src"
       ],
-      "@app/auth/*": [
-        "libs/auth/src/*"
+      "@app/storage/*": [
+        "libs/storage/src/*"
       ],
       "@app/validation": [
         "libs/validation/src"
       ],
       "@app/validation/*": [
         "libs/validation/src/*"
-      ],
-      "@app/storage": [
-        "libs/storage/src"
-      ],
-      "@app/storage/*": [
-        "libs/storage/src/*"
       ]
     }
   }
