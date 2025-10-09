@@ -78,7 +78,7 @@ export const StarRating: React.FC<StarRatingProps> = ({
           disabled={disabled}
           accessibilityRole={interactive ? "button" : undefined}
           accessibilityLabel={`Rate ${index + 1} star${index + 1 !== 1 ? 's' : ''}`}
-          accessibilityHint={interactive ? `Tap to rate ${index + 1} star${index + 1 !== 1 ? 's' : ''}`}
+          accessibilityHint={interactive ? `Tap to rate ${index + 1} star${index + 1 !== 1 ? 's' : ''}` : undefined}
         >
           <MaterialCommunityIcons
             name={isFilled ? 'star' : isHalfFilled ? 'star-half-full' : 'star-outline'}
@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: typography.sizes.callout,
-    fontWeight: typography.weights.semibold,
+    fontWeight: typography.weights.semibold as any,
     color: colors.text.dark,
   },
   disabledLabel: {
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
   ratingText: {
     fontSize: typography.sizes.caption1,
     color: colors.text.secondary,
-    fontWeight: typography.weights.medium,
+    fontWeight: typography.weights.medium as any,
   },
   disabledText: {
     color: colors.text.tertiary,

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, Image, Alert, ActivityIndicator, Linking } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { ScreenHeader } from '../components/ScreenHeader';
+import SendInquiryModal from '../components/SendInquiryModal';
 import { businessApi, businessReviewApi } from '../services/api';
 import { BusinessProfile, BusinessReview } from '../services/types/business.types';
 import { BUSINESS_VERIFICATION_LEVELS, BUSINESS_CATEGORIES } from '../constants/businessData';
@@ -23,6 +24,7 @@ export default function BusinessDetailScreen({ navigation, route }: BusinessDeta
   const [loading, setLoading] = useState(true);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showInquiryModal, setShowInquiryModal] = useState(false);
 
   useEffect(() => {
     if (businessId) {
@@ -79,17 +81,7 @@ export default function BusinessDetailScreen({ navigation, route }: BusinessDeta
   };
 
   const handleRequestQuote = () => {
-    Alert.alert(
-      'Request Quote',
-      `Send a service request to ${business?.businessName}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Send Request',
-          onPress: () => Alert.alert('Success', 'Your request has been sent!')
-        }
-      ]
-    );
+    setShowInquiryModal(true);
   };
 
   const handleViewAllReviews = () => {
@@ -348,6 +340,16 @@ export default function BusinessDetailScreen({ navigation, route }: BusinessDeta
           )}
         </View>
       </ScrollView>
+
+      {/* Send Inquiry Modal */}
+      {business && (
+        <SendInquiryModal
+          visible={showInquiryModal}
+          onClose={() => setShowInquiryModal(false)}
+          businessId={business.id}
+          businessName={business.businessName}
+        />
+      )}
     </SafeAreaView>
   );
 }
