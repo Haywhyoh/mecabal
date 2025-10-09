@@ -21,7 +21,7 @@ import {
 
 interface AuthenticatedRequest extends ExpressRequest {
   user: {
-    userId: string;
+    id: string;
     email: string;
   };
 }
@@ -45,10 +45,10 @@ export class BusinessProfileController {
     @Request() req: AuthenticatedRequest,
     @Body() createDto: CreateBusinessProfileDto,
   ) {
-    const business = await this.businessProfileService.create(
-      req.user.userId,
-      createDto,
-    );
+      const business = await this.businessProfileService.create(
+        req.user.id,
+        createDto,
+      );
     return {
       success: true,
       message: 'Business profile created successfully',
@@ -61,9 +61,9 @@ export class BusinessProfileController {
   @ApiResponse({ status: 200, description: 'Business profile retrieved' })
   @ApiResponse({ status: 404, description: 'No business profile found' })
   async getMyBusiness(@Request() req: AuthenticatedRequest) {
-    const business = await this.businessProfileService.findByUserId(
-      req.user.userId,
-    );
+      const business = await this.businessProfileService.findByUserId(
+        req.user.id,
+      );
     return {
       success: true,
       data: business,
@@ -92,11 +92,11 @@ export class BusinessProfileController {
     @Request() req: AuthenticatedRequest,
     @Body() updateDto: UpdateBusinessProfileDto,
   ) {
-    const business = await this.businessProfileService.update(
-      id,
-      req.user.userId,
-      updateDto,
-    );
+      const business = await this.businessProfileService.update(
+        id,
+        req.user.id,
+        updateDto,
+      );
     return {
       success: true,
       message: 'Business profile updated successfully',
@@ -112,11 +112,11 @@ export class BusinessProfileController {
     @Request() req: AuthenticatedRequest,
     @Body('isActive') isActive: boolean,
   ) {
-    const business = await this.businessProfileService.updateStatus(
-      id,
-      req.user.userId,
-      isActive,
-    );
+      const business = await this.businessProfileService.updateStatus(
+        id,
+        req.user.id,
+        isActive,
+      );
     return {
       success: true,
       message: `Business is now ${isActive ? 'online' : 'offline'}`,
@@ -128,7 +128,7 @@ export class BusinessProfileController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete business profile' })
   @ApiResponse({ status: 204, description: 'Business profile deleted' })
-  async delete(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
-    await this.businessProfileService.delete(id, req.user.userId);
-  }
+    async delete(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
+      await this.businessProfileService.delete(id, req.user.id);
+    }
 }

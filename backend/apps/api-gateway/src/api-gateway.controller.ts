@@ -501,7 +501,7 @@ export class ApiGatewayController {
     return this.proxyEventsRequest(req, res);
   }
 
-  // Business service routes
+  // Business service routes - Specific routes first to avoid conflicts
   @All('business/search/featured')
   async proxyBusinessFeatured(@Req() req: Request, @Res() res: Response) {
     return this.proxyBusinessRequest(req, res);
@@ -523,6 +523,20 @@ export class ApiGatewayController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   async proxyBusinessSearch(@Req() req: Request, @Res() res: Response) {
+    return this.proxyBusinessRequest(req, res);
+  }
+
+  @All('business/register')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyBusinessRegister(@Req() req: Request, @Res() res: Response) {
+    return this.proxyBusinessRequest(req, res);
+  }
+
+  @All('business/my-business')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyMyBusiness(@Req() req: Request, @Res() res: Response) {
     return this.proxyBusinessRequest(req, res);
   }
 
@@ -669,19 +683,6 @@ export class ApiGatewayController {
     return this.proxyBusinessRequest(req, res);
   }
 
-  @All('business/my-business')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  async proxyMyBusiness(@Req() req: Request, @Res() res: Response) {
-    return this.proxyBusinessRequest(req, res);
-  }
-
-  @All('business/register')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  async proxyBusinessRegister(@Req() req: Request, @Res() res: Response) {
-    return this.proxyBusinessRequest(req, res);
-  }
 
   @All('business/:id/status')
   @UseGuards(JwtAuthGuard)

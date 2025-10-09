@@ -16,7 +16,8 @@
       "Bash(npm run typeorm:*)",
       "Bash(npm run build:*)",
       "Bash(find:*)",
-      "Bash(netstat:*)"
+      "Bash(netstat:*)",
+      "Bash(mkdir:*)"
     ],
     "deny": [],
     "ask": []

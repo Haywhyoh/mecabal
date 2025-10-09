@@ -8,6 +8,7 @@ import {
   Request,
   ForbiddenException,
 } from '@nestjs/common';
+import { Request as ExpressRequest } from 'express';
 import {
   ApiTags,
   ApiOperation,
@@ -19,6 +20,13 @@ import { JwtAuthGuard } from '@app/auth/guards/jwt-auth.guard';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BusinessProfile } from '@app/database/entities/business-profile.entity';
+
+interface AuthenticatedRequest extends ExpressRequest {
+  user: {
+    id: string;
+    email: string;
+  };
+}
 
 @ApiTags('Business Analytics')
 @Controller('business/:businessId')
@@ -50,9 +58,9 @@ export class BusinessActivityController {
   async getAnalytics(
     @Param('businessId') businessId: string,
     @Query('period') period: '7d' | '30d' | '90d' | 'all' = '30d',
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
   ) {
-    await this.verifyBusinessOwnership(businessId, req.user.userId);
+    await this.verifyBusinessOwnership(businessId, req.user.id);
 
     const analytics = await this.activityService.getAnalytics(
       businessId,
@@ -70,9 +78,9 @@ export class BusinessActivityController {
   async getDailyStats(
     @Param('businessId') businessId: string,
     @Query('days') days: number = 30,
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
   ) {
-    await this.verifyBusinessOwnership(businessId, req.user.userId);
+    await this.verifyBusinessOwnership(businessId, req.user.id);
 
     const stats = await this.activityService.getDailyStats(businessId, days);
     return {
