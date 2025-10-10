@@ -2,7 +2,18 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SeederService } from './seeder.service';
-import { State, LocalGovernmentArea, PostCategory, Achievement, Badge, BusinessCategory } from '../entities';
+import { 
+  State, 
+  LocalGovernmentArea, 
+  PostCategory, 
+  Achievement, 
+  Badge, 
+  BusinessCategory,
+  NigerianState,
+  NigerianLanguage,
+  CulturalBackground,
+  ProfessionalCategory
+} from '../entities';
 
 @Module({
   imports: [
@@ -32,6 +43,10 @@ import { State, LocalGovernmentArea, PostCategory, Achievement, Badge, BusinessC
       Achievement,
       Badge,
       BusinessCategory,
+      NigerianState,
+      NigerianLanguage,
+      CulturalBackground,
+      ProfessionalCategory,
     ]),
   ],
   providers: [SeederService],

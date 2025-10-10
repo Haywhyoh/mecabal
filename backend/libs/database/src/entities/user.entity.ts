@@ -7,7 +7,9 @@ import {
   OneToMany,
   OneToOne,
   ManyToMany,
+  ManyToOne,
   JoinTable,
+  JoinColumn,
   Index,
   Relation,
 } from 'typeorm';
@@ -20,6 +22,12 @@ import { UserSession } from './user-session.entity';
 import { OtpVerification } from './otp-verification.entity';
 import { Role } from './role.entity';
 import { Neighborhood } from './neighborhood.entity';
+import { UserLanguage } from './user-language.entity';
+import { UserPrivacySettings } from './user-privacy-settings.entity';
+import { NigerianLanguage } from './nigerian-language.entity';
+import { NigerianState } from './nigerian-state.entity';
+import { CulturalBackground } from './cultural-background.entity';
+import { ProfessionalCategory } from './professional-category.entity';
 import type { UserBookmark } from './user-bookmark.entity';
 import type { UserDashboardStats } from './user-dashboard-stats.entity';
 import type { Listing } from './listing.entity';
@@ -140,13 +148,7 @@ export class User {
   address?: string;
 
   // Social and Cultural Information
-  @ApiProperty({
-    description: 'Cultural background or ethnicity',
-    example: 'Yoruba',
-    required: false,
-  })
-  @Column({ name: 'cultural_background', nullable: true })
-  culturalBackground?: string;
+  // Note: culturalBackground field moved to relations section below
 
   @ApiProperty({
     description: 'Native languages spoken',
@@ -167,6 +169,35 @@ export class User {
   })
   @Column({ name: 'professional_skills', type: 'text', nullable: true })
   professionalSkills?: string;
+
+  // Cultural Profile System - New Fields
+  @ApiProperty({
+    description: 'State of origin ID (from Nigerian states reference)',
+    required: false,
+  })
+  @Column({ name: 'state_of_origin_id', nullable: true })
+  stateOfOriginId?: string;
+
+  @ApiProperty({
+    description: 'Cultural background ID (from cultural backgrounds reference)',
+    required: false,
+  })
+  @Column({ name: 'cultural_background_id', nullable: true })
+  culturalBackgroundId?: string;
+
+  @ApiProperty({
+    description: 'Professional category ID (from professional categories reference)',
+    required: false,
+  })
+  @Column({ name: 'professional_category_id', nullable: true })
+  professionalCategoryId?: string;
+
+  @ApiProperty({
+    description: 'Professional title within the category',
+    required: false,
+  })
+  @Column({ name: 'professional_title', nullable: true })
+  professionalTitle?: string;
 
   @ApiProperty({
     description: 'Occupation or job title',
@@ -265,6 +296,26 @@ export class User {
     inverseJoinColumn: { name: 'role_id', referencedColumnName: 'id' },
   })
   roles: Role[];
+
+  // Cultural Profile Relations
+  @OneToMany(() => UserLanguage, (ul) => ul.user)
+  userLanguages?: UserLanguage[];
+
+  @OneToOne(() => UserPrivacySettings, (settings) => settings.user)
+  privacySettings?: UserPrivacySettings;
+
+  // Cultural Profile Relations
+  @ManyToOne(() => NigerianState, { nullable: true })
+  @JoinColumn({ name: 'state_of_origin_id' })
+  stateOfOrigin?: NigerianState;
+
+  @ManyToOne(() => CulturalBackground, { nullable: true })
+  @JoinColumn({ name: 'cultural_background_id' })
+  culturalBackground?: CulturalBackground;
+
+  @ManyToOne(() => ProfessionalCategory, { nullable: true })
+  @JoinColumn({ name: 'professional_category_id' })
+  professionalCategory?: ProfessionalCategory;
 
   // Unidirectional relations - no inverse side to avoid circular dependencies
   // Relations are defined only in the child entities (UserBookmark, UserDashboardStats)

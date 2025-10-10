@@ -35,7 +35,7 @@ export class PointsService {
     // Log activity
     await this.activityRepo.save({
       userId,
-      activityType,
+      activityType: activityType as any,
       pointsEarned,
       multiplier,
       referenceType: options?.referenceType,

@@ -311,3 +311,12 @@ The mobile app directory (`Hommie_Mobile/`) also contains:
 - Migration failures: Ensure database is accessible and schema is valid
 - Service communication: Verify all required services are running on correct ports
 - Authentication issues: Check JWT secrets and token expiration settings
+
+The TypeORM entity metadata error is fixed! The application successfully connected to the database and initialized all entities including UserLanguage and UserPrivacySettings. The only issue now is that port 3001 is already in use (likely from the old process). The important thing is we can see these successful log lines:
+TypeOrmCoreModule dependencies initialized +215ms
+Nest application successfully started
+All 38 routes mapped successfully
+The fix involved:
+Converting string-based relation decorators to arrow function syntax in user.entity.ts, user-language.entity.ts, and user-privacy-settings.entity.ts
+Adding the missing cultural profile entities to auth-service.module.ts
+The auth service is now working correctly. You'll need to stop the old process on port 3001 before starting a new one.

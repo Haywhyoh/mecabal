@@ -1,9 +1,26 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { State, LocalGovernmentArea, PostCategory, Achievement, Badge, BusinessCategory } from '../entities';
+import { 
+  State, 
+  LocalGovernmentArea, 
+  PostCategory, 
+  Achievement, 
+  Badge, 
+  BusinessCategory,
+  NigerianState,
+  NigerianLanguage,
+  CulturalBackground,
+  ProfessionalCategory
+} from '../entities';
 import { ACHIEVEMENT_SEEDS, BADGE_SEEDS } from './gamification.seed';
 import { businessCategoriesData } from './business-categories.seed';
+import { 
+  NIGERIAN_STATES_SEED, 
+  NIGERIAN_LANGUAGES_SEED, 
+  CULTURAL_BACKGROUNDS_SEED, 
+  PROFESSIONAL_CATEGORIES_SEED 
+} from './cultural-data.seed';
 
 @Injectable()
 export class SeederService {
@@ -22,6 +39,14 @@ export class SeederService {
     private badgeRepository: Repository<Badge>,
     @InjectRepository(BusinessCategory)
     private businessCategoryRepository: Repository<BusinessCategory>,
+    @InjectRepository(NigerianState)
+    private nigerianStateRepository: Repository<NigerianState>,
+    @InjectRepository(NigerianLanguage)
+    private nigerianLanguageRepository: Repository<NigerianLanguage>,
+    @InjectRepository(CulturalBackground)
+    private culturalBackgroundRepository: Repository<CulturalBackground>,
+    @InjectRepository(ProfessionalCategory)
+    private professionalCategoryRepository: Repository<ProfessionalCategory>,
   ) {}
 
   async seedAll(): Promise<void> {
@@ -34,6 +59,10 @@ export class SeederService {
       await this.seedAchievements();
       await this.seedBadges();
       await this.seedBusinessCategories();
+      await this.seedNigerianStates();
+      await this.seedNigerianLanguages();
+      await this.seedCulturalBackgrounds();
+      await this.seedProfessionalCategories();
 
       this.logger.log('Database seeding completed successfully');
     } catch (error) {
@@ -233,5 +262,55 @@ export class SeederService {
 
     await this.businessCategoryRepository.save(businessCategoriesData);
     this.logger.log(`Seeded ${businessCategoriesData.length} business categories`);
+  }
+
+  private async seedNigerianStates(): Promise<void> {
+    this.logger.log('Seeding Nigerian states...');
+
+    // Clear existing data and re-seed
+    await this.nigerianStateRepository.clear();
+    this.logger.log('Cleared existing Nigerian states data');
+
+    for (const state of NIGERIAN_STATES_SEED) {
+      await this.nigerianStateRepository.save(state);
+    }
+    this.logger.log(`Seeded ${NIGERIAN_STATES_SEED.length} Nigerian states`);
+  }
+
+  private async seedNigerianLanguages(): Promise<void> {
+    this.logger.log('Seeding Nigerian languages...');
+
+    // Clear existing data and re-seed using query builder
+    await this.nigerianLanguageRepository.createQueryBuilder().delete().execute();
+    this.logger.log('Cleared existing Nigerian languages data');
+
+    for (const language of NIGERIAN_LANGUAGES_SEED) {
+      await this.nigerianLanguageRepository.save(language);
+    }
+    this.logger.log(`Seeded ${NIGERIAN_LANGUAGES_SEED.length} Nigerian languages`);
+  }
+
+  private async seedCulturalBackgrounds(): Promise<void> {
+    this.logger.log('Seeding cultural backgrounds...');
+
+    // Clear existing data and re-seed using query builder
+    await this.culturalBackgroundRepository.createQueryBuilder().delete().execute();
+    this.logger.log('Cleared existing cultural backgrounds data');
+
+    for (const culture of CULTURAL_BACKGROUNDS_SEED) {
+      await this.culturalBackgroundRepository.save(culture);
+    }
+    this.logger.log(`Seeded ${CULTURAL_BACKGROUNDS_SEED.length} cultural backgrounds`);
+  }
+
+  private async seedProfessionalCategories(): Promise<void> {
+    this.logger.log('Seeding professional categories...');
+
+    // Clear existing data and re-seed using query builder
+    await this.professionalCategoryRepository.createQueryBuilder().delete().execute();
+    this.logger.log('Cleared existing professional categories data');
+
+    await this.professionalCategoryRepository.save(PROFESSIONAL_CATEGORIES_SEED);
+    this.logger.log(`Seeded ${PROFESSIONAL_CATEGORIES_SEED.length} professional categories`);
   }
 }

@@ -52,6 +52,7 @@ import CommunityEngagementScreen from './src/screens/CommunityEngagementScreen';
 import NeighborConnectionsScreen from './src/screens/NeighborConnectionsScreen';
 import RegisterScreen from './src/screens/onBoarding/RegisterScreen';
 import LocationTestScreen from './src/screens/LocationTestScreen';
+import DashboardScreen from './src/screens/DashboardScreen';
 
 // Map Picker Screen
 import MapPickerScreen from './src/screens/onBoarding/MapPickerScreen';
@@ -200,6 +201,7 @@ function MainStackNavigator() {
       <Stack.Screen name="AdvancedSearchFilters" component={AdvancedSearchFiltersScreen} />
       
       {/* Community Screens */}
+      <Stack.Screen name="Dashboard" component={DashboardScreen} />
       <Stack.Screen name="CommunityActivity" component={CommunityActivityScreen} />
       <Stack.Screen name="NeighborRating" component={NeighborRatingScreen} />
       <Stack.Screen name="CommunityEngagement" component={CommunityEngagementScreen} />

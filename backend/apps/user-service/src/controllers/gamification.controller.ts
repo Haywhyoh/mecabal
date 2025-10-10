@@ -37,7 +37,7 @@ export class GamificationController {
       this.pointsService.getUserPoints(userId),
       this.achievementsService.getUserAchievements(userId),
       this.badgesService.getUserBadges(userId),
-      this.achievementsService.getAchievementStats(userId),
+      this.achievementsService.getUserAchievementStats(userId),
       this.leaderboardService.getLeaderboard(
         LeaderboardCategory.OVERALL,
         LeaderboardPeriod.ALL_TIME,

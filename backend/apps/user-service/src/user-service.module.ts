@@ -19,6 +19,7 @@ import { AchievementsController } from './controllers/achievements.controller';
 import { BadgesController } from './controllers/badges.controller';
 import { LeaderboardController } from './controllers/leaderboard.controller';
 import { GamificationController } from './controllers/gamification.controller';
+import { CulturalProfileController } from './controllers/cultural-profile.controller';
 import { UserProfileService } from './services/user-profile.service';
 import { UserStatisticsService } from './services/user-statistics.service';
 import { UserSearchService } from './services/user-search.service';
@@ -33,6 +34,7 @@ import { AchievementsService } from './services/achievements.service';
 import { BadgesService } from './services/badges.service';
 import { LeaderboardService } from './services/leaderboard.service';
 import { GamificationIntegrationService } from './services/gamification-integration.service';
+import { CulturalProfileService } from './services/cultural-profile.service';
 import { SeederService } from '@app/database';
 
 @Module({
@@ -47,7 +49,7 @@ import { SeederService } from '@app/database';
     AuthModule, // For JWT guards
     StorageModule, // For file uploads
   ],
-  controllers: [UserServiceController, UserProfileController, UserDashboardController, NinVerificationController, TrustScoreController, BadgeController, DocumentController, AuditTrailController, VerificationIntegrationController, PointsController, AchievementsController, BadgesController, LeaderboardController, GamificationController],
+  controllers: [UserServiceController, UserProfileController, UserDashboardController, NinVerificationController, TrustScoreController, BadgeController, DocumentController, AuditTrailController, VerificationIntegrationController, PointsController, AchievementsController, BadgesController, LeaderboardController, GamificationController, CulturalProfileController],
   providers: [
     UserProfileService,
     UserStatisticsService,
@@ -63,6 +65,7 @@ import { SeederService } from '@app/database';
     BadgesService,
     LeaderboardService,
     GamificationIntegrationService,
+    CulturalProfileService,
     SeederService,
   ],
   exports: [
@@ -79,6 +82,7 @@ import { SeederService } from '@app/database';
     BadgesService,
     LeaderboardService,
     GamificationIntegrationService,
+    CulturalProfileService,
   ],
 })
 export class UserServiceModule {}

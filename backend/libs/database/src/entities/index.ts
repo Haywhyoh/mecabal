@@ -63,3 +63,11 @@ export { BusinessService } from './business-service.entity';
 export { BusinessReview } from './business-review.entity';
 export { BusinessInquiry } from './business-inquiry.entity';
 export { BusinessActivityLog } from './business-activity-log.entity';
+
+// Cultural Profile Entities
+export { NigerianState } from './nigerian-state.entity';
+export { NigerianLanguage } from './nigerian-language.entity';
+export { CulturalBackground } from './cultural-background.entity';
+export { ProfessionalCategory } from './professional-category.entity';
+export { UserPrivacySettings } from './user-privacy-settings.entity';
+export { UserLanguage, LanguageProficiency } from './user-language.entity';

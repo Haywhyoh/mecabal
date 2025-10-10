@@ -23,6 +23,12 @@ import {
   State,
   LocalGovernmentArea,
   Neighborhood,
+  UserLanguage,
+  UserPrivacySettings,
+  NigerianState,
+  NigerianLanguage,
+  CulturalBackground,
+  ProfessionalCategory,
 } from '@app/database/entities';
 
 // Import services
@@ -68,6 +74,12 @@ import { TokenService } from './services/token.service';
           State,
           LocalGovernmentArea,
           Neighborhood,
+          UserLanguage,
+          UserPrivacySettings,
+          NigerianState,
+          NigerianLanguage,
+          CulturalBackground,
+          ProfessionalCategory,
         ],
         synchronize: configService.get('NODE_ENV') !== 'production',
         logging: configService.get('NODE_ENV') === 'development',

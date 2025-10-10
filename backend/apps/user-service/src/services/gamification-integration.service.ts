@@ -38,7 +38,7 @@ export class GamificationIntegrationService {
     // Check achievement progress
     await this.achievementsService.checkAchievementProgress(
       payload.userId,
-      payload.activityType,
+      payload.activityType as any,
       payload.metadata,
     );
 
@@ -97,7 +97,7 @@ export class GamificationIntegrationService {
     // Check achievements
     await this.achievementsService.checkAchievementProgress(
       payload.userId,
-      'profile_completed',
+      'profile_completed' as any,
     );
 
     this.logger.log(`Profile completion processed for user ${payload.userId}`);

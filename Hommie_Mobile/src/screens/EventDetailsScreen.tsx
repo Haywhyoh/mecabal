@@ -256,6 +256,19 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ route, navigati
     }
   };
 
+  const handleShareToFeed = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    
+    // Navigate to CreatePost screen with event pre-filled
+    navigation.navigate('CreatePost', {
+      eventId: event.id,
+      eventTitle: event.title,
+      eventDate: event.eventDate,
+      eventLocation: event.location.name,
+      preFillContent: `Check out this amazing event! 🎉\n\n${event.title}\n📅 ${formatDate(event.eventDate)} at ${formatTime(event.startTime)}\n📍 ${event.location.name}`,
+    });
+  };
+
   const handleDirections = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const { latitude, longitude } = event.location;
@@ -629,6 +642,21 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ route, navigati
 
           {/* RSVP Section */}
           {renderRSVPButtons()}
+
+          {/* Share to Feed Section */}
+          <View style={styles.shareToFeedContainer}>
+            <TouchableOpacity
+              style={styles.shareToFeedButton}
+              onPress={handleShareToFeed}
+              accessible={true}
+              accessibilityLabel="Share to Feed"
+              accessibilityHint="Share this event to the community feed"
+              accessibilityRole="button"
+            >
+              <MaterialCommunityIcons name="share-variant" size={20} color={colors.primary} />
+              <Text style={styles.shareToFeedText}>Share to Feed</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -1014,6 +1042,27 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.medium,
     lineHeight: typography.lineHeights.subhead,
     marginLeft: spacing.xs,
+  },
+  shareToFeedContainer: {
+    marginBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
+  },
+  shareToFeedButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E8F5E9',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  shareToFeedText: {
+    fontSize: typography.sizes.body,
+    fontWeight: typography.weights.semibold,
+    color: colors.primary,
+    marginLeft: spacing.sm,
   },
 });
 

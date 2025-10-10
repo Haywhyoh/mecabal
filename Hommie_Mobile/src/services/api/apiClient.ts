@@ -10,9 +10,9 @@ const API_BASE_URL = Platform.select({
   default: 'http://localhost:3000',
 });
 
-// Storage keys
-const AUTH_TOKEN_KEY = 'authToken';
-const REFRESH_TOKEN_KEY = 'refreshToken';
+// Storage keys - must match auth.ts
+const AUTH_TOKEN_KEY = 'auth_token';
+const REFRESH_TOKEN_KEY = 'refresh_token';
 
 /**
  * API Client class for making authenticated HTTP requests

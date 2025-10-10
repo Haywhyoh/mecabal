@@ -13,12 +13,15 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
+  Platform,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import EventCard from '../components/EventCard';
 import EventCardSkeleton from '../components/EventCardSkeleton';
 import ErrorView from '../components/ErrorView';
+import EventsCalendarView from '../components/EventsCalendarView';
+import EventsMapView from '../components/EventsMapView';
 import { EventsApi, handleApiError, EVENT_CATEGORIES } from '../services/EventsApi';
 import type { Event, EventFilterDto } from '../services/EventsApi';
 import { colors, spacing, typography, shadows } from '../constants';
@@ -26,7 +29,7 @@ import { colors, spacing, typography, shadows } from '../constants';
 const { width } = Dimensions.get('window');
 
 type ViewMode = 'list' | 'calendar' | 'map';
-type FilterTab = 'all' | 'today' | 'this_week' | 'my_events';
+type QuickFilter = 'upcoming' | 'this_weekend' | 'this_month' | 'my_events';
 
 interface EventsScreenProps {
   navigation: any;
@@ -35,14 +38,22 @@ interface EventsScreenProps {
 export default function EventsScreen({ navigation }: EventsScreenProps) {
   const [events, setEvents] = useState<Event[]>([]);
   const [featuredEvents, setFeaturedEvents] = useState<Event[]>([]);
+  const [myEvents, setMyEvents] = useState<Event[]>([]);
+  const [categoryEventCounts, setCategoryEventCounts] = useState<Record<number, number>>({});
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | undefined>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<FilterTab>('all');
+  const [selectedQuickFilter, setSelectedQuickFilter] = useState<QuickFilter>('upcoming');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [dateRange, setDateRange] = useState<{start: Date | null, end: Date | null}>({
+    start: null,
+    end: null
+  });
   const [userEstate] = useState('Victoria Island Estate'); // This would come from user context
   const [userCity] = useState('Ikeja'); // This would come from user context
 
@@ -53,26 +64,42 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
       setError(null);
       
       let response;
-      switch (activeTab) {
-        case 'my_events':
-          response = await EventsApi.getMyEvents('all', filters);
-          break;
-        case 'today':
-          const today = new Date().toISOString().split('T')[0];
-          response = await EventsApi.getEvents({ ...filters, dateFrom: today, dateTo: today });
-          break;
-        case 'this_week':
-          const weekFromNow = new Date();
-          weekFromNow.setDate(weekFromNow.getDate() + 7);
-          const todayStr = new Date().toISOString().split('T')[0];
-          const weekStr = weekFromNow.toISOString().split('T')[0];
-          response = await EventsApi.getEvents({ ...filters, dateFrom: todayStr, dateTo: weekStr });
-          break;
-        default:
-          response = await EventsApi.getEvents(filters);
+      const baseFilters = { ...filters };
+      
+      // Apply date range filters
+      if (dateRange.start && dateRange.end) {
+        baseFilters.dateFrom = dateRange.start.toISOString().split('T')[0];
+        baseFilters.dateTo = dateRange.end.toISOString().split('T')[0];
+      } else {
+        // Apply quick filter logic
+        const now = new Date();
+        switch (selectedQuickFilter) {
+          case 'upcoming':
+            baseFilters.dateFrom = now.toISOString().split('T')[0];
+            break;
+          case 'this_weekend':
+            const saturday = new Date(now);
+            saturday.setDate(now.getDate() + (6 - now.getDay()));
+            const sunday = new Date(saturday);
+            sunday.setDate(saturday.getDate() + 1);
+            baseFilters.dateFrom = saturday.toISOString().split('T')[0];
+            baseFilters.dateTo = sunday.toISOString().split('T')[0];
+            break;
+          case 'this_month':
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            baseFilters.dateFrom = startOfMonth.toISOString().split('T')[0];
+            baseFilters.dateTo = endOfMonth.toISOString().split('T')[0];
+            break;
+          case 'my_events':
+            response = await EventsApi.getMyEvents('all', baseFilters);
+            setEvents(response.data || []);
+            return;
+        }
       }
       
-      setEvents(response.data);
+      response = await EventsApi.getEvents(baseFilters);
+      setEvents(response.data || []);
     } catch (err) {
       const errorMessage = handleApiError(err);
       setError(errorMessage);
@@ -80,7 +107,7 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
     } finally {
       setLoading(false);
     }
-  }, [activeTab]);
+  }, [selectedQuickFilter, dateRange]);
 
   // Fetch featured events
   const fetchFeaturedEvents = useCallback(async () => {
@@ -90,6 +117,38 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
     } catch (err) {
       console.error('Error fetching featured events:', err);
       setFeaturedEvents([]); // Set to empty array on error
+    }
+  }, []);
+
+  // Fetch my events
+  const fetchMyEvents = useCallback(async () => {
+    try {
+      const myEventsResponse = await EventsApi.getMyEvents('all', {});
+      setMyEvents(myEventsResponse.data || []);
+    } catch (err) {
+      console.error('Error fetching my events:', err);
+      setMyEvents([]); // Set to empty array on error
+    }
+  }, []);
+
+  // Fetch category event counts
+  const fetchCategoryEventCounts = useCallback(async () => {
+    try {
+      const counts: Record<number, number> = {};
+      await Promise.all(
+        EVENT_CATEGORIES.map(async (category) => {
+          try {
+            const response = await EventsApi.getEvents({ categoryId: category.id });
+            counts[category.id] = response.data?.length || 0;
+          } catch (err) {
+            console.error(`Error fetching count for category ${category.id}:`, err);
+            counts[category.id] = 0;
+          }
+        })
+      );
+      setCategoryEventCounts(counts);
+    } catch (err) {
+      console.error('Error fetching category event counts:', err);
     }
   }, []);
 
@@ -119,7 +178,9 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
   useEffect(() => {
     fetchEvents();
     fetchFeaturedEvents();
-  }, [fetchEvents, fetchFeaturedEvents]);
+    fetchMyEvents();
+    fetchCategoryEventCounts();
+  }, [fetchEvents, fetchFeaturedEvents, fetchMyEvents, fetchCategoryEventCounts]);
 
   const onRefresh = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -127,7 +188,9 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
     try {
       await Promise.all([
         fetchEvents(),
-        fetchFeaturedEvents()
+        fetchFeaturedEvents(),
+        fetchMyEvents(),
+        fetchCategoryEventCounts()
       ]);
     } catch (err) {
       console.error('Error refreshing events:', err);
@@ -149,47 +212,82 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setSelectedCategories([]);
     setSearchQuery('');
-    setActiveTab('all');
+    setSelectedQuickFilter('upcoming');
+    setDateRange({ start: null, end: null });
   };
 
-  const handleTabSwitch = (tab: FilterTab) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setActiveTab(tab);
-  };
-
-  const getTabCount = (tab: FilterTab): number => {
-    // For now, return the current events length since we're fetching filtered data
-    // In a real app, you might want to fetch counts separately for better UX
-    return events.length;
-  };
-
-  const renderTabButton = (tab: FilterTab, label: string) => {
-    const isActive = activeTab === tab;
-    const count = getTabCount(tab);
+  // Date range picker helper functions
+  const getDateRangeLabel = () => {
+    if (dateRange.start && dateRange.end) {
+      const startStr = dateRange.start.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric' 
+      });
+      const endStr = dateRange.end.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric' 
+      });
+      return `${startStr} - ${endStr}`;
+    }
     
-    return (
-      <TouchableOpacity
-        style={[styles.tabButton, isActive && styles.activeTabButton]}
-        onPress={() => handleTabSwitch(tab)}
-        accessible={true}
-        accessibilityLabel={`${label} tab${count > 0 ? `, ${count} events` : ''}`}
-        accessibilityHint={`Switch to ${label} events view`}
-        accessibilityRole="tab"
-        accessibilityState={{ selected: isActive }}
-      >
-        <Text style={[styles.tabButtonText, isActive && styles.activeTabButtonText]}>
-          {label}
-        </Text>
-        {count > 0 && (
-          <View style={[styles.tabBadge, isActive && styles.activeTabBadge]}>
-            <Text style={[styles.tabBadgeText, isActive && styles.activeTabBadgeText]}>
-              {count}
-            </Text>
-          </View>
-        )}
-      </TouchableOpacity>
-    );
+    switch (selectedQuickFilter) {
+      case 'upcoming':
+        return 'Upcoming Events';
+      case 'this_weekend':
+        return 'This Weekend';
+      case 'this_month':
+        return 'This Month';
+      case 'my_events':
+        return 'My Events';
+      default:
+        return 'Select Date Range';
+    }
   };
+
+  const handleQuickFilter = (filter: QuickFilter) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedQuickFilter(filter);
+    setDateRange({ start: null, end: null }); // Clear custom date range
+  };
+
+  const handleDateRangeSelect = (start: Date, end: Date) => {
+    setDateRange({ start, end });
+    setSelectedQuickFilter('upcoming'); // Reset to upcoming when custom range is selected
+    setShowDatePicker(false);
+  };
+
+  // Category navigation helper functions
+  const getCategoryEventCount = (categoryId: number): number => {
+    return categoryEventCounts[categoryId] || 0;
+  };
+
+  const handleCategoryNavigation = (category: any) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    
+    // Navigate to CategoryEventsScreen
+    navigation.navigate('CategoryEvents', {
+      categoryId: category.id,
+      categoryName: category.name,
+      categoryColor: category.colorCode,
+    });
+  };
+
+  const handleViewModeChange = (mode: ViewMode) => {
+    Haptics.selectionAsync();
+    setViewMode(mode);
+  };
+
+  const handleDateSelect = (date: Date) => {
+    // For now, we'll just log the selected date
+    // In a real app, this could filter events by the selected date
+    console.log('Selected date:', date);
+  };
+
+  const handleEventPress = (event: Event) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    navigation.navigate('EventDetails', { eventId: event.id });
+  };
+
 
   const renderFeaturedEvents = () => {
     if (!featuredEvents || featuredEvents.length === 0) return null;
@@ -215,40 +313,99 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
     );
   };
 
-  const renderCategoryFilters = () => (
-    <ScrollView 
-      horizontal 
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.categoryFilters}
-    >
-      {EVENT_CATEGORIES.map((category) => {
-        const isSelected = selectedCategories.includes(category.id);
-        return (
+  const renderCategoryNavigation = () => (
+    <View style={styles.categoriesSection}>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Browse by Interest</Text>
+      </View>
+
+      <View style={styles.categoriesGrid}>
+        {EVENT_CATEGORIES.slice(0, 6).map((category) => (
           <TouchableOpacity
             key={category.id}
             style={[
-              styles.categoryFilter,
-              { borderColor: category.colorCode },
-              isSelected && { backgroundColor: category.colorCode }
+              styles.categoryCard,
+              { borderColor: category.colorCode }
             ]}
-            onPress={() => toggleCategoryFilter(category.id)}
+            onPress={() => handleCategoryNavigation(category)}
+            activeOpacity={0.7}
+            accessible={true}
+            accessibilityLabel={`${category.name}, ${getCategoryEventCount(category.id)} events`}
+            accessibilityHint="Tap to view events in this category"
+            accessibilityRole="button"
           >
-            <MaterialCommunityIcons 
-              name={category.icon as any} 
-              size={16} 
-              color={isSelected ? colors.white : category.colorCode} 
-            />
-            <Text style={[
-              styles.categoryFilterText,
-              { color: isSelected ? colors.white : category.colorCode }
-            ]}>
-              {category.name}
+            <View style={[styles.categoryIcon, { backgroundColor: category.colorCode + '20' }]}>
+              <MaterialCommunityIcons
+                name={category.icon as any}
+                size={28}
+                color={category.colorCode}
+              />
+            </View>
+            <Text style={styles.categoryName}>{category.name}</Text>
+            <Text style={styles.categoryCount}>
+              {getCategoryEventCount(category.id)} events
             </Text>
+            <MaterialCommunityIcons
+              name="chevron-right"
+              size={16}
+              color="#8E8E93"
+              style={styles.categoryChevron}
+            />
           </TouchableOpacity>
-        );
-      })}
-    </ScrollView>
+        ))}
+      </View>
+
+      {EVENT_CATEGORIES.length > 6 && (
+        <TouchableOpacity
+          style={styles.seeAllCategoriesButton}
+          onPress={() => {
+            // For now, we'll show all categories
+            // In a real app, this would navigate to EventCategoriesScreen
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          }}
+          accessible={true}
+          accessibilityLabel="See all categories"
+          accessibilityHint="Tap to view all event categories"
+          accessibilityRole="button"
+        >
+          <Text style={styles.seeAllCategoriesText}>See All Categories</Text>
+          <MaterialCommunityIcons name="arrow-right" size={20} color="#00A651" />
+        </TouchableOpacity>
+      )}
+    </View>
   );
+
+  const renderMyEventsCard = () => {
+    if (!myEvents || myEvents.length === 0) return null;
+
+    return (
+      <TouchableOpacity
+        style={styles.myEventsCard}
+        onPress={() => {
+          // Navigate to MyEventsScreen or show my events
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          // For now, we'll filter to show my events
+          setSelectedQuickFilter('my_events');
+        }}
+        activeOpacity={0.7}
+        accessible={true}
+        accessibilityLabel={`Your events, ${myEvents.length} upcoming event${myEvents.length !== 1 ? 's' : ''}`}
+        accessibilityHint="Tap to view your events"
+        accessibilityRole="button"
+      >
+        <View style={styles.myEventsHeader}>
+          <MaterialCommunityIcons name="calendar-check" size={28} color="#00A651" />
+          <View style={styles.myEventsContent}>
+            <Text style={styles.myEventsTitle}>Your Events</Text>
+            <Text style={styles.myEventsSubtitle}>
+              {myEvents.length} upcoming event{myEvents.length !== 1 ? 's' : ''}
+            </Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={24} color="#8E8E93" />
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -262,20 +419,55 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
               <Text style={styles.cityText}>{userCity}, Lagos</Text>
             </View>
           </View>
-          <TouchableOpacity 
-            style={styles.viewModeButton}
-            onPress={() => console.log('Toggle view mode')}
-            accessible={true}
-            accessibilityLabel={`Switch to ${viewMode === 'list' ? 'calendar' : viewMode === 'calendar' ? 'map' : 'list'} view`}
-            accessibilityHint="Toggle between list, calendar, and map view modes"
-            accessibilityRole="button"
-          >
-            <MaterialCommunityIcons 
-              name={viewMode === 'list' ? 'view-list' : viewMode === 'calendar' ? 'calendar' : 'map'} 
-              size={24} 
-              color={colors.primary} 
-            />
-          </TouchableOpacity>
+          {/* View Mode Segmented Control */}
+          <View style={styles.viewModeContainer}>
+            <View style={styles.viewModeControl}>
+              <TouchableOpacity
+                style={[styles.viewModeButton, viewMode === 'list' && styles.activeViewMode]}
+                onPress={() => handleViewModeChange('list')}
+                accessible={true}
+                accessibilityLabel="List view"
+                accessibilityHint="Switch to list view mode"
+                accessibilityRole="button"
+              >
+                <MaterialCommunityIcons
+                  name="view-list"
+                  size={20}
+                  color={viewMode === 'list' ? '#FFFFFF' : '#8E8E93'}
+                />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.viewModeButton, viewMode === 'calendar' && styles.activeViewMode]}
+                onPress={() => handleViewModeChange('calendar')}
+                accessible={true}
+                accessibilityLabel="Calendar view"
+                accessibilityHint="Switch to calendar view mode"
+                accessibilityRole="button"
+              >
+                <MaterialCommunityIcons
+                  name="calendar-month"
+                  size={20}
+                  color={viewMode === 'calendar' ? '#FFFFFF' : '#8E8E93'}
+                />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.viewModeButton, viewMode === 'map' && styles.activeViewMode]}
+                onPress={() => handleViewModeChange('map')}
+                accessible={true}
+                accessibilityLabel="Map view"
+                accessibilityHint="Switch to map view mode"
+                accessibilityRole="button"
+              >
+                <MaterialCommunityIcons
+                  name="map-marker"
+                  size={20}
+                  color={viewMode === 'map' ? '#FFFFFF' : '#8E8E93'}
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
         
         <Text style={styles.title}>Community Events</Text>
@@ -317,16 +509,80 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
           </TouchableOpacity>
         </View>
 
-        {/* Tab Navigation */}
+        {/* Date Range Selector */}
+        <View style={styles.dateRangeContainer}>
+          <TouchableOpacity
+            style={styles.dateRangeButton}
+            onPress={() => setShowDatePicker(true)}
+            accessible={true}
+            accessibilityLabel="Select date range"
+            accessibilityHint="Tap to open date picker"
+            accessibilityRole="button"
+          >
+            <MaterialCommunityIcons name="calendar-range" size={20} color="#00A651" />
+            <Text style={styles.dateRangeText}>{getDateRangeLabel()}</Text>
+            <MaterialCommunityIcons name="chevron-down" size={20} color="#8E8E93" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Quick Date Filters */}
         <ScrollView 
           horizontal 
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.tabContainer}
+          showsHorizontalScrollIndicator={false} 
+          style={styles.quickFilters}
+          contentContainerStyle={styles.quickFiltersContent}
         >
-          {renderTabButton('all', 'All Events')}
-          {renderTabButton('today', 'Today')}
-          {renderTabButton('this_week', 'This Week')}
-          {renderTabButton('my_events', 'My Events')}
+          <TouchableOpacity
+            style={[styles.quickFilterChip, selectedQuickFilter === 'upcoming' && styles.activeQuickFilter]}
+            onPress={() => handleQuickFilter('upcoming')}
+            accessible={true}
+            accessibilityLabel="Upcoming events"
+            accessibilityRole="button"
+            accessibilityState={{ selected: selectedQuickFilter === 'upcoming' }}
+          >
+            <Text style={[styles.quickFilterText, selectedQuickFilter === 'upcoming' && styles.activeQuickFilterText]}>
+              Upcoming
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.quickFilterChip, selectedQuickFilter === 'this_weekend' && styles.activeQuickFilter]}
+            onPress={() => handleQuickFilter('this_weekend')}
+            accessible={true}
+            accessibilityLabel="This weekend events"
+            accessibilityRole="button"
+            accessibilityState={{ selected: selectedQuickFilter === 'this_weekend' }}
+          >
+            <Text style={[styles.quickFilterText, selectedQuickFilter === 'this_weekend' && styles.activeQuickFilterText]}>
+              This Weekend
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.quickFilterChip, selectedQuickFilter === 'this_month' && styles.activeQuickFilter]}
+            onPress={() => handleQuickFilter('this_month')}
+            accessible={true}
+            accessibilityLabel="This month events"
+            accessibilityRole="button"
+            accessibilityState={{ selected: selectedQuickFilter === 'this_month' }}
+          >
+            <Text style={[styles.quickFilterText, selectedQuickFilter === 'this_month' && styles.activeQuickFilterText]}>
+              This Month
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.quickFilterChip, selectedQuickFilter === 'my_events' && styles.activeQuickFilter]}
+            onPress={() => handleQuickFilter('my_events')}
+            accessible={true}
+            accessibilityLabel="My events"
+            accessibilityRole="button"
+            accessibilityState={{ selected: selectedQuickFilter === 'my_events' }}
+          >
+            <Text style={[styles.quickFilterText, selectedQuickFilter === 'my_events' && styles.activeQuickFilterText]}>
+              My Events
+            </Text>
+          </TouchableOpacity>
         </ScrollView>
       </View>
 
@@ -336,68 +592,86 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {/* Featured Events */}
-        {activeTab === 'all' && renderFeaturedEvents()}
+        {selectedQuickFilter !== 'my_events' && renderFeaturedEvents()}
 
-        {/* Category Filters */}
-        {activeTab === 'all' && (
-          <View style={styles.categorySection}>
-            <Text style={styles.sectionTitle}>Browse by Category</Text>
-            {renderCategoryFilters()}
-          </View>
-        )}
+        {/* My Events Card */}
+        {selectedQuickFilter !== 'my_events' && renderMyEventsCard()}
 
-        {/* Events List */}
+        {/* Category Navigation */}
+        {selectedQuickFilter !== 'my_events' && renderCategoryNavigation()}
+
+        {/* Events Content Based on View Mode */}
         <View style={styles.eventsSection}>
           <View style={styles.eventsSectionHeader}>
             <Text style={styles.sectionTitle}>
-              {activeTab === 'all' ? 'All Events' :
-               activeTab === 'today' ? 'Today\'s Events' :
-               activeTab === 'this_week' ? 'This Week\'s Events' :
-               'My Events'}
+              {selectedQuickFilter === 'upcoming' ? 'Upcoming Events' :
+               selectedQuickFilter === 'this_weekend' ? 'This Weekend\'s Events' :
+               selectedQuickFilter === 'this_month' ? 'This Month\'s Events' :
+               selectedQuickFilter === 'my_events' ? 'My Events' :
+               'Events'}
             </Text>
             <Text style={styles.eventsCount}>
               {events.length} event{events.length !== 1 ? 's' : ''}
             </Text>
           </View>
           
-          {loading ? (
+          {/* Render based on view mode */}
+          {viewMode === 'list' && (
             <View style={styles.eventsList}>
-              {[1, 2, 3, 4, 5].map((index) => (
-                <EventCardSkeleton key={index} />
-              ))}
-            </View>
-          ) : error ? (
-            <ErrorView 
-              error={error} 
-              onRetry={() => fetchEvents()} 
-            />
-          ) : events.length === 0 ? (
-            <View style={styles.emptyState}>
-              <MaterialCommunityIcons name="calendar-remove" size={64} color={colors.neutral.lightGray} />
-              <Text style={styles.emptyStateTitle}>No Events Found</Text>
-              <Text style={styles.emptyStateText}>
-                {searchQuery ? 
-                  'Try adjusting your search or filters' :
-                  activeTab === 'my_events' ?
-                  'You haven\'t RSVP\'d to any events yet' :
-                  'No events scheduled for this period'}
-              </Text>
-              {(searchQuery || selectedCategories.length > 0) && (
-                <TouchableOpacity style={styles.clearFiltersButton} onPress={clearFilters}>
-                  <Text style={styles.clearFiltersText}>Clear Filters</Text>
-                </TouchableOpacity>
+              {loading ? (
+                <>
+                  {[1, 2, 3, 4, 5].map((index) => (
+                    <EventCardSkeleton key={index} />
+                  ))}
+                </>
+              ) : error ? (
+                <ErrorView 
+                  error={error} 
+                  onRetry={() => fetchEvents()} 
+                />
+              ) : events.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <MaterialCommunityIcons name="calendar-remove" size={64} color={colors.neutral.lightGray} />
+                  <Text style={styles.emptyStateTitle}>No Events Found</Text>
+                  <Text style={styles.emptyStateText}>
+                    {searchQuery ? 
+                      'Try adjusting your search or filters' :
+                      selectedQuickFilter === 'my_events' ?
+                      'You haven\'t RSVP\'d to any events yet' :
+                      'No events scheduled for this period'}
+                  </Text>
+                  {(searchQuery || selectedCategories.length > 0) && (
+                    <TouchableOpacity style={styles.clearFiltersButton} onPress={clearFilters}>
+                      <Text style={styles.clearFiltersText}>Clear Filters</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              ) : (
+                events.map((event) => (
+                  <EventCard
+                    key={event.id}
+                    event={event}
+                    onPress={() => handleEventPress(event)}
+                  />
+                ))
               )}
             </View>
-          ) : (
-            <View style={styles.eventsList}>
-              {events.map((event) => (
-                <EventCard
-                  key={event.id}
-                  event={event}
-                  onPress={() => navigation.navigate('EventDetails', { eventId: event.id })}
-                />
-              ))}
-            </View>
+          )}
+
+          {viewMode === 'calendar' && (
+            <EventsCalendarView
+              events={events}
+              onDateSelect={handleDateSelect}
+              onEventPress={handleEventPress}
+            />
+          )}
+
+          {viewMode === 'map' && (
+            <EventsMapView
+              events={events}
+              userLocation={userLocation}
+              onEventPress={handleEventPress}
+            />
           )}
         </View>
       </ScrollView>
@@ -477,6 +751,135 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
           </View>
         </SafeAreaView>
       </Modal>
+
+      {/* Date Picker Modal */}
+      <Modal
+        visible={showDatePicker}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowDatePicker(false)}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+              <Text style={styles.modalCancelText}>Cancel</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Select Date Range</Text>
+            <TouchableOpacity onPress={() => {
+              setDateRange({ start: null, end: null });
+              setShowDatePicker(false);
+            }}>
+              <Text style={styles.modalClearText}>Clear</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.datePickerContent}>
+            <Text style={styles.datePickerDescription}>
+              Choose a date range to filter events
+            </Text>
+            
+            {/* Custom Date Range Inputs */}
+            <View style={styles.dateInputContainer}>
+              <View style={styles.dateInputWrapper}>
+                <Text style={styles.dateInputLabel}>From</Text>
+                <TouchableOpacity
+                  style={styles.dateInput}
+                  onPress={() => {
+                    // For now, we'll use a simple approach
+                    // In a real app, you'd use a proper date picker library
+                    Alert.alert('Date Picker', 'Date picker implementation would go here');
+                  }}
+                >
+                  <Text style={styles.dateInputText}>
+                    {dateRange.start ? dateRange.start.toLocaleDateString() : 'Select start date'}
+                  </Text>
+                  <MaterialCommunityIcons name="calendar" size={20} color={colors.primary} />
+                </TouchableOpacity>
+              </View>
+              
+              <View style={styles.dateInputWrapper}>
+                <Text style={styles.dateInputLabel}>To</Text>
+                <TouchableOpacity
+                  style={styles.dateInput}
+                  onPress={() => {
+                    // For now, we'll use a simple approach
+                    // In a real app, you'd use a proper date picker library
+                    Alert.alert('Date Picker', 'Date picker implementation would go here');
+                  }}
+                >
+                  <Text style={styles.dateInputText}>
+                    {dateRange.end ? dateRange.end.toLocaleDateString() : 'Select end date'}
+                  </Text>
+                  <MaterialCommunityIcons name="calendar" size={20} color={colors.primary} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Quick Date Range Presets */}
+            <View style={styles.datePresetsContainer}>
+              <Text style={styles.datePresetsTitle}>Quick Select</Text>
+              <View style={styles.datePresetsGrid}>
+                <TouchableOpacity
+                  style={styles.datePresetButton}
+                  onPress={() => {
+                    const today = new Date();
+                    const tomorrow = new Date(today);
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    handleDateRangeSelect(today, tomorrow);
+                  }}
+                >
+                  <Text style={styles.datePresetText}>Today</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={styles.datePresetButton}
+                  onPress={() => {
+                    const today = new Date();
+                    const nextWeek = new Date(today);
+                    nextWeek.setDate(nextWeek.getDate() + 7);
+                    handleDateRangeSelect(today, nextWeek);
+                  }}
+                >
+                  <Text style={styles.datePresetText}>Next 7 Days</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={styles.datePresetButton}
+                  onPress={() => {
+                    const today = new Date();
+                    const nextMonth = new Date(today);
+                    nextMonth.setMonth(nextMonth.getMonth() + 1);
+                    handleDateRangeSelect(today, nextMonth);
+                  }}
+                >
+                  <Text style={styles.datePresetText}>Next 30 Days</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={styles.datePresetButton}
+                  onPress={() => {
+                    const today = new Date();
+                    const nextYear = new Date(today);
+                    nextYear.setFullYear(nextYear.getFullYear() + 1);
+                    handleDateRangeSelect(today, nextYear);
+                  }}
+                >
+                  <Text style={styles.datePresetText}>Next Year</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+          
+          <View style={styles.modalFooter}>
+            <TouchableOpacity 
+              style={styles.applyFiltersButton}
+              onPress={() => setShowDatePicker(false)}
+            >
+              <Text style={styles.applyFiltersText}>Apply Date Range</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -519,14 +922,34 @@ const styles = StyleSheet.create({
     lineHeight: typography.lineHeights.subhead,
     color: colors.neutral.gray,
   },
+  // View Mode Segmented Control Styles
+  viewModeContainer: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    alignItems: 'flex-end',
+  },
+  viewModeControl: {
+    flexDirection: 'row',
+    backgroundColor: '#F2F2F7',
+    borderRadius: 10,
+    padding: 2,
+  },
   viewModeButton: {
-    padding: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     borderRadius: 8,
-    backgroundColor: colors.neutral.lightGray,
     minWidth: 44,
-    minHeight: 44,
+    minHeight: 36,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  activeViewMode: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   title: {
     fontSize: typography.sizes.largeTitle,
@@ -584,56 +1007,6 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 10,
     fontWeight: '600',
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing.xs,
-  },
-  tabButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    marginRight: spacing.sm,
-    borderRadius: 20,
-    backgroundColor: colors.neutral.lightGray,
-    minWidth: 44,
-    minHeight: 44,
-    justifyContent: 'center',
-  },
-  activeTabButton: {
-    backgroundColor: colors.primary,
-  },
-  tabButtonText: {
-    fontSize: typography.sizes.subhead,
-    fontWeight: typography.weights.medium,
-    lineHeight: typography.lineHeights.subhead,
-    color: colors.neutral.gray,
-    allowFontScaling: true,
-  },
-  activeTabButtonText: {
-    color: colors.white,
-  },
-  tabBadge: {
-    backgroundColor: colors.white,
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: spacing.sm,
-  },
-  activeTabBadge: {
-    backgroundColor: colors.neutral.offWhite,
-  },
-  tabBadgeText: {
-    fontSize: typography.sizes.caption1,
-    fontWeight: typography.weights.semibold,
-    lineHeight: typography.lineHeights.caption1,
-    color: colors.primary,
-  },
-  activeTabBadgeText: {
-    color: colors.primary,
   },
   content: {
     flex: 1,
@@ -877,5 +1250,231 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.body,
     fontWeight: typography.weights.semibold,
     lineHeight: typography.lineHeights.body,
+  },
+  // New Date Range Picker Styles
+  dateRangeContainer: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  dateRangeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.white,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.neutral.lightGray,
+    minHeight: 48,
+  },
+  dateRangeText: {
+    flex: 1,
+    fontSize: typography.sizes.body,
+    fontWeight: typography.weights.medium,
+    color: colors.text.dark,
+    marginHorizontal: spacing.sm,
+    textAlign: 'center',
+  },
+  quickFilters: {
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  quickFiltersContent: {
+    paddingRight: spacing.md,
+  },
+  quickFilterChip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginRight: spacing.sm,
+    borderRadius: 20,
+    backgroundColor: colors.neutral.lightGray,
+    minHeight: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  activeQuickFilter: {
+    backgroundColor: colors.primary,
+  },
+  quickFilterText: {
+    fontSize: typography.sizes.subhead,
+    fontWeight: typography.weights.medium,
+    color: colors.text.secondary,
+  },
+  activeQuickFilterText: {
+    color: colors.white,
+  },
+  // Date Picker Modal Styles
+  datePickerContent: {
+    flex: 1,
+    padding: spacing.md,
+  },
+  datePickerDescription: {
+    fontSize: typography.sizes.body,
+    color: colors.text.secondary,
+    textAlign: 'center',
+    marginBottom: spacing.lg,
+    lineHeight: typography.lineHeights.body,
+  },
+  dateInputContainer: {
+    marginBottom: spacing.xl,
+  },
+  dateInputWrapper: {
+    marginBottom: spacing.md,
+  },
+  dateInputLabel: {
+    fontSize: typography.sizes.subhead,
+    fontWeight: typography.weights.semibold,
+    color: colors.text.dark,
+    marginBottom: spacing.sm,
+  },
+  dateInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.white,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.neutral.lightGray,
+    minHeight: 48,
+  },
+  dateInputText: {
+    flex: 1,
+    fontSize: typography.sizes.body,
+    color: colors.text.dark,
+  },
+  datePresetsContainer: {
+    marginTop: spacing.lg,
+  },
+  datePresetsTitle: {
+    fontSize: typography.sizes.title3,
+    fontWeight: typography.weights.semibold,
+    color: colors.text.dark,
+    marginBottom: spacing.md,
+  },
+  datePresetsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -spacing.xs,
+  },
+  datePresetButton: {
+    width: (width - spacing.md * 2 - spacing.xs * 4) / 2,
+    margin: spacing.xs,
+    padding: spacing.md,
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.neutral.lightGray,
+    alignItems: 'center',
+    minHeight: 48,
+    justifyContent: 'center',
+  },
+  datePresetText: {
+    fontSize: typography.sizes.subhead,
+    fontWeight: typography.weights.medium,
+    color: colors.text.dark,
+    textAlign: 'center',
+  },
+  // My Events Card Styles
+  myEventsCard: {
+    backgroundColor: '#E8F5E9',
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.md,
+    padding: spacing.lg,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  myEventsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  myEventsContent: {
+    flex: 1,
+    marginLeft: spacing.md,
+  },
+  myEventsTitle: {
+    fontSize: typography.sizes.title3,
+    fontWeight: typography.weights.semibold,
+    color: colors.text.dark,
+    marginBottom: spacing.xs,
+  },
+  myEventsSubtitle: {
+    fontSize: typography.sizes.subhead,
+    color: '#00A651',
+    fontWeight: typography.weights.medium,
+  },
+  // Category Navigation Styles
+  categoriesSection: {
+    marginBottom: spacing.xl,
+    paddingHorizontal: spacing.md,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  categoriesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -spacing.xs,
+  },
+  categoryCard: {
+    width: '47%',
+    margin: spacing.xs,
+    padding: spacing.md,
+    borderRadius: 16,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.neutral.lightGray,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
+    minHeight: 120,
+  },
+  categoryIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
+  },
+  categoryName: {
+    fontSize: typography.sizes.body,
+    fontWeight: typography.weights.semibold,
+    color: colors.text.dark,
+    marginBottom: spacing.xs,
+  },
+  categoryCount: {
+    fontSize: typography.sizes.caption1,
+    color: colors.text.secondary,
+    marginBottom: spacing.sm,
+  },
+  categoryChevron: {
+    position: 'absolute',
+    bottom: spacing.sm,
+    right: spacing.sm,
+  },
+  seeAllCategoriesButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  seeAllCategoriesText: {
+    fontSize: typography.sizes.body,
+    fontWeight: typography.weights.semibold,
+    color: colors.primary,
+    marginRight: spacing.xs,
   },
 });

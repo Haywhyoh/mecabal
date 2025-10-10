@@ -17,7 +17,9 @@
       "Bash(npm run build:*)",
       "Bash(find:*)",
       "Bash(netstat:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(if exist dist rmdir /s /q dist)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []
