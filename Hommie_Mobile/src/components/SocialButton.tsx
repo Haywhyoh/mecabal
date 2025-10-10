@@ -4,16 +4,41 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../constants';
 
 interface SocialButtonProps {
-  provider: 'google' | 'apple' | 'email';
+  provider: 'google' | 'apple' | 'email' | 'phone';
   onPress: () => void;
   text: string;
   variant?: 'welcome' | 'login';
 }
 
 const PROVIDER_CONFIG = {
-  google: { iconName: 'google', color: '#DB4437' },
-  apple: { iconName: 'apple', color: '#000000' },
-  email: { iconName: 'email', color: '#4285F4' },
+  google: { 
+    iconName: 'google', 
+    color: '#000000',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E5E5E5',
+    textColor: '#000000'
+  },
+  apple: { 
+    iconName: 'apple', 
+    color: '#FFFFFF',
+    backgroundColor: '#000000',
+    borderColor: '#000000',
+    textColor: '#FFFFFF'
+  },
+  email: { 
+    iconName: 'email', 
+    color: '#000000',
+    backgroundColor: '#F7F7F7',
+    borderColor: '#E5E5E5',
+    textColor: '#000000'
+  },
+  phone: { 
+    iconName: 'phone', 
+    color: '#000000',
+    backgroundColor: '#F7F7F7',
+    borderColor: '#E5E5E5',
+    textColor: '#000000'
+  },
 };
 
 export default function SocialButton({ provider, onPress, text, variant = 'welcome' }: SocialButtonProps) {
@@ -21,7 +46,13 @@ export default function SocialButton({ provider, onPress, text, variant = 'welco
   
   return (
     <TouchableOpacity 
-      style={[styles.socialButton, variant === 'login' && styles.loginVariant]} 
+      style={[
+        styles.socialButton,
+        {
+          backgroundColor: config.backgroundColor,
+          borderColor: config.borderColor,
+        }
+      ]} 
       onPress={onPress}
     >
       <Icon 
@@ -30,7 +61,7 @@ export default function SocialButton({ provider, onPress, text, variant = 'welco
         color={config.color} 
         style={styles.socialIcon} 
       />
-      <Text style={styles.socialButtonText}>{text}</Text>
+      <Text style={[styles.socialButtonText, { color: config.textColor }]}>{text}</Text>
     </TouchableOpacity>
   );
 }
@@ -39,28 +70,21 @@ const styles = StyleSheet.create({
   socialButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.md,
-    borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1,
-    borderColor: COLORS.primary,
-    marginBottom: SPACING.sm,
-    minHeight: 48,
-    width: '100%',
     justifyContent: 'center',
-    ...SHADOWS.medium,
-  },
-  loginVariant: {
-    backgroundColor: 'rgba(44, 44, 44, 0.9)',
-    borderWidth: 0,
+    height: 44, // iOS minimum touch target
+    paddingHorizontal: 16,
+    borderRadius: 10, // iOS standard border radius
+    borderWidth: 1,
+    marginBottom: 12, // 12pt spacing between buttons
+    width: '100%',
   },
   socialIcon: {
-    marginRight: SPACING.md,
-    width: 24,
+    marginRight: 12,
+    width: 20, // 20x20 icon size as specified
+    height: 20,
   },
   socialButtonText: {
-    color: COLORS.white,
-    fontSize: TYPOGRAPHY.fontSizes.md,
-    fontWeight: '500',
+    fontSize: 17, // iOS body text size
+    fontWeight: '600', // Semibold for better readability
   },
 });

@@ -1,20 +1,27 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView, StatusBar, KeyboardAvoidingView, Platform, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView, StatusBar, KeyboardAvoidingView, Platform, Alert, ScrollView, Animated, ActivityIndicator } from 'react-native';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../../constants';
 import { contextAwareGoBack } from '../../utils/navigationUtils';
 import { MeCabalAuth } from '../../services';
 import { useAuth } from '../../contexts/AuthContext';
+import * as Haptics from 'expo-haptics';
 
 export default function OTPVerificationScreen({ navigation, route }: any) {
   const [otp, setOtp] = useState(['', '', '', '']);
   const [timeLeft, setTimeLeft] = useState(30);
   const [canResend, setCanResend] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const { register, loginWithEmail, setUser } = useAuth();
 
   // Use ref to prevent duplicate calls
   const verificationInProgress = useRef(false);
+  
+  // Animation values
+  const shakeAnim = useRef(new Animated.Value(0)).current;
+  const focusAnim = useRef(new Animated.Value(0)).current;
 
   const phoneNumber = route.params?.phoneNumber || '08012345678';
   const carrier = route.params?.carrier || 'Unknown';
@@ -33,22 +40,28 @@ export default function OTPVerificationScreen({ navigation, route }: any) {
     }
   }, [timeLeft]);
 
-  // Check if OTP is complete - DISABLED to prevent duplicate verification calls
-  // useEffect(() => {
-  //   const otpString = otp.join('');
-  //   if (otpString.length === 4) {
-  //     // Auto-verify when all 4 digits are entered
-  //     setTimeout(() => {
-  //       handleVerify();
-  //     }, 500);
-  //   }
-  // }, [otp]);
+  // Auto-verify when all 4 digits are entered
+  useEffect(() => {
+    const otpString = otp.join('');
+    if (otpString.length === 4 && !isVerifying) {
+      // Auto-verify when all 4 digits are entered
+      setTimeout(() => {
+        handleVerify();
+      }, 500);
+    }
+  }, [otp]);
 
   const handleOtpChange = (value: string, index: number) => {
     // Only allow single digits
     if (value.length > 1) {
       value = value.slice(-1); // Take only the last character
     }
+
+    // Add haptic feedback
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    
+    // Clear any previous errors
+    setError(null);
 
     const newOtp = [...otp];
     newOtp[index] = value;
@@ -65,6 +78,15 @@ export default function OTPVerificationScreen({ navigation, route }: any) {
     }
   };
 
+  const shakeError = () => {
+    Animated.sequence([
+      Animated.timing(shakeAnim, { toValue: 10, duration: 100, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -10, duration: 100, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 10, duration: 100, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 0, duration: 100, useNativeDriver: true }),
+    ]).start();
+  };
+
   const handleVerify = async () => {
     console.log('📱 handleVerify called, isVerifying:', isVerifying, 'verificationInProgress:', verificationInProgress.current);
 
@@ -78,6 +100,7 @@ export default function OTPVerificationScreen({ navigation, route }: any) {
     if (otpString.length === 4) {
       setIsVerifying(true);
       verificationInProgress.current = true;
+      setError(null);
 
       try {
         // Use SMS-based OTP verification with Nigerian phone number
@@ -93,7 +116,9 @@ export default function OTPVerificationScreen({ navigation, route }: any) {
           console.log('📱 OTP verification result:', verifyResult);
 
           if (!verifyResult.success) {
-            Alert.alert('Verification Failed', verifyResult.error || 'Invalid verification code. Please try again.');
+            setError(verifyResult.error || 'Invalid verification code. Please try again.');
+            shakeError();
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
             return;
           }
 
@@ -102,6 +127,7 @@ export default function OTPVerificationScreen({ navigation, route }: any) {
           console.log('✅ User verified but not authenticated until location setup:', verifyResult.user?.id);
 
           // Verification successful - proceed to location setup
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           Alert.alert(
             'Phone Verified!',
             'Your phone number has been verified successfully. Let\'s set up your location.',
@@ -142,23 +168,30 @@ export default function OTPVerificationScreen({ navigation, route }: any) {
               }}]
             );
           } else {
-            Alert.alert('Login Failed', verifyResult.error || 'Invalid verification code. Please try again.');
+            setError(verifyResult.error || 'Invalid verification code. Please try again.');
+            shakeError();
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
           }
         }
       } catch (error) {
         console.error('OTP verification error:', error);
-        Alert.alert('Error', 'Failed to verify OTP. Please check your connection and try again.');
+        setError('Failed to verify OTP. Please check your connection and try again.');
+        shakeError();
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       } finally {
         setIsVerifying(false);
         verificationInProgress.current = false;
       }
     } else {
-      Alert.alert('Error', 'Please enter the complete 4-digit OTP');
+      setError('Please enter the complete 4-digit OTP');
+      shakeError();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   };
 
   const handleResend = async () => {
     if (canResend) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       try {
         const purpose = isSignup ? 'registration' : 'login';
         // Use SMS OTP for resending
@@ -168,13 +201,17 @@ export default function OTPVerificationScreen({ navigation, route }: any) {
           setTimeLeft(30);
           setCanResend(false);
           setOtp(['', '', '', '']);
+          setError(null);
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           Alert.alert('OTP Sent', `A new 4-digit verification code has been sent to ${phoneNumber}`);
         } else {
-          Alert.alert('Error', result.error || 'Failed to resend verification code. Please try again.');
+          setError(result.error || 'Failed to resend verification code. Please try again.');
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         }
       } catch (error) {
         console.error('Resend OTP error:', error);
-        Alert.alert('Error', 'Failed to resend verification code. Please check your connection and try again.');
+        setError('Failed to resend verification code. Please check your connection and try again.');
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
     }
   };
@@ -213,6 +250,15 @@ export default function OTPVerificationScreen({ navigation, route }: any) {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const formatPhoneNumber = (phone: string) => {
+    // Format phone number for display: +234 801 234 5678
+    if (phone.startsWith('+234')) {
+      const number = phone.substring(4);
+      return `+234 ${number.substring(0, 3)} ${number.substring(3, 6)} ${number.substring(6)}`;
+    }
+    return phone;
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar hidden={true} />
@@ -239,20 +285,22 @@ export default function OTPVerificationScreen({ navigation, route }: any) {
 
           {/* Main Content */}
           <View style={styles.mainContent}>
+            <Text style={styles.title}>
+              Enter verification code
+            </Text>
+            
             <Text style={styles.description}>
-              We've sent a 4-digit code to
+              We sent a code to
             </Text>
             
             <Text style={styles.phoneNumber}>
-              {phoneNumber}
+              {formatPhoneNumber(phoneNumber)}
             </Text>
 
-            {/* <Text style={styles.instruction}>
-              Enter the code below to verify your account
-            </Text> */}
-
             {/* OTP Input */}
-            <View style={styles.otpContainer}>
+            <Animated.View style={[styles.otpContainer, {
+              transform: [{ translateX: shakeAnim }]
+            }]}>
               {otp.map((digit, index) => (
                 <TextInput
                   key={index}
@@ -261,10 +309,13 @@ export default function OTPVerificationScreen({ navigation, route }: any) {
                   }}
                   style={[
                     styles.otpInput,
-                    digit && styles.otpInputFilled
+                    digit && styles.otpInputFilled,
+                    focusedIndex === index && styles.otpInputFocused
                   ]}
                   value={digit}
                   onChangeText={(value) => handleOtpChange(value, index)}
+                  onFocus={() => setFocusedIndex(index)}
+                  onBlur={() => setFocusedIndex(null)}
                   keyboardType="numeric"
                   maxLength={1}
                   textAlign="center"
@@ -278,37 +329,48 @@ export default function OTPVerificationScreen({ navigation, route }: any) {
                   }}
                 />
               ))}
-            </View>
+            </Animated.View>
+
+            {/* Error Message */}
+            {error && (
+              <Text style={styles.errorText}>{error}</Text>
+            )}
+
+            {/* Loading State */}
+            {isVerifying && (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color={COLORS.primary} />
+                <Text style={styles.loadingText}>Verifying...</Text>
+              </View>
+            )}
 
             {/* Timer and Resend */}
             <View style={styles.timerContainer}>
               {!canResend ? (
-                <Text style={styles.timerText}>
-                  Resend code in {formatTime(timeLeft)}
-                </Text>
+                <View style={styles.timerRow}>
+                  <Text style={styles.timerIcon}>⟳</Text>
+                  <Text style={styles.timerText}>
+                    Resend code in {formatTime(timeLeft)}
+                  </Text>
+                </View>
               ) : (
-                <TouchableOpacity onPress={handleResend}>
+                <TouchableOpacity onPress={handleResend} style={styles.resendButton}>
                   <Text style={styles.resendText}>Resend code</Text>
                 </TouchableOpacity>
               )}
             </View>
 
-        
+            {/* Alternative Options */}
+            <View style={styles.alternativeOptions}>
+              <TouchableOpacity onPress={handleCallMe} style={styles.alternativeButton}>
+                <Text style={styles.alternativeText}>Try WhatsApp</Text>
+              </TouchableOpacity>
+              <Text style={styles.alternativeSeparator}>•</Text>
+              <TouchableOpacity onPress={handleCallMe} style={styles.alternativeButton}>
+                <Text style={styles.alternativeText}>Call me</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-
-          {/* Verify Button */}
-          <TouchableOpacity 
-            style={[
-              styles.verifyButton, 
-              (otp.join('').length < 4 || isVerifying) && styles.verifyButtonDisabled
-            ]} 
-            onPress={handleVerify}
-            disabled={otp.join('').length < 4 || isVerifying}
-          >
-            <Text style={styles.verifyButtonText}>
-              {isVerifying ? 'Verifying...' : 'Verify'}
-            </Text>
-          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -319,17 +381,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.white,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   keyboardView: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.md,
-    paddingBottom: SPACING.xl,
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 20,
   },
   content: {
     flex: 1,
@@ -337,35 +397,46 @@ const styles = StyleSheet.create({
     paddingTop: SPACING.md,
   },
   header: {
-    marginBottom: SPACING.xl,
+    marginBottom: 20,
   },
   backButton: {
-    marginBottom: SPACING.md,
+    padding: 8,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
   },
   backButtonText: {
-    fontSize: 24,
-    color: COLORS.text,
-    fontWeight: '600',
+    fontSize: 17,
+    color: COLORS.primary,
+    fontWeight: '400',
   },
 
   mainContent: {
     flex: 1,
     alignItems: 'center',
-    marginBottom: SPACING.lg,
-    marginTop: SPACING.xl,
-    justifyContent: 'center',
+    paddingTop: 40,
+  },
+  title: {
+    fontSize: 34,
+    fontWeight: '700',
+    color: COLORS.text,
+    lineHeight: 41,
+    marginBottom: 8,
+    textAlign: 'center',
   },
   description: {
-    fontSize: TYPOGRAPHY.fontSizes.md,
+    fontSize: 17,
     color: COLORS.textSecondary,
     textAlign: 'center',
-    marginBottom: SPACING.md,
+    marginBottom: 4,
   },
   phoneNumber: {
-    fontSize: TYPOGRAPHY.fontSizes.lg,
-    fontWeight: '500',
+    fontSize: 17,
+    fontWeight: '600',
     color: COLORS.text,
-    marginBottom: SPACING.lg,
+    marginBottom: 40,
+    textAlign: 'center',
   },
   instruction: {
     fontSize: TYPOGRAPHY.fontSizes.md,
@@ -375,57 +446,93 @@ const styles = StyleSheet.create({
   },
   otpContainer: {
     flexDirection: 'row',
-    width: '100%',
-    maxWidth: 300,
-    marginBottom: SPACING.xl,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 32,
+    gap: 12,
   },
   otpInput: {
-    width: 50,
-    height: 60,
+    width: 64,
+    height: 64,
     borderWidth: 2,
-    borderColor: COLORS.border,
-    borderRadius: BORDER_RADIUS.md,
-    fontSize: TYPOGRAPHY.fontSizes.xxl,
-    fontWeight: '400',
+    borderColor: '#E5E5E5',
+    borderRadius: 10,
+    fontSize: 28,
+    fontWeight: '500',
     color: COLORS.text,
     textAlign: 'center',
     backgroundColor: COLORS.white,
-    marginHorizontal: SPACING.xs,
   },
   otpInputFilled: {
     borderColor: COLORS.primary,
     backgroundColor: COLORS.lightGreen,
   },
+  otpInputFocused: {
+    borderColor: COLORS.primary,
+    borderWidth: 2,
+  },
+  errorText: {
+    fontSize: 15,
+    color: COLORS.danger,
+    textAlign: 'center',
+    marginBottom: 16,
+    fontWeight: '400',
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  loadingText: {
+    fontSize: 15,
+    color: COLORS.textSecondary,
+    marginLeft: 8,
+    fontWeight: '400',
+  },
   timerContainer: {
     alignItems: 'center',
-    marginBottom: SPACING.lg,
+    marginBottom: 24,
+  },
+  timerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  timerIcon: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+    marginRight: 6,
   },
   timerText: {
-    fontSize: TYPOGRAPHY.fontSizes.sm,
+    fontSize: 15,
     color: COLORS.textSecondary,
+    fontWeight: '400',
+  },
+  resendButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
   },
   resendText: {
-    fontSize: TYPOGRAPHY.fontSizes.sm,
+    fontSize: 15,
     color: COLORS.primary,
-    fontWeight: '500',
-  },
-  
-  verifyButton: {
-    backgroundColor: COLORS.primary,
-    paddingVertical: SPACING.sm,
-    borderRadius: BORDER_RADIUS.lg,
-    alignItems: 'center',
-    marginBottom: SPACING.xl,
-    ...SHADOWS.medium,
-  },
-  verifyButtonDisabled: {
-    backgroundColor: COLORS.lightGray,
-  },
-  verifyButtonText: {
-    color: COLORS.white,
-    fontSize: TYPOGRAPHY.fontSizes.md,
     fontWeight: '600',
+  },
+  alternativeOptions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  alternativeButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  alternativeText: {
+    fontSize: 15,
+    color: COLORS.primary,
+    fontWeight: '400',
+  },
+  alternativeSeparator: {
+    fontSize: 15,
+    color: COLORS.textSecondary,
+    marginHorizontal: 8,
   },
 });
