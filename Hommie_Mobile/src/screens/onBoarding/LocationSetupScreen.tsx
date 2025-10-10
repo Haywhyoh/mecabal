@@ -1,17 +1,17 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ScrollView, Alert } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ScrollView, Alert, Animated } from 'react-native';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../../constants';
 import { contextAwareGoBack } from '../../utils/navigationUtils';
 import { MeCabalLocation, MeCabalAuth } from '../../services';
 import { useAuth } from '../../contexts/AuthContext';
+import * as Haptics from 'expo-haptics';
 
 const LOCATION_OPTIONS = [
   {
     id: 'gps',
     title: 'Auto-detect',
-    subtitle: 'Use my current location',
-    description: 'Most accurate and fastest',
-    icon: '📍',
+    subtitle: 'Fastest and most accurate',
+    icon: 'location.fill',
     color: COLORS.primary,
     recommended: true,
   },
@@ -19,8 +19,7 @@ const LOCATION_OPTIONS = [
     id: 'map',
     title: 'Pick on Map',
     subtitle: 'Select location visually',
-    description: 'Choose exactly where you are',
-    icon: '🗺️',
+    icon: 'map.fill',
     color: COLORS.secondary,
     recommended: false,
   },
@@ -28,8 +27,7 @@ const LOCATION_OPTIONS = [
     id: 'landmark',
     title: 'Nearby Landmark',
     subtitle: 'Find me by a landmark',
-    description: 'School, church, or market',
-    icon: '🏛️',
+    icon: 'building.2.fill',
     color: COLORS.orange,
     recommended: false,
   },
@@ -43,6 +41,17 @@ export default function LocationSetupScreen({ navigation, route }: any) {
   const [landmarksLoading, setLandmarksLoading] = useState(false);
 
   const { register, setUser } = useAuth();
+
+  // Animation values
+  const scaleAnimations = useRef<{ [key: string]: Animated.Value }>({}).current;
+
+  // Get or create scale animation for option
+  const getScaleAnimation = (optionId: string) => {
+    if (!scaleAnimations[optionId]) {
+      scaleAnimations[optionId] = new Animated.Value(1);
+    }
+    return scaleAnimations[optionId];
+  };
 
   const language = route.params?.language || 'en';
   const phoneNumber = route.params?.phoneNumber || '';
@@ -107,6 +116,28 @@ export default function LocationSetupScreen({ navigation, route }: any) {
   };
 
   const handleOptionSelect = (optionId: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    
+    // Selection animation
+    const scaleAnim = getScaleAnimation(optionId);
+    Animated.sequence([
+      Animated.timing(scaleAnim, {
+        toValue: 0.98,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1.02,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1.0,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
     setSelectedOption(optionId);
     
     if (optionId === 'gps') {
@@ -134,13 +165,11 @@ export default function LocationSetupScreen({ navigation, route }: any) {
         // Use real coordinates to find landmarks
         const landmarkResult = await MeCabalLocation.discoverNearbyLandmarks(
           location.data.latitude,
-          location.data.longitude,
-          2, // 2km radius
-          10 // max 10 landmarks
+          location.data.longitude
         );
         
-        if (landmarkResult && landmarkResult.success && landmarkResult.landmarks && Array.isArray(landmarkResult.landmarks)) {
-          setLandmarks(landmarkResult.landmarks.map(landmark => ({
+        if (landmarkResult && landmarkResult.success && landmarkResult.data?.landmarks && Array.isArray(landmarkResult.data.landmarks)) {
+          setLandmarks(landmarkResult.data.landmarks.map((landmark: any) => ({
             id: landmark.id || String(Math.random()),
             name: landmark.name || 'Unknown Landmark',
             type: landmark.type || 'Location',
@@ -184,10 +213,10 @@ export default function LocationSetupScreen({ navigation, route }: any) {
 
   const handleGPSLocation = async () => {
     Alert.alert(
-      'Location Access',
-      'MeCabal needs access to your location to show you relevant community updates.',
+      'Allow "MeCabal" to access your location?',
+      'This helps us connect you with your neighbors and show relevant community updates.',
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: 'Don\'t Allow', style: 'cancel' },
         { text: 'Allow', onPress: async () => {
           try {
             // Get user's current location using the enhanced service
@@ -209,14 +238,14 @@ export default function LocationSetupScreen({ navigation, route }: any) {
               if (verification && verification.verified && verification.neighborhood) {
                 Alert.alert(
                   'Location Verified!',
-                  `Welcome to ${verification.neighborhood.name}!\n\nAddress: ${location.data.address || 'Location detected'}\nAccuracy: ${Math.round(location.data.accuracy)}m`,
+                  `Welcome to ${verification.neighborhood.name}!\n\nAddress: ${location.data?.address || 'Location detected'}\nAccuracy: ${Math.round(location.data?.accuracy || 0)}m`,
                   [{ text: 'Continue', onPress: () => completeLocationSetup({
-                    state: verification.neighborhood.state,
-                    city: verification.neighborhood.city,
-                    estate: verification.neighborhood.name,
-                    latitude: location.data.latitude,
-                    longitude: location.data.longitude,
-                    address: location.data.address
+                    state: (verification.neighborhood as any)?.state || '',
+                    city: (verification.neighborhood as any)?.city || '',
+                    estate: verification.neighborhood?.name || '',
+                    latitude: location.data?.latitude,
+                    longitude: location.data?.longitude,
+                    address: location.data?.address
                   }) }]
                 );
               } else {
@@ -311,9 +340,9 @@ export default function LocationSetupScreen({ navigation, route }: any) {
           'Location Verified!',
           `Welcome to ${verification.neighborhood.name}! Your location has been verified based on ${landmark.name}.`,
           [{ text: 'Continue', onPress: () => completeLocationSetup({
-            state: verification.neighborhood.state,
-            city: verification.neighborhood.city,
-            estate: verification.neighborhood.name,
+            state: (verification.neighborhood as any)?.state || '',
+            city: (verification.neighborhood as any)?.city || '',
+            estate: verification.neighborhood?.name || '',
             landmark: landmark.name,
             latitude: landmark.latitude,
             longitude: landmark.longitude
@@ -380,8 +409,8 @@ export default function LocationSetupScreen({ navigation, route }: any) {
         </View>
 
         <View style={styles.heroSection}>
-          <Text style={styles.title}>Where are you?</Text>
-          <Text style={styles.subtitle}>Help us connect you with your neighbors</Text>
+          <Text style={styles.title}>Where do you live?</Text>
+          <Text style={styles.subtitle}>This helps us connect you with your neighbors</Text>
         </View>
 
 
@@ -393,32 +422,56 @@ export default function LocationSetupScreen({ navigation, route }: any) {
           {/* Location Options */}
           <View style={styles.optionsContainer}>
             {LOCATION_OPTIONS.map((option) => (
-              <TouchableOpacity
+              <Animated.View
                 key={option.id}
                 style={[
-                  styles.optionCard,
-                  selectedOption === option.id && styles.optionCardSelected
+                  {
+                    transform: [{ scale: getScaleAnimation(option.id) }]
+                  }
                 ]}
-                onPress={() => handleOptionSelect(option.id)}
               >
-                <View style={styles.optionContent}>
-                  <View style={styles.optionIconContainer}>
-                    <Text style={styles.optionIcon}>{option.icon}</Text>
-                  </View>
-                  <View style={styles.optionInfo}>
-                    <View style={styles.optionHeader}>
-                      <Text style={styles.optionTitle}>{option.title}</Text>
-                      {option.recommended && (
-                        <View style={styles.recommendedBadge}>
-                          <Text style={styles.recommendedText}>✓</Text>
-                        </View>
-                      )}
+                <TouchableOpacity
+                  style={[
+                    styles.optionCard,
+                    option.recommended && styles.optionCardRecommended,
+                    selectedOption === option.id && styles.optionCardSelected
+                  ]}
+                  onPress={() => handleOptionSelect(option.id)}
+                  accessibilityLabel={option.title}
+                  accessibilityHint={option.subtitle}
+                  accessibilityRole="button"
+                >
+                  <View style={styles.optionContent}>
+                    <View style={[
+                      styles.optionIconContainer,
+                      option.recommended && styles.optionIconContainerRecommended
+                    ]}>
+                      <Text style={styles.optionIcon}>{option.icon}</Text>
                     </View>
-                    <Text style={styles.optionSubtitle}>{option.subtitle}</Text>
-                    <Text style={styles.optionDescription}>{option.description}</Text>
+                    <View style={styles.optionInfo}>
+                      <View style={styles.optionHeader}>
+                        <Text style={[
+                          styles.optionTitle,
+                          option.recommended && styles.optionTitleRecommended
+                        ]}>
+                          {option.title}
+                        </Text>
+                        {option.recommended && (
+                          <View style={styles.recommendedBadge}>
+                            <Text style={styles.recommendedText}>✓</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text style={[
+                        styles.optionSubtitle,
+                        option.recommended && styles.optionSubtitleRecommended
+                      ]}>
+                        {option.subtitle}
+                      </Text>
+                    </View>
                   </View>
-                </View>
-              </TouchableOpacity>
+                </TouchableOpacity>
+              </Animated.View>
             ))}
           </View>
 
@@ -432,7 +485,7 @@ export default function LocationSetupScreen({ navigation, route }: any) {
                   <Text style={styles.loadingText}>Finding landmarks near you...</Text>
                 </View>
               ) : landmarks.length > 0 ? (
-                <>
+                <View style={styles.landmarksList}>
                   {landmarks.map((landmark) => (
                     <TouchableOpacity
                       key={landmark.id}
@@ -440,8 +493,17 @@ export default function LocationSetupScreen({ navigation, route }: any) {
                         styles.landmarkItem,
                         selectedLandmark?.id === landmark.id && styles.landmarkItemSelected
                       ]}
-                      onPress={() => handleLandmarkSelect(landmark)}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        handleLandmarkSelect(landmark);
+                      }}
+                      accessibilityLabel={`${landmark.name}, ${landmark.type}`}
+                      accessibilityHint={`${landmark.distance} away`}
+                      accessibilityRole="button"
                     >
+                      <View style={styles.landmarkIcon}>
+                        <Text style={styles.landmarkIconText}>📍</Text>
+                      </View>
                       <View style={styles.landmarkInfo}>
                         <Text style={styles.landmarkName}>{landmark.name}</Text>
                         <Text style={styles.landmarkType}>{landmark.type}</Text>
@@ -449,34 +511,54 @@ export default function LocationSetupScreen({ navigation, route }: any) {
                       <Text style={styles.landmarkDistance}>{landmark.distance}</Text>
                     </TouchableOpacity>
                   ))}
-                </>
+                </View>
               ) : (
                 <View style={styles.noLandmarksContainer}>
                   <Text style={styles.noLandmarksText}>No landmarks found nearby</Text>
                 </View>
               )}
 
-              <TouchableOpacity style={styles.manualAddressButton} onPress={handleManualAddress}>
+              <TouchableOpacity 
+                style={styles.manualAddressButton} 
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  handleManualAddress();
+                }}
+                accessibilityLabel="Enter address manually"
+                accessibilityRole="button"
+              >
                 <Text style={styles.manualAddressText}>Enter address manually</Text>
               </TouchableOpacity>
             </View>
           )}
-
-          {/* Continue Button */}
-          {selectedOption && (
-            <TouchableOpacity 
-              style={[
-                styles.continueButton,
-                selectedOption === 'landmark' && !selectedLandmark && styles.continueButtonDisabled
-              ]} 
-              onPress={handleContinue}
-              disabled={selectedOption === 'landmark' && !selectedLandmark}
-            >
-              <Text style={styles.continueButtonText}>Continue</Text>
-            </TouchableOpacity>
-          )}
         </View>
       </View>
+
+      {/* Fixed Bottom Continue Button */}
+      {selectedOption && (
+        <View style={styles.bottomButtonContainer}>
+          <TouchableOpacity 
+            style={[
+              styles.continueButton,
+              selectedOption === 'landmark' && !selectedLandmark && styles.continueButtonDisabled
+            ]} 
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              handleContinue();
+            }}
+            disabled={selectedOption === 'landmark' && !selectedLandmark}
+            accessibilityLabel="Continue with location setup"
+            accessibilityRole="button"
+          >
+            <Text style={[
+              styles.continueButtonText,
+              selectedOption === 'landmark' && !selectedLandmark && styles.continueButtonTextDisabled
+            ]}>
+              Continue
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -488,50 +570,63 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.md,
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 100, // Space for fixed button
   },
   header: {
-    marginBottom: SPACING.xl,
+    marginBottom: 20,
   },
   backButton: {
-    marginBottom: SPACING.md,
+    padding: 8,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
   },
   backButtonText: {
-    fontSize: 24,
-    color: COLORS.text,
-    fontWeight: '600',
+    fontSize: 17,
+    color: COLORS.primary,
+    fontWeight: '400',
   },
   heroSection: {
-    marginTop: SPACING.lg,
-    marginBottom: SPACING.xl,
+    marginBottom: 32,
     alignItems: 'center',
   },
   title: {
-    fontSize: TYPOGRAPHY.fontSizes.xxl,
+    fontSize: 34,
     fontWeight: '700',
     color: COLORS.text,
+    lineHeight: 41,
     textAlign: 'center',
-    marginBottom: SPACING.sm,
+    marginBottom: 8,
   },
   subtitle: {
-    fontSize: TYPOGRAPHY.fontSizes.lg,
+    fontSize: 17,
     color: COLORS.textSecondary,
+    lineHeight: 22,
     textAlign: 'center',
   },
   mainContent: {
     flex: 1,
   },
   optionsContainer: {
-    marginBottom: SPACING.xl,
+    marginBottom: 32,
+    gap: 12,
   },
   optionCard: {
     backgroundColor: COLORS.white,
-    padding: SPACING.lg,
-    borderRadius: BORDER_RADIUS.xl,
-    marginBottom: SPACING.md,
+    height: 64,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+  },
+  optionCardRecommended: {
+    height: 80,
     borderWidth: 2,
-    borderColor: COLORS.border,
+    borderColor: COLORS.primary,
     ...SHADOWS.small,
   },
   optionCardSelected: {
@@ -541,18 +636,23 @@ const styles = StyleSheet.create({
   optionContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    height: '100%',
   },
   optionIconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: COLORS.lightGreen,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F5F5F5',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: SPACING.md,
+    marginRight: 12,
+  },
+  optionIconContainerRecommended: {
+    backgroundColor: COLORS.primary + '20',
   },
   optionIcon: {
-    fontSize: 24,
+    fontSize: 20,
+    color: COLORS.primary,
   },
   optionInfo: {
     flex: 1,
@@ -561,120 +661,152 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: SPACING.xs,
+    marginBottom: 2,
   },
   optionTitle: {
-    fontSize: TYPOGRAPHY.fontSizes.lg,
+    fontSize: 17,
     fontWeight: '600',
     color: COLORS.text,
   },
+  optionTitleRecommended: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
   optionSubtitle: {
-    fontSize: TYPOGRAPHY.fontSizes.sm,
+    fontSize: 15,
     color: COLORS.textSecondary,
+    fontWeight: '400',
+  },
+  optionSubtitleRecommended: {
+    fontSize: 16,
+    fontWeight: '500',
   },
   recommendedBadge: {
     backgroundColor: COLORS.primary,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
   recommendedText: {
     color: COLORS.white,
-    fontSize: TYPOGRAPHY.fontSizes.xs,
+    fontSize: 14,
     fontWeight: '600',
-  },
-  optionDescription: {
-    fontSize: TYPOGRAPHY.fontSizes.xs,
-    color: COLORS.textSecondary,
-    marginTop: SPACING.xs,
   },
   landmarksSection: {
-    marginBottom: SPACING.xl,
+    marginBottom: 32,
   },
   landmarksTitle: {
-    fontSize: TYPOGRAPHY.fontSizes.lg,
+    fontSize: 17,
     fontWeight: '600',
     color: COLORS.text,
-    marginBottom: SPACING.sm,
+    marginBottom: 16,
+  },
+  landmarksList: {
+    gap: 8,
   },
   landmarkItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: COLORS.offWhite,
-    padding: SPACING.md,
-    borderRadius: BORDER_RADIUS.md,
-    marginBottom: SPACING.sm,
+    backgroundColor: COLORS.white,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: '#E5E5E5',
+    height: 56,
   },
   landmarkItemSelected: {
     borderColor: COLORS.primary,
     backgroundColor: COLORS.lightGreen,
   },
+  landmarkIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F5F5F5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  landmarkIconText: {
+    fontSize: 16,
+  },
   landmarkInfo: {
     flex: 1,
   },
   landmarkName: {
-    fontSize: TYPOGRAPHY.fontSizes.md,
+    fontSize: 17,
     fontWeight: '500',
     color: COLORS.text,
-    marginBottom: SPACING.xs,
+    marginBottom: 2,
   },
   landmarkType: {
-    fontSize: TYPOGRAPHY.fontSizes.sm,
+    fontSize: 15,
     color: COLORS.textSecondary,
+    fontWeight: '400',
   },
   landmarkDistance: {
-    fontSize: TYPOGRAPHY.fontSizes.sm,
+    fontSize: 15,
     color: COLORS.primary,
     fontWeight: '500',
   },
   manualAddressButton: {
     alignItems: 'center',
-    padding: SPACING.md,
-    marginTop: SPACING.md,
+    paddingVertical: 16,
+    marginTop: 16,
   },
   manualAddressText: {
-    fontSize: TYPOGRAPHY.fontSizes.md,
+    fontSize: 17,
     color: COLORS.primary,
     fontWeight: '500',
     textDecorationLine: 'underline',
   },
+  bottomButtonContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    paddingBottom: 34, // Safe area bottom
+    backgroundColor: COLORS.white,
+    borderTopWidth: 0.5,
+    borderTopColor: '#E5E5E5',
+  },
   continueButton: {
     backgroundColor: COLORS.primary,
-    paddingVertical: SPACING.md,
-    borderRadius: BORDER_RADIUS.lg,
+    height: 50,
+    borderRadius: 12,
     alignItems: 'center',
-    marginBottom: SPACING.xl,
-    ...SHADOWS.medium,
+    justifyContent: 'center',
   },
   continueButtonDisabled: {
-    backgroundColor: COLORS.lightGray,
+    backgroundColor: COLORS.neutral.lightGray,
+    opacity: 0.4,
   },
   continueButtonText: {
     color: COLORS.white,
-    fontSize: TYPOGRAPHY.fontSizes.lg,
+    fontSize: 17,
     fontWeight: '600',
+  },
+  continueButtonTextDisabled: {
+    color: COLORS.textSecondary,
   },
   loadingContainer: {
     alignItems: 'center',
-    paddingVertical: SPACING.xl,
+    paddingVertical: 32,
   },
   loadingText: {
-    fontSize: TYPOGRAPHY.fontSizes.md,
+    fontSize: 17,
     color: COLORS.textSecondary,
-    fontStyle: 'italic',
+    fontWeight: '400',
   },
   noLandmarksContainer: {
     alignItems: 'center',
-    paddingVertical: SPACING.xl,
+    paddingVertical: 32,
   },
   noLandmarksText: {
-    fontSize: TYPOGRAPHY.fontSizes.md,
+    fontSize: 17,
     color: COLORS.textSecondary,
     textAlign: 'center',
+    fontWeight: '400',
   },
 });

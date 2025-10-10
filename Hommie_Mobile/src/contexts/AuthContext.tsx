@@ -50,14 +50,61 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return;
       }
 
-      const currentUser = await MeCabalAuth.getCurrentUser();
-      console.log('🔄 Auth initialization result:', currentUser ? `User found: ${currentUser.firstName} ${currentUser.lastName}` : 'No user');
+      // Try to get full user profile first (includes profilePictureUrl)
+      const profileResult = await UserProfileService.getCurrentUserProfile();
 
-      // Only set user if we actually got one - don't clear existing user state
-      if (currentUser) {
-        setUser(currentUser);
+      if (profileResult.success && profileResult.data) {
+        // Convert backend response to NigerianUser format
+        const backendUser: NigerianUser = {
+          id: profileResult.data.id,
+          firstName: profileResult.data.firstName,
+          lastName: profileResult.data.lastName,
+          fullName: profileResult.data.fullName,
+          email: profileResult.data.email,
+          phoneNumber: profileResult.data.phoneNumber,
+          profilePictureUrl: profileResult.data.profilePictureUrl,
+          dateOfBirth: profileResult.data.dateOfBirth,
+          gender: profileResult.data.gender,
+          isVerified: profileResult.data.isVerified,
+          phoneVerified: profileResult.data.phoneVerified,
+          identityVerified: profileResult.data.identityVerified,
+          addressVerified: profileResult.data.addressVerified,
+          trustScore: profileResult.data.trustScore,
+          verificationLevel: profileResult.data.verificationLevel,
+          verificationBadge: profileResult.data.verificationBadge,
+          bio: profileResult.data.bio,
+          occupation: profileResult.data.occupation,
+          professionalSkills: profileResult.data.professionalSkills,
+          culturalBackground: profileResult.data.culturalBackground,
+          nativeLanguages: profileResult.data.nativeLanguages,
+          preferredLanguage: profileResult.data.preferredLanguage,
+          state: profileResult.data.state,
+          city: profileResult.data.city,
+          estate: profileResult.data.estate,
+          locationString: profileResult.data.locationString,
+          landmark: profileResult.data.landmark,
+          address: profileResult.data.address,
+          isActive: profileResult.data.isActive,
+          memberSince: profileResult.data.memberSince,
+          lastLoginAt: profileResult.data.lastLoginAt,
+          createdAt: profileResult.data.createdAt,
+          updatedAt: profileResult.data.updatedAt,
+          joinDate: profileResult.data.joinDate,
+          profileCompleteness: profileResult.data.profileCompleteness,
+        };
+
+        console.log('🔄 Auth initialization result: User found:', backendUser.firstName, backendUser.lastName);
+        setUser(backendUser);
       } else {
-        console.log('🔄 No user found during initialization - keeping existing state');
+        // Fallback to /auth/me if profile service fails
+        const currentUser = await MeCabalAuth.getCurrentUser();
+        console.log('🔄 Auth initialization result (fallback):', currentUser ? `User found: ${currentUser.firstName} ${currentUser.lastName}` : 'No user');
+
+        if (currentUser) {
+          setUser(currentUser);
+        } else {
+          console.log('🔄 No user found during initialization - keeping existing state');
+        }
       }
     } catch (error) {
       console.error('Auth initialization error:', error);

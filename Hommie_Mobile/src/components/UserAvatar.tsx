@@ -96,11 +96,27 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
     large: 16,
   };
 
+  // Get avatar URL - handle multiple possible field names from API
+  const getAvatarUrl = () => {
+    // Try different possible field names
+    if (user?.profilePictureUrl) return user.profilePictureUrl;
+
+    const userAny = user as any;
+    if (userAny?.profilePicture) return userAny.profilePicture;
+    if (userAny?.profile_picture_url) return userAny.profile_picture_url;
+    if (userAny?.avatar_url) return userAny.avatar_url;
+    if (userAny?.avatarUrl) return userAny.avatarUrl;
+
+    return null;
+  };
+
+  const avatarUrl = getAvatarUrl();
+
   const AvatarContent = () => (
     <View style={[styles.avatarContainer, sizeStyles[size]]}>
-      {user?.profilePictureUrl ? (
+      {avatarUrl ? (
         <Image
-          source={{ uri: user.profilePictureUrl }}
+          source={{ uri: avatarUrl }}
           style={[styles.avatarImage, sizeStyles[size]]}
         />
       ) : (
