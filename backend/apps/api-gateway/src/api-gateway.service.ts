@@ -17,6 +17,8 @@ export class ApiGatewayService {
     process.env.EVENTS_SERVICE_URL || 'http://localhost:3006';
   private readonly businessServiceUrl =
     process.env.BUSINESS_SERVICE_URL || 'http://localhost:3008';
+  private readonly userServiceUrl =
+    process.env.USER_SERVICE_URL || 'http://localhost:3002';
 
   constructor(
     private readonly httpService: HttpService,
@@ -29,6 +31,7 @@ export class ApiGatewayService {
     console.log('  - Marketplace Service URL:', this.marketplaceServiceUrl);
     console.log('  - Events Service URL:', this.eventsServiceUrl);
     console.log('  - Business Service URL:', this.businessServiceUrl);
+    console.log('  - User Service URL:', this.userServiceUrl);
   }
 
   getHello(): string {
@@ -564,6 +567,130 @@ export class ApiGatewayService {
 
         throw new Error(
           `Business request failed with status code ${status}: ${statusText}`,
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  // Proxy methods for user service
+  async proxyToUserService(
+    path: string,
+    method: string,
+    data?: unknown,
+    headers?: Record<string, string | string[] | undefined>,
+    user?: any,
+  ) {
+    try {
+      const url = `${this.userServiceUrl}${path}`;
+
+      console.log('🌐 API Gateway - Proxying to user service:');
+      console.log('  - URL:', url);
+      console.log('  - Method:', method);
+      console.log(
+        '  - User:',
+        user
+          ? {
+              id: (user as { id: string; email: string }).id,
+              email: (user as { id: string; email: string }).email,
+            }
+          : 'No user',
+      );
+      console.log('  - Data type:', data?.constructor?.name);
+
+      // Check if data is FormData
+      const isFormData =
+        data &&
+        typeof (data as { getHeaders?: () => any }).getHeaders === 'function';
+
+      console.log('  - Is FormData:', isFormData);
+
+      const baseHeaders: Record<string, string> = {
+        // Don't set Content-Type for FormData, let axios handle it
+        ...(isFormData
+          ? {}
+          : ({ 'Content-Type': 'application/json' } as Record<string, string>)),
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        Pragma: 'no-cache',
+        Expires: '0',
+        // Forward the original Authorization header for JWT authentication
+        ...(headers && headers.authorization && {
+          'Authorization': Array.isArray(headers.authorization)
+            ? headers.authorization[0]
+            : headers.authorization,
+        }),
+        ...(user && {
+          'X-User-Id':
+            (user as { id: string }).id.length === 37 &&
+            (user as { id: string }).id.endsWith('f')
+              ? (user as { id: string }).id.slice(0, -1)
+              : (user as { id: string }).id,
+        }),
+      };
+
+      // If FormData, merge its headers (important for boundary)
+      if (isFormData) {
+        Object.assign(
+          baseHeaders,
+          (data as { getHeaders: () => Record<string, string> }).getHeaders(),
+        );
+      }
+
+      const config: Record<string, unknown> = {
+        headers: baseHeaders,
+        timeout: 60000,
+        maxRedirects: 5,
+        // Don't transform FormData - let axios handle it natively
+        ...(isFormData
+          ? {}
+          : { transformRequest: [(data: unknown) => JSON.stringify(data)] }),
+      };
+
+      let response;
+      switch (method.toLowerCase()) {
+        case 'get':
+          response = await firstValueFrom(this.httpService.get(url, config));
+          break;
+        case 'post':
+          response = await firstValueFrom(
+            this.httpService.post(url, data, config),
+          );
+          break;
+        case 'patch':
+          response = await firstValueFrom(
+            this.httpService.patch(url, data, config),
+          );
+          break;
+        case 'put':
+          response = await firstValueFrom(
+            this.httpService.put(url, data, config),
+          );
+          break;
+        case 'delete':
+          response = await firstValueFrom(
+            this.httpService.delete(url, config),
+          );
+          break;
+        default:
+          throw new Error(`Unsupported method: ${method}`);
+      }
+
+      return response.data as unknown;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      console.error(`Error proxying to user service: ${errorMessage}`);
+
+      if (error && typeof error === 'object' && 'response' in error) {
+        const response = (
+          error as { response: { status: number; statusText: string } }
+        ).response;
+        const status = response.status;
+        const statusText = response.statusText;
+
+        throw new Error(
+          `User request failed with status code ${status}: ${statusText}`,
         );
       }
 

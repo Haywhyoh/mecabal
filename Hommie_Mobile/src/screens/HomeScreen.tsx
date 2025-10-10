@@ -10,6 +10,7 @@ import { EventsApi } from '../services/EventsApi';
 import FloatingActionButton from '../components/FloatingActionButton';
 import { useAuth } from '../contexts/AuthContext';
 import { FeedScreen } from '../screens/FeedScreen';
+import { UserAvatar } from '../components/UserAvatar';
 
 const { width } = Dimensions.get('window');
 
@@ -150,20 +151,16 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <View style={styles.profileSection}>
-            <TouchableOpacity 
-              style={styles.profileButton} 
+            <TouchableOpacity
               onPress={handleProfilePress}
               activeOpacity={0.7}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Text style={styles.profileInitial}>
-                {getInitials(currentUser.firstName, currentUser.lastName)}
-              </Text>
-              {currentUser.hasBusinessProfile && (
-                <View style={styles.businessIndicator}>
-                  <MaterialCommunityIcons name="store" size={10} color="#FFFFFF" />
-                </View>
-              )}
+              <UserAvatar
+                user={user}
+                size="small"
+                showBadge={false}
+              />
             </TouchableOpacity>
           </View>
           
@@ -247,20 +244,22 @@ export default function HomeScreen() {
               {/* Header */}
               <View style={styles.sidebarHeader}>
                 <View style={styles.sidebarProfileSection}>
-                  <View style={styles.sidebarAvatar}>
-                    <Text style={styles.sidebarAvatarText}>
-                      {getInitials(currentUser.firstName, currentUser.lastName)}
-                    </Text>
-                  </View>
+                  <UserAvatar
+                    user={user}
+                    size="medium"
+                    showBadge={true}
+                  />
                   <View style={styles.sidebarUserInfo}>
                     <Text style={styles.sidebarUserName}>
                       {currentUser.firstName} {currentUser.lastName}
                     </Text>
-                    <Text style={styles.sidebarUserStatus}>Active Neighbor</Text>
+                    <Text style={styles.sidebarUserStatus}>
+                      {user?.isVerified ? 'Verified Neighbor' : 'Active Neighbor'}
+                    </Text>
                   </View>
                 </View>
-                <TouchableOpacity 
-                  style={styles.closeSidebarButton} 
+                <TouchableOpacity
+                  style={styles.closeSidebarButton}
                   onPress={closeSidebar}
                 >
                   <MaterialCommunityIcons name="close" size={24} color="#8E8E8E" />
@@ -369,33 +368,6 @@ const styles = StyleSheet.create({
   },
   profileSection: {
     marginRight: 16,
-  },
-  profileButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#00A651',
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  profileInitial: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  businessIndicator: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#228B22',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
   },
   searchBar: {
     flex: 1,
@@ -697,20 +669,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-  },
-  sidebarAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#00A651',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  sidebarAvatarText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#FFFFFF',
   },
   sidebarUserInfo: {
     flex: 1,

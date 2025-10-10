@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView, Aler
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
-import { NINVerificationService, NINVerificationResponse } from '../services/ninVerification';
+import { useProfile } from '../contexts/ProfileContext';
+import { verificationService } from '../services/verificationService';
 
 interface NINData {
   nin: string;
@@ -18,19 +19,26 @@ interface NINData {
 export default function NINVerificationScreen() {
   const navigation = useNavigation();
   const { refreshUser } = useAuth();
+  const { refreshProfile, refreshTrustScore } = useProfile();
 
   const [nin, setNin] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [verificationStep, setVerificationStep] = useState<'input' | 'preview' | 'success'>('input');
-  const [ninData, setNinData] = useState<NINVerificationResponse | null>(null);
+  const [ninData, setNinData] = useState<NINData | null>(null);
 
   const validateNIN = (ninNumber: string) => {
-    return NINVerificationService.validateNIN(ninNumber);
+    // Remove spaces and check if it's 11 digits
+    const cleanNIN = ninNumber.replace(/\s+/g, '');
+    return /^\d{11}$/.test(cleanNIN);
   };
 
   const formatNIN = (ninNumber: string) => {
-    return NINVerificationService.formatNIN(ninNumber);
+    const cleanNIN = ninNumber.replace(/\s+/g, '');
+    if (cleanNIN.length === 11) {
+      return cleanNIN.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1 $2 $3 $4');
+    }
+    return ninNumber;
   };
 
   const handleNINChange = (text: string) => {
@@ -49,23 +57,33 @@ export default function NINVerificationScreen() {
     setIsLoading(true);
 
     try {
-      // Call real backend API
-      const result = await NINVerificationService.verifyNIN(nin);
+      // Call real backend API using verificationService
+      const result = await verificationService.initiateNINVerification(nin);
 
-      if (result.success && result.data) {
-        // Verification successful - show preview
-        setNinData(result.data);
-        setVerificationStep('preview');
-      } else {
-        // Verification failed
-        Alert.alert(
-          'Verification Failed',
-          result.error || 'Unable to verify NIN. Please check your number and try again.'
-        );
-      }
-    } catch (error) {
+      // Map API response to component state
+      const ninData: NINData = {
+        nin: nin,
+        firstName: result.firstName,
+        lastName: result.lastName,
+        dateOfBirth: result.dateOfBirth,
+        gender: result.gender,
+        stateOfOrigin: result.stateOfOrigin,
+        isVerified: result.verificationStatus === 'verified',
+      };
+
+      setNinData(ninData);
+      setVerificationStep('preview');
+    } catch (error: any) {
       console.error('NIN verification error:', error);
-      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+
+      // User-friendly error messages
+      const errorMessage =
+        error.response?.data?.message ||
+        error.response?.status === 400 ? 'Invalid NIN number' :
+        error.response?.status === 429 ? 'Too many attempts. Please try again later.' :
+        'Unable to verify NIN. Please check your number and try again.';
+
+      Alert.alert('Verification Failed', errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -73,19 +91,34 @@ export default function NINVerificationScreen() {
 
   const handleConfirmVerification = async () => {
     try {
-      // Refresh user data to get updated verification status
-      await refreshUser();
+      setIsLoading(true);
 
-      // Show success screen
+      // Refresh profile and trust score to get updated verification status
+      await Promise.all([
+        refreshProfile(),
+        refreshTrustScore(),
+      ]);
+
       setVerificationStep('success');
 
-      // Optionally show alert
-      Alert.alert(
-        'NIN Verified Successfully',
-        'Your National ID has been verified and linked to your profile. This helps build trust in the community.'
-      );
+      // Show success and navigate
+      setTimeout(() => {
+        Alert.alert(
+          'NIN Verified Successfully',
+          'Your National ID has been verified and your community trust score has been updated.',
+          [
+            {
+              text: 'View Profile',
+              onPress: () => navigation.navigate('Profile' as never),
+            }
+          ]
+        );
+      }, 500);
     } catch (error) {
-      console.error('Error refreshing user data:', error);
+      console.error('Confirmation error:', error);
+      Alert.alert('Error', 'Failed to update profile. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 

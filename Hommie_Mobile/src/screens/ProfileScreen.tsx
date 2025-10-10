@@ -4,7 +4,10 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import { contextAwareGoBack } from '../utils/navigationUtils';
 import { useAuth } from '../contexts/AuthContext';
+import { useProfile } from '../contexts/ProfileContext';
 import { UserProfile } from '../components/UserProfile';
+import TrustScoreCard from '../components/TrustScoreCard';
+import DashboardStatsCard from '../components/DashboardStatsCard';
 import { UserDashboardService, DashboardStats } from '../services/userDashboard';
 import { UserProfileService, ProfileCompletionResponse } from '../services/userProfile';
 import { AvatarUploadService } from '../services/avatarUpload';
@@ -16,8 +19,19 @@ import { ToastService } from '../services/toastService';
 export default function ProfileScreen() {
   const navigation = useNavigation();
   const { logout, user, refreshUser } = useAuth();
+  const { 
+    trustScore, 
+    dashboardStats: contextDashboardStats, 
+    profileCompletion: contextProfileCompletion,
+    loading: profileLoading,
+    error: profileError,
+    refreshProfile,
+    refreshTrustScore,
+    refreshDashboard,
+    refreshProfileCompletion
+  } = useProfile();
 
-  // State for dashboard data
+  // State for dashboard data (fallback to old service if ProfileContext not available)
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
   const [profileCompletion, setProfileCompletion] = useState<ProfileCompletionResponse | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
@@ -60,10 +74,17 @@ export default function ProfileScreen() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
+    
+    // Use ProfileContext refresh methods
     await Promise.all([
-      fetchDashboardData(),
+      refreshProfile(),
+      refreshTrustScore(),
+      refreshDashboard(),
+      refreshProfileCompletion(),
+      fetchDashboardData(), // Fallback to old service
       refreshUser()
     ]);
+    
     setRefreshing(false);
   };
 
@@ -239,6 +260,56 @@ export default function ProfileScreen() {
           <MaterialCommunityIcons name="pencil" size={20} color="#2C2C2C" />
           <Text style={styles.editProfileText}>Edit Profile</Text>
         </TouchableOpacity>
+
+        {/* Verification Section */}
+        <View style={styles.verificationSection}>
+          <Text style={styles.verificationTitle}>Identity Verification</Text>
+          <Text style={styles.verificationSubtitle}>
+            Verify your identity to build trust and unlock community features
+          </Text>
+          
+          <View style={styles.verificationButtons}>
+            <TouchableOpacity 
+              style={styles.verificationButton}
+              onPress={() => navigation.navigate('NINVerification' as never)}
+            >
+              <MaterialCommunityIcons name="card-account-details" size={20} color="#00A651" />
+              <Text style={styles.verificationButtonText}>Verify NIN</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.verificationButton}
+              onPress={() => navigation.navigate('DocumentUpload' as never)}
+            >
+              <MaterialCommunityIcons name="file-upload" size={20} color="#2196F3" />
+              <Text style={styles.verificationButtonText}>Upload Documents</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Trust Score Card */}
+        <View style={styles.trustScoreSection}>
+          <TrustScoreCard 
+            trustScore={trustScore}
+            loading={profileLoading}
+            onPress={() => {
+              // Could navigate to detailed trust score screen
+              Alert.alert('Trust Score', 'Your trust score helps build community trust and unlocks features.');
+            }}
+          />
+        </View>
+
+        {/* Dashboard Stats Card */}
+        <View style={styles.dashboardStatsSection}>
+          <DashboardStatsCard 
+            dashboardStats={contextDashboardStats || dashboardStats}
+            loading={profileLoading || isLoadingStats}
+            onStatPress={(statType, data) => {
+              // Handle stat press - could navigate to relevant screens
+              console.log('Stat pressed:', statType, data);
+            }}
+          />
+        </View>
 
         {/* Dashboard */}
         <View style={styles.section}>
@@ -653,5 +724,58 @@ const styles = StyleSheet.create({
   },
   skeletonContainer: {
     marginTop: 16,
+  },
+  verificationSection: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    marginBottom: 16,
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: '#000000',
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  verificationTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#2C2C2C',
+    marginBottom: 4,
+  },
+  verificationSubtitle: {
+    fontSize: 14,
+    color: '#8E8E8E',
+    marginBottom: 16,
+  },
+  verificationButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  verificationButton: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  verificationButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2C2C2C',
+    marginLeft: 8,
+  },
+  trustScoreSection: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+  },
+  dashboardStatsSection: {
+    marginHorizontal: 16,
+    marginBottom: 16,
   },
 });

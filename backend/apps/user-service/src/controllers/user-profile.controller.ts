@@ -287,12 +287,19 @@ export class UserProfileController {
     @CurrentUser() user: User,
     @UploadedFile() file: Express.Multer.File,
   ): Promise<{ avatarUrl: string }> {
+    console.log('📸 User Service - Avatar upload received:');
+    console.log('  - User:', user?.id, user?.email);
+    console.log('  - File:', file?.originalname, file?.mimetype, file?.size);
+    console.log('  - Has buffer:', !!file?.buffer, 'Buffer length:', file?.buffer?.length);
+
     if (!file) {
+      console.error('❌ No file provided in request');
       throw new BadRequestException('No file provided');
     }
 
     // Validate file type
     if (!file.mimetype.startsWith('image/')) {
+      console.error('❌ Invalid file type:', file.mimetype);
       throw new BadRequestException('Only image files are allowed');
     }
 

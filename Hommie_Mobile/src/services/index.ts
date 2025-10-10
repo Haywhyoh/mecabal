@@ -44,6 +44,10 @@ export { default as EventsApi, EventsApi as EventsService } from './EventsApi';
 // States services
 export { default as StatesApi, StatesApi as StatesService } from './StatesApi';
 
+// Verification services
+export { default as verificationService } from './verificationService';
+export { default as userProfileService } from './userProfileService';
+
 // Type exports for convenience
 export type {
   NigerianUser,
@@ -113,6 +117,33 @@ export type {
   NigerianNeighborhoodType,
   NigerianSafetyAlertType
 } from '../types/nigerian';
+
+// Verification service types
+export type {
+  NINVerificationRequest,
+  NINVerificationResponse,
+  DocumentUploadRequest,
+  DocumentUploadResponse,
+  TrustScoreResponse,
+  BadgeResponse,
+  EndorsementRequest,
+  EndorsementResponse,
+  VerificationHistoryItem
+} from './verificationService';
+
+// User profile service types
+export type {
+  UserProfile,
+  UpdateProfileData,
+  ProfileCompletionResponse,
+  UserSearchParams,
+  UserSearchResponse,
+  NearbyUsersParams,
+  DashboardStats,
+  BookmarkRequest,
+  BookmarkResponse,
+  BookmarkCheckResponse
+} from './userProfileService';
 
 // Convenience exports for commonly used service combinations
 export class MeCabalServices {

@@ -12,6 +12,7 @@ import {
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { colors, spacing, typography } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
+import { UserAvatar } from '../components/UserAvatar';
 
 interface MoreScreenProps {
   navigation?: any;
@@ -34,7 +35,7 @@ interface MenuItem {
 }
 
 const MoreScreen: React.FC<MoreScreenProps> = ({ navigation }) => {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
 
   const handleNavigation = (screenName: string, params?: any) => {
     navigation?.navigate(screenName, params);
@@ -92,7 +93,7 @@ const MoreScreen: React.FC<MoreScreenProps> = ({ navigation }) => {
           subtitle: 'Enhance your trust level',
           icon: 'shield-check',
           iconColor: colors.accent.trustBlue,
-          onPress: () => handleNavigation('PhoneVerification'),
+          onPress: () => handleNavigation('NINVerification'),
         },
         {
           id: 'location-test',
@@ -262,42 +263,68 @@ const MoreScreen: React.FC<MoreScreenProps> = ({ navigation }) => {
     },
   ];
 
-  const ProfileHeader = () => (
-    <View style={styles.profileHeader}>
-      <TouchableOpacity 
-        style={styles.profileInfo}
-        onPress={() => handleNavigation('Profile')}
-      >
-        <View style={styles.profileAvatar}>
-          <MaterialCommunityIcons
-            name="account"
-            size={32}
-            color={colors.neutral.pureWhite}
+  const ProfileHeader = () => {
+    const getUserName = () => {
+      if (user?.firstName && user?.lastName) {
+        return `${user.firstName} ${user.lastName}`;
+      } else if (user?.firstName) {
+        return user.firstName;
+      } else if (user?.email) {
+        return user.email.split('@')[0];
+      }
+      return 'User';
+    };
+
+    const getUserLocation = () => {
+      const parts = [];
+      if (user?.estate) parts.push(user.estate);
+      if (user?.city) parts.push(user.city);
+      if (user?.state) parts.push(user.state);
+      return parts.join(', ') || 'Location not set';
+    };
+
+    return (
+      <View style={styles.profileHeader}>
+        <TouchableOpacity
+          style={styles.profileInfo}
+          onPress={() => handleNavigation('Profile')}
+        >
+          <UserAvatar
+            user={user}
+            size="medium"
+            showBadge={true}
           />
-        </View>
-        <View style={styles.profileDetails}>
-          <Text style={styles.profileName}>Adebayo Ogundimu</Text>
-          <Text style={styles.profileLocation}>Victoria Island Estate, Lagos</Text>
-          <View style={styles.verificationBadge}>
-            <MaterialCommunityIcons
-              name="shield-check"
-              size={14}
-              color={colors.primary}
-            />
-            <Text style={styles.verificationText}>Verified Resident</Text>
+          <View style={styles.profileDetails}>
+            <Text style={styles.profileName}>{getUserName()}</Text>
+            <Text style={styles.profileLocation}>{getUserLocation()}</Text>
+            {user?.isVerified && (
+              <View style={styles.verificationBadge}>
+                <MaterialCommunityIcons
+                  name="shield-check"
+                  size={14}
+                  color={colors.primary}
+                />
+                <Text style={styles.verificationText}>
+                  {user?.phoneVerified ? 'Phone Verified' : 'Verified'}
+                </Text>
+              </View>
+            )}
           </View>
-        </View>
-      </TouchableOpacity>
-      
-      <TouchableOpacity style={styles.editButton}>
-        <MaterialCommunityIcons
-          name="pencil"
-          size={18}
-          color={colors.primary}
-        />
-      </TouchableOpacity>
-    </View>
-  );
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.editButton}
+          onPress={() => handleNavigation('EditProfile')}
+        >
+          <MaterialCommunityIcons
+            name="pencil"
+            size={18}
+            color={colors.primary}
+          />
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   const MenuItem: React.FC<{ item: MenuItem }> = ({ item }) => (
     <TouchableOpacity style={styles.menuItem} onPress={item.onPress}>
@@ -394,15 +421,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-  },
-  profileAvatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.md,
   },
   profileDetails: {
     flex: 1,

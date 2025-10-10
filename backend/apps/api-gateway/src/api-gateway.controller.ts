@@ -9,8 +9,9 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFiles,
+  UploadedFile,
 } from '@nestjs/common';
-import { FilesInterceptor } from '@nestjs/platform-express';
+import { FilesInterceptor, FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiTags,
   ApiOperation,
@@ -705,6 +706,112 @@ export class ApiGatewayController {
     return this.proxyBusinessRequest(req, res);
   }
 
+  // User service routes - Specific routes first to avoid conflicts
+
+  // Avatar upload - needs special multipart handling
+  @Post('users/me/avatar')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('avatar'))
+  @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Upload user avatar' })
+  @ApiResponse({ status: 200, description: 'Avatar uploaded successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid file or file too large' })
+  async uploadUserAvatar(
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    try {
+      console.log('🖼️ API Gateway - Avatar upload request received:');
+      console.log('  - File:', file?.originalname, file?.mimetype, file?.size);
+
+      if (!file) {
+        return res.status(HttpStatus.BAD_REQUEST).json({
+          error: 'No file provided',
+        });
+      }
+
+      // Create FormData for the user service
+      const formData = new FormData();
+
+      if (file.buffer) {
+        formData.append('avatar', file.buffer, {
+          filename: file.originalname,
+          contentType: file.mimetype,
+        });
+      } else {
+        throw new Error('File buffer is undefined');
+      }
+
+      // Create headers without Content-Type (let FormData set it)
+      const headers = {
+        ...req.headers,
+      };
+      delete headers['content-type'];
+      delete headers['Content-Type'];
+
+      const result: unknown = await this.apiGatewayService.proxyToUserService(
+        '/users/me/avatar',
+        'POST',
+        formData,
+        headers as Record<string, string | string[] | undefined>,
+        req.user,
+      );
+
+      res.status(HttpStatus.OK).json(result);
+    } catch (error) {
+      console.error('Avatar upload error:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: errorMessage });
+    }
+  }
+
+  @All('users/me/completion')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyUserCompletion(@Req() req: Request, @Res() res: Response) {
+    return this.proxyUserRequest(req, res);
+  }
+
+  @All('users/dashboard/stats')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyUserDashboardStats(@Req() req: Request, @Res() res: Response) {
+    return this.proxyUserRequest(req, res);
+  }
+
+  @All('users/dashboard/*path')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyUserDashboardWildcard(@Req() req: Request, @Res() res: Response) {
+    return this.proxyUserRequest(req, res);
+  }
+
+  @All('users/me/*path')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyUserMeWildcard(@Req() req: Request, @Res() res: Response) {
+    return this.proxyUserRequest(req, res);
+  }
+
+  @All('users/*path')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyUserWildcard(@Req() req: Request, @Res() res: Response) {
+    return this.proxyUserRequest(req, res);
+  }
+
+  @All('users')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyUsers(@Req() req: Request, @Res() res: Response) {
+    return this.proxyUserRequest(req, res);
+  }
+
   @Get('states')
   @ApiOperation({ summary: 'Get all Nigerian states' })
   @ApiResponse({
@@ -936,6 +1043,48 @@ export class ApiGatewayController {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
       console.error('Error proxying business service request:', errorMessage);
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: errorMessage });
+    }
+  }
+
+  // Helper method to proxy requests to user service
+  @ApiOperation({ summary: 'Proxy all user service requests' })
+  @ApiResponse({
+    status: 200,
+    description: 'Request proxied to user service',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  private async proxyUserRequest(req: Request, res: Response) {
+    try {
+      console.log(
+        '🌐 API Gateway - Proxying user service request:',
+        'URL:', req.url,
+        'Method:', req.method,
+      );
+
+      const result: unknown =
+        await this.apiGatewayService.proxyToUserService(
+          req.url,
+          req.method,
+          req.body,
+          req.headers as Record<string, string | string[] | undefined>,
+          req.user,
+        );
+
+      let statusCode = HttpStatus.OK;
+      if (req.method === 'POST') {
+        statusCode = HttpStatus.CREATED;
+      } else if (req.method === 'DELETE') {
+        statusCode = HttpStatus.NO_CONTENT;
+      }
+
+      res.status(statusCode).json(result);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error proxying user service request:', errorMessage);
       res
         .status(HttpStatus.INTERNAL_SERVER_ERROR)
         .json({ error: errorMessage });

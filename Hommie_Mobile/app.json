@@ -7,7 +7,6 @@
     "icon": "./assets/mecabal.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": false,
-    "projectId": "jjmuogczhcunpehsocly",
     "splash": {
       "image": "./assets/mecabal.png",
       "resizeMode": "contain",

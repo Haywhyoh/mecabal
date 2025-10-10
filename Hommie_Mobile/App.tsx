@@ -7,6 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Provider as PaperProvider } from 'react-native-paper';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
+import { ProfileProvider } from './src/contexts/ProfileContext';
 import { logEnvironment, validateEnvironment } from './src/config/environment';
 
 // Import improved screens
@@ -27,10 +28,12 @@ import MoreScreen from './src/screens/MoreScreen';
 
 // Profile and Community Screens
 import ProfileScreen from './src/screens/ProfileScreen';
+import EditProfileScreen from './src/screens/EditProfileScreen';
 import BusinessProfileScreen from './src/screens/BusinessProfileScreen';
 import EstateManagerScreen from './src/screens/EstateManagerScreen';
 import CulturalProfileScreen from './src/screens/CulturalProfileScreen';
 import NINVerificationScreen from './src/screens/NINVerificationScreen';
+import DocumentUploadScreen from './src/screens/DocumentUploadScreen';
 import BadgeSystemScreen from './src/screens/BadgeSystemScreen';
 import BusinessRegistrationScreen from './src/screens/BusinessRegistrationScreen';
 import EditBusinessProfileScreen from './src/screens/EditBusinessProfileScreen';
@@ -175,10 +178,12 @@ function MainStackNavigator() {
       
       {/* Profile Screens */}
       <Stack.Screen name="Profile" component={ProfileScreen} />
+      <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="BusinessProfile" component={BusinessProfileScreen} />
       <Stack.Screen name="EstateManager" component={EstateManagerScreen} />
       <Stack.Screen name="CulturalProfile" component={CulturalProfileScreen} />
       <Stack.Screen name="NINVerification" component={NINVerificationScreen} />
+      <Stack.Screen name="DocumentUpload" component={DocumentUploadScreen} />
       <Stack.Screen name="BadgeSystem" component={BadgeSystemScreen} />
       
       {/* Business Screens */}
@@ -215,6 +220,7 @@ function MainStackNavigator() {
 
       {/* Development & Testing */}
       <Stack.Screen name="LocationTest" component={LocationTestScreen} />
+      <Stack.Screen name="MapPicker" component={MapPickerScreen} />
     </Stack.Navigator>
   );
 }
@@ -347,11 +353,13 @@ function AppContent() {
   );
 }
 
-// Main App component with AuthProvider
+// Main App component with AuthProvider and ProfileProvider
 export default function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <ProfileProvider>
+        <AppContent />
+      </ProfileProvider>
     </AuthProvider>
   );
 }

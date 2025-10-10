@@ -86,9 +86,10 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
   const fetchFeaturedEvents = useCallback(async () => {
     try {
       const featured = await EventsApi.getFeaturedEvents(5);
-      setFeaturedEvents(featured);
+      setFeaturedEvents(featured || []);
     } catch (err) {
       console.error('Error fetching featured events:', err);
+      setFeaturedEvents([]); // Set to empty array on error
     }
   }, []);
 
@@ -191,7 +192,7 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
   };
 
   const renderFeaturedEvents = () => {
-    if (featuredEvents.length === 0) return null;
+    if (!featuredEvents || featuredEvents.length === 0) return null;
 
     return (
       <View style={styles.featuredSection}>

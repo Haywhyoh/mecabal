@@ -9,6 +9,10 @@ async function bootstrap() {
     rawBody: true,
   });
 
+  // Configure body parser to handle file uploads (10MB limit)
+  app.use(require('express').json({ limit: '10mb' }));
+  app.use(require('express').urlencoded({ limit: '10mb', extended: true }));
+
   // Enable CORS for API testing
   app.enableCors({
     origin: [

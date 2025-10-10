@@ -4,7 +4,14 @@ import { ValidationPipe } from '@nestjs/common';
 import { UserServiceModule } from './user-service.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(UserServiceModule);
+  const app = await NestFactory.create(UserServiceModule, {
+    bodyParser: true,
+    rawBody: true,
+  });
+
+  // Configure body parser to handle file uploads (10MB limit)
+  app.use(require('express').json({ limit: '10mb' }));
+  app.use(require('express').urlencoded({ limit: '10mb', extended: true }));
 
   // Enable CORS for API testing
   app.enableCors({
