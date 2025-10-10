@@ -217,7 +217,7 @@ export default function ProfileScreen() {
           />
         }
       >
-        {/* Profile Section */}
+        {/* 1. IDENTITY - Who am I? */}
         <View style={styles.profileSection}>
           <UserProfile
             user={user}
@@ -243,25 +243,23 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Find Neighbors CTA */}
-        <TouchableOpacity style={styles.findNeighborsCard}>
-          <View style={styles.findNeighborsContent}>
-            <Text style={styles.findNeighborsTitle}>Find and connect with neighbors</Text>
-            <Text style={styles.findNeighborsSubtitle}>Discover people in your estate and build connections</Text>
-          </View>
-          <MaterialCommunityIcons name="chevron-right" size={24} color="#8E8E8E" />
-        </TouchableOpacity>
+        {/* 2. ACHIEVEMENT - My standing */}
+        <View style={styles.trustScoreSection}>
+          <TrustScoreCard 
+            trustScore={trustScore}
+            loading={profileLoading}
+            compact={true}
+            showBreakdown={false}
+            onPress={() => {
+              // Navigate to dedicated Trust Score detail screen
+              navigation.navigate('TrustScoreDetail' as never);
+              // OR show modal with full details
+              // Alert.alert('Trust Score', 'Full breakdown...');
+            }}
+          />
+        </View>
 
-        {/* Edit Profile Button */}
-        <TouchableOpacity 
-          style={styles.editProfileButton}
-          onPress={() => navigation.navigate('EditProfile' as never)}
-        >
-          <MaterialCommunityIcons name="pencil" size={20} color="#2C2C2C" />
-          <Text style={styles.editProfileText}>Edit Profile</Text>
-        </TouchableOpacity>
-
-        {/* Verification Section */}
+        {/* 3. VERIFICATION - Build trust */}
         <View style={styles.verificationSection}>
           <Text style={styles.verificationTitle}>Identity Verification</Text>
           <Text style={styles.verificationSubtitle}>
@@ -287,23 +285,7 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Trust Score Card */}
-        <View style={styles.trustScoreSection}>
-          <TrustScoreCard 
-            trustScore={trustScore}
-            loading={profileLoading}
-            compact={true}
-            showBreakdown={false}
-            onPress={() => {
-              // Navigate to dedicated Trust Score detail screen
-              navigation.navigate('TrustScoreDetail' as never);
-              // OR show modal with full details
-              // Alert.alert('Trust Score', 'Full breakdown...');
-            }}
-          />
-        </View>
-
-        {/* Dashboard Stats Card */}
+        {/* 4. ACTIVITY SUMMARY - What I'm doing */}
         <View style={styles.dashboardStatsSection}>
           <DashboardStatsCard 
             dashboardStats={contextDashboardStats || dashboardStats}
@@ -317,8 +299,7 @@ export default function ProfileScreen() {
           />
         </View>
 
-
-        {/* Profile Enhancement */}
+        {/* 5. IMPROVEMENT - Make profile better */}
         <View style={styles.section}>
           <Text style={styles.enhancementTitle}>Better profile, better MeCabal</Text>
           <Text style={styles.enhancementSubtitle}>It's true. Share your story and you'll get more replies from posts and listings.</Text>
@@ -333,15 +314,31 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* 6. CONNECTIONS - Build network */}
+        <TouchableOpacity style={styles.findNeighborsCard}>
+          <View style={styles.findNeighborsContent}>
+            <Text style={styles.findNeighborsTitle}>Find and connect with neighbors</Text>
+            <Text style={styles.findNeighborsSubtitle}>Discover people in your estate and build connections</Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={24} color="#8E8E8E" />
+        </TouchableOpacity>
 
+        {/* 7. ACTIONS - Primary actions */}
+        <TouchableOpacity 
+          style={styles.editProfileButton}
+          onPress={() => navigation.navigate('EditProfile' as never)}
+        >
+          <MaterialCommunityIcons name="pencil" size={20} color="#2C2C2C" />
+          <Text style={styles.editProfileText}>Edit Profile</Text>
+        </TouchableOpacity>
 
-        {/* Business Profile Option */}
+        {/* 8. BUSINESS - Optional feature */}
         <TouchableOpacity style={styles.businessCard} onPress={() => navigation.navigate('BusinessRegistration' as never)}>
           <MaterialCommunityIcons name="plus-circle" size={20} color="#00A651" />
           <Text style={styles.businessText}>Add business page</Text>
         </TouchableOpacity>
 
-        {/* Sign Out */}
+        {/* 9. SIGN OUT - Destructive action at bottom */}
         <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
           <MaterialCommunityIcons name="logout" size={20} color="#E74C3C" />
           <Text style={styles.signOutText}>Sign out</Text>
@@ -409,63 +406,74 @@ const styles = StyleSheet.create({
   },
   userLocation: {
     fontSize: 16,
-    color: '#8E8E8E',
+    color: '#8E8E93',  // Apple's secondary text color
     marginLeft: 4,
   },
   findNeighborsCard: {
     backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
-    marginBottom: 8,
+    marginBottom: 16,  // 2 units (8pt grid)
     paddingVertical: 20,
-    paddingHorizontal: 16,
-    borderRadius: 12,
+    paddingHorizontal: 20,  // 2.5 units for card padding
+    borderRadius: 16,  // Apple's preferred card radius
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#000000',
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
+    // Apple-style shadow
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,  // Very subtle
+    shadowRadius: 8,
     elevation: 2,
   },
   findNeighborsContent: {
     flex: 1,
   },
   findNeighborsTitle: {
-    fontSize: 16,
+    fontSize: 17,  // Apple's preferred body size
     fontWeight: '600',
-    color: '#2C2C2C',
+    color: '#1C1C1E',  // Apple's dark color
     marginBottom: 4,
+    letterSpacing: -0.2,
   },
   findNeighborsSubtitle: {
-    fontSize: 14,
-    color: '#8E8E8E',
+    fontSize: 15,  // Apple's preferred body size
+    color: '#8E8E93',  // Apple's secondary text color
+    letterSpacing: -0.2,
   },
   editProfileButton: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#F5F5F5',  // Keep subtle
     marginHorizontal: 16,
     marginBottom: 16,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: 14,  // Slightly larger touch target
+    borderRadius: 12,  // Apple's preferred button radius
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    // Add subtle shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    elevation: 1,
   },
   editProfileText: {
-    fontSize: 16,
+    fontSize: 17,  // Apple's preferred body size
     fontWeight: '600',
-    color: '#2C2C2C',
+    color: '#1C1C1E',  // Apple's dark color
     marginLeft: 8,
+    letterSpacing: -0.2,
   },
   section: {
     backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
-    marginBottom: 16,
-    padding: 16,
-    borderRadius: 12,
-    shadowColor: '#000000',
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
+    marginBottom: 16,  // 2 units (8pt grid)
+    padding: 20,  // 2.5 units (preferred for card padding)
+    borderRadius: 16,  // Increased from 12 for Apple aesthetic
+    // Apple-style shadow
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,  // Very subtle
+    shadowRadius: 8,
     elevation: 2,
   },
   sectionHeader: {
@@ -477,15 +485,18 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#2C2C2C',
+    color: '#1C1C1E',  // Apple's dark color
+    marginBottom: 16,
+    letterSpacing: -0.4,  // Tight tracking for headers
   },
   privacyIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   privacyText: {
-    fontSize: 12,
-    color: '#8E8E8E',
+    fontSize: 13,
+    color: '#8E8E93',  // Apple's secondary text color
+    fontWeight: '400',
     marginLeft: 4,
   },
   dashboardGrid: {
@@ -515,69 +526,62 @@ const styles = StyleSheet.create({
   enhancementTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#2C2C2C',
+    color: '#1C1C1E',  // Apple's dark color
     marginBottom: 8,
+    letterSpacing: -0.4,  // Tight tracking for headers
   },
   enhancementSubtitle: {
-    fontSize: 14,
-    color: '#8E8E8E',
+    fontSize: 15,  // Apple's preferred body size
+    color: '#8E8E93',  // Apple's secondary text color
     lineHeight: 20,
     marginBottom: 16,
+    letterSpacing: -0.2,
   },
   bioCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#F2F2F7',  // Apple's secondary background
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 12,  // Apple's preferred button radius
   },
   bioContent: {
     flex: 1,
     marginLeft: 12,
   },
   bioTitle: {
-    fontSize: 16,
+    fontSize: 17,  // Apple's preferred body size
     fontWeight: '600',
-    color: '#2C2C2C',
+    color: '#1C1C1E',  // Apple's dark color
     marginBottom: 4,
+    letterSpacing: -0.2,
   },
   bioSubtitle: {
-    fontSize: 14,
-    color: '#8E8E8E',
-  },
-  actionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F5F5F5',
-  },
-  actionText: {
-    flex: 1,
-    fontSize: 16,
-    color: '#2C2C2C',
-    marginLeft: 12,
+    fontSize: 15,  // Apple's preferred body size
+    color: '#8E8E93',  // Apple's secondary text color
+    letterSpacing: -0.2,
   },
   businessCard: {
     backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
     marginBottom: 16,
     paddingVertical: 16,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    paddingHorizontal: 20,  // 2.5 units for card padding
+    borderRadius: 16,  // Apple's preferred card radius
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#000000',
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
+    // Apple-style shadow
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,  // Very subtle
+    shadowRadius: 8,
     elevation: 2,
   },
   businessText: {
-    fontSize: 16,
-    color: '#00A651',
+    fontSize: 17,  // Apple's preferred body size
+    color: '#00A651',  // Keep brand color
     fontWeight: '600',
     marginLeft: 12,
+    letterSpacing: -0.2,
   },
   signOutButton: {
     flexDirection: 'row',
@@ -588,10 +592,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   signOutText: {
-    fontSize: 16,
-    color: '#E74C3C',
+    fontSize: 17,  // Apple's preferred body size
+    color: '#FF3B30',  // Apple's destructive color
     fontWeight: '500',
     marginLeft: 8,
+    letterSpacing: -0.2,
   },
   skeletonContainer: {
     marginTop: 16,
@@ -600,24 +605,27 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
     marginBottom: 16,
-    padding: 16,
-    borderRadius: 12,
-    shadowColor: '#000000',
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
+    padding: 20,  // 2.5 units for card padding
+    borderRadius: 16,  // Apple's preferred card radius
+    // Apple-style shadow
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,  // Very subtle
+    shadowRadius: 8,
     elevation: 2,
   },
   verificationTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#2C2C2C',
-    marginBottom: 4,
+    fontSize: 20,  // Apple's preferred header size
+    fontWeight: '700',  // Bold for headers
+    color: '#1C1C1E',  // Apple's dark color
+    marginBottom: 8,
+    letterSpacing: -0.4,  // Tight tracking for headers
   },
   verificationSubtitle: {
-    fontSize: 14,
-    color: '#8E8E8E',
+    fontSize: 15,  // Apple's preferred body size
+    color: '#8E8E93',  // Apple's secondary text color
     marginBottom: 16,
+    letterSpacing: -0.2,
   },
   verificationButtons: {
     flexDirection: 'row',
@@ -625,28 +633,35 @@ const styles = StyleSheet.create({
   },
   verificationButton: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#FFFFFF',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderRadius: 12,  // Apple's preferred button radius
+    borderWidth: 1.5,  // Slightly thicker border
+    borderColor: '#E5E5EA',  // Apple's separator color
+    // Active state with shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 1,
   },
   verificationButtonText: {
-    fontSize: 14,
+    fontSize: 15,  // Apple's preferred body size
     fontWeight: '600',
-    color: '#2C2C2C',
+    color: '#1C1C1E',  // Apple's dark color
     marginLeft: 8,
+    letterSpacing: -0.2,
   },
   trustScoreSection: {
     marginHorizontal: 16,
-    marginBottom: 16,
+    marginBottom: 24,  // 3 units - more space between major sections
   },
   dashboardStatsSection: {
     marginHorizontal: 16,
-    marginBottom: 16,
+    marginBottom: 24,  // 3 units - more space between major sections
   },
 });
