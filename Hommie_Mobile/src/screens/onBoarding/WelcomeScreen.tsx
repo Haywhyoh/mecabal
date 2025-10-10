@@ -5,9 +5,9 @@ import {
   StyleSheet,
   TouchableOpacity,
   StatusBar,
+  SafeAreaView,
 } from 'react-native';
 import { COLORS, SPACING, TYPOGRAPHY } from '../../constants';
-import AuthBackground from '../../components/AuthBackground';
 import SocialButton from '../../components/SocialButton';
 import { safeGoBack } from '../../utils/navigationUtils';
 
@@ -64,8 +64,8 @@ export default function WelcomeScreen({ navigation, route }: any) {
   };
 
   return (
-    <AuthBackground overlayOpacity={isLoginMode ? 0.3 : 0.6}>
-      <StatusBar barStyle="light-content" />
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="white" />
       
       <View style={styles.content}>
         <View style={styles.header}>

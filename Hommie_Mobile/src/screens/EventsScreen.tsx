@@ -219,17 +219,30 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
   // Date range picker helper functions
   const getDateRangeLabel = () => {
     if (dateRange.start && dateRange.end) {
-      const startStr = dateRange.start.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric' 
-      });
-      const endStr = dateRange.end.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric' 
-      });
-      return `${startStr} - ${endStr}`;
+      try {
+        const startDate = new Date(dateRange.start);
+        const endDate = new Date(dateRange.end);
+
+        // Validate dates
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+          return 'Select Date Range';
+        }
+
+        const startStr = startDate.toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric'
+        });
+        const endStr = endDate.toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric'
+        });
+        return `${startStr} - ${endStr}`;
+      } catch (error) {
+        console.error('Error formatting date range:', error);
+        return 'Select Date Range';
+      }
     }
-    
+
     switch (selectedQuickFilter) {
       case 'upcoming':
         return 'Upcoming Events';
@@ -251,9 +264,22 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
   };
 
   const handleDateRangeSelect = (start: Date, end: Date) => {
-    setDateRange({ start, end });
-    setSelectedQuickFilter('upcoming'); // Reset to upcoming when custom range is selected
-    setShowDatePicker(false);
+    try {
+      // Validate dates
+      const startDate = new Date(start);
+      const endDate = new Date(end);
+
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        console.error('Invalid date range selected');
+        return;
+      }
+
+      setDateRange({ start: startDate, end: endDate });
+      setSelectedQuickFilter('upcoming'); // Reset to upcoming when custom range is selected
+      setShowDatePicker(false);
+    } catch (error) {
+      console.error('Error setting date range:', error);
+    }
   };
 
   // Category navigation helper functions
@@ -791,12 +817,21 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
                   }}
                 >
                   <Text style={styles.dateInputText}>
-                    {dateRange.start ? dateRange.start.toLocaleDateString() : 'Select start date'}
+                    {dateRange.start ?
+                      (() => {
+                        try {
+                          const date = new Date(dateRange.start);
+                          return isNaN(date.getTime()) ? 'Select start date' : date.toLocaleDateString();
+                        } catch {
+                          return 'Select start date';
+                        }
+                      })()
+                      : 'Select start date'}
                   </Text>
                   <MaterialCommunityIcons name="calendar" size={20} color={colors.primary} />
                 </TouchableOpacity>
               </View>
-              
+
               <View style={styles.dateInputWrapper}>
                 <Text style={styles.dateInputLabel}>To</Text>
                 <TouchableOpacity
@@ -808,7 +843,16 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
                   }}
                 >
                   <Text style={styles.dateInputText}>
-                    {dateRange.end ? dateRange.end.toLocaleDateString() : 'Select end date'}
+                    {dateRange.end ?
+                      (() => {
+                        try {
+                          const date = new Date(dateRange.end);
+                          return isNaN(date.getTime()) ? 'Select end date' : date.toLocaleDateString();
+                        } catch {
+                          return 'Select end date';
+                        }
+                      })()
+                      : 'Select end date'}
                   </Text>
                   <MaterialCommunityIcons name="calendar" size={20} color={colors.primary} />
                 </TouchableOpacity>

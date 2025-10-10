@@ -1,9 +1,9 @@
 # MeCabal Onboarding Redesign Documentation
 ## Apple Human Interface Guidelines (HIG) Implementation
 
-**Version:** 1.0
-**Date:** October 10, 2025
-**Status:** Planning & Design Phase
+**Version:** 1.1
+**Date:** October 11, 2025
+**Status:** Planning & Design Phase (Updated with Name Collection)
 
 ---
 
@@ -37,9 +37,18 @@ This document outlines the complete redesign of MeCabal's onboarding flow to ali
 ### Current Onboarding Flow
 1. **WelcomeHeroScreen** → Initial landing with brand introduction
 2. **WelcomeScreen** → Sign up/Sign in options with social login
+3. **EmailRegistrationScreen** (if email) → Collect first name, last name, email
+4. **PhoneVerificationScreen** → Nigerian phone number verification
+5. **OTPVerificationScreen** → 4-digit OTP entry
+6. **LocationSetupScreen** → Location selection (GPS/Map/Landmark)
+
+### New Redesigned Flow (Phone Signup)
+1. **WelcomeHeroScreen** → Initial landing with brand introduction
+2. **WelcomeScreen** → Sign up/Sign in options (Apple/Google/Email/Phone)
 3. **PhoneVerificationScreen** → Nigerian phone number verification
 4. **OTPVerificationScreen** → 4-digit OTP entry
-5. **LocationSetupScreen** → Location selection (GPS/Map/Landmark)
+5. **NameCollectionScreen** → Collect first name and last name *(NEW)*
+6. **LocationSetupScreen** → Location selection (GPS/Map/Landmark)
 
 ### Current Strengths
 ✅ Clear Nigerian context (phone carriers, landmarks)
@@ -48,7 +57,8 @@ This document outlines the complete redesign of MeCabal's onboarding flow to ali
 ✅ Good use of brand colors
 
 ### Current Issues
-❌ Too many screens (5 screens is excessive)
+❌ Email signup collects name, but phone signup doesn't (inconsistent)
+❌ Too many screens for email path (6+ screens)
 ❌ Inconsistent visual hierarchy
 ❌ Heavy overlay on hero screen reduces clarity
 ❌ Mixed design patterns (some Apple-like, some Android-like)
@@ -411,7 +421,111 @@ This document outlines the complete redesign of MeCabal's onboarding flow to ali
 
 ---
 
-### Screen 5: Location Setup (Redesigned)
+### Screen 5: Name Collection (NEW)
+**File:** `NameCollectionScreen.tsx` *(To be created)*
+
+#### Why This Screen is Needed
+**Critical Gap:** The current phone signup flow doesn't collect user names, only email signup does. This creates:
+- No personalization (can't greet user by name)
+- Missing required backend fields (firstName, lastName)
+- Inconsistent data collection across signup methods
+- Reduced trust building (neighbors need real names)
+
+#### When to Show This Screen
+- **Show:** After OTP verification for Phone/Apple/Google signups
+- **Skip:** For Email signup (already collected in EmailRegistrationScreen)
+
+#### Design Approach
+
+**Layout:**
+```
+┌─────────────────────────────┐
+│  ← Back                     │  ← Navigation bar
+│                             │
+│  What's your name?          │  ← Large title, 34pt, bold
+│                             │
+│  This helps your neighbors  │  ← Subtitle, 17pt
+│  recognize you              │
+│                             │
+│  ┌─────────────────────────┐│
+│  │ First Name              ││  ← Label, 15pt semibold
+│  │ ┌─────────────────────┐ ││
+│  │ │ Chigozie            │ ││  ← Input, 44pt height
+│  │ └─────────────────────┘ ││
+│  └─────────────────────────┘│
+│                             │
+│  ┌─────────────────────────┐│
+│  │ Last Name               ││
+│  │ ┌─────────────────────┐ ││
+│  │ │ Okafor              │ ││
+│  │ └─────────────────────┘ ││
+│  └─────────────────────────┘│
+│                             │
+│  🔒 Your name is only       │  ← Trust indicator
+│  visible to verified        │     15pt, gray
+│  neighbors in your estate   │
+│                             │
+│  [Flexible Space]           │
+│                             │
+│  ┌───────────────────────┐ │
+│  │    Continue           │ │  ← Fixed bottom CTA
+│  └───────────────────────┘ │
+│                             │
+│     Skip for now            │  ← Optional skip (gray)
+└─────────────────────────────┘
+```
+
+**Design Specifications:**
+- **Title:** 34pt, Bold (700), Black
+- **Subtitle:** 17pt, Regular (400), Gray-60
+- **Input Labels:** 15pt, Semibold (600), Black
+- **Input Fields:**
+  - Height: 44pt
+  - Border: 1pt solid #E5E5E5
+  - Border radius: 10pt
+  - Active state: 2pt primary color border
+  - Font: 17pt, Regular
+  - Placeholder: Nigerian names (Chigozie, Okafor, Amara, Adebayo)
+- **Trust Message:**
+  - Icon: 🔒 or SF Symbol `lock.shield.fill`
+  - Font: 15pt, Regular
+  - Color: Gray-50
+  - Background: Light gray rounded pill
+- **Continue Button:**
+  - Fixed to bottom with safe area
+  - Height: 50pt
+  - Disabled until both names entered (min 2 chars each)
+- **Skip Link:**
+  - 15pt, Regular, Gray-50
+  - Shows only if user hesitates (after 10s)
+  - Warns: "You can add your name later in settings"
+
+**Validation Rules:**
+- Both fields required
+- Minimum 2 characters each
+- Allow spaces, hyphens, apostrophes (Nigerian names: O'Brien, Mary-Jane)
+- Auto-capitalize first letter
+- Trim whitespace
+- No numbers or special chars (except - and ')
+
+**Implementation Tasks:**
+- [ ] Task 5.1: Create NameCollectionScreen.tsx component
+- [ ] Task 5.2: Add to navigation stack after OTPVerification
+- [ ] Task 5.3: Implement conditional routing (skip if from email signup)
+- [ ] Task 5.4: Design form with two text inputs (first, last)
+- [ ] Task 5.5: Add validation logic (min 2 chars, no numbers)
+- [ ] Task 5.6: Implement auto-capitalization and trimming
+- [ ] Task 5.7: Add trust indicator with lock icon
+- [ ] Task 5.8: Implement continue button with disabled state
+- [ ] Task 5.9: Add optional skip functionality with warning
+- [ ] Task 5.10: Pass collected names to next screen (LocationSetup)
+- [ ] Task 5.11: Update backend API call to include names
+- [ ] Task 5.12: Add keyboard dismissal on submit
+- [ ] Task 5.13: Implement haptic feedback on successful input
+
+---
+
+### Screen 6: Location Setup (Redesigned)
 **File:** `LocationSetupScreen.tsx`
 
 #### Current Issues
@@ -485,7 +599,89 @@ This document outlines the complete redesign of MeCabal's onboarding flow to ali
 - [ ] Task 5.9: Fix continue button to bottom with safe area
 - [ ] Task 5.10: Add haptic feedback on card selection
 - [ ] Task 5.11: Implement GPS permission modal with native iOS style
-- [ ] Task 5.12: Redesign landmark list to use proper list items
+- [ ] Task 6.12: Redesign landmark list to use proper list items
+
+---
+
+## Complete User Flows
+
+### Flow 1: Phone Signup (Most Common - 70% of users)
+```
+START
+  ↓
+1. WelcomeHero → Tap "Join A Community"
+  ↓
+2. SignUpMethod → Tap "📱 Continue with Phone"
+  ↓
+3. PhoneVerification → Enter +234 801234567, Select SMS/WhatsApp
+  ↓
+4. OTPVerification → Enter 4-digit code (auto-verifies)
+  ↓
+5. NameCollection → Enter "Chigozie Okafor" (NEW SCREEN)
+  ↓
+6. LocationSetup → Tap "Auto-detect" → Grant permission
+  ↓
+COMPLETE → Dashboard (Authenticated user)
+```
+**Time:** ~2 minutes | **Screens:** 6
+
+### Flow 2: Email Signup (20% of users)
+```
+START
+  ↓
+1. WelcomeHero → Tap "Join A Community"
+  ↓
+2. SignUpMethod → Tap "✉ Continue with Email"
+  ↓
+3. EmailRegistration → Enter First, Last, Email
+  ↓
+4. EmailOTP → Verify email with 6-digit code
+  ↓
+5. PhoneVerification → Enter phone (still required for trust)
+  ↓
+6. PhoneOTP → Verify phone with 4-digit code
+  ↓
+7. LocationSetup → Choose location method
+  ↓
+COMPLETE → Dashboard (Authenticated user)
+```
+**Time:** ~2.5 minutes | **Screens:** 7
+**Note:** Skips NameCollection (already collected in EmailRegistration)
+
+### Flow 3: Google/Apple Signup (10% of users)
+```
+START
+  ↓
+1. WelcomeHero → Tap "Join A Community"
+  ↓
+2. SignUpMethod → Tap "Apple" or "Google"
+  ↓
+3. OAuth → Sign in with Apple/Google (gets name + email)
+  ↓
+4. PhoneVerification → Enter phone (required for verification)
+  ↓
+5. PhoneOTP → Verify phone with 4-digit code
+  ↓
+6. LocationSetup → Choose location method
+  ↓
+COMPLETE → Dashboard (Authenticated user)
+```
+**Time:** ~1.5 minutes | **Screens:** 6
+**Note:** Skips NameCollection (OAuth provides name)
+
+### Flow 4: Login (Returning User)
+```
+START
+  ↓
+1. WelcomeHero → Tap "I already have an account"
+  ↓
+2. SignInMethod → Tap "Email" or "Phone"
+  ↓
+3. Verification → Enter credentials + OTP
+  ↓
+COMPLETE → Dashboard (Already has location)
+```
+**Time:** ~30 seconds | **Screens:** 3
 
 ---
 
@@ -542,12 +738,19 @@ This document outlines the complete redesign of MeCabal's onboarding flow to ali
 - [ ] 2.19: Add resend cooldown animation
 - [ ] 2.20: Test verification failure flows
 
+#### NameCollectionScreen (NEW)
+- [ ] 2.21: Implement all Task 5.1 through 5.13 (listed above)
+- [ ] 2.22: Add name validation with Nigerian name patterns
+- [ ] 2.23: Test skip functionality and warnings
+- [ ] 2.24: Implement conditional routing logic
+- [ ] 2.25: Test with various name formats (hyphenated, apostrophes)
+
 #### LocationSetupScreen
-- [ ] 2.21: Implement all Task 5.1 through 5.12 (listed above)
-- [ ] 2.22: Add GPS permission handling with fallbacks
-- [ ] 2.23: Implement map picker component
-- [ ] 2.24: Add landmark search functionality
-- [ ] 2.25: Test location accuracy edge cases
+- [ ] 2.26: Implement all Task 6.1 through 6.12 (renumbered from 5.x above)
+- [ ] 2.27: Add GPS permission handling with fallbacks
+- [ ] 2.28: Implement map picker component
+- [ ] 2.29: Add landmark search functionality
+- [ ] 2.30: Test location accuracy edge cases
 
 ### Phase 3: Animations & Polish (Week 4)
 **Goal:** Add micro-interactions and polish
@@ -761,22 +964,24 @@ const insets = useSafeAreaInsets();
 
 ### Test Scenarios
 
-#### Happy Path
+#### Happy Path (Phone Signup)
 1. User opens app → sees hero screen
 2. Taps "Join Community" → sees sign up options
 3. Taps "Continue with Phone" → enters number
 4. Receives OTP → enters code
-5. Selects "Auto-detect" location → grants permission
-6. Lands on main app
+5. Enters first and last name (NEW STEP)
+6. Selects "Auto-detect" location → grants permission
+7. Lands on main app
 
 #### Error Scenarios
 1. Invalid phone number format
 2. OTP send failure (network error)
 3. Invalid OTP code
-4. Location permission denied
-5. Location not in supported area
-6. Account already exists
-7. Network timeout during verification
+4. Invalid name format (numbers, special chars)
+5. Location permission denied
+6. Location not in supported area
+7. Account already exists
+8. Network timeout during verification
 
 #### Edge Cases
 1. User backs out at each step
@@ -784,8 +989,10 @@ const insets = useSafeAreaInsets();
 3. User switches to another app
 4. Phone number changes carrier
 5. User requests new OTP before timer ends
-6. User tries to skip all steps
-7. Device in airplane mode
+6. User skips name entry (optional skip)
+7. User tries to skip all steps
+8. Device in airplane mode
+9. User enters hyphenated/apostrophe names (O'Brien, Mary-Jane)
 
 ### Acceptance Criteria
 
@@ -875,11 +1082,41 @@ const events = {
 
 ---
 
+## Data Collection Summary
+
+### Information Collected by Signup Method
+
+| Data Field | Phone Signup | Email Signup | OAuth (Google/Apple) |
+|-----------|--------------|--------------|---------------------|
+| **First Name** | ✅ NameCollection screen | ✅ EmailRegistration screen | ✅ OAuth provider |
+| **Last Name** | ✅ NameCollection screen | ✅ EmailRegistration screen | ✅ OAuth provider |
+| **Email** | ❌ Not collected | ✅ EmailRegistration screen | ✅ OAuth provider |
+| **Phone Number** | ✅ PhoneVerification screen | ✅ PhoneVerification screen | ✅ PhoneVerification screen |
+| **Phone Verified** | ✅ OTP screen | ✅ OTP screen | ✅ OTP screen |
+| **Carrier** | ✅ Auto-detected | ✅ Auto-detected | ✅ Auto-detected |
+| **Location** | ✅ LocationSetup screen | ✅ LocationSetup screen | ✅ LocationSetup screen |
+| **Verification Method** | ✅ SMS/WhatsApp choice | ✅ SMS/WhatsApp choice | ✅ SMS/WhatsApp choice |
+
+### Required Fields (All Signup Methods)
+1. ✅ First Name
+2. ✅ Last Name
+3. ✅ Phone Number (verified)
+4. ✅ Location (GPS/Map/Landmark)
+
+### Optional Fields
+- Email (required for email signup, optional for phone/OAuth)
+- Landmark (alternative to GPS)
+
+---
+
 ## Change Log
 
 | Version | Date | Changes | Author |
 |---------|------|---------|--------|
 | 1.0 | 2025-10-10 | Initial documentation created | Development Team |
+| 1.1 | 2025-10-11 | Added NameCollection screen to fix phone signup gap | Development Team |
+| 1.1 | 2025-10-11 | Added complete user flows for all signup methods | Development Team |
+| 1.1 | 2025-10-11 | Added data collection summary table | Development Team |
 
 ---
 

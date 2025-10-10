@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, RefreshControl, Animated } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
+import { contextAwareGoBack } from '../utils/navigationUtils';
 import { useProfile } from '../contexts/ProfileContext';
 import { HapticFeedback } from '../utils/haptics';
 import { Typography } from '../constants/typography';
@@ -52,10 +53,10 @@ export default function DashboardScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => {
             HapticFeedback.light();
-            navigation.goBack();
+            contextAwareGoBack(navigation, 'main');
           }}
         >
           <MaterialCommunityIcons name="arrow-left" size={24} color="#000" />
@@ -66,6 +67,7 @@ export default function DashboardScreen() {
 
       <Animated.View
         style={{
+          flex: 1,
           opacity: fadeAnim,
           transform: [{ translateY: slideAnim }],
         }}

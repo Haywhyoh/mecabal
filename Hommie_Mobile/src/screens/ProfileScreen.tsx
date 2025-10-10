@@ -311,16 +311,17 @@ export default function ProfileScreen() {
           {profileLoading ? (
             <SkeletonPlaceholder width="100%" height={120} borderRadius={16} />
           ) : (
-            <TrustScoreCard 
+            <TrustScoreCard
               trustScore={trustScore}
               loading={profileLoading}
               compact={true}
               showBreakdown={false}
               onPress={() => {
-                // Navigate to dedicated Trust Score detail screen
-                navigation.navigate('TrustScoreDetail' as never);
-                // OR show modal with full details
-                // Alert.alert('Trust Score', 'Full breakdown...');
+                HapticFeedback.light();
+                Alert.alert(
+                  'Trust Score',
+                  `Your current trust score is ${trustScore?.score || 0}/100.\n\nTrust scores are calculated based on:\n• Profile completion\n• Community engagement\n• Verified identity\n• Positive interactions`
+                );
               }}
             />
           )}

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { 
   View, 
   Text, 
@@ -7,8 +7,11 @@ import {
   SafeAreaView, 
   StatusBar, 
   Image,
-  ImageBackground
+  ImageBackground,
+  Animated
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../../constants';
 
 const COMMUNITY_STATS = [
@@ -18,12 +21,73 @@ const COMMUNITY_STATS = [
 ];
 
 export default function WelcomeHeroScreen({ navigation }: any) {
+  const logoScale = useRef(new Animated.Value(0.95)).current;
+  const logoOpacity = useRef(new Animated.Value(0)).current;
+  const titleOpacity = useRef(new Animated.Value(0)).current;
+  const subtitleOpacity = useRef(new Animated.Value(0)).current;
+  const buttonsOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // Create breathing animation: 0.95 → 1.0 → 0.95 over 2 seconds
+    const breathingAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(logoScale, {
+          toValue: 1.0,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(logoScale, {
+          toValue: 0.95,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    
+    // Sequential fade-in animation with staggered timing
+    const fadeInSequence = Animated.stagger(100, [
+      Animated.timing(logoOpacity, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(titleOpacity, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(subtitleOpacity, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(buttonsOpacity, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]);
+    
+    // Start both animations
+    breathingAnimation.start();
+    fadeInSequence.start();
+    
+    return () => {
+      breathingAnimation.stop();
+      fadeInSequence.stop();
+    };
+  }, [logoScale, logoOpacity, titleOpacity, subtitleOpacity, buttonsOpacity]);
+
   const handleGetStarted = () => {
+    // Add haptic feedback
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     // Navigate to WelcomeScreen in signup mode
     navigation.navigate('Welcome', { mode: 'signup' });
   };
 
   const handleSignIn = () => {
+    // Add haptic feedback
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     // Navigate to WelcomeScreen in login mode  
     navigation.navigate('Welcome', { mode: 'login' });
   };
@@ -36,25 +100,33 @@ export default function WelcomeHeroScreen({ navigation }: any) {
     >
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-        {/* Dark overlay */}
-        <View style={styles.overlay} />
+        {/* Gradient overlay */}
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.5)']}
+          style={styles.overlay}
+        />
 
         <View style={styles.contentWrapper}>
           <View style={styles.scrollView}>
             {/* Hero Section */}
             <View style={styles.heroSection}>
-              <Image source={require('../../../assets/mecabal.png')} style={styles.logo} />
-              <Text style={styles.heroTitle}>
+              <Animated.View style={[styles.logoContainer, { 
+                transform: [{ scale: logoScale }],
+                opacity: logoOpacity 
+              }]}>
+                <Image source={require('../../../assets/mecabal.png')} style={styles.logo} />
+              </Animated.View>
+              <Animated.Text style={[styles.heroTitle, { opacity: titleOpacity }]}>
                 Welcome to your neighborhood
-              </Text>
-              <Text style={styles.heroSubtitle}>
+              </Animated.Text>
+              <Animated.Text style={[styles.heroSubtitle, { opacity: subtitleOpacity }]}>
                 Connect with neighbors, stay safe, and build stronger communities across Nigeria
-              </Text>
+              </Animated.Text>
             </View>
           </View>
 
           {/* Action Buttons */}
-          <View style={styles.actionSection}>
+          <Animated.View style={[styles.actionSection, { opacity: buttonsOpacity }]}>
             <TouchableOpacity style={styles.primaryButton} onPress={handleGetStarted}>
               <Text style={styles.primaryButtonText}>Join A Community</Text>
             </TouchableOpacity>
@@ -66,7 +138,7 @@ export default function WelcomeHeroScreen({ navigation }: any) {
             <Text style={styles.footerText}>
               Free to join • Nigerian-owned • Community-first
             </Text>
-          </View>
+          </Animated.View>
         </View>
       </SafeAreaView>
     </ImageBackground>
@@ -85,7 +157,6 @@ const styles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.6)',
     zIndex: 1,
   },
   contentWrapper: {
@@ -106,34 +177,32 @@ const styles = StyleSheet.create({
     paddingTop: SPACING.lg,
     width: '100%',
   },
+  logoContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   logo: {
-    width: 300,
-    height: 300,
+    width: 120,
+    height: 120,
     marginBottom: -100,
     borderRadius: BORDER_RADIUS.xl,
     ...SHADOWS.medium,
   },
   heroTitle: {
-    fontSize:  48,
-    fontWeight: '700',
+    fontSize: 48,
+    fontWeight: '400',
     color: COLORS.white,
     textAlign: 'center',
     marginBottom: SPACING.sm,
-    textShadowColor: 'rgba(0,0,0,0.4)',
-    textShadowOffset: { width: 0, height: 3 },
-    textShadowRadius: 6,
     lineHeight: 50,
   },
   heroSubtitle: {
-    fontSize: TYPOGRAPHY.fontSizes.lg || 18,
+    fontSize: 17,
     fontWeight: '500',
     textAlign: 'center',
     marginBottom: SPACING.xl,
     paddingHorizontal: SPACING.sm,
     color: COLORS.white,
-    textShadowColor: 'rgba(0,0,0,0.3)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
     lineHeight: 24,
   },
   actionSection: {
@@ -146,9 +215,10 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     backgroundColor: COLORS.primary,
-    paddingVertical: SPACING.md,
-    borderRadius: BORDER_RADIUS.lg,
+    height: 50,
+    borderRadius: 12,
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: SPACING.md,
     ...SHADOWS.medium,
   },
@@ -161,9 +231,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderWidth: 2,
     borderColor: COLORS.primary,
-    paddingVertical: SPACING.md,
-    borderRadius: BORDER_RADIUS.lg,
+    height: 50,
+    borderRadius: 12,
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: SPACING.lg,
   },
   secondaryButtonText: {
