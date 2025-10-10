@@ -57,31 +57,53 @@ const EventCard: React.FC<EventCardProps> = ({
   };
   
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    
-    if (date.toDateString() === today.toDateString()) {
-      return 'Today';
-    } else if (date.toDateString() === tomorrow.toDateString()) {
-      return 'Tomorrow';
-    } else {
-      return date.toLocaleDateString('en-GB', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric'
-      });
+    try {
+      const date = new Date(dateString);
+
+      // Validate date
+      if (isNaN(date.getTime())) {
+        return 'Date TBA';
+      }
+
+      const today = new Date();
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      if (date.toDateString() === today.toDateString()) {
+        return 'Today';
+      } else if (date.toDateString() === tomorrow.toDateString()) {
+        return 'Tomorrow';
+      } else {
+        return date.toLocaleDateString('en-GB', {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric'
+        });
+      }
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Date TBA';
     }
   };
 
   const formatTime = (timeString: string) => {
-    if (!timeString) return '';
-    const [hours, minutes] = timeString.split(':');
-    const hour = parseInt(hours);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour % 12 || 12;
-    return `${displayHour}:${minutes} ${ampm}`;
+    try {
+      if (!timeString) return 'Time TBA';
+      const [hours, minutes] = timeString.split(':');
+      const hour = parseInt(hours);
+
+      // Validate time
+      if (isNaN(hour) || !minutes) {
+        return 'Time TBA';
+      }
+
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      const displayHour = hour % 12 || 12;
+      return `${displayHour}:${minutes} ${ampm}`;
+    } catch (error) {
+      console.error('Error formatting time:', error);
+      return 'Time TBA';
+    }
   };
 
   const getVerificationIcon = () => {
