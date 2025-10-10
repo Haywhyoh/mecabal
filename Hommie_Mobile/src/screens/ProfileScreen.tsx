@@ -15,6 +15,7 @@ import { LoadingState } from '../components/LoadingState';
 import { ErrorState } from '../components/ErrorState';
 import { SkeletonPlaceholder } from '../components/SkeletonPlaceholder';
 import { ToastService } from '../services/toastService';
+import { HapticFeedback } from '../utils/haptics';
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
@@ -74,18 +75,25 @@ export default function ProfileScreen() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
+    HapticFeedback.medium(); // Haptic feedback on refresh
     
-    // Use ProfileContext refresh methods
-    await Promise.all([
-      refreshProfile(),
-      refreshTrustScore(),
-      refreshDashboard(),
-      refreshProfileCompletion(),
-      fetchDashboardData(), // Fallback to old service
-      refreshUser()
-    ]);
-    
-    setRefreshing(false);
+    try {
+      // Use ProfileContext refresh methods
+      await Promise.all([
+        refreshProfile(),
+        refreshTrustScore(),
+        refreshDashboard(),
+        refreshProfileCompletion(),
+        fetchDashboardData(), // Fallback to old service
+        refreshUser()
+      ]);
+      HapticFeedback.success();
+    } catch (error) {
+      console.error('Error refreshing profile:', error);
+      HapticFeedback.error();
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const handleAvatarChange = async () => {
@@ -233,7 +241,13 @@ export default function ProfileScreen() {
             }}
           />
 
-          <TouchableOpacity style={styles.locationContainer} onPress={() => navigation.navigate('EstateManager' as never)}>
+          <TouchableOpacity 
+            style={styles.locationContainer} 
+            onPress={() => {
+              HapticFeedback.light();
+              navigation.navigate('EstateManager' as never);
+            }}
+          >
             <MaterialCommunityIcons name="map-marker" size={16} color="#8E8E8E" />
             <Text style={styles.userLocation}>
               {user?.city || 'Unknown'}, {user?.state || 'Unknown'}
@@ -304,7 +318,13 @@ export default function ProfileScreen() {
           <Text style={styles.enhancementTitle}>Better profile, better MeCabal</Text>
           <Text style={styles.enhancementSubtitle}>It's true. Share your story and you'll get more replies from posts and listings.</Text>
           
-          <TouchableOpacity style={styles.bioCard} onPress={() => navigation.navigate('CulturalProfile' as never)}>
+          <TouchableOpacity 
+            style={styles.bioCard} 
+            onPress={() => {
+              HapticFeedback.medium();
+              navigation.navigate('CulturalProfile' as never);
+            }}
+          >
             <MaterialCommunityIcons name="pencil" size={24} color="#FFC107" />
             <View style={styles.bioContent}>
               <Text style={styles.bioTitle}>Complete your profile</Text>
@@ -333,13 +353,25 @@ export default function ProfileScreen() {
         </TouchableOpacity>
 
         {/* 8. BUSINESS - Optional feature */}
-        <TouchableOpacity style={styles.businessCard} onPress={() => navigation.navigate('BusinessRegistration' as never)}>
+        <TouchableOpacity 
+          style={styles.businessCard} 
+          onPress={() => {
+            HapticFeedback.light();
+            navigation.navigate('BusinessRegistration' as never);
+          }}
+        >
           <MaterialCommunityIcons name="plus-circle" size={20} color="#00A651" />
           <Text style={styles.businessText}>Add business page</Text>
         </TouchableOpacity>
 
         {/* 9. SIGN OUT - Destructive action at bottom */}
-        <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+        <TouchableOpacity 
+          style={styles.signOutButton} 
+          onPress={() => {
+            HapticFeedback.warning();
+            handleSignOut();
+          }}
+        >
           <MaterialCommunityIcons name="logout" size={20} color="#E74C3C" />
           <Text style={styles.signOutText}>Sign out</Text>
         </TouchableOpacity>

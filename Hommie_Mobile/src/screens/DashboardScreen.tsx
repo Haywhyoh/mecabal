@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Ref
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import { useProfile } from '../contexts/ProfileContext';
+import { HapticFeedback } from '../utils/haptics';
 
 export default function DashboardScreen() {
   const navigation = useNavigation();
@@ -11,15 +12,29 @@ export default function DashboardScreen() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await refreshDashboard();
-    setRefreshing(false);
+    HapticFeedback.medium(); // Haptic feedback on refresh
+    
+    try {
+      await refreshDashboard();
+      HapticFeedback.success();
+    } catch (error) {
+      console.error('Error refreshing dashboard:', error);
+      HapticFeedback.error();
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity 
+          onPress={() => {
+            HapticFeedback.light();
+            navigation.goBack();
+          }}
+        >
           <MaterialCommunityIcons name="arrow-left" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Dashboard</Text>

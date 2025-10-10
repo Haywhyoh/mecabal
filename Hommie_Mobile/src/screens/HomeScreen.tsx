@@ -268,72 +268,68 @@ export default function HomeScreen() {
 
               {/* Menu Items */}
               <View style={styles.sidebarMenu}>
-                <TouchableOpacity 
+                {/* Profile */}
+                <TouchableOpacity
                   style={styles.menuItem}
                   onPress={() => handleMenuItemPress(() => navigation.navigate('Profile' as never))}
                 >
                   <MaterialCommunityIcons name="account" size={24} color="#00A651" />
-                  <Text style={styles.menuItemText}>Personal Profile</Text>
-                  <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E8E" />
+                  <Text style={styles.menuItemText}>Profile</Text>
+                  <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E93" />
                 </TouchableOpacity>
 
-                {currentUser.hasBusinessProfile && (
-                  <TouchableOpacity 
-                    style={styles.menuItem}
-                    onPress={() => handleMenuItemPress(() => navigation.navigate('BusinessProfile' as never))}
-                  >
-                    <MaterialCommunityIcons name="store" size={24} color="#FF6B35" />
-                    <Text style={styles.menuItemText}>Business Profile</Text>
-                    <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E8E" />
-                  </TouchableOpacity>
-                )}
-
-                <TouchableOpacity 
+                {/* Dashboard - NEW */}
+                <TouchableOpacity
                   style={styles.menuItem}
-                  onPress={() => handleMenuItemPress(() => navigation.navigate('CommunityActivity' as never))}
+                  onPress={() => handleMenuItemPress(() => navigation.navigate('Dashboard' as never))}
                 >
-                  <MaterialCommunityIcons name="chart-line" size={24} color="#0066CC" />
-                  <Text style={styles.menuItemText}>Community Activity</Text>
-                  <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E8E" />
+                  <MaterialCommunityIcons name="view-dashboard" size={24} color="#0066CC" />
+                  <Text style={styles.menuItemText}>Dashboard</Text>
+                  <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E93" />
                 </TouchableOpacity>
 
-                <TouchableOpacity 
-                  style={styles.menuItem}
-                  onPress={() => handleMenuItemPress(() => navigation.navigate('NeighborConnections' as never))}
-                >
-                  <MaterialCommunityIcons name="account-group" size={24} color="#7B68EE" />
-                  <Text style={styles.menuItemText}>Neighbor Network</Text>
-                  <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E8E" />
-                </TouchableOpacity>
-
-                <TouchableOpacity 
-                  style={styles.menuItem}
-                  onPress={() => handleMenuItemPress(() => navigation.navigate('LocalBusinessDirectory' as never))}
-                >
-                  <MaterialCommunityIcons name="office-building" size={24} color="#228B22" />
-                  <Text style={styles.menuItemText}>Local Businesses</Text>
-                  <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E8E" />
-                </TouchableOpacity>
-
-                <TouchableOpacity 
+                {/* Events */}
+                <TouchableOpacity
                   style={styles.menuItem}
                   onPress={() => handleMenuItemPress(() => navigation.navigate('Events' as never))}
                 >
-                  <MaterialCommunityIcons name="calendar" size={24} color="#FF6B35" />
+                  <MaterialCommunityIcons name="calendar" size={24} color="#7B68EE" />
                   <Text style={styles.menuItemText}>Events</Text>
-                  <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E8E" />
+                  <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E93" />
+                </TouchableOpacity>
+
+                {/* Messages - if exists */}
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={() => handleMenuItemPress(() => navigation.navigate('Messages' as never))}
+                >
+                  <MaterialCommunityIcons name="message" size={24} color="#FF9800" />
+                  <Text style={styles.menuItemText}>Messages</Text>
+                  <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E93" />
+                </TouchableOpacity>
+
+                {/* Divider */}
+                <View style={styles.menuDivider} />
+
+                {/* More (links to More screen) */}
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={() => handleMenuItemPress(() => navigation.navigate('More' as never))}
+                >
+                  <MaterialCommunityIcons name="dots-horizontal-circle" size={24} color="#8E8E93" />
+                  <Text style={styles.menuItemText}>More</Text>
+                  <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E93" />
                 </TouchableOpacity>
               </View>
 
               {/* Footer */}
               <View style={styles.sidebarFooter}>
-                <TouchableOpacity style={styles.footerButton}>
-                  <MaterialCommunityIcons name="cog" size={20} color="#8E8E8E" />
-                  <Text style={styles.footerButtonText}>Settings</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.footerButton}>
-                  <MaterialCommunityIcons name="help-circle" size={20} color="#8E8E8E" />
-                  <Text style={styles.footerButtonText}>Help</Text>
+                <TouchableOpacity
+                  style={styles.footerButton}
+                  onPress={() => handleMenuItemPress(() => navigation.navigate('More' as never))}
+                >
+                  <MaterialCommunityIcons name="dots-horizontal-circle" size={20} color="#8E8E93" />
+                  <Text style={styles.footerButtonText}>Settings & More</Text>
                 </TouchableOpacity>
               </View>
             </SafeAreaView>
@@ -704,6 +700,12 @@ const styles = StyleSheet.create({
     color: '#2C2C2C',
     marginLeft: 16,
     flex: 1,
+  },
+  menuDivider: {
+    height: 0.5,
+    backgroundColor: '#E5E5EA',
+    marginHorizontal: 20,
+    marginVertical: 8,
   },
   sidebarFooter: {
     borderTopWidth: 1,

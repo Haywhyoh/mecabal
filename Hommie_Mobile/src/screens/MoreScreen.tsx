@@ -68,125 +68,69 @@ const MoreScreen: React.FC<MoreScreenProps> = ({ navigation }) => {
   };
 
   const menuSections: MenuSection[] = [
+    // SECTION 1: Account Management
     {
-      title: 'Your Profile',
+      title: 'Account',
       items: [
         {
           id: 'profile',
-          title: 'View & Edit Profile',
-          subtitle: 'Manage your community presence',
+          title: 'Profile',
+          subtitle: 'View and edit your profile',
           icon: 'account-circle',
-          iconColor: colors.primary,
+          iconColor: '#00A651',
           onPress: () => handleNavigation('Profile'),
         },
         {
-          id: 'badges',
-          title: 'Community Badges',
-          subtitle: '3 badges earned',
-          icon: 'shield-star',
-          iconColor: colors.accent.warmGold,
-          onPress: () => handleNavigation('BadgeSystem'),
+          id: 'dashboard',
+          title: 'Dashboard',
+          subtitle: 'Saved items and activity',
+          icon: 'view-dashboard',
+          iconColor: '#0066CC',
+          onPress: () => handleNavigation('Dashboard'),
         },
         {
           id: 'verification',
-          title: 'Verification Center',
-          subtitle: 'Enhance your trust level',
+          title: 'Verification',
+          subtitle: 'Verify your identity',
           icon: 'shield-check',
-          iconColor: colors.accent.trustBlue,
+          iconColor: '#2196F3',
           onPress: () => handleNavigation('NINVerification'),
-        },
-        {
-          id: 'location-test',
-          title: 'Location Test (Dev)',
-          subtitle: 'Test location services',
-          icon: 'map-marker-check',
-          iconColor: colors.accent.warmGold,
-          onPress: () => handleNavigation('LocationTest'),
-        },
-        {
-          id: 'map-picker',
-          title: 'Map Picker (Dev)',
-          subtitle: 'Test map-based location selection',
-          icon: 'map',
-          iconColor: colors.accent.trustBlue,
-          onPress: () => handleNavigation('MapPicker'),
         },
       ],
     },
+
+    // SECTION 2: Community Features
     {
       title: 'Community',
       items: [
         {
           id: 'events',
-          title: 'Events Calendar',
-          subtitle: '5 upcoming events',
+          title: 'Events',
+          subtitle: 'Community events and gatherings',
           icon: 'calendar-multiple',
-          iconColor: colors.accent.lagosOrange,
+          iconColor: '#7B68EE',
           onPress: () => handleNavigation('Events'),
-          badge: 5,
         },
         {
           id: 'neighbors',
-          title: 'Neighbor Connections',
+          title: 'Neighbors',
           subtitle: 'Connect with your community',
           icon: 'account-group',
-          iconColor: colors.accent.neighborPurple,
+          iconColor: '#9C27B0',
           onPress: () => handleNavigation('NeighborConnections'),
         },
         {
-          id: 'business-directory',
-          title: 'Local Business Directory',
+          id: 'businesses',
+          title: 'Local Businesses',
           subtitle: 'Find trusted services nearby',
           icon: 'store',
-          iconColor: colors.accent.marketGreen,
+          iconColor: '#FF9800',
           onPress: () => handleNavigation('LocalBusinessDirectory'),
         },
-        {
-          id: 'community-activity',
-          title: 'Community Activity',
-          subtitle: 'See what\'s happening',
-          icon: 'chart-line',
-          iconColor: colors.accent.trustBlue,
-          onPress: () => handleNavigation('CommunityActivity'),
-        },
       ],
     },
-    {
-      title: 'Safety & Civic',
-      items: [
-        {
-          id: 'safety-alerts',
-          title: 'Safety Center',
-          subtitle: 'Report and view safety alerts',
-          icon: 'shield-alert',
-          iconColor: colors.accent.safetyRed,
-          onPress: () => {
-            // Navigate to safety reporting - could be a new screen
-            console.log('Navigate to Safety Center');
-          },
-        },
-        {
-          id: 'civic-reports',
-          title: 'Civic Reporting',
-          subtitle: 'Report community issues',
-          icon: 'clipboard-text',
-          iconColor: colors.accent.trustBlue,
-          onPress: () => {
-            // Navigate to civic reporting - could be a new screen
-            console.log('Navigate to Civic Reporting');
-          },
-          isNew: true,
-        },
-        {
-          id: 'estate-manager',
-          title: 'Estate Management',
-          subtitle: 'Connect with your estate',
-          icon: 'office-building',
-          iconColor: colors.neutral.richCharcoal,
-          onPress: () => handleNavigation('EstateManager'),
-        },
-      ],
-    },
+
+    // SECTION 3: Business
     {
       title: 'Business',
       items: [
@@ -195,28 +139,30 @@ const MoreScreen: React.FC<MoreScreenProps> = ({ navigation }) => {
           title: 'Business Profile',
           subtitle: 'Manage your business presence',
           icon: 'briefcase',
-          iconColor: colors.accent.marketGreen,
+          iconColor: '#00A651',
           onPress: () => handleNavigation('BusinessProfile'),
         },
         {
-          id: 'business-registration',
-          title: 'Register Your Business',
-          subtitle: 'Get verified as a service provider',
+          id: 'business-register',
+          title: 'Register Business',
+          subtitle: 'Add your business to MeCabal',
           icon: 'store-plus',
-          iconColor: colors.primary,
+          iconColor: '#00A651',
           onPress: () => handleNavigation('BusinessRegistration'),
         },
       ],
     },
+
+    // SECTION 4: Settings
     {
-      title: 'Settings & Support',
+      title: 'Settings',
       items: [
         {
           id: 'notifications',
-          title: 'Notification Settings',
-          subtitle: 'Customize your alerts',
+          title: 'Notifications',
+          subtitle: 'Manage your alerts',
           icon: 'bell-cog',
-          iconColor: colors.neutral.friendlyGray,
+          iconColor: '#FF6B35',
           onPress: () => {
             console.log('Navigate to Notification Settings');
           },
@@ -226,37 +172,61 @@ const MoreScreen: React.FC<MoreScreenProps> = ({ navigation }) => {
           title: 'Privacy & Safety',
           subtitle: 'Control your visibility',
           icon: 'shield-account',
-          iconColor: colors.neutral.friendlyGray,
+          iconColor: '#2196F3',
           onPress: () => {
             console.log('Navigate to Privacy Settings');
           },
         },
         {
+          id: 'account-settings',
+          title: 'Account Settings',
+          subtitle: 'Manage your account',
+          icon: 'cog',
+          iconColor: '#8E8E93',
+          onPress: () => {
+            console.log('Navigate to Account Settings');
+          },
+        },
+      ],
+    },
+
+    // SECTION 5: Support
+    {
+      title: 'Support & Info',
+      items: [
+        {
           id: 'help',
-          title: 'Help & Support',
+          title: 'Help Center',
           subtitle: 'Get help with MeCabal',
           icon: 'help-circle',
-          iconColor: colors.neutral.friendlyGray,
+          iconColor: '#8E8E93',
           onPress: () => {
             console.log('Navigate to Help Center');
           },
         },
         {
           id: 'about',
-          title: 'About MeCabal',
+          title: 'About',
           subtitle: 'Version 1.0.0',
           icon: 'information',
-          iconColor: colors.neutral.friendlyGray,
+          iconColor: '#8E8E93',
           onPress: () => {
             console.log('Navigate to About');
           },
         },
+      ],
+    },
+
+    // SECTION 6: Sign Out (separate, destructive)
+    {
+      title: '',  // No title
+      items: [
         {
           id: 'signout',
           title: 'Sign Out',
-          subtitle: 'Sign out of your account',
+          subtitle: '',
           icon: 'logout',
-          iconColor: '#E74C3C',
+          iconColor: '#FF3B30',
           onPress: handleSignOut,
         },
       ],
@@ -275,94 +245,66 @@ const MoreScreen: React.FC<MoreScreenProps> = ({ navigation }) => {
       return 'User';
     };
 
-    const getUserLocation = () => {
-      const parts = [];
-      if (user?.estate) parts.push(user.estate);
-      if (user?.city) parts.push(user.city);
-      if (user?.state) parts.push(user.state);
-      return parts.join(', ') || 'Location not set';
-    };
-
     return (
-      <View style={styles.profileHeader}>
-        <TouchableOpacity
-          style={styles.profileInfo}
-          onPress={() => handleNavigation('Profile')}
-        >
-          <UserAvatar
-            user={user}
-            size="medium"
-            showBadge={true}
-          />
-          <View style={styles.profileDetails}>
-            <Text style={styles.profileName}>{getUserName()}</Text>
-            <Text style={styles.profileLocation}>{getUserLocation()}</Text>
-            {user?.isVerified && (
-              <View style={styles.verificationBadge}>
-                <MaterialCommunityIcons
-                  name="shield-check"
-                  size={14}
-                  color={colors.primary}
-                />
-                <Text style={styles.verificationText}>
-                  {user?.phoneVerified ? 'Phone Verified' : 'Verified'}
-                </Text>
-              </View>
-            )}
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.editButton}
-          onPress={() => handleNavigation('EditProfile')}
-        >
-          <MaterialCommunityIcons
-            name="pencil"
-            size={18}
-            color={colors.primary}
-          />
-        </TouchableOpacity>
-      </View>
+      <TouchableOpacity
+        style={styles.profileHeader}
+        onPress={() => handleNavigation('Profile')}
+      >
+        <UserAvatar user={user} size="small" showBadge={false} />
+        <View style={styles.profileInfo}>
+          <Text style={styles.profileName}>{getUserName()}</Text>
+          <Text style={styles.viewProfileText}>View Profile</Text>
+        </View>
+        <MaterialCommunityIcons name="chevron-right" size={24} color="#8E8E93" />
+      </TouchableOpacity>
     );
   };
 
-  const MenuItem: React.FC<{ item: MenuItem }> = ({ item }) => (
-    <TouchableOpacity style={styles.menuItem} onPress={item.onPress}>
-      <View style={styles.menuItemLeft}>
-        <View style={[styles.menuIcon, { backgroundColor: `${item.iconColor}15` }]}>
-          <MaterialCommunityIcons
-            name={item.icon}
-            size={24}
-            color={item.iconColor || colors.neutral.friendlyGray}
-          />
-        </View>
-        <View style={styles.menuItemText}>
-          <View style={styles.menuItemTitleRow}>
-            <Text style={styles.menuItemTitle}>{item.title}</Text>
-            {item.isNew && (
-              <View style={styles.newBadge}>
-                <Text style={styles.newBadgeText}>NEW</Text>
-              </View>
-            )}
-            {item.badge && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{item.badge}</Text>
-              </View>
+  const MenuItem: React.FC<{ item: MenuItem }> = ({ item }) => {
+    const isDestructive = item.id === 'signout';
+    
+    return (
+      <TouchableOpacity style={styles.menuItem} onPress={item.onPress}>
+        <View style={styles.menuItemLeft}>
+          <View style={[styles.menuIcon, { backgroundColor: isDestructive ? '#FF3B3015' : `${item.iconColor}15` }]}>
+            <MaterialCommunityIcons
+              name={item.icon}
+              size={24}
+              color={item.iconColor || '#8E8E93'}
+            />
+          </View>
+          <View style={styles.menuItemText}>
+            <View style={styles.menuItemTitleRow}>
+              <Text style={[styles.menuItemTitle, isDestructive && styles.destructiveText]}>
+                {item.title}
+              </Text>
+              {item.isNew && (
+                <View style={styles.newBadge}>
+                  <Text style={styles.newBadgeText}>NEW</Text>
+                </View>
+              )}
+              {item.badge && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{item.badge}</Text>
+                </View>
+              )}
+            </View>
+            {item.subtitle && (
+              <Text style={styles.menuItemSubtitle}>{item.subtitle}</Text>
             )}
           </View>
-          {item.subtitle && (
-            <Text style={styles.menuItemSubtitle}>{item.subtitle}</Text>
-          )}
         </View>
-      </View>
-      
-      <MaterialCommunityIcons
-        name="chevron-right"
-        size={20}
-        color={colors.neutral.friendlyGray}
-      />
-    </TouchableOpacity>
-  );
+        
+        {!isDestructive && (
+          <MaterialCommunityIcons
+            name="chevron-right"
+            size={20}
+            color="#8E8E93"
+          />
+        )}
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -370,8 +312,8 @@ const MoreScreen: React.FC<MoreScreenProps> = ({ navigation }) => {
         <ProfileHeader />
         
         {menuSections.map((section, sectionIndex) => (
-          <View key={section.title} style={styles.section}>
-            <Text style={styles.sectionTitle}>{section.title}</Text>
+          <View key={section.title || `section-${sectionIndex}`} style={styles.section}>
+            {section.title ? <Text style={styles.sectionTitle}>{section.title}</Text> : null}
             <View style={styles.sectionContent}>
               {section.items.map((item, itemIndex) => (
                 <View key={item.id}>
@@ -400,7 +342,7 @@ const MoreScreen: React.FC<MoreScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.neutral.warmOffWhite,
+    backgroundColor: '#F2F2F7',  // Apple's background
   },
   scrollView: {
     flex: 1,
@@ -408,66 +350,49 @@ const styles = StyleSheet.create({
   profileHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.neutral.pureWhite,
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
-    shadowColor: colors.neutral.deepBlack,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    marginBottom: 24,  // More space before sections
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    elevation: 1,
   },
   profileInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
     flex: 1,
-  },
-  profileDetails: {
-    flex: 1,
+    marginLeft: 12,
   },
   profileName: {
-    fontSize: typography.sizes.lg,
+    fontSize: 17,
     fontWeight: '600',
-    color: colors.neutral.richCharcoal,
-    marginBottom: spacing.xs,
+    color: '#1C1C1E',
+    marginBottom: 4,
   },
-  profileLocation: {
-    fontSize: typography.sizes.sm,
-    color: colors.neutral.friendlyGray,
-    marginBottom: spacing.xs,
-  },
-  verificationBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  verificationText: {
-    fontSize: typography.sizes.xs,
-    color: colors.primary,
-    fontWeight: '500',
-  },
-  editButton: {
-    padding: spacing.sm,
+  viewProfileText: {
+    fontSize: 13,
+    color: '#8E8E93',
   },
   section: {
-    marginBottom: spacing.lg,
+    marginBottom: 24,  // Increased spacing
   },
   sectionTitle: {
-    fontSize: typography.sizes.sm,
+    fontSize: 13,
     fontWeight: '600',
-    color: colors.neutral.richCharcoal,
+    color: '#8E8E93',  // Apple's secondary label
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.sm,
+    marginHorizontal: 20,
+    marginBottom: 8,
   },
   sectionContent: {
-    backgroundColor: colors.neutral.pureWhite,
-    marginHorizontal: spacing.md,
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
     borderRadius: 12,
-    shadowColor: colors.neutral.deepBlack,
+    overflow: 'hidden',  // For separator lines
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.04,
     shadowRadius: 2,
     elevation: 1,
   },
@@ -475,8 +400,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    minHeight: 60,  // Ensure good touch target
   },
   menuItemLeft: {
     flexDirection: 'row',
@@ -484,12 +410,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   menuIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.md,
+    marginRight: 12,
   },
   menuItemText: {
     flex: 1,
@@ -497,62 +423,75 @@ const styles = StyleSheet.create({
   menuItemTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: 2,
   },
   menuItemTitle: {
-    fontSize: typography.sizes.base,
+    fontSize: 17,
     fontWeight: '500',
-    color: colors.neutral.richCharcoal,
+    color: '#1C1C1E',
     flex: 1,
   },
   menuItemSubtitle: {
-    fontSize: typography.sizes.sm,
-    color: colors.neutral.friendlyGray,
+    fontSize: 13,
+    color: '#8E8E93',
     lineHeight: 18,
   },
   newBadge: {
-    backgroundColor: colors.accent.lagosOrange,
+    backgroundColor: '#FF6B35',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 8,
-    marginLeft: spacing.sm,
+    marginLeft: 8,
   },
   newBadgeText: {
-    fontSize: typography.sizes.xs,
+    fontSize: 11,
     fontWeight: '600',
-    color: colors.neutral.pureWhite,
+    color: '#FFFFFF',
   },
   badge: {
-    backgroundColor: colors.primary,
+    backgroundColor: '#00A651',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 10,
-    marginLeft: spacing.sm,
+    marginLeft: 8,
   },
   badgeText: {
-    fontSize: typography.sizes.xs,
+    fontSize: 11,
     fontWeight: '600',
-    color: colors.neutral.pureWhite,
+    color: '#FFFFFF',
   },
   separator: {
-    height: 1,
-    backgroundColor: colors.neutral.softGray,
-    marginLeft: spacing.md + 40 + spacing.md, // Align with text
+    height: 0.5,  // Hairline
+    backgroundColor: '#E5E5EA',
+    marginLeft: 60,  // Indent to align with text
+  },
+  // Destructive item (Sign Out)
+  destructiveItem: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 32,
+  },
+  destructiveText: {
+    color: '#FF3B30',
+    fontSize: 17,
+    fontWeight: '500',
+    textAlign: 'center',
   },
   footer: {
     alignItems: 'center',
-    paddingVertical: spacing.xl,
-    paddingHorizontal: spacing.lg,
+    paddingVertical: 32,
+    paddingHorizontal: 20,
   },
   footerText: {
-    fontSize: typography.sizes.sm,
-    color: colors.neutral.friendlyGray,
+    fontSize: 13,
+    color: '#8E8E93',
     textAlign: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: 4,
   },
   footerVersion: {
-    fontSize: typography.sizes.xs,
-    color: colors.neutral.friendlyGray,
+    fontSize: 11,
+    color: '#8E8E93',
     textAlign: 'center',
   },
 });
