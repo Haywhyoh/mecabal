@@ -8,6 +8,7 @@ interface DashboardStatsCardProps {
   loading?: boolean;
   onStatPress?: (statType: string, data: any) => void;
   compact?: boolean;
+  onViewAll?: () => void;
 }
 
 export default function DashboardStatsCard({
@@ -15,6 +16,7 @@ export default function DashboardStatsCard({
   loading = false,
   onStatPress,
   compact = false,
+  onViewAll,
 }: DashboardStatsCardProps) {
   if (loading) {
     return (
@@ -107,6 +109,46 @@ export default function DashboardStatsCard({
       <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E8E" />
     </TouchableOpacity>
   );
+
+  const renderCompactStatItem = (stat: any) => (
+    <TouchableOpacity
+      key={stat.id}
+      style={styles.compactStatCard}
+      onPress={() => onStatPress?.(stat.id, stat)}
+      activeOpacity={0.7}
+    >
+      <View style={[styles.compactIconCircle, { backgroundColor: stat.color + '20' }]}>
+        <MaterialCommunityIcons name={stat.icon as any} size={32} color={stat.color} />
+      </View>
+      <Text style={styles.compactStatNumber}>{stat.count}</Text>
+      <Text style={styles.compactStatLabel}>{stat.title}</Text>
+    </TouchableOpacity>
+  );
+
+  if (compact) {
+    return (
+      <View style={[styles.container, styles.containerCompact]}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.compactContainer}
+        >
+          {/* Render first 3 stats as small cards */}
+          {stats.slice(0, 3).map(renderCompactStatItem)}
+
+          {/* View All button */}
+          <TouchableOpacity
+            style={styles.viewAllCard}
+            onPress={onViewAll}
+            activeOpacity={0.7}
+          >
+            <MaterialCommunityIcons name="arrow-right-circle" size={32} color="#00A651" />
+            <Text style={styles.viewAllText}>View All</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, compact && styles.containerCompact]}>
@@ -226,5 +268,62 @@ const styles = StyleSheet.create({
   statDescription: {
     fontSize: 12,
     color: '#8E8E8E',
+  },
+  // Compact mode styles
+  compactContainer: {
+    paddingVertical: 8,
+  },
+  compactStatCard: {
+    width: 120,
+    height: 120,
+    backgroundColor: '#FAFAFA',
+    borderRadius: 16,
+    padding: 16,
+    marginRight: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    // Apple-style shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  compactIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  compactStatNumber: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1C1C1E',
+    marginBottom: 4,
+  },
+  compactStatLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1C1C1E',
+    textAlign: 'center',
+  },
+  viewAllCard: {
+    width: 120,
+    height: 120,
+    backgroundColor: '#F0F9F4',
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#00A651',
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  viewAllText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#00A651',
+    marginTop: 8,
   },
 });

@@ -96,13 +96,13 @@ export class ApiConnectionTest {
     try {
       console.log('🔍 Testing verification service...');
       
-      // Test 1: Get trust score (should work even without auth for some endpoints)
+      // Test 1: Get dashboard stats (includes trust score)
       try {
-        await verificationService.getTrustScore();
-        tests.push({ name: 'Get Trust Score', success: true, message: 'Success' });
+        await userProfileService.getDashboardStats();
+        tests.push({ name: 'Get Dashboard Stats (includes trust score)', success: true, message: 'Success' });
       } catch (error: any) {
         tests.push({ 
-          name: 'Get Trust Score', 
+          name: 'Get Dashboard Stats (includes trust score)', 
           success: false, 
           message: error.message || 'Failed' 
         });

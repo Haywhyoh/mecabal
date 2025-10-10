@@ -292,9 +292,13 @@ export default function ProfileScreen() {
           <TrustScoreCard 
             trustScore={trustScore}
             loading={profileLoading}
+            compact={true}
+            showBreakdown={false}
             onPress={() => {
-              // Could navigate to detailed trust score screen
-              Alert.alert('Trust Score', 'Your trust score helps build community trust and unlocks features.');
+              // Navigate to dedicated Trust Score detail screen
+              navigation.navigate('TrustScoreDetail' as never);
+              // OR show modal with full details
+              // Alert.alert('Trust Score', 'Full breakdown...');
             }}
           />
         </View>
@@ -304,70 +308,15 @@ export default function ProfileScreen() {
           <DashboardStatsCard 
             dashboardStats={contextDashboardStats || dashboardStats}
             loading={profileLoading || isLoadingStats}
+            compact={true}
+            onViewAll={() => navigation.navigate('Dashboard' as never)}
             onStatPress={(statType, data) => {
-              // Handle stat press - could navigate to relevant screens
-              console.log('Stat pressed:', statType, data);
+              // Navigate to Dashboard with specific tab/filter
+              navigation.navigate('Dashboard' as never, { focus: statType });
             }}
           />
         </View>
 
-        {/* Dashboard */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Dashboard</Text>
-            <View style={styles.privacyIndicator}>
-              <MaterialCommunityIcons name="eye-off" size={14} color="#8E8E8E" />
-              <Text style={styles.privacyText}>Only visible to you</Text>
-            </View>
-          </View>
-
-          {isLoadingStats ? (
-            <View style={styles.skeletonContainer}>
-              <View style={styles.dashboardGrid}>
-                <SkeletonPlaceholder width="48%" height={120} borderRadius={12} />
-                <SkeletonPlaceholder width="48%" height={120} borderRadius={12} />
-              </View>
-              <SkeletonPlaceholder width="100%" height={80} borderRadius={12} style={{ marginTop: 12 }} />
-            </View>
-          ) : (
-            <>
-              <View style={styles.dashboardGrid}>
-                <TouchableOpacity
-                  style={styles.dashboardCard}
-                  onPress={() => navigation.navigate('Bookmarks' as never, { type: 'post' })}
-                >
-                  <MaterialCommunityIcons name="bookmark" size={24} color="#0066CC" />
-                  <Text style={styles.dashboardTitle}>Bookmarks</Text>
-                  <Text style={styles.dashboardCount}>
-                    {dashboardStats?.bookmarks.count || 0} saved posts
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.dashboardCard}
-                  onPress={() => navigation.navigate('Bookmarks' as never, { type: 'listing' })}
-                >
-                  <MaterialCommunityIcons name="tag" size={24} color="#FF6B35" />
-                  <Text style={styles.dashboardTitle}>Saved Deals</Text>
-                  <Text style={styles.dashboardCount}>
-                    {dashboardStats?.savedDeals.count || 0} local offers
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              <TouchableOpacity
-                style={styles.dashboardCard}
-                onPress={() => navigation.navigate('MyEvents' as never)}
-              >
-                <MaterialCommunityIcons name="calendar" size={24} color="#7B68EE" />
-                <Text style={styles.dashboardTitle}>Events</Text>
-                <Text style={styles.dashboardCount}>
-                  {dashboardStats?.events.attending || 0} upcoming events you're attending
-                </Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
 
         {/* Profile Enhancement */}
         <View style={styles.section}>
@@ -384,62 +333,7 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Community Stats */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Your Community Impact</Text>
-          
-          {isLoadingStats ? (
-            <View style={styles.statsGrid}>
-              <SkeletonPlaceholder width="30%" height={80} borderRadius={8} />
-              <SkeletonPlaceholder width="30%" height={80} borderRadius={8} />
-              <SkeletonPlaceholder width="30%" height={80} borderRadius={8} />
-            </View>
-          ) : (
-            <View style={styles.statsGrid}>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>{dashboardStats?.posts.shared || 0}</Text>
-                <Text style={styles.statLabel}>Posts Shared</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>{dashboardStats?.community.neighborsHelped || 0}</Text>
-                <Text style={styles.statLabel}>Neighbors Helped</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>{dashboardStats?.events.joined || 0}</Text>
-                <Text style={styles.statLabel}>Events Joined</Text>
-              </View>
-            </View>
-          )}
-        </View>
 
-        {/* Quick Actions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          
-          <TouchableOpacity style={styles.actionItem}>
-            <MaterialCommunityIcons name="account-edit" size={20} color="#00A651" />
-            <Text style={styles.actionText}>Account Settings</Text>
-            <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E8E" />
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.actionItem}>
-            <MaterialCommunityIcons name="shield-account" size={20} color="#0066CC" />
-            <Text style={styles.actionText}>Privacy & Safety</Text>
-            <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E8E" />
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.actionItem}>
-            <MaterialCommunityIcons name="bell" size={20} color="#FF6B35" />
-            <Text style={styles.actionText}>Notifications</Text>
-            <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E8E" />
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.actionItem}>
-            <MaterialCommunityIcons name="help-circle" size={20} color="#8E8E8E" />
-            <Text style={styles.actionText}>Help & Support</Text>
-            <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E8E" />
-          </TouchableOpacity>
-        </View>
 
         {/* Business Profile Option */}
         <TouchableOpacity style={styles.businessCard} onPress={() => navigation.navigate('BusinessRegistration' as never)}>
@@ -650,29 +544,6 @@ const styles = StyleSheet.create({
   bioSubtitle: {
     fontSize: 14,
     color: '#8E8E8E',
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: '#FAFAFA',
-    padding: 16,
-    borderRadius: 8,
-    marginHorizontal: 4,
-    alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#00A651',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#8E8E8E',
-    textAlign: 'center',
   },
   actionItem: {
     flexDirection: 'row',

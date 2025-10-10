@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { userProfileService } from '../services/userProfileService';
-import { verificationService } from '../services/verificationService';
 import { useAuth } from './AuthContext';
 
 // ==================== Types ====================
@@ -128,6 +127,35 @@ interface ProfileContextType {
   resetProfile: () => void;
 }
 
+// ==================== Helper Functions ====================
+
+const getTrustLevel = (score: number): string => {
+  if (score >= 90) return 'Excellent';
+  if (score >= 80) return 'Very Good';
+  if (score >= 70) return 'Good';
+  if (score >= 60) return 'Fair';
+  if (score >= 40) return 'Poor';
+  return 'Very Poor';
+};
+
+const getNextTrustLevel = (score: number): string => {
+  if (score >= 90) return 'Excellent';
+  if (score >= 80) return 'Excellent';
+  if (score >= 70) return 'Very Good';
+  if (score >= 60) return 'Good';
+  if (score >= 40) return 'Fair';
+  return 'Poor';
+};
+
+const getPointsToNextLevel = (score: number): number => {
+  if (score >= 90) return 0;
+  if (score >= 80) return 90 - score;
+  if (score >= 70) return 80 - score;
+  if (score >= 60) return 70 - score;
+  if (score >= 40) return 60 - score;
+  return 40 - score;
+};
+
 // ==================== Context ====================
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
@@ -179,9 +207,30 @@ export const ProfileProvider: React.FC<ProfileProviderProps> = ({ children }) =>
 
     try {
       console.log('🔄 Refreshing trust score...');
-      const data = await verificationService.getTrustScore();
-      setTrustScore(data);
-      console.log('✅ Trust score refreshed successfully');
+      
+      // Get trust score from dashboard stats instead of separate endpoint
+      const dashboardData = await userProfileService.getDashboardStats();
+      
+      if (dashboardData && dashboardData.community) {
+        // Create a TrustScore object from dashboard data
+        const trustScoreData: TrustScore = {
+          score: dashboardData.community.trustScore,
+          level: getTrustLevel(dashboardData.community.trustScore),
+          nextLevel: getNextTrustLevel(dashboardData.community.trustScore),
+          pointsToNextLevel: getPointsToNextLevel(dashboardData.community.trustScore),
+          breakdown: {
+            phoneVerification: 0, // These would need to come from a separate endpoint
+            identityVerification: 0,
+            addressVerification: 0,
+            endorsements: 0,
+            activityLevel: 0,
+          },
+          lastUpdated: dashboardData.lastUpdated,
+        };
+        
+        setTrustScore(trustScoreData);
+        console.log('✅ Trust score refreshed successfully from dashboard stats');
+      }
     } catch (err: any) {
       console.error('❌ Error loading trust score:', err);
       // Don't set error for trust score as it's not critical
@@ -198,6 +247,26 @@ export const ProfileProvider: React.FC<ProfileProviderProps> = ({ children }) =>
       console.log('🔄 Refreshing dashboard stats...');
       const data = await userProfileService.getDashboardStats();
       setDashboardStats(data);
+      
+      // Also update trust score from dashboard data
+      if (data && data.community) {
+        const trustScoreData: TrustScore = {
+          score: data.community.trustScore,
+          level: getTrustLevel(data.community.trustScore),
+          nextLevel: getNextTrustLevel(data.community.trustScore),
+          pointsToNextLevel: getPointsToNextLevel(data.community.trustScore),
+          breakdown: {
+            phoneVerification: 0, // These would need to come from a separate endpoint
+            identityVerification: 0,
+            addressVerification: 0,
+            endorsements: 0,
+            activityLevel: 0,
+          },
+          lastUpdated: data.lastUpdated,
+        };
+        setTrustScore(trustScoreData);
+      }
+      
       console.log('✅ Dashboard stats refreshed successfully');
     } catch (err: any) {
       console.error('❌ Error loading dashboard stats:', err);

@@ -78,98 +78,142 @@ export default function TrustScoreCard({
 
   const progressPercentage = (trustScore.score / 100) * 100;
 
-  const TrustScoreContent = () => (
-    <View style={[styles.container, compact && styles.containerCompact]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.titleContainer}>
-          <MaterialCommunityIcons name="shield-check" size={20} color="#2C2C2C" />
-          <Text style={styles.title}>Trust Score</Text>
-        </View>
-        <View style={styles.scoreContainer}>
-          <Text style={[styles.score, { color: scoreColor }]}>{trustScore.score}</Text>
-          <Text style={styles.scoreMax}>/100</Text>
-        </View>
-      </View>
+  const TrustScoreContent = () => {
+    if (compact) {
+      return (
+        <View style={[styles.container, styles.containerCompact]}>
+          <View style={styles.compactRow}>
+            {/* Left: Large circular score */}
+            <LinearGradient
+              colors={gradientColors}
+              style={styles.compactScoreCircle}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <View style={styles.scoreCircleInner}>
+                <MaterialCommunityIcons name={levelIcon} size={40} color="#FFFFFF" />
+                <Text style={styles.compactScoreText}>{trustScore.score}</Text>
+              </View>
+            </LinearGradient>
 
-      {/* Score Display with Gradient */}
-      <View style={styles.scoreDisplay}>
-        <LinearGradient
-          colors={gradientColors}
-          style={styles.scoreCircle}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <View style={styles.scoreCircleInner}>
-            <MaterialCommunityIcons name={levelIcon} size={32} color="#FFFFFF" />
-            <Text style={styles.scoreCircleText}>{trustScore.score}</Text>
+            {/* Right: Score info */}
+            <View style={styles.compactInfo}>
+              <Text style={styles.compactTitle}>Trust Score</Text>
+              <Text style={[styles.compactLevel, { color: scoreColor }]}>
+                {trustScore.level}
+              </Text>
+              <Text style={styles.compactNextLevel}>
+                {trustScore.pointsToNextLevel} points to {trustScore.nextLevel}
+              </Text>
+            </View>
+
+            {/* Arrow indicator */}
+            <MaterialCommunityIcons
+              name="chevron-right"
+              size={24}
+              color="#8E8E8E"
+            />
           </View>
-        </LinearGradient>
-        
-        <View style={styles.levelContainer}>
-          <Text style={[styles.level, { color: scoreColor }]}>{trustScore.level}</Text>
-          <Text style={styles.nextLevel}>
-            Next: {trustScore.nextLevel} ({trustScore.pointsToNextLevel} points)
-          </Text>
-        </View>
-      </View>
 
-      {/* Progress Bar */}
-      <View style={styles.progressContainer}>
-        <View style={styles.progressBar}>
+          {/* Tap hint */}
+          <Text style={styles.tapHint}>Tap to view breakdown</Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={[styles.container, compact && styles.containerCompact]}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.titleContainer}>
+            <MaterialCommunityIcons name="shield-check" size={20} color="#2C2C2C" />
+            <Text style={styles.title}>Trust Score</Text>
+          </View>
+          <View style={styles.scoreContainer}>
+            <Text style={[styles.score, { color: scoreColor }]}>{trustScore.score}</Text>
+            <Text style={styles.scoreMax}>/100</Text>
+          </View>
+        </View>
+
+        {/* Score Display with Gradient */}
+        <View style={styles.scoreDisplay}>
           <LinearGradient
             colors={gradientColors}
-            style={[styles.progressFill, { width: `${progressPercentage}%` }]}
+            style={styles.scoreCircle}
             start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-          />
+            end={{ x: 1, y: 1 }}
+          >
+            <View style={styles.scoreCircleInner}>
+              <MaterialCommunityIcons name={levelIcon} size={32} color="#FFFFFF" />
+              <Text style={styles.scoreCircleText}>{trustScore.score}</Text>
+            </View>
+          </LinearGradient>
+          
+          <View style={styles.levelContainer}>
+            <Text style={[styles.level, { color: scoreColor }]}>{trustScore.level}</Text>
+            <Text style={styles.nextLevel}>
+              Next: {trustScore.nextLevel} ({trustScore.pointsToNextLevel} points)
+            </Text>
+          </View>
         </View>
-        <Text style={styles.progressText}>{Math.round(progressPercentage)}% Complete</Text>
+
+        {/* Progress Bar */}
+        <View style={styles.progressContainer}>
+          <View style={styles.progressBar}>
+            <LinearGradient
+              colors={gradientColors}
+              style={[styles.progressFill, { width: `${progressPercentage}%` }]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            />
+          </View>
+          <Text style={styles.progressText}>{Math.round(progressPercentage)}% Complete</Text>
+        </View>
+
+        {/* Breakdown */}
+        {showBreakdown && (
+          <View style={styles.breakdownContainer}>
+            <Text style={styles.breakdownTitle}>Score Breakdown</Text>
+            
+            <View style={styles.breakdownItem}>
+              <MaterialCommunityIcons name="phone-check" size={16} color="#00A651" />
+              <Text style={styles.breakdownLabel}>Phone Verification</Text>
+              <Text style={styles.breakdownValue}>{trustScore.breakdown.phoneVerification} pts</Text>
+            </View>
+            
+            <View style={styles.breakdownItem}>
+              <MaterialCommunityIcons name="card-account-details" size={16} color="#2196F3" />
+              <Text style={styles.breakdownLabel}>Identity Verification</Text>
+              <Text style={styles.breakdownValue}>{trustScore.breakdown.identityVerification} pts</Text>
+            </View>
+            
+            <View style={styles.breakdownItem}>
+              <MaterialCommunityIcons name="map-marker" size={16} color="#FF9800" />
+              <Text style={styles.breakdownLabel}>Address Verification</Text>
+              <Text style={styles.breakdownValue}>{trustScore.breakdown.addressVerification} pts</Text>
+            </View>
+            
+            <View style={styles.breakdownItem}>
+              <MaterialCommunityIcons name="account-heart" size={16} color="#9C27B0" />
+              <Text style={styles.breakdownLabel}>Community Endorsements</Text>
+              <Text style={styles.breakdownValue}>{trustScore.breakdown.endorsements} pts</Text>
+            </View>
+            
+            <View style={styles.breakdownItem}>
+              <MaterialCommunityIcons name="trending-up" size={16} color="#607D8B" />
+              <Text style={styles.breakdownLabel}>Activity Level</Text>
+              <Text style={styles.breakdownValue}>{trustScore.breakdown.activityLevel} pts</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Last Updated */}
+        <Text style={styles.lastUpdated}>
+          Last updated: {new Date(trustScore.lastUpdated).toLocaleDateString()}
+        </Text>
       </View>
-
-      {/* Breakdown */}
-      {showBreakdown && !compact && (
-        <View style={styles.breakdownContainer}>
-          <Text style={styles.breakdownTitle}>Score Breakdown</Text>
-          
-          <View style={styles.breakdownItem}>
-            <MaterialCommunityIcons name="phone-check" size={16} color="#00A651" />
-            <Text style={styles.breakdownLabel}>Phone Verification</Text>
-            <Text style={styles.breakdownValue}>{trustScore.breakdown.phoneVerification} pts</Text>
-          </View>
-          
-          <View style={styles.breakdownItem}>
-            <MaterialCommunityIcons name="card-account-details" size={16} color="#2196F3" />
-            <Text style={styles.breakdownLabel}>Identity Verification</Text>
-            <Text style={styles.breakdownValue}>{trustScore.breakdown.identityVerification} pts</Text>
-          </View>
-          
-          <View style={styles.breakdownItem}>
-            <MaterialCommunityIcons name="map-marker" size={16} color="#FF9800" />
-            <Text style={styles.breakdownLabel}>Address Verification</Text>
-            <Text style={styles.breakdownValue}>{trustScore.breakdown.addressVerification} pts</Text>
-          </View>
-          
-          <View style={styles.breakdownItem}>
-            <MaterialCommunityIcons name="account-heart" size={16} color="#9C27B0" />
-            <Text style={styles.breakdownLabel}>Community Endorsements</Text>
-            <Text style={styles.breakdownValue}>{trustScore.breakdown.endorsements} pts</Text>
-          </View>
-          
-          <View style={styles.breakdownItem}>
-            <MaterialCommunityIcons name="trending-up" size={16} color="#607D8B" />
-            <Text style={styles.breakdownLabel}>Activity Level</Text>
-            <Text style={styles.breakdownValue}>{trustScore.breakdown.activityLevel} pts</Text>
-          </View>
-        </View>
-      )}
-
-      {/* Last Updated */}
-      <Text style={styles.lastUpdated}>
-        Last updated: {new Date(trustScore.lastUpdated).toLocaleDateString()}
-      </Text>
-    </View>
-  );
+    );
+  };
 
   if (onPress) {
     return (
@@ -333,5 +377,57 @@ const styles = StyleSheet.create({
     color: '#8E8E8E',
     textAlign: 'center',
     fontStyle: 'italic',
+  },
+  // Compact mode styles
+  compactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  compactScoreCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+    // Apple-style shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  compactScoreText: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginTop: 4,
+  },
+  compactInfo: {
+    flex: 1,
+  },
+  compactTitle: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#8E8E8E',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  compactLevel: {
+    fontSize: 22,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  compactNextLevel: {
+    fontSize: 13,
+    color: '#8E8E8E',
+  },
+  tapHint: {
+    fontSize: 12,
+    color: '#00A651',
+    textAlign: 'center',
+    fontWeight: '500',
   },
 });
