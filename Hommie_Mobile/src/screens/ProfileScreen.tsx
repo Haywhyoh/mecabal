@@ -21,9 +21,9 @@ import { Typography } from '../constants/typography';
 export default function ProfileScreen() {
   const navigation = useNavigation();
   const { logout, user, refreshUser } = useAuth();
-  const { 
-    trustScore, 
-    dashboardStats: contextDashboardStats, 
+  const {
+    trustScore,
+    dashboardStats: contextDashboardStats,
     profileCompletion: contextProfileCompletion,
     loading: profileLoading,
     error: profileError,
@@ -32,6 +32,16 @@ export default function ProfileScreen() {
     refreshDashboard,
     refreshProfileCompletion
   } = useProfile();
+
+  // Debug logging
+  useEffect(() => {
+    console.log('👤 ProfileScreen - User state:', {
+      hasUser: !!user,
+      userId: user?.id,
+      userName: user?.firstName,
+      userEmail: user?.email,
+    });
+  }, [user]);
 
   // State for dashboard data (fallback to old service if ProfileContext not available)
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
@@ -68,29 +78,37 @@ export default function ProfileScreen() {
 
   const fetchDashboardData = async () => {
     try {
+      console.log('📊 ProfileScreen - Starting fetchDashboardData...');
       setIsLoadingStats(true);
       setError(null);
 
       // Fetch dashboard stats
+      console.log('📊 ProfileScreen - Fetching dashboard stats...');
       const statsResponse = await UserDashboardService.getDashboardStats();
+      console.log('📊 ProfileScreen - Dashboard stats response:', { success: statsResponse.success, hasData: !!statsResponse.data });
       if (statsResponse.success && statsResponse.data) {
         setDashboardStats(statsResponse.data);
       } else {
+        console.log('📊 ProfileScreen - Dashboard stats error:', statsResponse.error);
         setError(statsResponse.error || 'Failed to load dashboard stats');
       }
 
       // Fetch profile completion
+      console.log('📊 ProfileScreen - Fetching profile completion...');
       const completionResponse = await UserProfileService.getProfileCompletion();
+      console.log('📊 ProfileScreen - Profile completion response:', { success: completionResponse.success, hasData: !!completionResponse.data });
       if (completionResponse.success && completionResponse.data) {
         setProfileCompletion(completionResponse.data);
       } else {
+        console.log('📊 ProfileScreen - Profile completion error:', completionResponse.error);
         setError(completionResponse.error || 'Failed to load profile completion');
       }
 
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      console.error('❌ ProfileScreen - Error fetching dashboard data:', error);
       setError('Network error. Please check your connection and try again.');
     } finally {
+      console.log('✅ ProfileScreen - fetchDashboardData complete, setting isLoadingStats to false');
       setIsLoadingStats(false);
     }
   };
@@ -238,6 +256,7 @@ export default function ProfileScreen() {
 
       <Animated.View
         style={{
+          flex: 1,
           opacity: fadeAnim,
           transform: [{ translateY: slideAnim }],
         }}
