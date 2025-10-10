@@ -13,6 +13,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { colors, spacing, typography } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
 import { UserAvatar } from '../components/UserAvatar';
+import { HapticFeedback } from '../utils/haptics';
 
 interface MoreScreenProps {
   navigation?: any;
@@ -264,7 +265,17 @@ const MoreScreen: React.FC<MoreScreenProps> = ({ navigation }) => {
     const isDestructive = item.id === 'signout';
     
     return (
-      <TouchableOpacity style={styles.menuItem} onPress={item.onPress}>
+      <TouchableOpacity 
+        style={styles.menuItem} 
+        onPress={() => {
+          if (isDestructive) {
+            HapticFeedback.warning();
+          } else {
+            HapticFeedback.light();
+          }
+          item.onPress();
+        }}
+      >
         <View style={styles.menuItemLeft}>
           <View style={[styles.menuIcon, { backgroundColor: isDestructive ? '#FF3B3015' : `${item.iconColor}15` }]}>
             <MaterialCommunityIcons

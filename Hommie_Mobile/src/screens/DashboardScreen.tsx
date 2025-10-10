@@ -1,14 +1,37 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, RefreshControl } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, RefreshControl, Animated } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import { useProfile } from '../contexts/ProfileContext';
 import { HapticFeedback } from '../utils/haptics';
+import { Typography } from '../constants/typography';
+import { SkeletonPlaceholder } from '../components/SkeletonPlaceholder';
 
 export default function DashboardScreen() {
   const navigation = useNavigation();
   const { dashboardStats, loading, refreshDashboard } = useProfile();
   const [refreshing, setRefreshing] = useState(false);
+
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+
+  // Animation effect
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -41,15 +64,23 @@ export default function DashboardScreen() {
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor="#00A651"
-          />
-        }
+      <Animated.View
+        style={{
+          opacity: fadeAnim,
+          transform: [{ translateY: slideAnim }],
+        }}
       >
+        <ScrollView
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor="#00A651"
+              titleColor="#8E8E93"
+              title="Pull to refresh"
+            />
+          }
+        >
         {/* Privacy Indicator */}
         <View style={styles.privacyBanner}>
           <MaterialCommunityIcons name="eye-off" size={16} color="#8E8E93" />
@@ -59,37 +90,50 @@ export default function DashboardScreen() {
         {/* Saved Items Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Saved Items</Text>
-          <View style={styles.gridContainer}>
-            {/* Bookmarks Card */}
-            <TouchableOpacity
-              style={styles.gridCard}
-              onPress={() => navigation.navigate('Bookmarks' as never, { type: 'post' })}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: '#E3F2FD' }]}>
-                <MaterialCommunityIcons name="bookmark-multiple" size={32} color="#0066CC" />
-              </View>
-              <Text style={styles.gridCardNumber}>
-                {dashboardStats?.bookmarks.count || 0}
-              </Text>
-              <Text style={styles.gridCardLabel}>Bookmarks</Text>
-              <Text style={styles.gridCardSubtitle}>Saved posts</Text>
-            </TouchableOpacity>
+          {loading ? (
+            <View style={styles.gridContainer}>
+              <SkeletonPlaceholder width="48%" height={140} borderRadius={16} />
+              <SkeletonPlaceholder width="48%" height={140} borderRadius={16} />
+            </View>
+          ) : (
+            <View style={styles.gridContainer}>
+              {/* Bookmarks Card */}
+              <TouchableOpacity
+                style={styles.gridCard}
+                onPress={() => {
+                  HapticFeedback.medium();
+                  navigation.navigate('Bookmarks' as never, { type: 'post' });
+                }}
+              >
+                <View style={[styles.iconCircle, { backgroundColor: '#E3F2FD' }]}>
+                  <MaterialCommunityIcons name="bookmark-multiple" size={32} color="#0066CC" />
+                </View>
+                <Text style={styles.gridCardNumber}>
+                  {dashboardStats?.bookmarks.count || 0}
+                </Text>
+                <Text style={styles.gridCardLabel}>Bookmarks</Text>
+                <Text style={styles.gridCardSubtitle}>Saved posts</Text>
+              </TouchableOpacity>
 
-            {/* Saved Deals Card */}
-            <TouchableOpacity
-              style={styles.gridCard}
-              onPress={() => navigation.navigate('Bookmarks' as never, { type: 'listing' })}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: '#FFF3E0' }]}>
-                <MaterialCommunityIcons name="tag-heart" size={32} color="#FF6B35" />
-              </View>
-              <Text style={styles.gridCardNumber}>
-                {dashboardStats?.savedDeals.count || 0}
-              </Text>
-              <Text style={styles.gridCardLabel}>Saved Deals</Text>
-              <Text style={styles.gridCardSubtitle}>Local offers</Text>
-            </TouchableOpacity>
-          </View>
+              {/* Saved Deals Card */}
+              <TouchableOpacity
+                style={styles.gridCard}
+                onPress={() => {
+                  HapticFeedback.medium();
+                  navigation.navigate('Bookmarks' as never, { type: 'listing' });
+                }}
+              >
+                <View style={[styles.iconCircle, { backgroundColor: '#FFF3E0' }]}>
+                  <MaterialCommunityIcons name="tag-heart" size={32} color="#FF6B35" />
+                </View>
+                <Text style={styles.gridCardNumber}>
+                  {dashboardStats?.savedDeals.count || 0}
+                </Text>
+                <Text style={styles.gridCardLabel}>Saved Deals</Text>
+                <Text style={styles.gridCardSubtitle}>Local offers</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         {/* Events Section */}
@@ -101,86 +145,104 @@ export default function DashboardScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Attending Events */}
-          <TouchableOpacity style={styles.listItem}>
-            <View style={[styles.listIconCircle, { backgroundColor: '#F3E5F5' }]}>
-              <MaterialCommunityIcons name="calendar-check" size={24} color="#7B68EE" />
-            </View>
-            <View style={styles.listContent}>
-              <Text style={styles.listTitle}>Attending</Text>
-              <Text style={styles.listSubtitle}>
-                {dashboardStats?.events.attending || 0} upcoming events
-              </Text>
-            </View>
-            <MaterialCommunityIcons name="chevron-right" size={24} color="#8E8E93" />
-          </TouchableOpacity>
+          {loading ? (
+            <>
+              <SkeletonPlaceholder width="100%" height={80} borderRadius={12} style={{ marginBottom: 8 }} />
+              <SkeletonPlaceholder width="100%" height={80} borderRadius={12} style={{ marginBottom: 8 }} />
+              <SkeletonPlaceholder width="100%" height={80} borderRadius={12} />
+            </>
+          ) : (
+            <>
+              {/* Attending Events */}
+              <TouchableOpacity style={styles.listItem}>
+                <View style={[styles.listIconCircle, { backgroundColor: '#F3E5F5' }]}>
+                  <MaterialCommunityIcons name="calendar-check" size={24} color="#7B68EE" />
+                </View>
+                <View style={styles.listContent}>
+                  <Text style={styles.listTitle}>Attending</Text>
+                  <Text style={styles.listSubtitle}>
+                    {dashboardStats?.events.attending || 0} upcoming events
+                  </Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={24} color="#8E8E93" />
+              </TouchableOpacity>
 
-          {/* Organized Events */}
-          <TouchableOpacity style={styles.listItem}>
-            <View style={[styles.listIconCircle, { backgroundColor: '#E8F5E9' }]}>
-              <MaterialCommunityIcons name="star" size={24} color="#00A651" />
-            </View>
-            <View style={styles.listContent}>
-              <Text style={styles.listTitle}>Organized</Text>
-              <Text style={styles.listSubtitle}>
-                {dashboardStats?.events.organized || 0} events created
-              </Text>
-            </View>
-            <MaterialCommunityIcons name="chevron-right" size={24} color="#8E8E93" />
-          </TouchableOpacity>
+              {/* Organized Events */}
+              <TouchableOpacity style={styles.listItem}>
+                <View style={[styles.listIconCircle, { backgroundColor: '#E8F5E9' }]}>
+                  <MaterialCommunityIcons name="star" size={24} color="#00A651" />
+                </View>
+                <View style={styles.listContent}>
+                  <Text style={styles.listTitle}>Organized</Text>
+                  <Text style={styles.listSubtitle}>
+                    {dashboardStats?.events.organized || 0} events created
+                  </Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={24} color="#8E8E93" />
+              </TouchableOpacity>
 
-          {/* Event History */}
-          <TouchableOpacity style={styles.listItem}>
-            <View style={[styles.listIconCircle, { backgroundColor: '#FFF3E0' }]}>
-              <MaterialCommunityIcons name="history" size={24} color="#FF9800" />
-            </View>
-            <View style={styles.listContent}>
-              <Text style={styles.listTitle}>History</Text>
-              <Text style={styles.listSubtitle}>
-                {dashboardStats?.events.joined || 0} events joined
-              </Text>
-            </View>
-            <MaterialCommunityIcons name="chevron-right" size={24} color="#8E8E93" />
-          </TouchableOpacity>
+              {/* Event History */}
+              <TouchableOpacity style={styles.listItem}>
+                <View style={[styles.listIconCircle, { backgroundColor: '#FFF3E0' }]}>
+                  <MaterialCommunityIcons name="history" size={24} color="#FF9800" />
+                </View>
+                <View style={styles.listContent}>
+                  <Text style={styles.listTitle}>History</Text>
+                  <Text style={styles.listSubtitle}>
+                    {dashboardStats?.events.joined || 0} events joined
+                  </Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={24} color="#8E8E93" />
+              </TouchableOpacity>
+            </>
+          )}
         </View>
 
         {/* Community Activity Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Community Activity</Text>
-          <View style={styles.statsGrid}>
-            {/* Posts Stat */}
-            <View style={styles.statCard}>
-              <View style={[styles.statIconCircle, { backgroundColor: '#F3E5F5' }]}>
-                <MaterialCommunityIcons name="post" size={24} color="#9C27B0" />
-              </View>
-              <Text style={styles.statNumber}>
-                {dashboardStats?.posts.shared || 0}
-              </Text>
-              <Text style={styles.statLabel}>Posts</Text>
+          {loading ? (
+            <View style={styles.statsGrid}>
+              <SkeletonPlaceholder width="30%" height={100} borderRadius={12} />
+              <SkeletonPlaceholder width="30%" height={100} borderRadius={12} />
+              <SkeletonPlaceholder width="30%" height={100} borderRadius={12} />
             </View>
+          ) : (
+            <View style={styles.statsGrid}>
+              {/* Posts Stat */}
+              <View style={styles.statCard}>
+                <View style={[styles.statIconCircle, { backgroundColor: '#F3E5F5' }]}>
+                  <MaterialCommunityIcons name="post" size={24} color="#9C27B0" />
+                </View>
+                <Text style={styles.statNumber}>
+                  {dashboardStats?.posts.shared || 0}
+                </Text>
+                <Text style={styles.statLabel}>Posts</Text>
+              </View>
 
-            {/* Neighbors Helped Stat */}
-            <View style={styles.statCard}>
-              <View style={[styles.statIconCircle, { backgroundColor: '#E8F5E9' }]}>
-                <MaterialCommunityIcons name="account-heart" size={24} color="#00A651" />
+              {/* Neighbors Helped Stat */}
+              <View style={styles.statCard}>
+                <View style={[styles.statIconCircle, { backgroundColor: '#E8F5E9' }]}>
+                  <MaterialCommunityIcons name="account-heart" size={24} color="#00A651" />
+                </View>
+                <Text style={styles.statNumber}>
+                  {dashboardStats?.community.neighborsHelped || 0}
+                </Text>
+                <Text style={styles.statLabel}>Helped</Text>
               </View>
-              <Text style={styles.statNumber}>
-                {dashboardStats?.community.neighborsHelped || 0}
-              </Text>
-              <Text style={styles.statLabel}>Helped</Text>
-            </View>
 
-            {/* Connections Stat */}
-            <View style={styles.statCard}>
-              <View style={[styles.statIconCircle, { backgroundColor: '#E3F2FD' }]}>
-                <MaterialCommunityIcons name="account-group" size={24} color="#2196F3" />
+              {/* Connections Stat */}
+              <View style={styles.statCard}>
+                <View style={[styles.statIconCircle, { backgroundColor: '#E3F2FD' }]}>
+                  <MaterialCommunityIcons name="account-group" size={24} color="#2196F3" />
+                </View>
+                <Text style={styles.statNumber}>
+                  {dashboardStats?.community.connections || 0}
+                </Text>
+                <Text style={styles.statLabel}>Links</Text>
               </View>
-              <Text style={styles.statNumber}>
-                {dashboardStats?.community.connections || 0}
-              </Text>
-              <Text style={styles.statLabel}>Links</Text>
             </View>
-          </View>
+          )}
         </View>
 
         {/* Quick Actions */}
@@ -211,7 +273,8 @@ export default function DashboardScreen() {
             <MaterialCommunityIcons name="chevron-right" size={24} color="#8E8E93" />
           </TouchableOpacity>
         </View>
-      </ScrollView>
+        </ScrollView>
+      </Animated.View>
     </SafeAreaView>
   );
 }
@@ -232,10 +295,9 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E5E5EA',
   },
   headerTitle: {
-    fontSize: 17,
+    ...Typography.body,
     fontWeight: '600',
     color: '#000000',
-    letterSpacing: -0.4,
   },
   privacyBanner: {
     flexDirection: 'row',
@@ -248,7 +310,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   privacyText: {
-    fontSize: 13,
+    ...Typography.footnote,
     color: '#8E8E93',
     marginLeft: 6,
   },
@@ -271,14 +333,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
+    ...Typography.title3,
     color: '#1C1C1E',
     marginBottom: 16,
-    letterSpacing: -0.4,
   },
   seeAllButton: {
-    fontSize: 15,
+    ...Typography.subheadline,
     color: '#00A651',
     fontWeight: '600',
   },

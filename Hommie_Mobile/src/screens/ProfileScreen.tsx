@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Alert, Image, RefreshControl, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Alert, Image, RefreshControl, ActivityIndicator, Animated } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import { contextAwareGoBack } from '../utils/navigationUtils';
@@ -16,6 +16,7 @@ import { ErrorState } from '../components/ErrorState';
 import { SkeletonPlaceholder } from '../components/SkeletonPlaceholder';
 import { ToastService } from '../services/toastService';
 import { HapticFeedback } from '../utils/haptics';
+import { Typography } from '../constants/typography';
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
@@ -37,11 +38,32 @@ export default function ProfileScreen() {
   const [profileCompletion, setProfileCompletion] = useState<ProfileCompletionResponse | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
   const [error, setError] = useState<string | null>(null);
 
   // Fetch dashboard data on mount
   useEffect(() => {
     fetchDashboardData();
+  }, []);
+
+  // Animation effect
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+    ]).start();
   }, []);
 
   const fetchDashboardData = async () => {
@@ -214,17 +236,25 @@ export default function ProfileScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView 
-        style={styles.scrollView} 
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor="#00A651"
-          />
-        }
+      <Animated.View
+        style={{
+          opacity: fadeAnim,
+          transform: [{ translateY: slideAnim }],
+        }}
       >
+        <ScrollView 
+          style={styles.scrollView} 
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor="#00A651"
+              titleColor="#8E8E93"
+              title="Pull to refresh"
+            />
+          }
+        >
         {/* 1. IDENTITY - Who am I? */}
         <View style={styles.profileSection}>
           <UserProfile
@@ -259,18 +289,22 @@ export default function ProfileScreen() {
 
         {/* 2. ACHIEVEMENT - My standing */}
         <View style={styles.trustScoreSection}>
-          <TrustScoreCard 
-            trustScore={trustScore}
-            loading={profileLoading}
-            compact={true}
-            showBreakdown={false}
-            onPress={() => {
-              // Navigate to dedicated Trust Score detail screen
-              navigation.navigate('TrustScoreDetail' as never);
-              // OR show modal with full details
-              // Alert.alert('Trust Score', 'Full breakdown...');
-            }}
-          />
+          {profileLoading ? (
+            <SkeletonPlaceholder width="100%" height={120} borderRadius={16} />
+          ) : (
+            <TrustScoreCard 
+              trustScore={trustScore}
+              loading={profileLoading}
+              compact={true}
+              showBreakdown={false}
+              onPress={() => {
+                // Navigate to dedicated Trust Score detail screen
+                navigation.navigate('TrustScoreDetail' as never);
+                // OR show modal with full details
+                // Alert.alert('Trust Score', 'Full breakdown...');
+              }}
+            />
+          )}
         </View>
 
         {/* 3. VERIFICATION - Build trust */}
@@ -301,16 +335,20 @@ export default function ProfileScreen() {
 
         {/* 4. ACTIVITY SUMMARY - What I'm doing */}
         <View style={styles.dashboardStatsSection}>
-          <DashboardStatsCard 
-            dashboardStats={contextDashboardStats || dashboardStats}
-            loading={profileLoading || isLoadingStats}
-            compact={true}
-            onViewAll={() => navigation.navigate('Dashboard' as never)}
-            onStatPress={(statType, data) => {
-              // Navigate to Dashboard with specific tab/filter
-              navigation.navigate('Dashboard' as never, { focus: statType });
-            }}
-          />
+          {profileLoading || isLoadingStats ? (
+            <SkeletonPlaceholder width="100%" height={140} borderRadius={16} />
+          ) : (
+            <DashboardStatsCard 
+              dashboardStats={contextDashboardStats || dashboardStats}
+              loading={profileLoading || isLoadingStats}
+              compact={true}
+              onViewAll={() => navigation.navigate('Dashboard' as never)}
+              onStatPress={(statType, data) => {
+                // Navigate to Dashboard with specific tab/filter
+                navigation.navigate('Dashboard' as never, { focus: statType });
+              }}
+            />
+          )}
         </View>
 
         {/* 5. IMPROVEMENT - Make profile better */}
@@ -375,7 +413,8 @@ export default function ProfileScreen() {
           <MaterialCommunityIcons name="logout" size={20} color="#E74C3C" />
           <Text style={styles.signOutText}>Sign out</Text>
         </TouchableOpacity>
-      </ScrollView>
+        </ScrollView>
+      </Animated.View>
     </SafeAreaView>
   );
 }
@@ -400,7 +439,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   headerTitle: {
-    fontSize: 18,
+    ...Typography.body,
     fontWeight: '600',
     color: '#2C2C2C',
     flex: 1,
@@ -437,7 +476,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   userLocation: {
-    fontSize: 16,
+    ...Typography.callout,
     color: '#8E8E93',  // Apple's secondary text color
     marginLeft: 4,
   },
@@ -461,16 +500,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   findNeighborsTitle: {
-    fontSize: 17,  // Apple's preferred body size
+    ...Typography.body,
     fontWeight: '600',
     color: '#1C1C1E',  // Apple's dark color
     marginBottom: 4,
-    letterSpacing: -0.2,
   },
   findNeighborsSubtitle: {
-    fontSize: 15,  // Apple's preferred body size
+    ...Typography.subheadline,
     color: '#8E8E93',  // Apple's secondary text color
-    letterSpacing: -0.2,
   },
   editProfileButton: {
     backgroundColor: '#F5F5F5',  // Keep subtle
@@ -489,11 +526,10 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   editProfileText: {
-    fontSize: 17,  // Apple's preferred body size
+    ...Typography.body,
     fontWeight: '600',
     color: '#1C1C1E',  // Apple's dark color
     marginLeft: 8,
-    letterSpacing: -0.2,
   },
   section: {
     backgroundColor: '#FFFFFF',
@@ -556,18 +592,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   enhancementTitle: {
-    fontSize: 20,
-    fontWeight: '700',
+    ...Typography.title3,
     color: '#1C1C1E',  // Apple's dark color
     marginBottom: 8,
-    letterSpacing: -0.4,  // Tight tracking for headers
   },
   enhancementSubtitle: {
-    fontSize: 15,  // Apple's preferred body size
+    ...Typography.subheadline,
     color: '#8E8E93',  // Apple's secondary text color
-    lineHeight: 20,
     marginBottom: 16,
-    letterSpacing: -0.2,
   },
   bioCard: {
     flexDirection: 'row',
