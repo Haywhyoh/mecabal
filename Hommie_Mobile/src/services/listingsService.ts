@@ -28,6 +28,9 @@ export interface Listing {
   propertySize?: number;
   parkingSpaces?: number;
   petPolicy?: 'allowed' | 'not_allowed' | 'case_by_case';
+  utilitiesIncluded?: string[];
+  securityFeatures?: string[];
+  landSize?: number;
   
   // Item-specific fields
   condition?: string;
@@ -37,7 +40,7 @@ export interface Listing {
   warranty?: string;
   
   // Service-specific fields
-  serviceType?: 'consultation' | 'maintenance' | 'repair' | 'installation' | 'cleaning' | 'other';
+  serviceType?: 'offering' | 'request';
   serviceArea?: string[];
   availability?: {
     monday: { start: string; end: string; available: boolean };
@@ -48,29 +51,54 @@ export interface Listing {
     saturday: { start: string; end: string; available: boolean };
     sunday: { start: string; end: string; available: boolean };
   };
-  responseTime?: string;
+  availabilitySchedule?: {
+    days: string[];
+    startTime: string;
+    endTime: string;
+    timezone: string;
+  };
+  serviceRadius?: number;
+  responseTime?: number;
+  pricingModel?: 'hourly' | 'project' | 'fixed' | 'negotiable';
   professionalCredentials?: {
+    licenses: string[];
     certifications: string[];
-    experience: string;
-    portfolio: string[];
+    experience: number;
+    insurance: boolean;
   };
   
   // Job-specific fields
   employmentType?: 'full_time' | 'part_time' | 'contract' | 'freelance' | 'internship';
-  workLocation?: 'remote' | 'onsite' | 'hybrid';
+  workLocation?: 'remote' | 'on_site' | 'hybrid';
   requiredSkills?: string[];
   requiredExperience?: string;
   education?: string;
   benefits?: string[];
   applicationDeadline?: string;
+  salaryMin?: number;
+  salaryMax?: number;
+  companyInfo?: {
+    name: string;
+    size: string;
+    industry: string;
+    website?: string;
+  };
   
   // Contact preferences
   contactPreferences?: {
-    phone: boolean;
-    email: boolean;
-    whatsapp: boolean;
-    inApp: boolean;
+    allowCalls: boolean;
+    allowMessages: boolean;
+    allowWhatsApp: boolean;
+    preferredTime: string;
   };
+  
+  // Additional fields from backend
+  estateId?: string;
+  city?: string;
+  state?: string;
+  featured?: boolean;
+  boosted?: boolean;
+  verificationStatus?: 'pending' | 'verified' | 'rejected';
   
   location: {
     latitude: number;
@@ -85,6 +113,9 @@ export interface Listing {
   viewsCount: number;
   savesCount: number;
   isSaved: boolean;
+  verificationStatus: string;
+  featured: boolean;
+  boosted: boolean;
   author: {
     id: string;
     firstName: string;
@@ -284,21 +315,34 @@ export class ListingsService {
     operation: string
   ): Promise<T> {
     return this.retryApiCall(async () => {
+      console.log(`🌐 Making API request: ${operation}`);
+      console.log(`🌐 URL: ${url}`);
+      console.log(`🌐 Method: ${options.method || 'GET'}`);
+      
+      const headers = {
+        ...await this.getAuthHeaders(),
+        ...options.headers,
+      };
+      console.log(`🌐 Headers:`, headers);
+
       const response = await fetch(url, {
         ...options,
-        headers: {
-          ...await this.getAuthHeaders(),
-          ...options.headers,
-        },
+        headers,
       });
+
+      console.log(`🌐 Response status: ${response.status} ${response.statusText}`);
+      console.log(`🌐 Response headers:`, Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error(`❌ API Error Response:`, errorData);
         const errorMessage = errorData.message || `HTTP ${response.status}: ${response.statusText}`;
         throw new Error(errorMessage);
       }
 
-      return await response.json();
+      const responseData = await response.json();
+      console.log(`✅ API Success Response:`, responseData);
+      return responseData;
     }, operation);
   }
 

@@ -16,6 +16,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, shadows } from '../constants';
 import { ListingsService, Listing } from '../services/listingsService';
+import { ENV, validateEnvironment } from '../config/environment';
 
 interface ListingDetailsScreenProps {
   navigation: any;
@@ -41,14 +42,30 @@ export default function ListingDetailsScreen({ navigation, route }: ListingDetai
   const fetchListing = useCallback(async () => {
     try {
       setLoading(true);
+      console.log('🔍 Fetching listing:', listingId);
+      console.log('🔍 API URL:', ENV.API.BASE_URL);
+      console.log('🔍 Environment validation:', validateEnvironment());
+
       const data = await listingsService.getListing(listingId);
+
+      console.log('✅ Listing fetched successfully:', data);
+      console.log('📋 Listing type:', data.listingType);
+      console.log('👤 Author:', data.author);
+      console.log('💰 Price:', data.price);
+      console.log('📍 Location:', data.location);
+      console.log('📸 Media count:', data.media?.length || 0);
+
       setListing(data);
       setIsSaved(data.isSaved);
 
       // Increment view count
       await listingsService.incrementView(listingId);
-    } catch (error) {
-      console.error('Error fetching listing:', error);
+      console.log('📊 View count incremented');
+    } catch (error: any) {
+      console.error('❌ Error fetching listing:', error);
+      console.error('❌ Error details:', JSON.stringify(error, null, 2));
+      console.error('❌ Error message:', error?.message);
+      console.error('❌ Error stack:', error?.stack);
       Alert.alert('Error', 'Failed to load listing details');
       navigation.goBack();
     } finally {
@@ -125,6 +142,391 @@ export default function ListingDetailsScreen({ navigation, route }: ListingDetai
     });
   };
 
+  // Render service-specific details
+  const renderServiceDetails = () => {
+    if (!listing || listing.listingType !== 'service') return null;
+
+    console.log('🔧 Rendering service details for listing:', listing.id);
+    console.log('🔧 Service fields:', {
+      serviceType: listing.serviceType,
+      availabilitySchedule: listing.availabilitySchedule,
+      serviceRadius: listing.serviceRadius,
+      responseTime: listing.responseTime,
+      pricingModel: listing.pricingModel,
+      professionalCredentials: listing.professionalCredentials
+    });
+
+    return (
+      <View style={styles.serviceSection}>
+        <Text style={styles.sectionTitle}>Service Details</Text>
+
+        {/* Availability Schedule */}
+        {listing.availabilitySchedule && (
+          <View style={styles.infoRow}>
+            <Ionicons name="calendar-outline" size={20} color={colors.textTertiary} />
+            <Text style={styles.infoLabel}>Available</Text>
+            <Text style={styles.infoValue}>
+              {listing.availabilitySchedule.days.join(', ')}
+            </Text>
+          </View>
+        )}
+
+        {/* Service Radius */}
+        {listing.serviceRadius && (
+          <View style={styles.infoRow}>
+            <Ionicons name="location-outline" size={20} color={colors.textTertiary} />
+            <Text style={styles.infoLabel}>Service Radius</Text>
+            <Text style={styles.infoValue}>{listing.serviceRadius} km</Text>
+          </View>
+        )}
+
+        {/* Response Time */}
+        {listing.responseTime && (
+          <View style={styles.infoRow}>
+            <Ionicons name="time-outline" size={20} color={colors.textTertiary} />
+            <Text style={styles.infoLabel}>Response Time</Text>
+            <Text style={styles.infoValue}>Within {listing.responseTime} hours</Text>
+          </View>
+        )}
+
+        {/* Pricing Model */}
+        {listing.pricingModel && (
+          <View style={styles.infoRow}>
+            <Ionicons name="cash-outline" size={20} color={colors.textTertiary} />
+            <Text style={styles.infoLabel}>Pricing Model</Text>
+            <Text style={styles.infoValue}>
+              {listing.pricingModel.replace('_', ' ').toUpperCase()}
+            </Text>
+          </View>
+        )}
+
+        {/* Professional Credentials */}
+        {listing.professionalCredentials && (
+          <>
+            <Text style={styles.subsectionTitle}>Professional Credentials</Text>
+
+            {listing.professionalCredentials.experience > 0 && (
+              <View style={styles.infoRow}>
+                <Ionicons name="briefcase-outline" size={20} color={colors.textTertiary} />
+                <Text style={styles.infoLabel}>Experience</Text>
+                <Text style={styles.infoValue}>
+                  {listing.professionalCredentials.experience} years
+                </Text>
+              </View>
+            )}
+
+            {listing.professionalCredentials.licenses && listing.professionalCredentials.licenses.length > 0 && (
+              <View style={styles.credentialsList}>
+                <Text style={styles.credentialsLabel}>Licenses:</Text>
+                {listing.professionalCredentials.licenses.map((license, index) => (
+                  <View key={index} style={styles.credentialBadge}>
+                    <Ionicons name="ribbon-outline" size={16} color={colors.primary} />
+                    <Text style={styles.credentialText}>{license}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {listing.professionalCredentials.certifications && listing.professionalCredentials.certifications.length > 0 && (
+              <View style={styles.credentialsList}>
+                <Text style={styles.credentialsLabel}>Certifications:</Text>
+                {listing.professionalCredentials.certifications.map((cert, index) => (
+                  <View key={index} style={styles.credentialBadge}>
+                    <Ionicons name="medal-outline" size={16} color={colors.primary} />
+                    <Text style={styles.credentialText}>{cert}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {listing.professionalCredentials.insurance && (
+              <View style={styles.insuranceBadge}>
+                <Ionicons name="shield-checkmark" size={20} color={colors.success} />
+                <Text style={styles.insuranceText}>Insured Professional</Text>
+              </View>
+            )}
+          </>
+        )}
+
+        {/* Fallback: Show basic service information if no specific fields */}
+        {!listing.availabilitySchedule && !listing.serviceRadius && !listing.responseTime && !listing.pricingModel && !listing.professionalCredentials && (
+          <View style={styles.infoRow}>
+            <Ionicons name="information-circle-outline" size={20} color={colors.textTertiary} />
+            <Text style={styles.infoLabel}>Service Type</Text>
+            <Text style={styles.infoValue}>
+              {listing.serviceType ? listing.serviceType.replace('_', ' ').toUpperCase() : 'Service Offering'}
+            </Text>
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  // Render job-specific details
+  const renderJobDetails = () => {
+    if (!listing || listing.listingType !== 'job') return null;
+
+    return (
+      <View style={styles.jobSection}>
+        <Text style={styles.sectionTitle}>Job Details</Text>
+
+        {/* Employment Type */}
+        {listing.employmentType && (
+          <View style={styles.infoRow}>
+            <Ionicons name="briefcase-outline" size={20} color={colors.textTertiary} />
+            <Text style={styles.infoLabel}>Employment Type</Text>
+            <Text style={styles.infoValue}>
+              {listing.employmentType.replace('_', ' ').toUpperCase()}
+            </Text>
+          </View>
+        )}
+
+        {/* Salary Range */}
+        {listing.salaryMin && listing.salaryMax && (
+          <View style={styles.infoRow}>
+            <Ionicons name="cash-outline" size={20} color={colors.textTertiary} />
+            <Text style={styles.infoLabel}>Salary Range</Text>
+            <Text style={styles.infoValue}>
+              ₦{listing.salaryMin.toLocaleString()} - ₦{listing.salaryMax.toLocaleString()}
+            </Text>
+          </View>
+        )}
+
+        {/* Work Location */}
+        {listing.workLocation && (
+          <View style={styles.infoRow}>
+            <Ionicons name="location-outline" size={20} color={colors.textTertiary} />
+            <Text style={styles.infoLabel}>Work Location</Text>
+            <Text style={styles.infoValue}>
+              {listing.workLocation.replace('_', ' ')}
+            </Text>
+          </View>
+        )}
+
+        {/* Application Deadline */}
+        {listing.applicationDeadline && (
+          <View style={styles.infoRow}>
+            <Ionicons name="calendar-outline" size={20} color={colors.textTertiary} />
+            <Text style={styles.infoLabel}>Application Deadline</Text>
+            <Text style={styles.infoValue}>
+              {formatDate(listing.applicationDeadline)}
+            </Text>
+          </View>
+        )}
+
+        {/* Required Skills */}
+        {listing.requiredSkills && listing.requiredSkills.length > 0 && (
+          <View style={styles.skillsSection}>
+            <Text style={styles.subsectionTitle}>Required Skills</Text>
+            <View style={styles.skillsContainer}>
+              {listing.requiredSkills.map((skill, index) => (
+                <View key={index} style={styles.skillChip}>
+                  <Text style={styles.skillText}>{skill}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Required Experience */}
+        {listing.requiredExperience && (
+          <View style={styles.infoRow}>
+            <Ionicons name="school-outline" size={20} color={colors.textTertiary} />
+            <Text style={styles.infoLabel}>Required Experience</Text>
+            <Text style={styles.infoValue}>{listing.requiredExperience}</Text>
+          </View>
+        )}
+
+        {/* Education */}
+        {listing.education && (
+          <View style={styles.infoRow}>
+            <Ionicons name="book-outline" size={20} color={colors.textTertiary} />
+            <Text style={styles.infoLabel}>Education</Text>
+            <Text style={styles.infoValue}>{listing.education}</Text>
+          </View>
+        )}
+
+        {/* Benefits */}
+        {listing.benefits && listing.benefits.length > 0 && (
+          <View style={styles.benefitsSection}>
+            <Text style={styles.subsectionTitle}>Benefits</Text>
+            {listing.benefits.map((benefit, index) => (
+              <View key={index} style={styles.benefitItem}>
+                <Ionicons name="checkmark-circle" size={18} color={colors.success} />
+                <Text style={styles.benefitText}>{benefit}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Company Info */}
+        {listing.companyInfo && (
+          <View style={styles.companySection}>
+            <Text style={styles.subsectionTitle}>About the Company</Text>
+            <Text style={styles.companyName}>{listing.companyInfo.name}</Text>
+            <View style={styles.companyDetails}>
+              <Text style={styles.companyDetailText}>
+                Size: {listing.companyInfo.size}
+              </Text>
+              <Text style={styles.companyDetailText}>
+                Industry: {listing.companyInfo.industry}
+              </Text>
+              {listing.companyInfo.website && (
+                <TouchableOpacity
+                  onPress={() => Linking.openURL(listing.companyInfo!.website!)}
+                >
+                  <Text style={styles.companyWebsite}>
+                    {listing.companyInfo.website}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  // Render enhanced property details
+  const renderEnhancedPropertyDetails = () => {
+    if (!listing || listing.listingType !== 'property') return null;
+
+    return (
+      <View style={styles.propertySection}>
+        <Text style={styles.sectionTitle}>Property Details</Text>
+
+        {/* Rental Period */}
+        {listing.rentalPeriod && (
+          <View style={styles.infoRow}>
+            <Ionicons name="calendar-outline" size={20} color={colors.textTertiary} />
+            <Text style={styles.infoLabel}>Rental Period</Text>
+            <Text style={styles.infoValue}>
+              {listing.rentalPeriod.replace('_', ' ').toUpperCase()}
+            </Text>
+          </View>
+        )}
+
+        {/* Property Size */}
+        {listing.propertySize && (
+          <View style={styles.infoRow}>
+            <Ionicons name="resize-outline" size={20} color={colors.textTertiary} />
+            <Text style={styles.infoLabel}>Property Size</Text>
+            <Text style={styles.infoValue}>{listing.propertySize} m²</Text>
+          </View>
+        )}
+
+        {/* Land Size */}
+        {listing.landSize && (
+          <View style={styles.infoRow}>
+            <Ionicons name="map-outline" size={20} color={colors.textTertiary} />
+            <Text style={styles.infoLabel}>Land Size</Text>
+            <Text style={styles.infoValue}>{listing.landSize} m²</Text>
+          </View>
+        )}
+
+        {/* Parking */}
+        {listing.parkingSpaces && (
+          <View style={styles.infoRow}>
+            <Ionicons name="car-outline" size={20} color={colors.textTertiary} />
+            <Text style={styles.infoLabel}>Parking</Text>
+            <Text style={styles.infoValue}>{listing.parkingSpaces} spaces</Text>
+          </View>
+        )}
+
+        {/* Pet Policy */}
+        {listing.petPolicy && (
+          <View style={styles.infoRow}>
+            <Ionicons name="paw-outline" size={20} color={colors.textTertiary} />
+            <Text style={styles.infoLabel}>Pet Policy</Text>
+            <Text style={styles.infoValue}>
+              {listing.petPolicy.replace('_', ' ')}
+            </Text>
+          </View>
+        )}
+
+        {/* Amenities */}
+        {listing.amenities && listing.amenities.length > 0 && (
+          <View style={styles.amenitiesSection}>
+            <Text style={styles.subsectionTitle}>Amenities</Text>
+            <View style={styles.amenitiesGrid}>
+              {listing.amenities.map((amenity, index) => (
+                <View key={index} style={styles.amenityItem}>
+                  <Ionicons name="checkmark-circle" size={18} color={colors.primary} />
+                  <Text style={styles.amenityText}>{amenity}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Utilities Included */}
+        {listing.utilitiesIncluded && listing.utilitiesIncluded.length > 0 && (
+          <View style={styles.utilitiesSection}>
+            <Text style={styles.subsectionTitle}>Utilities Included</Text>
+            {listing.utilitiesIncluded.map((utility, index) => (
+              <View key={index} style={styles.utilityItem}>
+                <Ionicons name="checkmark-circle" size={18} color={colors.success} />
+                <Text style={styles.utilityText}>{utility}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Security Features */}
+        {listing.securityFeatures && listing.securityFeatures.length > 0 && (
+          <View style={styles.securitySection}>
+            <Text style={styles.subsectionTitle}>Security Features</Text>
+            {listing.securityFeatures.map((feature, index) => (
+              <View key={index} style={styles.securityItem}>
+                <Ionicons name="shield-checkmark" size={18} color={colors.primary} />
+                <Text style={styles.securityText}>{feature}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  // Render contact preferences
+  const renderContactPreferences = () => {
+    if (!listing || !listing.contactPreferences) return null;
+
+    return (
+      <View style={styles.contactPreferencesSection}>
+        <Text style={styles.sectionTitle}>Contact Preferences</Text>
+        <View style={styles.preferencesList}>
+          {listing.contactPreferences.allowCalls && (
+            <View style={styles.preferenceItem}>
+              <Ionicons name="call" size={20} color={colors.primary} />
+              <Text style={styles.preferenceText}>Phone calls accepted</Text>
+            </View>
+          )}
+          {listing.contactPreferences.allowMessages && (
+            <View style={styles.preferenceItem}>
+              <Ionicons name="chatbubble" size={20} color={colors.primary} />
+              <Text style={styles.preferenceText}>In-app messages accepted</Text>
+            </View>
+          )}
+          {listing.contactPreferences.allowWhatsApp && (
+            <View style={styles.preferenceItem}>
+              <Ionicons name="logo-whatsapp" size={20} color={colors.success} />
+              <Text style={styles.preferenceText}>WhatsApp available</Text>
+            </View>
+          )}
+          {listing.contactPreferences.preferredTime && (
+            <View style={styles.preferenceItem}>
+              <Ionicons name="time" size={20} color={colors.textTertiary} />
+              <Text style={styles.preferenceText}>
+                Best time: {listing.contactPreferences.preferredTime}
+              </Text>
+            </View>
+          )}
+        </View>
+      </View>
+    );
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -140,7 +542,7 @@ export default function ListingDetailsScreen({ navigation, route }: ListingDetai
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle-outline" size={64} color={colors.text.light} />
+          <Ionicons name="alert-circle-outline" size={64} color={colors.textTertiary} />
           <Text style={styles.errorText}>Listing not found</Text>
         </View>
       </SafeAreaView>
@@ -175,7 +577,7 @@ export default function ListingDetailsScreen({ navigation, route }: ListingDetai
             <Ionicons
               name={isSaved ? 'bookmark' : 'bookmark-outline'}
               size={24}
-              color={isSaved ? colors.primary : colors.text.light}
+              color={isSaved ? colors.primary : colors.textTertiary}
             />
           </TouchableOpacity>
         </View>
@@ -228,7 +630,7 @@ export default function ListingDetailsScreen({ navigation, route }: ListingDetai
             </>
           ) : (
             <View style={styles.placeholderImage}>
-              <Ionicons name="image-outline" size={80} color={colors.text.light} />
+              <Ionicons name="image-outline" size={80} color={colors.textTertiary} />
             </View>
           )}
 
@@ -255,80 +657,57 @@ export default function ListingDetailsScreen({ navigation, route }: ListingDetai
           <Text style={styles.title}>{listing.title}</Text>
         </View>
 
-        {/* Info Section */}
+        {/* Basic Info Section */}
         <View style={styles.infoSection}>
           {/* Category */}
           <View style={styles.infoRow}>
-            <Ionicons name="pricetag-outline" size={20} color={colors.text.light} />
+            <Ionicons name="pricetag-outline" size={20} color={colors.textTertiary} />
             <Text style={styles.infoLabel}>Category</Text>
             <Text style={styles.infoValue}>{listing.category.name}</Text>
           </View>
 
           {/* Location */}
           <View style={styles.infoRow}>
-            <Ionicons name="location-outline" size={20} color={colors.text.light} />
+            <Ionicons name="location-outline" size={20} color={colors.textTertiary} />
             <Text style={styles.infoLabel}>Location</Text>
             <Text style={styles.infoValue} numberOfLines={1}>
               {listing.location.address}
             </Text>
           </View>
 
-          {/* Property Details */}
+          {/* Basic Property Details */}
           {listing.listingType === 'property' && (
             <>
               {listing.propertyType && (
                 <View style={styles.infoRow}>
-                  <Ionicons name="home-outline" size={20} color={colors.text.light} />
+                  <Ionicons name="home-outline" size={20} color={colors.textTertiary} />
                   <Text style={styles.infoLabel}>Type</Text>
                   <Text style={styles.infoValue}>{listing.propertyType}</Text>
                 </View>
               )}
               {listing.bedrooms && (
                 <View style={styles.infoRow}>
-                  <Ionicons name="bed-outline" size={20} color={colors.text.light} />
+                  <Ionicons name="bed-outline" size={20} color={colors.textTertiary} />
                   <Text style={styles.infoLabel}>Bedrooms</Text>
                   <Text style={styles.infoValue}>{listing.bedrooms}</Text>
                 </View>
               )}
               {listing.bathrooms && (
                 <View style={styles.infoRow}>
-                  <Ionicons name="water-outline" size={20} color={colors.text.light} />
+                  <Ionicons name="water-outline" size={20} color={colors.textTertiary} />
                   <Text style={styles.infoLabel}>Bathrooms</Text>
                   <Text style={styles.infoValue}>{listing.bathrooms}</Text>
-                </View>
-              )}
-              {listing.propertySize && (
-                <View style={styles.infoRow}>
-                  <Ionicons name="resize-outline" size={20} color={colors.text.light} />
-                  <Text style={styles.infoLabel}>Size</Text>
-                  <Text style={styles.infoValue}>{listing.propertySize} sq ft</Text>
-                </View>
-              )}
-              {listing.parkingSpaces && (
-                <View style={styles.infoRow}>
-                  <Ionicons name="car-outline" size={20} color={colors.text.light} />
-                  <Text style={styles.infoLabel}>Parking</Text>
-                  <Text style={styles.infoValue}>{listing.parkingSpaces} spaces</Text>
-                </View>
-              )}
-              {listing.petPolicy && (
-                <View style={styles.infoRow}>
-                  <Ionicons name="paw-outline" size={20} color={colors.text.light} />
-                  <Text style={styles.infoLabel}>Pet Policy</Text>
-                  <Text style={styles.infoValue}>
-                    {listing.petPolicy.replace('_', ' ')}
-                  </Text>
                 </View>
               )}
             </>
           )}
 
-          {/* Item Details */}
+          {/* Basic Item Details */}
           {listing.listingType === 'item' && (
             <>
               {listing.condition && (
                 <View style={styles.infoRow}>
-                  <Ionicons name="checkmark-circle-outline" size={20} color={colors.text.light} />
+                  <Ionicons name="checkmark-circle-outline" size={20} color={colors.textTertiary} />
                   <Text style={styles.infoLabel}>Condition</Text>
                   <Text style={styles.infoValue}>
                     {listing.condition.replace('_', ' ')}
@@ -337,28 +716,28 @@ export default function ListingDetailsScreen({ navigation, route }: ListingDetai
               )}
               {listing.brand && (
                 <View style={styles.infoRow}>
-                  <Ionicons name="star-outline" size={20} color={colors.text.light} />
+                  <Ionicons name="star-outline" size={20} color={colors.textTertiary} />
                   <Text style={styles.infoLabel}>Brand</Text>
                   <Text style={styles.infoValue}>{listing.brand}</Text>
                 </View>
               )}
               {listing.model && (
                 <View style={styles.infoRow}>
-                  <Ionicons name="cube-outline" size={20} color={colors.text.light} />
+                  <Ionicons name="cube-outline" size={20} color={colors.textTertiary} />
                   <Text style={styles.infoLabel}>Model</Text>
                   <Text style={styles.infoValue}>{listing.model}</Text>
                 </View>
               )}
               {listing.year && (
                 <View style={styles.infoRow}>
-                  <Ionicons name="calendar-outline" size={20} color={colors.text.light} />
+                  <Ionicons name="calendar-outline" size={20} color={colors.textTertiary} />
                   <Text style={styles.infoLabel}>Year</Text>
                   <Text style={styles.infoValue}>{listing.year}</Text>
                 </View>
               )}
               {listing.warranty && (
                 <View style={styles.infoRow}>
-                  <Ionicons name="shield-checkmark-outline" size={20} color={colors.text.light} />
+                  <Ionicons name="shield-checkmark-outline" size={20} color={colors.textTertiary} />
                   <Text style={styles.infoLabel}>Warranty</Text>
                   <Text style={styles.infoValue}>{listing.warranty}</Text>
                 </View>
@@ -366,34 +745,27 @@ export default function ListingDetailsScreen({ navigation, route }: ListingDetai
             </>
           )}
 
-          {/* Service Details */}
+          {/* Basic Service Details */}
           {listing.listingType === 'service' && (
             <>
               {listing.serviceType && (
                 <View style={styles.infoRow}>
-                  <Ionicons name="construct-outline" size={20} color={colors.text.light} />
+                  <Ionicons name="construct-outline" size={20} color={colors.textTertiary} />
                   <Text style={styles.infoLabel}>Service Type</Text>
                   <Text style={styles.infoValue}>
                     {listing.serviceType.replace('_', ' ')}
                   </Text>
                 </View>
               )}
-              {listing.responseTime && (
-                <View style={styles.infoRow}>
-                  <Ionicons name="time-outline" size={20} color={colors.text.light} />
-                  <Text style={styles.infoLabel}>Response Time</Text>
-                  <Text style={styles.infoValue}>{listing.responseTime}</Text>
-                </View>
-              )}
             </>
           )}
 
-          {/* Job Details */}
+          {/* Basic Job Details */}
           {listing.listingType === 'job' && (
             <>
               {listing.employmentType && (
                 <View style={styles.infoRow}>
-                  <Ionicons name="briefcase-outline" size={20} color={colors.text.light} />
+                  <Ionicons name="briefcase-outline" size={20} color={colors.textTertiary} />
                   <Text style={styles.infoLabel}>Employment Type</Text>
                   <Text style={styles.infoValue}>
                     {listing.employmentType.replace('_', ' ')}
@@ -402,18 +774,11 @@ export default function ListingDetailsScreen({ navigation, route }: ListingDetai
               )}
               {listing.workLocation && (
                 <View style={styles.infoRow}>
-                  <Ionicons name="location-outline" size={20} color={colors.text.light} />
+                  <Ionicons name="location-outline" size={20} color={colors.textTertiary} />
                   <Text style={styles.infoLabel}>Work Location</Text>
                   <Text style={styles.infoValue}>
                     {listing.workLocation.charAt(0).toUpperCase() + listing.workLocation.slice(1)}
                   </Text>
-                </View>
-              )}
-              {listing.requiredExperience && (
-                <View style={styles.infoRow}>
-                  <Ionicons name="school-outline" size={20} color={colors.text.light} />
-                  <Text style={styles.infoLabel}>Experience Required</Text>
-                  <Text style={styles.infoValue}>{listing.requiredExperience}</Text>
                 </View>
               )}
             </>
@@ -421,18 +786,69 @@ export default function ListingDetailsScreen({ navigation, route }: ListingDetai
 
           {/* Views */}
           <View style={styles.infoRow}>
-            <Ionicons name="eye-outline" size={20} color={colors.text.light} />
+            <Ionicons name="eye-outline" size={20} color={colors.textTertiary} />
             <Text style={styles.infoLabel}>Views</Text>
             <Text style={styles.infoValue}>{listing.viewsCount}</Text>
           </View>
 
           {/* Posted Date */}
           <View style={styles.infoRow}>
-            <Ionicons name="calendar-outline" size={20} color={colors.text.light} />
+            <Ionicons name="calendar-outline" size={20} color={colors.textTertiary} />
             <Text style={styles.infoLabel}>Posted</Text>
             <Text style={styles.infoValue}>{formatDate(listing.createdAt)}</Text>
           </View>
+
+          {/* Estate Information */}
+          {listing.estateId && (
+            <View style={styles.infoRow}>
+              <Ionicons name="business-outline" size={20} color={colors.textTertiary} />
+              <Text style={styles.infoLabel}>Estate</Text>
+              <Text style={styles.infoValue}>Estate Property</Text>
+            </View>
+          )}
+
+          {/* City and State */}
+          {(listing.city || listing.state) && (
+            <View style={styles.infoRow}>
+              <Ionicons name="location-outline" size={20} color={colors.textTertiary} />
+              <Text style={styles.infoLabel}>Area</Text>
+              <Text style={styles.infoValue}>
+                {[listing.city, listing.state].filter(Boolean).join(', ')}
+              </Text>
+            </View>
+          )}
+
+          {/* Verification Status */}
+          {listing.verificationStatus && (
+            <View style={styles.infoRow}>
+              <Ionicons 
+                name={listing.verificationStatus === 'verified' ? 'shield-checkmark' : 'time-outline'} 
+                size={20} 
+                color={listing.verificationStatus === 'verified' ? colors.success : colors.warning} 
+              />
+              <Text style={styles.infoLabel}>Verification</Text>
+              <Text style={styles.infoValue}>
+                {listing.verificationStatus.toUpperCase()}
+              </Text>
+            </View>
+          )}
+
+          {/* Featured/Boosted Status */}
+          {(listing.featured || listing.boosted) && (
+            <View style={styles.infoRow}>
+              <Ionicons name="star" size={20} color={colors.warning} />
+              <Text style={styles.infoLabel}>Status</Text>
+              <Text style={styles.infoValue}>
+                {[listing.featured && 'Featured', listing.boosted && 'Boosted'].filter(Boolean).join(', ')}
+              </Text>
+            </View>
+          )}
         </View>
+
+        {/* Type-specific details */}
+        {renderServiceDetails()}
+        {renderJobDetails()}
+        {renderEnhancedPropertyDetails()}
 
         {/* Description */}
         <View style={styles.descriptionSection}>
@@ -440,190 +856,8 @@ export default function ListingDetailsScreen({ navigation, route }: ListingDetai
           <Text style={styles.description}>{listing.description}</Text>
         </View>
 
-        {/* Service Details Section */}
-        {listing.listingType === 'service' && (
-          <View style={styles.detailsSection}>
-            <Text style={styles.sectionTitle}>Service Details</Text>
-            
-            {/* Service Area */}
-            {listing.serviceArea && listing.serviceArea.length > 0 && (
-              <View style={styles.detailItem}>
-                <View style={styles.detailHeader}>
-                  <Ionicons name="location-outline" size={20} color={colors.primary} />
-                  <Text style={styles.detailLabel}>Service Areas</Text>
-                </View>
-                <View style={styles.tagsContainer}>
-                  {listing.serviceArea.map((area, index) => (
-                    <View key={index} style={styles.tag}>
-                      <Text style={styles.tagText}>{area}</Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
-
-            {/* Professional Credentials */}
-            {listing.professionalCredentials && (
-              <View style={styles.detailItem}>
-                <View style={styles.detailHeader}>
-                  <Ionicons name="ribbon-outline" size={20} color={colors.primary} />
-                  <Text style={styles.detailLabel}>Professional Credentials</Text>
-                </View>
-                <Text style={styles.detailValue}>
-                  {listing.professionalCredentials.experience}
-                </Text>
-                {listing.professionalCredentials.certifications.length > 0 && (
-                  <View style={styles.tagsContainer}>
-                    {listing.professionalCredentials.certifications.map((cert, index) => (
-                      <View key={index} style={styles.tag}>
-                        <Text style={styles.tagText}>{cert}</Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Availability */}
-            {listing.availability && (
-              <View style={styles.detailItem}>
-                <View style={styles.detailHeader}>
-                  <Ionicons name="time-outline" size={20} color={colors.primary} />
-                  <Text style={styles.detailLabel}>Availability</Text>
-                </View>
-                <View style={styles.availabilityContainer}>
-                  {Object.entries(listing.availability).map(([day, schedule]) => (
-                    <View key={day} style={styles.availabilityRow}>
-                      <Text style={styles.dayLabel}>
-                        {day.charAt(0).toUpperCase() + day.slice(1)}
-                      </Text>
-                      <Text style={styles.timeLabel}>
-                        {schedule.available 
-                          ? `${schedule.start} - ${schedule.end}`
-                          : 'Not available'
-                        }
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
-          </View>
-        )}
-
-        {/* Job Details Section */}
-        {listing.listingType === 'job' && (
-          <View style={styles.detailsSection}>
-            <Text style={styles.sectionTitle}>Job Details</Text>
-            
-            {/* Required Skills */}
-            {listing.requiredSkills && listing.requiredSkills.length > 0 && (
-              <View style={styles.detailItem}>
-                <View style={styles.detailHeader}>
-                  <Ionicons name="code-outline" size={20} color={colors.primary} />
-                  <Text style={styles.detailLabel}>Required Skills</Text>
-                </View>
-                <View style={styles.tagsContainer}>
-                  {listing.requiredSkills.map((skill, index) => (
-                    <View key={index} style={styles.tag}>
-                      <Text style={styles.tagText}>{skill}</Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
-
-            {/* Education Requirements */}
-            {listing.education && (
-              <View style={styles.detailItem}>
-                <View style={styles.detailHeader}>
-                  <Ionicons name="school-outline" size={20} color={colors.primary} />
-                  <Text style={styles.detailLabel}>Education</Text>
-                </View>
-                <Text style={styles.detailValue}>{listing.education}</Text>
-              </View>
-            )}
-
-            {/* Benefits */}
-            {listing.benefits && listing.benefits.length > 0 && (
-              <View style={styles.detailItem}>
-                <View style={styles.detailHeader}>
-                  <Ionicons name="gift-outline" size={20} color={colors.primary} />
-                  <Text style={styles.detailLabel}>Benefits</Text>
-                </View>
-                <View style={styles.benefitsList}>
-                  {listing.benefits.map((benefit, index) => (
-                    <View key={index} style={styles.benefitItem}>
-                      <Ionicons name="checkmark-circle" size={16} color={colors.primary} />
-                      <Text style={styles.benefitText}>{benefit}</Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
-
-            {/* Application Deadline */}
-            {listing.applicationDeadline && (
-              <View style={styles.detailItem}>
-                <View style={styles.detailHeader}>
-                  <Ionicons name="calendar-outline" size={20} color={colors.primary} />
-                  <Text style={styles.detailLabel}>Application Deadline</Text>
-                </View>
-                <Text style={styles.detailValue}>
-                  {formatDate(listing.applicationDeadline)}
-                </Text>
-              </View>
-            )}
-          </View>
-        )}
-
-        {/* Property Amenities Section */}
-        {listing.listingType === 'property' && listing.amenities && listing.amenities.length > 0 && (
-          <View style={styles.detailsSection}>
-            <Text style={styles.sectionTitle}>Amenities</Text>
-            <View style={styles.amenitiesGrid}>
-              {listing.amenities.map((amenity, index) => (
-                <View key={index} style={styles.amenityItem}>
-                  <Ionicons name="checkmark-circle" size={16} color={colors.primary} />
-                  <Text style={styles.amenityText}>{amenity}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
-
-        {/* Contact Preferences Section */}
-        {listing.contactPreferences && (
-          <View style={styles.detailsSection}>
-            <Text style={styles.sectionTitle}>Contact Preferences</Text>
-            <View style={styles.contactPreferencesContainer}>
-              {listing.contactPreferences.phone && (
-                <View style={styles.contactPreferenceItem}>
-                  <Ionicons name="call-outline" size={20} color={colors.primary} />
-                  <Text style={styles.contactPreferenceText}>Phone calls</Text>
-                </View>
-              )}
-              {listing.contactPreferences.email && (
-                <View style={styles.contactPreferenceItem}>
-                  <Ionicons name="mail-outline" size={20} color={colors.primary} />
-                  <Text style={styles.contactPreferenceText}>Email</Text>
-                </View>
-              )}
-              {listing.contactPreferences.whatsapp && (
-                <View style={styles.contactPreferenceItem}>
-                  <Ionicons name="logo-whatsapp" size={20} color={colors.primary} />
-                  <Text style={styles.contactPreferenceText}>WhatsApp</Text>
-                </View>
-              )}
-              {listing.contactPreferences.inApp && (
-                <View style={styles.contactPreferenceItem}>
-                  <Ionicons name="chatbubble-outline" size={20} color={colors.primary} />
-                  <Text style={styles.contactPreferenceText}>In-app messaging</Text>
-                </View>
-              )}
-            </View>
-          </View>
-        )}
+        {/* Contact Preferences */}
+        {renderContactPreferences()}
 
         {/* Seller Info */}
         <View style={styles.sellerSection}>
@@ -638,7 +872,7 @@ export default function ListingDetailsScreen({ navigation, route }: ListingDetai
                   style={styles.avatarImage}
                 />
               ) : (
-                <Ionicons name="person" size={32} color={colors.text.light} />
+                <Ionicons name="person" size={32} color={colors.textTertiary} />
               )}
             </View>
             <View style={styles.sellerInfo}>
@@ -711,8 +945,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    ...typography.styles.body,
-    color: colors.text.light,
+    fontSize: 17,
+    fontWeight: '400' as any,
+    lineHeight: 22,
+    color: colors.textTertiary,
     marginTop: spacing.md,
   },
   errorContainer: {
@@ -722,8 +958,10 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
   },
   errorText: {
-    ...typography.styles.headline,
-    color: colors.text.light,
+    fontSize: 17,
+    fontWeight: '600' as any,
+    lineHeight: 22,
+    color: colors.textTertiary,
     marginTop: spacing.md,
   },
   header: {
@@ -798,9 +1036,10 @@ const styles = StyleSheet.create({
     ...shadows.medium,
   },
   soldText: {
-    ...typography.styles.headline,
+    fontSize: 17,
+    fontWeight: '600' as any,
+    lineHeight: 22,
     color: colors.white,
-    fontSize: typography.sizes.subhead,
   },
   priceSection: {
     backgroundColor: colors.white,
@@ -815,7 +1054,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   price: {
-    ...typography.styles.largeTitle,
+    fontSize: 34,
+    fontWeight: '700' as any,
+    lineHeight: 41,
     color: colors.primary,
   },
   priceTypeBadge: {
@@ -825,15 +1066,17 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   priceTypeText: {
-    ...typography.styles.caption1,
+    fontSize: 12,
+    fontWeight: '400' as any,
+    lineHeight: 16,
     color: colors.primary,
-    fontWeight: typography.weights.semibold,
     textTransform: 'capitalize',
   },
   title: {
-    ...typography.styles.title3,
-    color: colors.text.dark,
-    fontWeight: typography.weights.semibold,
+    fontSize: 20,
+    fontWeight: '400' as any,
+    lineHeight: 25,
+    color: colors.text,
   },
   infoSection: {
     backgroundColor: colors.white,
@@ -850,14 +1093,17 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   infoLabel: {
-    ...typography.styles.body,
-    color: colors.text.light,
+    fontSize: 17,
+    fontWeight: '400' as any,
+    lineHeight: 22,
+    color: colors.textTertiary,
     flex: 1,
   },
   infoValue: {
-    ...typography.styles.body,
-    color: colors.text.dark,
-    fontWeight: typography.weights.medium,
+    fontSize: 17,
+    fontWeight: '500' as any,
+    lineHeight: 22,
+    color: colors.text,
     textAlign: 'right',
     flex: 1,
   },
@@ -869,14 +1115,17 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.neutral.lightGray,
   },
   sectionTitle: {
-    ...typography.styles.headline,
-    color: colors.text.dark,
+    fontSize: 17,
+    fontWeight: '600' as any,
+    lineHeight: 22,
+    color: colors.text,
     marginBottom: spacing.sm,
   },
   description: {
-    ...typography.styles.body,
-    color: colors.text.secondary,
-    lineHeight: typography.lineHeights.body * 1.2,
+    fontSize: 17,
+    fontWeight: '400' as any,
+    lineHeight: 22 * 1.2,
+    color: colors.textSecondary,
   },
   sellerSection: {
     backgroundColor: colors.white,
@@ -911,11 +1160,15 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   sellerName: {
-    ...typography.styles.headline,
-    color: colors.text.dark,
+    fontSize: 17,
+    fontWeight: '600' as any,
+    lineHeight: 22,
+    color: colors.text,
   },
   verifiedText: {
-    ...typography.styles.subhead,
+    fontSize: 15,
+    fontWeight: '400' as any,
+    lineHeight: 20,
     color: colors.primary,
   },
   bottomSpacing: {
@@ -943,7 +1196,9 @@ const styles = StyleSheet.create({
     ...shadows.medium,
   },
   contactButtonText: {
-    ...typography.styles.headline,
+    fontSize: 17,
+    fontWeight: '600' as any,
+    lineHeight: 22,
     color: colors.white,
   },
   // New styles for enhanced details
@@ -964,14 +1219,16 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   detailLabel: {
-    ...typography.styles.subhead,
-    color: colors.text.dark,
-    fontWeight: typography.weights.semibold,
+    fontSize: 15,
+    fontWeight: '400' as any,
+    lineHeight: 20,
+    color: colors.text,
   },
   detailValue: {
-    ...typography.styles.body,
-    color: colors.text.secondary,
-    lineHeight: typography.lineHeights.body * 1.2,
+    fontSize: 17,
+    fontWeight: '400' as any,
+    lineHeight: 22 * 1.2,
+    color: colors.textSecondary,
   },
   tagsContainer: {
     flexDirection: 'row',
@@ -986,9 +1243,10 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   tagText: {
-    ...typography.styles.caption1,
+    fontSize: 12,
+    fontWeight: '500' as any,
+    lineHeight: 16,
     color: colors.primary,
-    fontWeight: typography.weights.medium,
   },
   availabilityContainer: {
     marginTop: spacing.xs,
@@ -1002,71 +1260,27 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.neutral.lightGray,
   },
   dayLabel: {
-    ...typography.styles.body,
-    color: colors.text.dark,
-    fontWeight: typography.weights.medium,
+    fontSize: 17,
+    fontWeight: '500' as any,
+    lineHeight: 22,
+    color: colors.text,
     minWidth: 80,
   },
   timeLabel: {
-    ...typography.styles.body,
-    color: colors.text.secondary,
+    fontSize: 17,
+    fontWeight: '400' as any,
+    lineHeight: 22,
+    color: colors.textSecondary,
     textAlign: 'right',
   },
   benefitsList: {
     marginTop: spacing.xs,
   },
-  benefitItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing.xs,
-    gap: spacing.xs,
-  },
-  benefitText: {
-    ...typography.styles.body,
-    color: colors.text.secondary,
-    flex: 1,
-  },
-  amenitiesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  amenityItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.neutral.offWhite,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: 8,
-    gap: spacing.xs,
-    minWidth: '45%',
-  },
-  amenityText: {
-    ...typography.styles.body,
-    color: colors.text.dark,
-    flex: 1,
-  },
-  contactPreferencesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  contactPreferenceItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.neutral.offWhite,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: 8,
-    gap: spacing.xs,
-  },
-  contactPreferenceText: {
-    ...typography.styles.body,
-    color: colors.text.dark,
-  },
   businessType: {
-    ...typography.styles.subhead,
-    color: colors.text.secondary,
+    fontSize: 15,
+    fontWeight: '400' as any,
+    lineHeight: 20,
+    color: colors.textSecondary,
     marginBottom: spacing.xs,
   },
   ratingContainer: {
@@ -1076,7 +1290,204 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   ratingText: {
-    ...typography.styles.body,
-    color: colors.text.secondary,
+    fontSize: 17,
+    fontWeight: '400' as any,
+    lineHeight: 22,
+    color: colors.textSecondary,
+  },
+  // New styles for enhanced details
+  serviceSection: {
+    backgroundColor: colors.white,
+    marginTop: spacing.sm,
+    padding: spacing.md,
+  },
+  jobSection: {
+    backgroundColor: colors.white,
+    marginTop: spacing.sm,
+    padding: spacing.md,
+  },
+  propertySection: {
+    backgroundColor: colors.white,
+    marginTop: spacing.sm,
+    padding: spacing.md,
+  },
+  subsectionTitle: {
+    fontSize: 15,
+    fontWeight: '600' as any,
+    lineHeight: 20,
+    color: colors.text,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  credentialsList: {
+    marginTop: spacing.sm,
+  },
+  credentialsLabel: {
+    fontSize: 12,
+    fontWeight: '400' as any,
+    lineHeight: 16,
+    color: colors.textTertiary,
+    marginBottom: spacing.xs,
+  },
+  credentialBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.lightGreen,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginBottom: spacing.xs,
+    gap: spacing.xs,
+  },
+  credentialText: {
+    fontSize: 12,
+    fontWeight: '400' as any,
+    lineHeight: 16,
+    color: colors.primary,
+  },
+  insuranceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.success + '20',
+    padding: spacing.sm,
+    borderRadius: 8,
+    marginTop: spacing.sm,
+    gap: spacing.xs,
+  },
+  insuranceText: {
+    fontSize: 15,
+    fontWeight: '600' as any,
+    lineHeight: 20,
+    color: colors.success,
+  },
+  skillsSection: {
+    marginTop: spacing.md,
+  },
+  skillsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+  },
+  skillChip: {
+    backgroundColor: colors.neutral.lightGray,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  skillText: {
+    fontSize: 12,
+    fontWeight: '400' as any,
+    lineHeight: 16,
+    color: colors.text,
+  },
+  benefitsSection: {
+    marginTop: spacing.md,
+  },
+  benefitItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+    gap: spacing.sm,
+  },
+  benefitText: {
+    fontSize: 17,
+    fontWeight: '400' as any,
+    lineHeight: 22,
+    color: colors.textSecondary,
+    flex: 1,
+  },
+  companySection: {
+    marginTop: spacing.md,
+  },
+  companyName: {
+    fontSize: 17,
+    fontWeight: '600' as any,
+    lineHeight: 22,
+    color: colors.text,
+    marginBottom: spacing.sm,
+  },
+  companyDetails: {
+    gap: spacing.xs,
+  },
+  companyDetailText: {
+    fontSize: 17,
+    fontWeight: '400' as any,
+    lineHeight: 22,
+    color: colors.textSecondary,
+  },
+  companyWebsite: {
+    fontSize: 17,
+    fontWeight: '400' as any,
+    lineHeight: 22,
+    color: colors.primary,
+    textDecorationLine: 'underline',
+  },
+  amenitiesSection: {
+    marginTop: spacing.md,
+  },
+  amenitiesGrid: {
+    gap: spacing.sm,
+  },
+  amenityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+    gap: spacing.sm,
+  },
+  amenityText: {
+    fontSize: 17,
+    fontWeight: '400' as any,
+    lineHeight: 22,
+    color: colors.textSecondary,
+  },
+  utilitiesSection: {
+    marginTop: spacing.md,
+  },
+  utilityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+    gap: spacing.sm,
+  },
+  utilityText: {
+    fontSize: 17,
+    fontWeight: '400' as any,
+    lineHeight: 22,
+    color: colors.textSecondary,
+  },
+  securitySection: {
+    marginTop: spacing.md,
+  },
+  securityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+    gap: spacing.sm,
+  },
+  securityText: {
+    fontSize: 17,
+    fontWeight: '400' as any,
+    lineHeight: 22,
+    color: colors.textSecondary,
+  },
+  contactPreferencesSection: {
+    backgroundColor: colors.white,
+    marginTop: spacing.sm,
+    padding: spacing.md,
+  },
+  preferencesList: {
+    gap: spacing.sm,
+  },
+  preferenceItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.xs,
+    gap: spacing.sm,
+  },
+  preferenceText: {
+    fontSize: 17,
+    fontWeight: '400' as any,
+    lineHeight: 22,
+    color: colors.textSecondary,
   },
 });

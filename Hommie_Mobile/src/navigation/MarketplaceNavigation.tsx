@@ -2,7 +2,7 @@ import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import MarketplaceScreen from '../screens/MarketplaceScreen';
 import CategoryBrowseScreen from '../screens/CategoryBrowseScreen';
-import ListingDetailScreen from '../screens/ListingDetailScreen';
+import ListingDetailsScreen from '../screens/ListingDetailsScreen';
 import CreateListingScreen from '../screens/CreateListingScreen';
 import ServiceProviderProfileScreen from '../screens/ServiceProviderProfileScreen';
 import MyListingsScreen from '../screens/MyListingsScreen';
@@ -59,7 +59,7 @@ export const MarketplaceNavigator: React.FC = () => {
       />
       <Stack.Screen 
         name="ListingDetail" 
-        component={ListingDetailScreen}
+        component={ListingDetailsScreen}
         options={{ title: 'Item Details' }}
       />
       <Stack.Screen 
