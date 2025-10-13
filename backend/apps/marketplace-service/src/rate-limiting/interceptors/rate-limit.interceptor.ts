@@ -64,7 +64,7 @@ export class RateLimitInterceptor implements NestInterceptor {
       const exceededResult = results.find(result => !result.allowed);
       if (exceededResult) {
         const message = rateLimitOptions.message || 'Rate limit exceeded. Please try again later.';
-        const retryAfter = exceededResult.retryAfter || 60;
+        const retryAfter = (exceededResult as any).retryAfter || 60;
         
         throw new HttpException(
           {

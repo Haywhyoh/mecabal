@@ -36,9 +36,25 @@ export default function MarketplaceScreen({ navigation }: MarketplaceScreenProps
         search: searchQuery || undefined,
       });
       setListings(result.data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching listings:', error);
-      Alert.alert('Error', 'Failed to load listings');
+      
+      // Show user-friendly error message
+      const errorMessage = error.message || 'Failed to load listings';
+      Alert.alert(
+        'Connection Error', 
+        errorMessage,
+        [
+          {
+            text: 'Retry',
+            onPress: () => fetchListings(),
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+        ]
+      );
     } finally {
       setLoading(false);
     }
@@ -72,8 +88,25 @@ export default function MarketplaceScreen({ navigation }: MarketplaceScreenProps
           l.id === listingId ? { ...l, isSaved: !l.isSaved } : l
         )
       );
-    } catch (error) {
-      Alert.alert('Error', 'Failed to save listing');
+    } catch (error: any) {
+      console.error('Error saving listing:', error);
+      
+      // Show user-friendly error message
+      const errorMessage = error.message || 'Failed to save listing';
+      Alert.alert(
+        'Save Error', 
+        errorMessage,
+        [
+          {
+            text: 'Retry',
+            onPress: () => handleSaveListing(listingId),
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+        ]
+      );
     }
   }, [listings, listingsService]);
 
@@ -142,11 +175,29 @@ export default function MarketplaceScreen({ navigation }: MarketplaceScreenProps
       {/* Large Title Header - iOS Style */}
       <View style={styles.headerContainer}>
         <View style={styles.header}>
+          {/* Back Button - Universal for both platforms */}
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation?.goBack()}
+            activeOpacity={0.7}
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
+          >
+            <Ionicons 
+              name={Platform.OS === 'ios' ? 'chevron-back' : 'arrow-back'} 
+              size={24} 
+              color={colors.primary} 
+            />
+          </TouchableOpacity>
+          
           <Text style={styles.largeTitle}>Marketplace</Text>
+          
           <TouchableOpacity
             style={styles.viewModeButton}
             onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
             activeOpacity={0.6}
+            accessibilityLabel={viewMode === 'grid' ? 'Switch to list view' : 'Switch to grid view'}
+            accessibilityRole="button"
           >
             <Ionicons
               name={viewMode === 'grid' ? 'list-outline' : 'grid-outline'}
@@ -325,6 +376,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingTop: Platform.OS === 'ios' ? spacing.xs : spacing.md,
     paddingBottom: spacing.xs,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 20,
+    backgroundColor: colors.neutral.offWhite,
   },
   largeTitle: {
     ...typography.styles.largeTitle,

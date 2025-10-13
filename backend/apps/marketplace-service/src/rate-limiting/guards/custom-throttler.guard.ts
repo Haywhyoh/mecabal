@@ -1,10 +1,5 @@
-import {
-  Injectable,
-  ExecutionContext,
-  ThrottlerGuard,
-  ThrottlerException,
-  ThrottlerOptions,
-} from '@nestjs/throttler';
+import { Injectable, ExecutionContext } from '@nestjs/common';
+import { ThrottlerGuard, ThrottlerException } from '@nestjs/throttler';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { RateLimitingService } from '../rate-limiting.service';
@@ -12,18 +7,14 @@ import { RateLimitingService } from '../rate-limiting.service';
 @Injectable()
 export class CustomThrottlerGuard extends ThrottlerGuard {
   constructor(
-    options: ThrottlerOptions,
     reflector: Reflector,
     private readonly rateLimitingService: RateLimitingService,
   ) {
-    super(options, reflector);
+    super({}, reflector);
   }
 
   async handleRequest(
     context: ExecutionContext,
-    limit: number,
-    ttl: number,
-    throttler: ThrottlerOptions,
   ): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
     const userId = (request as any).user?.userId;
@@ -144,8 +135,8 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
    */
   protected generateKey(
     context: ExecutionContext,
-    ttl: number,
-    limit: number,
+    suffix: string,
+    name: string,
   ): string {
     const request = context.switchToHttp().getRequest<Request>();
     const userId = (request as any).user?.userId;

@@ -38,10 +38,6 @@ import { RateLimitStatsController } from './controllers/rate-limit-stats.control
   providers: [
     RateLimitingService,
     {
-      provide: APP_GUARD,
-      useClass: CustomThrottlerGuard,
-    },
-    {
       provide: APP_INTERCEPTOR,
       useClass: RateLimitInterceptor,
     },

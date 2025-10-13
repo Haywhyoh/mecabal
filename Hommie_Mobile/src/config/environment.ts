@@ -116,6 +116,26 @@ export const API_ENDPOINTS = {
     MY_MEDIA: '/media/my-media',
     STATS: '/media/stats',
   },
+  LISTINGS: {
+    CREATE: '/listings',
+    GET_ALL: '/listings',
+    GET_BY_ID: '/listings',
+    UPDATE: '/listings',
+    DELETE: '/listings',
+    SAVE: '/listings',
+    UNSAVE: '/listings',
+    SAVED: '/listings/saved',
+    MY_LISTINGS: '/listings/my-listings',
+    MARK_SOLD: '/listings',
+    VIEW: '/listings',
+    NEARBY: '/listings/nearby',
+    SEARCH: '/listings/search',
+  },
+  CATEGORIES: {
+    GET_ALL: '/listing-categories',
+    GET_BY_ID: '/listing-categories',
+    GET_BY_TYPE: '/listing-categories/type',
+  },
 } as const;
 
 export default ENV;

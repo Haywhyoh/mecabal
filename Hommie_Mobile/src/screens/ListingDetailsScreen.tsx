@@ -297,6 +297,29 @@ export default function ListingDetailsScreen({ navigation, route }: ListingDetai
                   <Text style={styles.infoValue}>{listing.bathrooms}</Text>
                 </View>
               )}
+              {listing.propertySize && (
+                <View style={styles.infoRow}>
+                  <Ionicons name="resize-outline" size={20} color={colors.text.light} />
+                  <Text style={styles.infoLabel}>Size</Text>
+                  <Text style={styles.infoValue}>{listing.propertySize} sq ft</Text>
+                </View>
+              )}
+              {listing.parkingSpaces && (
+                <View style={styles.infoRow}>
+                  <Ionicons name="car-outline" size={20} color={colors.text.light} />
+                  <Text style={styles.infoLabel}>Parking</Text>
+                  <Text style={styles.infoValue}>{listing.parkingSpaces} spaces</Text>
+                </View>
+              )}
+              {listing.petPolicy && (
+                <View style={styles.infoRow}>
+                  <Ionicons name="paw-outline" size={20} color={colors.text.light} />
+                  <Text style={styles.infoLabel}>Pet Policy</Text>
+                  <Text style={styles.infoValue}>
+                    {listing.petPolicy.replace('_', ' ')}
+                  </Text>
+                </View>
+              )}
             </>
           )}
 
@@ -317,6 +340,80 @@ export default function ListingDetailsScreen({ navigation, route }: ListingDetai
                   <Ionicons name="star-outline" size={20} color={colors.text.light} />
                   <Text style={styles.infoLabel}>Brand</Text>
                   <Text style={styles.infoValue}>{listing.brand}</Text>
+                </View>
+              )}
+              {listing.model && (
+                <View style={styles.infoRow}>
+                  <Ionicons name="cube-outline" size={20} color={colors.text.light} />
+                  <Text style={styles.infoLabel}>Model</Text>
+                  <Text style={styles.infoValue}>{listing.model}</Text>
+                </View>
+              )}
+              {listing.year && (
+                <View style={styles.infoRow}>
+                  <Ionicons name="calendar-outline" size={20} color={colors.text.light} />
+                  <Text style={styles.infoLabel}>Year</Text>
+                  <Text style={styles.infoValue}>{listing.year}</Text>
+                </View>
+              )}
+              {listing.warranty && (
+                <View style={styles.infoRow}>
+                  <Ionicons name="shield-checkmark-outline" size={20} color={colors.text.light} />
+                  <Text style={styles.infoLabel}>Warranty</Text>
+                  <Text style={styles.infoValue}>{listing.warranty}</Text>
+                </View>
+              )}
+            </>
+          )}
+
+          {/* Service Details */}
+          {listing.listingType === 'service' && (
+            <>
+              {listing.serviceType && (
+                <View style={styles.infoRow}>
+                  <Ionicons name="construct-outline" size={20} color={colors.text.light} />
+                  <Text style={styles.infoLabel}>Service Type</Text>
+                  <Text style={styles.infoValue}>
+                    {listing.serviceType.replace('_', ' ')}
+                  </Text>
+                </View>
+              )}
+              {listing.responseTime && (
+                <View style={styles.infoRow}>
+                  <Ionicons name="time-outline" size={20} color={colors.text.light} />
+                  <Text style={styles.infoLabel}>Response Time</Text>
+                  <Text style={styles.infoValue}>{listing.responseTime}</Text>
+                </View>
+              )}
+            </>
+          )}
+
+          {/* Job Details */}
+          {listing.listingType === 'job' && (
+            <>
+              {listing.employmentType && (
+                <View style={styles.infoRow}>
+                  <Ionicons name="briefcase-outline" size={20} color={colors.text.light} />
+                  <Text style={styles.infoLabel}>Employment Type</Text>
+                  <Text style={styles.infoValue}>
+                    {listing.employmentType.replace('_', ' ')}
+                  </Text>
+                </View>
+              )}
+              {listing.workLocation && (
+                <View style={styles.infoRow}>
+                  <Ionicons name="location-outline" size={20} color={colors.text.light} />
+                  <Text style={styles.infoLabel}>Work Location</Text>
+                  <Text style={styles.infoValue}>
+                    {listing.workLocation.charAt(0).toUpperCase() + listing.workLocation.slice(1)}
+                  </Text>
+                </View>
+              )}
+              {listing.requiredExperience && (
+                <View style={styles.infoRow}>
+                  <Ionicons name="school-outline" size={20} color={colors.text.light} />
+                  <Text style={styles.infoLabel}>Experience Required</Text>
+                  <Text style={styles.infoValue}>{listing.requiredExperience}</Text>
                 </View>
               )}
             </>
@@ -343,9 +440,196 @@ export default function ListingDetailsScreen({ navigation, route }: ListingDetai
           <Text style={styles.description}>{listing.description}</Text>
         </View>
 
+        {/* Service Details Section */}
+        {listing.listingType === 'service' && (
+          <View style={styles.detailsSection}>
+            <Text style={styles.sectionTitle}>Service Details</Text>
+            
+            {/* Service Area */}
+            {listing.serviceArea && listing.serviceArea.length > 0 && (
+              <View style={styles.detailItem}>
+                <View style={styles.detailHeader}>
+                  <Ionicons name="location-outline" size={20} color={colors.primary} />
+                  <Text style={styles.detailLabel}>Service Areas</Text>
+                </View>
+                <View style={styles.tagsContainer}>
+                  {listing.serviceArea.map((area, index) => (
+                    <View key={index} style={styles.tag}>
+                      <Text style={styles.tagText}>{area}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Professional Credentials */}
+            {listing.professionalCredentials && (
+              <View style={styles.detailItem}>
+                <View style={styles.detailHeader}>
+                  <Ionicons name="ribbon-outline" size={20} color={colors.primary} />
+                  <Text style={styles.detailLabel}>Professional Credentials</Text>
+                </View>
+                <Text style={styles.detailValue}>
+                  {listing.professionalCredentials.experience}
+                </Text>
+                {listing.professionalCredentials.certifications.length > 0 && (
+                  <View style={styles.tagsContainer}>
+                    {listing.professionalCredentials.certifications.map((cert, index) => (
+                      <View key={index} style={styles.tag}>
+                        <Text style={styles.tagText}>{cert}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* Availability */}
+            {listing.availability && (
+              <View style={styles.detailItem}>
+                <View style={styles.detailHeader}>
+                  <Ionicons name="time-outline" size={20} color={colors.primary} />
+                  <Text style={styles.detailLabel}>Availability</Text>
+                </View>
+                <View style={styles.availabilityContainer}>
+                  {Object.entries(listing.availability).map(([day, schedule]) => (
+                    <View key={day} style={styles.availabilityRow}>
+                      <Text style={styles.dayLabel}>
+                        {day.charAt(0).toUpperCase() + day.slice(1)}
+                      </Text>
+                      <Text style={styles.timeLabel}>
+                        {schedule.available 
+                          ? `${schedule.start} - ${schedule.end}`
+                          : 'Not available'
+                        }
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Job Details Section */}
+        {listing.listingType === 'job' && (
+          <View style={styles.detailsSection}>
+            <Text style={styles.sectionTitle}>Job Details</Text>
+            
+            {/* Required Skills */}
+            {listing.requiredSkills && listing.requiredSkills.length > 0 && (
+              <View style={styles.detailItem}>
+                <View style={styles.detailHeader}>
+                  <Ionicons name="code-outline" size={20} color={colors.primary} />
+                  <Text style={styles.detailLabel}>Required Skills</Text>
+                </View>
+                <View style={styles.tagsContainer}>
+                  {listing.requiredSkills.map((skill, index) => (
+                    <View key={index} style={styles.tag}>
+                      <Text style={styles.tagText}>{skill}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Education Requirements */}
+            {listing.education && (
+              <View style={styles.detailItem}>
+                <View style={styles.detailHeader}>
+                  <Ionicons name="school-outline" size={20} color={colors.primary} />
+                  <Text style={styles.detailLabel}>Education</Text>
+                </View>
+                <Text style={styles.detailValue}>{listing.education}</Text>
+              </View>
+            )}
+
+            {/* Benefits */}
+            {listing.benefits && listing.benefits.length > 0 && (
+              <View style={styles.detailItem}>
+                <View style={styles.detailHeader}>
+                  <Ionicons name="gift-outline" size={20} color={colors.primary} />
+                  <Text style={styles.detailLabel}>Benefits</Text>
+                </View>
+                <View style={styles.benefitsList}>
+                  {listing.benefits.map((benefit, index) => (
+                    <View key={index} style={styles.benefitItem}>
+                      <Ionicons name="checkmark-circle" size={16} color={colors.primary} />
+                      <Text style={styles.benefitText}>{benefit}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Application Deadline */}
+            {listing.applicationDeadline && (
+              <View style={styles.detailItem}>
+                <View style={styles.detailHeader}>
+                  <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+                  <Text style={styles.detailLabel}>Application Deadline</Text>
+                </View>
+                <Text style={styles.detailValue}>
+                  {formatDate(listing.applicationDeadline)}
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Property Amenities Section */}
+        {listing.listingType === 'property' && listing.amenities && listing.amenities.length > 0 && (
+          <View style={styles.detailsSection}>
+            <Text style={styles.sectionTitle}>Amenities</Text>
+            <View style={styles.amenitiesGrid}>
+              {listing.amenities.map((amenity, index) => (
+                <View key={index} style={styles.amenityItem}>
+                  <Ionicons name="checkmark-circle" size={16} color={colors.primary} />
+                  <Text style={styles.amenityText}>{amenity}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Contact Preferences Section */}
+        {listing.contactPreferences && (
+          <View style={styles.detailsSection}>
+            <Text style={styles.sectionTitle}>Contact Preferences</Text>
+            <View style={styles.contactPreferencesContainer}>
+              {listing.contactPreferences.phone && (
+                <View style={styles.contactPreferenceItem}>
+                  <Ionicons name="call-outline" size={20} color={colors.primary} />
+                  <Text style={styles.contactPreferenceText}>Phone calls</Text>
+                </View>
+              )}
+              {listing.contactPreferences.email && (
+                <View style={styles.contactPreferenceItem}>
+                  <Ionicons name="mail-outline" size={20} color={colors.primary} />
+                  <Text style={styles.contactPreferenceText}>Email</Text>
+                </View>
+              )}
+              {listing.contactPreferences.whatsapp && (
+                <View style={styles.contactPreferenceItem}>
+                  <Ionicons name="logo-whatsapp" size={20} color={colors.primary} />
+                  <Text style={styles.contactPreferenceText}>WhatsApp</Text>
+                </View>
+              )}
+              {listing.contactPreferences.inApp && (
+                <View style={styles.contactPreferenceItem}>
+                  <Ionicons name="chatbubble-outline" size={20} color={colors.primary} />
+                  <Text style={styles.contactPreferenceText}>In-app messaging</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
         {/* Seller Info */}
         <View style={styles.sellerSection}>
-          <Text style={styles.sectionTitle}>Seller Information</Text>
+          <Text style={styles.sectionTitle}>
+            {listing.author.businessProfile ? 'Business Information' : 'Seller Information'}
+          </Text>
           <View style={styles.sellerCard}>
             <View style={styles.sellerAvatar}>
               {listing.author.profilePicture ? (
@@ -360,14 +644,36 @@ export default function ListingDetailsScreen({ navigation, route }: ListingDetai
             <View style={styles.sellerInfo}>
               <View style={styles.sellerNameRow}>
                 <Text style={styles.sellerName}>
-                  {listing.author.firstName} {listing.author.lastName}
+                  {listing.author.businessProfile 
+                    ? listing.author.businessProfile.businessName
+                    : `${listing.author.firstName} ${listing.author.lastName}`
+                  }
                 </Text>
                 {listing.author.isVerified && (
                   <Ionicons name="shield-checkmark" size={18} color={colors.primary} />
                 )}
               </View>
+              
+              {listing.author.businessProfile && (
+                <Text style={styles.businessType}>
+                  {listing.author.businessProfile.businessType}
+                </Text>
+              )}
+              
+              {listing.author.businessProfile && (
+                <View style={styles.ratingContainer}>
+                  <Ionicons name="star" size={16} color={colors.warning} />
+                  <Text style={styles.ratingText}>
+                    {listing.author.businessProfile.rating.toFixed(1)} 
+                    ({listing.author.businessProfile.reviewCount} reviews)
+                  </Text>
+                </View>
+              )}
+              
               {listing.author.isVerified && (
-                <Text style={styles.verifiedText}>Verified Seller</Text>
+                <Text style={styles.verifiedText}>
+                  {listing.author.businessProfile ? 'Verified Business' : 'Verified Seller'}
+                </Text>
               )}
             </View>
           </View>
@@ -639,5 +945,138 @@ const styles = StyleSheet.create({
   contactButtonText: {
     ...typography.styles.headline,
     color: colors.white,
+  },
+  // New styles for enhanced details
+  detailsSection: {
+    backgroundColor: colors.white,
+    marginTop: spacing.sm,
+    padding: spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.neutral.lightGray,
+  },
+  detailItem: {
+    marginBottom: spacing.md,
+  },
+  detailHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+    gap: spacing.xs,
+  },
+  detailLabel: {
+    ...typography.styles.subhead,
+    color: colors.text.dark,
+    fontWeight: typography.weights.semibold,
+  },
+  detailValue: {
+    ...typography.styles.body,
+    color: colors.text.secondary,
+    lineHeight: typography.lineHeights.body * 1.2,
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    marginTop: spacing.xs,
+  },
+  tag: {
+    backgroundColor: colors.lightGreen,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: 16,
+  },
+  tagText: {
+    ...typography.styles.caption1,
+    color: colors.primary,
+    fontWeight: typography.weights.medium,
+  },
+  availabilityContainer: {
+    marginTop: spacing.xs,
+  },
+  availabilityRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: spacing.xs,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.neutral.lightGray,
+  },
+  dayLabel: {
+    ...typography.styles.body,
+    color: colors.text.dark,
+    fontWeight: typography.weights.medium,
+    minWidth: 80,
+  },
+  timeLabel: {
+    ...typography.styles.body,
+    color: colors.text.secondary,
+    textAlign: 'right',
+  },
+  benefitsList: {
+    marginTop: spacing.xs,
+  },
+  benefitItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.xs,
+    gap: spacing.xs,
+  },
+  benefitText: {
+    ...typography.styles.body,
+    color: colors.text.secondary,
+    flex: 1,
+  },
+  amenitiesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  amenityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.neutral.offWhite,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: 8,
+    gap: spacing.xs,
+    minWidth: '45%',
+  },
+  amenityText: {
+    ...typography.styles.body,
+    color: colors.text.dark,
+    flex: 1,
+  },
+  contactPreferencesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  contactPreferenceItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.neutral.offWhite,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: 8,
+    gap: spacing.xs,
+  },
+  contactPreferenceText: {
+    ...typography.styles.body,
+    color: colors.text.dark,
+  },
+  businessType: {
+    ...typography.styles.subhead,
+    color: colors.text.secondary,
+    marginBottom: spacing.xs,
+  },
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  ratingText: {
+    ...typography.styles.body,
+    color: colors.text.secondary,
   },
 });

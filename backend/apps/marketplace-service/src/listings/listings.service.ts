@@ -230,7 +230,7 @@ export class ListingsService {
       throw new NotFoundException('Listing not found');
     }
 
-    const formattedListing = this.formatListingResponse(listing, userId);
+    const formattedListing = await this.formatListingResponse(listing, userId);
     
     // Cache the result
     await this.listingCacheStrategy.cacheListingDetail(id, formattedListing);

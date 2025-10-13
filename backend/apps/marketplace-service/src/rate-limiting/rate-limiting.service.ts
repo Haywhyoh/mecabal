@@ -257,9 +257,10 @@ export class RateLimitingService {
     try {
       const user = await this.userRepository.findOne({
         where: { id: userId },
-        select: ['isPremium'], // Assuming there's a premium field
+        select: ['id'], // Just check if user exists for now
       });
-      return user?.isPremium || false;
+      // For now, return false as premium feature is not implemented
+      return false;
     } catch (error) {
       this.logger.error(`Error checking premium status for user ${userId}:`, error);
       return false;

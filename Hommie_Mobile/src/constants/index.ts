@@ -300,53 +300,131 @@ export const TYPOGRAPHY = {
   lineHeights: typography.lineHeights,
 };
 
-// Spacing
+// Spacing - Following iOS 8pt Grid System
 export const spacing = {
-  xs: 4,
-  sm: 8,
-  md: 16,
-  lg: 24,
-  xl: 32,
-  '2xl': 48,
-  '3xl': 64,
+  // 8pt Grid System - iOS Human Interface Guidelines
+  xs: 4,    // 0.5 * 8pt
+  sm: 8,    // 1 * 8pt
+  md: 16,   // 2 * 8pt
+  lg: 24,   // 3 * 8pt
+  xl: 32,   // 4 * 8pt
+  '2xl': 48, // 6 * 8pt
+  '3xl': 64, // 8 * 8pt
+  '4xl': 80, // 10 * 8pt
+  '5xl': 96, // 12 * 8pt
+  
+  // Additional iOS-specific spacing
+  section: 20,  // 2.5 * 8pt - for section spacing
+  card: 12,     // 1.5 * 8pt - for card internal spacing
+  button: 44,   // iOS minimum touch target (5.5 * 8pt)
+  input: 50,    // iOS input field height (6.25 * 8pt)
+  tabBar: 49,   // iOS tab bar height
+  statusBar: 20, // iOS status bar height
+  navBar: 44,   // iOS navigation bar height
+  safeArea: 34, // iOS safe area bottom (iPhone X+)
 };
 
 // Keep SPACING export for backward compatibility
 export const SPACING = spacing;
 
-// Border Radius
+// Border Radius - Following iOS Design Guidelines
 export const BORDER_RADIUS = {
-  xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
-  xxl: 24,
-  round: 50,
+  // iOS Standard Border Radius
+  xs: 4,     // Small elements (badges, tags)
+  sm: 8,     // Buttons, small cards
+  md: 12,    // Cards, input fields
+  lg: 16,    // Large cards, modals
+  xl: 20,    // Large modals, sheets
+  xxl: 24,   // Extra large elements
+  round: 50, // Fully rounded (circular)
+  
+  // iOS-specific radius values
+  button: 8,      // Standard iOS button radius
+  card: 12,       // Standard iOS card radius
+  input: 8,       // Input field radius
+  modal: 16,      // Modal corner radius
+  sheet: 20,      // Bottom sheet radius
+  alert: 12,      // Alert dialog radius
+  badge: 12,      // Badge radius
+  chip: 16,       // Chip/tag radius
+  avatar: 8,      // Avatar radius
+  image: 8,       // Image radius
 };
 
-// Shadows
+// Shadows - Following iOS Design Guidelines
 export const shadows = {
+  // iOS Shadow System
+  none: {
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
+  },
   small: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05,
     shadowRadius: 2,
-    elevation: 2,
+    elevation: 1,
   },
   medium: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.08,
     shadowRadius: 4,
-    elevation: 4,
+    elevation: 2,
   },
   large: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.12,
     shadowRadius: 8,
+    elevation: 4,
+  },
+  xl: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
     elevation: 8,
+  },
+  
+  // iOS-specific shadows
+  card: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  button: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  modal: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  floating: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  pressed: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 1,
+    elevation: 0,
   },
 };
 

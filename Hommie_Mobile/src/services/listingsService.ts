@@ -1,11 +1,12 @@
 import { ENV, API_ENDPOINTS } from '../config/environment';
 import { MeCabalAuth } from './auth';
+import NetInfo from '@react-native-community/netinfo';
 
 // Types
 export interface Listing {
   id: string;
   userId: string;
-  listingType: 'property' | 'item' | 'service';
+  listingType: 'property' | 'item' | 'service' | 'job';
   category: {
     id: number;
     name: string;
@@ -17,16 +18,67 @@ export interface Listing {
   price: number;
   currency: string;
   priceType: 'fixed' | 'negotiable' | 'per_hour' | 'per_day';
+  
+  // Property-specific fields
   propertyType?: string;
   bedrooms?: number;
   bathrooms?: number;
   rentalPeriod?: string;
+  amenities?: string[];
+  propertySize?: number;
+  parkingSpaces?: number;
+  petPolicy?: 'allowed' | 'not_allowed' | 'case_by_case';
+  
+  // Item-specific fields
   condition?: string;
   brand?: string;
+  model?: string;
+  year?: number;
+  warranty?: string;
+  
+  // Service-specific fields
+  serviceType?: 'consultation' | 'maintenance' | 'repair' | 'installation' | 'cleaning' | 'other';
+  serviceArea?: string[];
+  availability?: {
+    monday: { start: string; end: string; available: boolean };
+    tuesday: { start: string; end: string; available: boolean };
+    wednesday: { start: string; end: string; available: boolean };
+    thursday: { start: string; end: string; available: boolean };
+    friday: { start: string; end: string; available: boolean };
+    saturday: { start: string; end: string; available: boolean };
+    sunday: { start: string; end: string; available: boolean };
+  };
+  responseTime?: string;
+  professionalCredentials?: {
+    certifications: string[];
+    experience: string;
+    portfolio: string[];
+  };
+  
+  // Job-specific fields
+  employmentType?: 'full_time' | 'part_time' | 'contract' | 'freelance' | 'internship';
+  workLocation?: 'remote' | 'onsite' | 'hybrid';
+  requiredSkills?: string[];
+  requiredExperience?: string;
+  education?: string;
+  benefits?: string[];
+  applicationDeadline?: string;
+  
+  // Contact preferences
+  contactPreferences?: {
+    phone: boolean;
+    email: boolean;
+    whatsapp: boolean;
+    inApp: boolean;
+  };
+  
   location: {
     latitude: number;
     longitude: number;
     address: string;
+    city?: string;
+    state?: string;
+    country?: string;
   };
   media: Media[];
   status: 'active' | 'sold' | 'expired' | 'draft';
@@ -39,6 +91,12 @@ export interface Listing {
     lastName: string;
     profilePicture?: string;
     isVerified: boolean;
+    businessProfile?: {
+      businessName: string;
+      businessType: string;
+      rating: number;
+      reviewCount: number;
+    };
   };
   createdAt: string;
   expiresAt?: string;
@@ -134,6 +192,8 @@ export interface NearbySearchParams {
 export class ListingsService {
   private static instance: ListingsService;
   private baseUrl: string;
+  private maxRetries: number = 3;
+  private retryDelay: number = 1000; // 1 second
 
   private constructor() {
     this.baseUrl = ENV.API.BASE_URL;
@@ -161,272 +221,245 @@ export class ListingsService {
   }
 
   /**
-   * Create a new listing
+   * Check if device is online
    */
-  async createListing(data: CreateListingRequest): Promise<Listing> {
+  private async isOnline(): Promise<boolean> {
+    const netInfo = await NetInfo.fetch();
+    return netInfo.isConnected ?? false;
+  }
+
+  /**
+   * Sleep utility for retry delays
+   */
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Retry logic for API calls
+   */
+  private async retryApiCall<T>(
+    apiCall: () => Promise<T>,
+    operation: string,
+    retryCount: number = 0
+  ): Promise<T> {
     try {
-      const response = await fetch(`${this.baseUrl}/listings`, {
-        method: 'POST',
-        headers: await this.getAuthHeaders(),
-        body: JSON.stringify(data),
+      // Check if device is online
+      const online = await this.isOnline();
+      if (!online) {
+        throw new Error('No internet connection. Please check your network and try again.');
+      }
+
+      return await apiCall();
+    } catch (error: any) {
+      console.error(`❌ ${operation} failed (attempt ${retryCount + 1}):`, error);
+
+      // Don't retry on authentication errors or client errors (4xx)
+      if (error.message?.includes('401') || error.message?.includes('403') || 
+          error.message?.includes('400') || error.message?.includes('404')) {
+        throw error;
+      }
+
+      // Retry on network errors or server errors (5xx)
+      if (retryCount < this.maxRetries) {
+        console.log(`🔄 Retrying ${operation} in ${this.retryDelay}ms...`);
+        await this.sleep(this.retryDelay * (retryCount + 1)); // Exponential backoff
+        return this.retryApiCall(apiCall, operation, retryCount + 1);
+      }
+
+      // Final attempt failed
+      throw new Error(
+        error.message || 
+        `Failed to ${operation.toLowerCase()} after ${this.maxRetries + 1} attempts. Please try again later.`
+      );
+    }
+  }
+
+  /**
+   * Make API request with retry logic
+   */
+  private async makeApiRequest<T>(
+    url: string,
+    options: RequestInit,
+    operation: string
+  ): Promise<T> {
+    return this.retryApiCall(async () => {
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          ...await this.getAuthHeaders(),
+          ...options.headers,
+        },
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to create listing');
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.message || `HTTP ${response.status}: ${response.statusText}`;
+        throw new Error(errorMessage);
       }
 
       return await response.json();
-    } catch (error) {
-      console.error('Error creating listing:', error);
-      throw new Error('Failed to create listing');
-    }
+    }, operation);
+  }
+
+  /**
+   * Create a new listing
+   */
+  async createListing(data: CreateListingRequest): Promise<Listing> {
+    return this.makeApiRequest<Listing>(
+      `${this.baseUrl}${API_ENDPOINTS.LISTINGS.CREATE}`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      },
+      'Create listing'
+    );
   }
 
   /**
    * Get listings with filters
    */
   async getListings(filter: ListingFilter = {}): Promise<PaginatedListings> {
-    try {
-      const queryParams = new URLSearchParams();
-      
-      // Add filter parameters
-      Object.entries(filter).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          queryParams.append(key, value.toString());
-        }
-      });
-
-      const url = `${this.baseUrl}/listings?${queryParams.toString()}`;
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: await this.getAuthHeaders(),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to fetch listings');
+    const queryParams = new URLSearchParams();
+    
+    // Add filter parameters
+    Object.entries(filter).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        queryParams.append(key, value.toString());
       }
+    });
 
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching listings:', error);
-      throw new Error('Failed to fetch listings');
-    }
+    const url = `${this.baseUrl}${API_ENDPOINTS.LISTINGS.GET_ALL}?${queryParams.toString()}`;
+    
+    return this.makeApiRequest<PaginatedListings>(
+      url,
+      { method: 'GET' },
+      'Fetch listings'
+    );
   }
 
   /**
    * Get a single listing by ID
    */
   async getListing(id: string): Promise<Listing> {
-    try {
-      const response = await fetch(`${this.baseUrl}/listings/${id}`, {
-        method: 'GET',
-        headers: await this.getAuthHeaders(),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to fetch listing');
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching listing:', error);
-      throw new Error('Failed to fetch listing');
-    }
+    return this.makeApiRequest<Listing>(
+      `${this.baseUrl}${API_ENDPOINTS.LISTINGS.GET_BY_ID}/${id}`,
+      { method: 'GET' },
+      'Fetch listing'
+    );
   }
 
   /**
    * Update a listing
    */
   async updateListing(id: string, data: Partial<CreateListingRequest>): Promise<Listing> {
-    try {
-      const response = await fetch(`${this.baseUrl}/listings/${id}`, {
+    return this.makeApiRequest<Listing>(
+      `${this.baseUrl}${API_ENDPOINTS.LISTINGS.UPDATE}/${id}`,
+      {
         method: 'PATCH',
-        headers: await this.getAuthHeaders(),
         body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update listing');
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error updating listing:', error);
-      throw new Error('Failed to update listing');
-    }
+      },
+      'Update listing'
+    );
   }
 
   /**
    * Delete a listing
    */
   async deleteListing(id: string): Promise<void> {
-    try {
-      const response = await fetch(`${this.baseUrl}/listings/${id}`, {
-        method: 'DELETE',
-        headers: await this.getAuthHeaders(),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to delete listing');
-      }
-    } catch (error) {
-      console.error('Error deleting listing:', error);
-      throw new Error('Failed to delete listing');
-    }
+    return this.makeApiRequest<void>(
+      `${this.baseUrl}${API_ENDPOINTS.LISTINGS.DELETE}/${id}`,
+      { method: 'DELETE' },
+      'Delete listing'
+    );
   }
 
   /**
    * Save a listing
    */
   async saveListing(id: string): Promise<void> {
-    try {
-      const response = await fetch(`${this.baseUrl}/listings/${id}/save`, {
-        method: 'POST',
-        headers: await this.getAuthHeaders(),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to save listing');
-      }
-    } catch (error) {
-      console.error('Error saving listing:', error);
-      throw new Error('Failed to save listing');
-    }
+    return this.makeApiRequest<void>(
+      `${this.baseUrl}${API_ENDPOINTS.LISTINGS.SAVE}/${id}/save`,
+      { method: 'POST' },
+      'Save listing'
+    );
   }
 
   /**
    * Unsave a listing
    */
   async unsaveListing(id: string): Promise<void> {
-    try {
-      const response = await fetch(`${this.baseUrl}/listings/${id}/save`, {
-        method: 'DELETE',
-        headers: await this.getAuthHeaders(),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to unsave listing');
-      }
-    } catch (error) {
-      console.error('Error unsaving listing:', error);
-      throw new Error('Failed to unsave listing');
-    }
+    return this.makeApiRequest<void>(
+      `${this.baseUrl}${API_ENDPOINTS.LISTINGS.UNSAVE}/${id}/save`,
+      { method: 'DELETE' },
+      'Unsave listing'
+    );
   }
 
   /**
    * Get user's saved listings
    */
   async getSavedListings(filter: ListingFilter = {}): Promise<PaginatedListings> {
-    try {
-      const queryParams = new URLSearchParams();
-      
-      // Add filter parameters
-      Object.entries(filter).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          queryParams.append(key, value.toString());
-        }
-      });
-
-      const url = `${this.baseUrl}/listings/saved?${queryParams.toString()}`;
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: await this.getAuthHeaders(),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to fetch saved listings');
+    const queryParams = new URLSearchParams();
+    
+    // Add filter parameters
+    Object.entries(filter).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        queryParams.append(key, value.toString());
       }
+    });
 
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching saved listings:', error);
-      throw new Error('Failed to fetch saved listings');
-    }
+    const url = `${this.baseUrl}${API_ENDPOINTS.LISTINGS.SAVED}?${queryParams.toString()}`;
+    
+    return this.makeApiRequest<PaginatedListings>(
+      url,
+      { method: 'GET' },
+      'Fetch saved listings'
+    );
   }
 
   /**
    * Get user's own listings
    */
   async getMyListings(filter: ListingFilter = {}): Promise<PaginatedListings> {
-    try {
-      const queryParams = new URLSearchParams();
-      
-      // Add filter parameters
-      Object.entries(filter).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          queryParams.append(key, value.toString());
-        }
-      });
-
-      const url = `${this.baseUrl}/listings/my-listings?${queryParams.toString()}`;
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: await this.getAuthHeaders(),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to fetch my listings');
+    const queryParams = new URLSearchParams();
+    
+    // Add filter parameters
+    Object.entries(filter).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        queryParams.append(key, value.toString());
       }
+    });
 
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching my listings:', error);
-      throw new Error('Failed to fetch my listings');
-    }
+    const url = `${this.baseUrl}${API_ENDPOINTS.LISTINGS.MY_LISTINGS}?${queryParams.toString()}`;
+    
+    return this.makeApiRequest<PaginatedListings>(
+      url,
+      { method: 'GET' },
+      'Fetch my listings'
+    );
   }
 
   /**
    * Mark listing as sold
    */
   async markAsSold(id: string): Promise<Listing> {
-    try {
-      const response = await fetch(`${this.baseUrl}/listings/${id}/mark-sold`, {
-        method: 'PATCH',
-        headers: await this.getAuthHeaders(),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to mark listing as sold');
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error marking listing as sold:', error);
-      throw new Error('Failed to mark listing as sold');
-    }
+    return this.makeApiRequest<Listing>(
+      `${this.baseUrl}${API_ENDPOINTS.LISTINGS.MARK_SOLD}/${id}/mark-sold`,
+      { method: 'PATCH' },
+      'Mark listing as sold'
+    );
   }
 
   /**
    * Increment view count for a listing
    */
   async incrementView(id: string): Promise<void> {
-    try {
-      const response = await fetch(`${this.baseUrl}/listings/${id}/view`, {
-        method: 'POST',
-        headers: await this.getAuthHeaders(),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to increment view count');
-      }
-    } catch (error) {
-      console.error('Error incrementing view count:', error);
-      throw new Error('Failed to increment view count');
-    }
+    return this.makeApiRequest<void>(
+      `${this.baseUrl}${API_ENDPOINTS.LISTINGS.VIEW}/${id}/view`,
+      { method: 'POST' },
+      'Increment view count'
+    );
   }
 
   /**
@@ -438,56 +471,40 @@ export class ListingsService {
     radius: number, 
     filter: ListingFilter = {}
   ): Promise<Listing[]> {
-    try {
-      const queryParams = new URLSearchParams();
-      
-      // Add location parameters
-      queryParams.append('latitude', lat.toString());
-      queryParams.append('longitude', lon.toString());
-      queryParams.append('radius', radius.toString());
-      
-      // Add filter parameters
-      Object.entries(filter).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          queryParams.append(key, value.toString());
-        }
-      });
-
-      const url = `${this.baseUrl}/listings/nearby?${queryParams.toString()}`;
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: await this.getAuthHeaders(),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to search nearby listings');
+    const queryParams = new URLSearchParams();
+    
+    // Add location parameters
+    queryParams.append('latitude', lat.toString());
+    queryParams.append('longitude', lon.toString());
+    queryParams.append('radius', radius.toString());
+    
+    // Add filter parameters
+    Object.entries(filter).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        queryParams.append(key, value.toString());
       }
+    });
 
-      return await response.json();
-    } catch (error) {
-      console.error('Error searching nearby listings:', error);
-      throw new Error('Failed to search nearby listings');
-    }
+    const url = `${this.baseUrl}${API_ENDPOINTS.LISTINGS.NEARBY}?${queryParams.toString()}`;
+    
+    return this.makeApiRequest<Listing[]>(
+      url,
+      { method: 'GET' },
+      'Search nearby listings'
+    );
   }
 
   /**
    * Search listings with text query
    */
   async searchListings(query: string, filter: Omit<ListingFilter, 'search'> = {}): Promise<Listing[]> {
-    try {
-      const searchFilter: ListingFilter = {
-        ...filter,
-        search: query,
-      };
+    const searchFilter: ListingFilter = {
+      ...filter,
+      search: query,
+    };
 
-      const result = await this.getListings(searchFilter);
-      return result.data;
-    } catch (error) {
-      console.error('Error searching listings:', error);
-      throw new Error('Failed to search listings');
-    }
+    const result = await this.getListings(searchFilter);
+    return result.data;
   }
 }
 
