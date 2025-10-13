@@ -95,8 +95,6 @@ export class BusinessProfile {
   @Column({ type: 'int', default: 0 })
   completedJobs: number;
 
-  @Column({ length: 50, nullable: true })
-  responseTime: string; // 'within-1-hour', 'within-24-hours', 'within-3-days'
 
   @Column({ type: 'boolean', default: false })
   hasInsurance: boolean;
@@ -112,7 +110,7 @@ export class BusinessProfile {
 
   // Enhanced service offerings
   @Column({ name: 'services_offered', type: 'jsonb', nullable: true })
-  servicesOffered: {
+  servicesOffered?: {
     category: string;
     subcategory: string;
     description: string;
@@ -127,8 +125,8 @@ export class BusinessProfile {
     };
   }[];
 
-  @Column({ name: 'service_areas', type: 'jsonb' })
-  serviceAreas: {
+  @Column({ name: 'service_areas', type: 'jsonb', nullable: true })
+  serviceAreas?: {
     type: 'estate' | 'neighborhood' | 'city' | 'state';
     radius?: number;
     specificAreas?: string[];
@@ -137,8 +135,8 @@ export class BusinessProfile {
   @Column({ name: 'response_time', type: 'int', default: 24 })
   responseTime: number; // in hours
 
-  @Column({ name: 'contact_preferences', type: 'jsonb' })
-  contactPreferences: {
+  @Column({ name: 'contact_preferences', type: 'jsonb', nullable: true })
+  contactPreferences?: {
     allowCalls: boolean;
     allowMessages: boolean;
     allowWhatsApp: boolean;

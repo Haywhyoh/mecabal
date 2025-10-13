@@ -6,6 +6,7 @@ import {
   IsString,
   Min,
   Max,
+  IsArray,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { 
@@ -121,14 +122,6 @@ export class ListingFilterDto {
   @Max(100)
   radius?: number = 5;
 
-  @ApiPropertyOptional({
-    description: 'Sort by field',
-    enum: ['createdAt', 'price', 'viewsCount'],
-    default: 'createdAt',
-  })
-  @IsOptional()
-  @IsEnum(['createdAt', 'price', 'viewsCount'])
-  sortBy?: 'createdAt' | 'price' | 'viewsCount' = 'createdAt';
 
   @ApiPropertyOptional({
     description: 'Sort order',
