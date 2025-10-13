@@ -253,11 +253,11 @@ export class BusinessRulesService {
   /**
    * Validate business rules
    */
-  private async validateBusinessRules(createListingDto: CreateListingDto): Promise<void> {
+  private async validateBusinessRules(userId: string, createListingDto: CreateListingDto): Promise<void> {
     // Check for duplicate listings (same user, similar title, same location)
     const existingListing = await this.listingRepository.findOne({
       where: {
-        userId: createListingDto.userId,
+        userId: userId,
         title: createListingDto.title,
         latitude: createListingDto.location.latitude,
         longitude: createListingDto.location.longitude,
@@ -272,7 +272,7 @@ export class BusinessRulesService {
 
     // Validate user hasn't exceeded listing limits
     const userListingCount = await this.listingRepository.count({
-      where: { userId: createListingDto.userId },
+      where: { userId: userId },
     });
 
     const maxListingsPerUser = 50; // Business rule
@@ -346,7 +346,8 @@ export class BusinessRulesService {
 
     // Validate price if being updated
     if (updateData.price !== undefined) {
-      this.validatePriceRules({ ...createListingDto, price: updateData.price } as CreateListingDto);
+      const priceData = { ...updateData, listingType: listing.listingType } as CreateListingDto;
+      this.validatePriceRules(priceData);
     }
   }
 }

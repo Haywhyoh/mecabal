@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { IsValidCategoryConstraint, BusinessRulesService, DataIntegrityService } from './custom-validators';
-import { BusinessRulesService as BusinessRulesServiceImpl } from './business-rules.service';
-import { DataIntegrityService as DataIntegrityServiceImpl } from './data-integrity.service';
+import { IsValidCategoryConstraint } from './custom-validators';
+import { BusinessRulesService } from './business-rules.service';
+import { DataIntegrityService } from './data-integrity.service';
 import { ListingCategory, Listing, User, BusinessProfile } from '@app/database';
 
 @Module({
@@ -16,13 +16,13 @@ import { ListingCategory, Listing, User, BusinessProfile } from '@app/database';
   ],
   providers: [
     IsValidCategoryConstraint,
-    BusinessRulesServiceImpl,
-    DataIntegrityServiceImpl,
+    BusinessRulesService,
+    DataIntegrityService,
   ],
   exports: [
     IsValidCategoryConstraint,
-    BusinessRulesServiceImpl,
-    DataIntegrityServiceImpl,
+    BusinessRulesService,
+    DataIntegrityService,
   ],
 })
 export class ValidationModule {}
