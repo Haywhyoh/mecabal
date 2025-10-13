@@ -48,3 +48,4 @@ export class NigerianState {
   updatedAt: Date;
 }
 
+

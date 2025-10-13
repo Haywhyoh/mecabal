@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView, TextInput, Alert, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView, TextInput, Alert, ActivityIndicator, SafeAreaView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, typography, spacing, shadows, MARKETPLACE_CATEGORIES } from '../constants';
+import { colors, typography, spacing, shadows } from '../constants';
 import { ListingCard } from '../components/ListingCard';
 import { EmptyState } from '../components/EmptyState';
 import { ListingsService, Listing, ListingFilter } from '../services/listingsService';
-import { ListingCategoriesService } from '../services/listingCategoriesService';
 
 interface MarketplaceScreenProps {
   navigation?: any;
@@ -19,14 +17,13 @@ export default function MarketplaceScreen({ navigation }: MarketplaceScreenProps
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [showFilters, setShowFilters] = useState(false);
   const [filter, setFilter] = useState<ListingFilter>({
     page: 1,
     limit: 20,
     sortBy: 'createdAt',
     sortOrder: 'DESC',
   });
-  
+
   const listingsService = ListingsService.getInstance();
 
   // Fetch listings
@@ -95,13 +92,14 @@ export default function MarketplaceScreen({ navigation }: MarketplaceScreenProps
     fetchListings();
   }, [filter, selectedCategory, searchQuery]);
 
-  // Categories for pills
+  // Categories following iOS design
   const categories = [
-    { id: null, label: 'All', icon: 'apps' },
-    { id: 1, label: 'Property', icon: 'home' },
-    { id: 10, label: 'Electronics', icon: 'laptop' },
-    { id: 11, label: 'Furniture', icon: 'bed' },
-    { id: 20, label: 'Services', icon: 'construct' },
+    { id: null, label: 'All', icon: 'apps-outline' },
+    { id: 5, label: 'Electronics', icon: 'phone-portrait-outline' },
+    { id: 6, label: 'Furniture', icon: 'bed-outline' },
+    { id: 7, label: 'Vehicles', icon: 'car-outline' },
+    { id: 10, label: 'Services', icon: 'construct-outline' },
+    { id: 1, label: 'Property', icon: 'home-outline' },
   ];
 
   const renderCategoryItem = ({ item }: { item: any }) => (
@@ -141,82 +139,122 @@ export default function MarketplaceScreen({ navigation }: MarketplaceScreenProps
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <Text style={styles.title}>Marketplace</Text>
-          <Text style={styles.subtitle}>Buy, sell & find services in your community</Text>
-        </View>
-        <View style={styles.headerActions}>
-          <TouchableOpacity onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}>
+      {/* Large Title Header - iOS Style */}
+      <View style={styles.headerContainer}>
+        <View style={styles.header}>
+          <Text style={styles.largeTitle}>Marketplace</Text>
+          <TouchableOpacity
+            style={styles.viewModeButton}
+            onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+            activeOpacity={0.6}
+          >
             <Ionicons
-              name={viewMode === 'grid' ? 'list' : 'grid'}
-              size={24}
-              color={colors.white}
-              style={styles.headerIcon}
+              name={viewMode === 'grid' ? 'list-outline' : 'grid-outline'}
+              size={22}
+              color={colors.primary}
             />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setShowFilters(true)}>
-            <Ionicons name="options-outline" size={24} color={colors.white} />
-          </TouchableOpacity>
+        </View>
+
+        {/* Search Bar - iOS Style */}
+        <View style={styles.searchContainer}>
+          <View style={styles.searchBar}>
+            <Ionicons name="search" size={18} color={colors.text.light} style={styles.searchIcon} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search items, services..."
+              placeholderTextColor={colors.text.tertiary}
+              value={searchQuery}
+              onChangeText={handleSearch}
+              returnKeyType="search"
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')} activeOpacity={0.6}>
+                <Ionicons name="close-circle" size={18} color={colors.text.light} />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </View>
-      
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search items, services, or areas (e.g. Ikeja, Lagos)"
-          placeholderTextColor={colors.text.light}
-          value={searchQuery}
-          onChangeText={handleSearch}
-        />
-        <TouchableOpacity style={styles.searchButton}>
-          <Ionicons name="search" size={20} color={colors.white} />
-        </TouchableOpacity>
-      </View>
-      
-      <View style={styles.filterContainer}>
-        <TouchableOpacity 
-          style={styles.filterButton}
-          onPress={() => setShowFilters(!showFilters)}
+
+      {/* Categories - iOS Segmented Control Style */}
+      <View style={styles.categoriesContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoriesContent}
         >
-          <Text style={styles.filterButtonText}>⚙️ Filters</Text>
-        </TouchableOpacity>
-        
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.sortContainer}>
-          {[
-            { key: 'createdAt', order: 'DESC', label: '🕒 Newest' },
-            { key: 'price', order: 'ASC', label: '⬆️ Price Low' },
-            { key: 'price', order: 'DESC', label: '⬇️ Price High' },
-            { key: 'viewsCount', order: 'DESC', label: '👁️ Most Viewed' },
-          ].map((sort, index) => (
+          {categories.map((item) => (
             <TouchableOpacity
-              key={index}
+              key={item.id?.toString() || 'all'}
               style={[
-                styles.sortButton,
-                filter.sortBy === sort.key && filter.sortOrder === sort.order && styles.sortButtonActive
+                styles.categoryChip,
+                selectedCategory === item.id && styles.categoryChipActive
               ]}
-              onPress={() => setFilter({ ...filter, sortBy: sort.key as any, sortOrder: sort.order as any })}
+              onPress={() => handleCategorySelect(item.id)}
+              activeOpacity={0.7}
             >
-              <Text style={[
-                styles.sortButtonText,
-                filter.sortBy === sort.key && filter.sortOrder === sort.order && styles.sortButtonTextActive
-              ]}>
-                {sort.label}
+              <Ionicons
+                name={item.icon as any}
+                size={18}
+                color={selectedCategory === item.id ? colors.white : colors.text.dark}
+                style={styles.categoryChipIcon}
+              />
+              <Text
+                style={[
+                  styles.categoryChipText,
+                  selectedCategory === item.id && styles.categoryChipTextActive
+                ]}
+              >
+                {item.label}
               </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
       </View>
-      
-      <View style={styles.categoriesContainer}>
-        <FlatList
-          data={categories}
-          renderItem={renderCategoryItem}
-          keyExtractor={(item) => item.id?.toString() || 'all'}
+
+      {/* Sort Options - iOS Style */}
+      <View style={styles.sortContainer}>
+        <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoriesContent}
-        />
+          contentContainerStyle={styles.sortContent}
+        >
+          {[
+            { key: 'createdAt', order: 'DESC', label: 'Newest', icon: 'time-outline' },
+            { key: 'price', order: 'ASC', label: 'Price: Low', icon: 'arrow-up-outline' },
+            { key: 'price', order: 'DESC', label: 'Price: High', icon: 'arrow-down-outline' },
+            { key: 'viewsCount', order: 'DESC', label: 'Popular', icon: 'eye-outline' },
+          ].map((sort, index) => (
+            <TouchableOpacity
+              key={index}
+              style={[
+                styles.sortChip,
+                filter.sortBy === sort.key && filter.sortOrder === sort.order && styles.sortChipActive
+              ]}
+              onPress={() => setFilter({ ...filter, sortBy: sort.key as any, sortOrder: sort.order as any })}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name={sort.icon as any}
+                size={16}
+                color={
+                  filter.sortBy === sort.key && filter.sortOrder === sort.order
+                    ? colors.primary
+                    : colors.text.light
+                }
+              />
+              <Text
+                style={[
+                  styles.sortChipText,
+                  filter.sortBy === sort.key && filter.sortOrder === sort.order && styles.sortChipTextActive
+                ]}
+              >
+                {sort.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
       {loading && !refreshing ? (
@@ -255,17 +293,15 @@ export default function MarketplaceScreen({ navigation }: MarketplaceScreenProps
           onRefresh={handleRefresh}
         />
       )}
-      
-      <TouchableOpacity 
-        style={styles.fabButton}
-        onPress={() => {
-          // Navigate to create listing screen
-          navigation?.navigate('CreateListing');
-        }}
+
+
+      {/* Floating Action Button - iOS Style */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => navigation?.navigate('CreateListing')}
         activeOpacity={0.8}
       >
-        <Text style={styles.fabIcon}>+</Text>
-        <Text style={styles.fabText}>Sell</Text>
+        <Ionicons name="add" size={28} color={colors.white} />
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -276,186 +312,129 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.neutral.offWhite,
   },
+  // Header - iOS Large Title Style
+  headerContainer: {
+    backgroundColor: colors.white,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.neutral.lightGray,
+  },
   header: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.lg,
-    ...shadows.small,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-  },
-  headerContent: {
-    flex: 1,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-  headerIcon: {
-    marginRight: spacing.sm,
-  },
-  title: {
-    fontSize: typography.sizes['2xl'],
-    fontWeight: typography.weights.bold,
-    color: colors.white,
-    marginBottom: spacing.xs,
-  },
-  subtitle: {
-    fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.regular,
-    color: colors.lightGreen,
-    textAlign: 'center',
-  },
-  marketplaceList: {
-    flex: 1,
-  },
-  listContent: {
-    padding: spacing.md,
-    paddingBottom: spacing['2xl'],
-  },
-  searchContainer: {
-    backgroundColor: colors.white,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral.lightGray,
-    flexDirection: 'row',
-    alignItems: 'center',
+    paddingTop: Platform.OS === 'ios' ? spacing.xs : spacing.md,
+    paddingBottom: spacing.xs,
   },
-  searchInput: {
-    flex: 1,
-    backgroundColor: colors.neutral.lightGray,
-    borderRadius: 25,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    fontSize: typography.sizes.base,
+  largeTitle: {
+    ...typography.styles.largeTitle,
     color: colors.text.dark,
-    marginRight: spacing.sm,
   },
-  searchButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 25,
+  viewModeButton: {
     width: 40,
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  searchButtonText: {
-    fontSize: 18,
-  },
-  filterContainer: {
-    backgroundColor: colors.white,
+  // Search Bar - iOS Style
+  searchContainer: {
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral.lightGray,
+    paddingBottom: spacing.sm,
+  },
+  searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  filterButton: {
     backgroundColor: colors.neutral.lightGray,
-    borderRadius: 20,
+    borderRadius: 10,
     paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    marginRight: spacing.sm,
+    height: 36,
   },
-  filterButtonText: {
-    fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.medium,
-    color: colors.text.dark,
+  searchIcon: {
+    marginRight: spacing.xs,
   },
-  sortContainer: {
+  searchInput: {
     flex: 1,
-  },
-  sortButton: {
-    backgroundColor: colors.neutral.lightGray,
-    borderRadius: 20,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    marginRight: spacing.sm,
-  },
-  sortButtonActive: {
-    backgroundColor: colors.primary,
-  },
-  sortButtonText: {
-    fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.medium,
+    ...typography.styles.body,
     color: colors.text.dark,
+    paddingVertical: 0,
   },
-  sortButtonTextActive: {
-    color: colors.white,
-  },
+  // Categories - iOS Chip Style
   categoriesContainer: {
     backgroundColor: colors.white,
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.neutral.lightGray,
-    ...shadows.small,
+    paddingVertical: spacing.sm,
   },
   categoriesContent: {
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    gap: spacing.xs,
   },
-  categoryItem: {
+  categoryChip: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginRight: spacing.md,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
     borderRadius: 20,
     backgroundColor: colors.neutral.lightGray,
-    minWidth: 70,
+    marginRight: spacing.xs,
   },
-  categoryItemActive: {
+  categoryChipActive: {
     backgroundColor: colors.primary,
   },
-  categoryIcon: {
-    marginBottom: spacing.xs / 2,
+  categoryChipIcon: {
+    marginRight: 6,
   },
-  categoryText: {
-    fontSize: typography.sizes.xs,
+  categoryChipText: {
+    ...typography.styles.subhead,
+    color: colors.text.dark,
     fontWeight: typography.weights.medium,
-    color: colors.text.light,
-    textAlign: 'center',
   },
-  categoryTextActive: {
+  categoryChipTextActive: {
     color: colors.white,
   },
-  fabButton: {
-    position: 'absolute',
-    bottom: spacing.lg,
-    right: spacing.md,
-    backgroundColor: colors.primary,
-    borderRadius: 28,
-    width: 56,
-    height: 56,
+  // Sort - iOS Style
+  sortContainer: {
+    backgroundColor: colors.white,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.neutral.lightGray,
+    paddingVertical: spacing.sm,
+  },
+  sortContent: {
+    paddingHorizontal: spacing.md,
+    gap: spacing.xs,
+  },
+  sortChip: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    ...shadows.large,
-    elevation: 8,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: colors.neutral.offWhite,
+    borderWidth: 1,
+    borderColor: colors.neutral.lightGray,
+    marginRight: spacing.xs,
+    gap: 4,
   },
-  fabIcon: {
-    fontSize: 24,
-    fontWeight: typography.weights.bold,
-    color: colors.white,
-    lineHeight: 24,
+  sortChipActive: {
+    backgroundColor: colors.lightGreen,
+    borderColor: colors.primary,
   },
-  fabText: {
-    fontSize: typography.sizes.xs,
+  sortChipText: {
+    ...typography.styles.caption1,
+    color: colors.text.light,
     fontWeight: typography.weights.medium,
-    color: colors.white,
-    marginTop: 2,
   },
-  loadingContainer: {
+  sortChipTextActive: {
+    color: colors.primary,
+    fontWeight: typography.weights.semibold,
+  },
+  // List
+  marketplaceList: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing.xl,
   },
-  loadingText: {
-    marginTop: spacing.md,
-    fontSize: typography.sizes.base,
-    color: colors.text.light,
+  listContent: {
+    padding: spacing.sm,
+    paddingBottom: spacing['3xl'],
   },
   gridItem: {
     width: '50%',
@@ -463,5 +442,32 @@ const styles = StyleSheet.create({
   },
   listItem: {
     width: '100%',
+    paddingHorizontal: spacing.xs,
+  },
+  // Loading & Empty States
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  loadingText: {
+    ...typography.styles.body,
+    color: colors.text.light,
+    marginTop: spacing.md,
+  },
+  // FAB - iOS Style
+  fab: {
+    position: 'absolute',
+    bottom: spacing.lg,
+    right: spacing.md,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.large,
+    elevation: 8,
   },
 });

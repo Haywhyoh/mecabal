@@ -8,6 +8,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { colors, typography, spacing, shadows } from '../constants';
 import { Listing } from '../services/listingsService';
 
 interface ListingCardProps {
@@ -70,11 +71,11 @@ export const ListingCard: React.FC<ListingCardProps> = ({
 
         {/* Save Button */}
         {onSave && (
-          <TouchableOpacity style={styles.saveButton} onPress={onSave}>
+          <TouchableOpacity style={styles.saveButton} onPress={onSave} activeOpacity={0.7}>
             <Ionicons
               name={listing.isSaved ? "bookmark" : "bookmark-outline"}
-              size={20}
-              color={listing.isSaved ? "#00A651" : "#FFFFFF"}
+              size={18}
+              color={listing.isSaved ? colors.primary : colors.text.light}
             />
           </TouchableOpacity>
         )}
@@ -99,7 +100,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({
           {listing.title}
         </Text>
         <View style={styles.meta}>
-          <Ionicons name="location-outline" size={12} color="#8E8E8E" />
+          <Ionicons name="location-outline" size={12} color={colors.text.light} />
           <Text style={styles.location} numberOfLines={1}>
             {listing.location.address}
           </Text>
@@ -110,13 +111,13 @@ export const ListingCard: React.FC<ListingCardProps> = ({
           <View style={styles.propertyDetails}>
             {listing.bedrooms && (
               <View style={styles.propertyDetail}>
-                <Ionicons name="bed-outline" size={14} color="#8E8E8E" />
+                <Ionicons name="bed-outline" size={14} color={colors.text.light} />
                 <Text style={styles.propertyDetailText}>{listing.bedrooms}</Text>
               </View>
             )}
             {listing.bathrooms && (
               <View style={styles.propertyDetail}>
-                <Ionicons name="water-outline" size={14} color="#8E8E8E" />
+                <Ionicons name="water-outline" size={14} color={colors.text.light} />
                 <Text style={styles.propertyDetailText}>{listing.bathrooms}</Text>
               </View>
             )}
@@ -126,8 +127,8 @@ export const ListingCard: React.FC<ListingCardProps> = ({
         {/* Verification Badge */}
         {listing.author.isVerified && (
           <View style={styles.verifiedBadge}>
-            <Ionicons name="shield-checkmark" size={12} color="#00A651" />
-            <Text style={styles.verifiedText}>Verified Seller</Text>
+            <Ionicons name="shield-checkmark" size={12} color={colors.primary} />
+            <Text style={styles.verifiedText}>Verified</Text>
           </View>
         )}
 
@@ -184,11 +185,11 @@ const ListingCardList: React.FC<Omit<ListingCardProps, 'viewMode'>> = ({
 
         {/* Save Button */}
         {onSave && (
-          <TouchableOpacity style={styles.listSaveButton} onPress={onSave}>
+          <TouchableOpacity style={styles.listSaveButton} onPress={onSave} activeOpacity={0.7}>
             <Ionicons
               name={listing.isSaved ? "bookmark" : "bookmark-outline"}
-              size={18}
-              color={listing.isSaved ? "#00A651" : "#FFFFFF"}
+              size={16}
+              color={listing.isSaved ? colors.primary : colors.text.light}
             />
           </TouchableOpacity>
         )}
@@ -211,7 +212,7 @@ const ListingCardList: React.FC<Omit<ListingCardProps, 'viewMode'>> = ({
             )}
           </Text>
           {listing.author.isVerified && (
-            <Ionicons name="shield-checkmark" size={16} color="#00A651" />
+            <Ionicons name="shield-checkmark" size={16} color={colors.primary} />
           )}
         </View>
 
@@ -220,7 +221,7 @@ const ListingCardList: React.FC<Omit<ListingCardProps, 'viewMode'>> = ({
         </Text>
 
         <View style={styles.listMeta}>
-          <Ionicons name="location-outline" size={14} color="#8E8E8E" />
+          <Ionicons name="location-outline" size={14} color={colors.text.light} />
           <Text style={styles.listLocation} numberOfLines={1}>
             {listing.location.address}
           </Text>
@@ -231,13 +232,13 @@ const ListingCardList: React.FC<Omit<ListingCardProps, 'viewMode'>> = ({
           <View style={styles.listPropertyDetails}>
             {listing.bedrooms && (
               <View style={styles.propertyDetail}>
-                <Ionicons name="bed-outline" size={14} color="#8E8E8E" />
+                <Ionicons name="bed-outline" size={14} color={colors.text.light} />
                 <Text style={styles.propertyDetailText}>{listing.bedrooms} bed</Text>
               </View>
             )}
             {listing.bathrooms && (
               <View style={styles.propertyDetail}>
-                <Ionicons name="water-outline" size={14} color="#8E8E8E" />
+                <Ionicons name="water-outline" size={14} color={colors.text.light} />
                 <Text style={styles.propertyDetailText}>{listing.bathrooms} bath</Text>
               </View>
             )}
@@ -253,20 +254,12 @@ const ListingCardList: React.FC<Omit<ListingCardProps, 'viewMode'>> = ({
 };
 
 const styles = StyleSheet.create({
-  // Grid styles
+  // Grid styles - iOS Design
   gridCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white,
     borderRadius: 12,
-    margin: 8,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
     overflow: 'hidden',
+    ...shadows.small,
   },
   imageContainer: {
     position: 'relative',
@@ -274,131 +267,127 @@ const styles = StyleSheet.create({
   gridImage: {
     width: '100%',
     height: gridImageSize,
+    backgroundColor: colors.neutral.lightGray,
   },
   placeholderImage: {
     width: '100%',
     height: gridImageSize,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: colors.neutral.lightGray,
     alignItems: 'center',
     justifyContent: 'center',
   },
   saveButton: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    top: spacing.sm,
+    right: spacing.sm,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 20,
-    width: 36,
-    height: 36,
+    width: 32,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
+    ...shadows.small,
   },
   soldBadge: {
     position: 'absolute',
-    top: 8,
-    left: 8,
-    backgroundColor: '#E74C3C',
-    paddingHorizontal: 8,
+    top: spacing.sm,
+    left: spacing.sm,
+    backgroundColor: colors.danger,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 4,
-    borderRadius: 4,
+    borderRadius: 6,
   },
   soldText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '600',
+    ...typography.styles.caption1,
+    color: colors.white,
+    fontWeight: typography.weights.semibold,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   details: {
-    padding: 12,
+    padding: spacing.sm,
   },
   price: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#00A651',
-    marginBottom: 4,
+    ...typography.styles.headline,
+    color: colors.primary,
+    fontWeight: typography.weights.bold,
+    marginBottom: 2,
   },
   priceType: {
-    fontSize: 12,
-    fontWeight: '400',
-    color: '#8E8E8E',
+    ...typography.styles.caption2,
+    color: colors.text.light,
   },
   title: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#2C2C2C',
-    marginBottom: 8,
-    lineHeight: 18,
+    ...typography.styles.subhead,
+    color: colors.text.dark,
+    fontWeight: typography.weights.semibold,
+    marginBottom: spacing.xs,
+    lineHeight: typography.lineHeights.subhead,
   },
   meta: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: spacing.xs,
   },
   location: {
-    fontSize: 12,
-    color: '#8E8E8E',
+    ...typography.styles.caption1,
+    color: colors.text.light,
     marginLeft: 4,
     flex: 1,
   },
   propertyDetails: {
     flexDirection: 'row',
-    marginBottom: 8,
+    marginBottom: spacing.xs,
+    gap: spacing.sm,
   },
   propertyDetail: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 12,
+    gap: 4,
   },
   propertyDetailText: {
-    fontSize: 12,
-    color: '#8E8E8E',
-    marginLeft: 4,
+    ...typography.styles.caption1,
+    color: colors.text.light,
   },
   verifiedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   verifiedText: {
-    fontSize: 10,
-    color: '#00A651',
+    ...typography.styles.caption2,
+    color: colors.primary,
     marginLeft: 4,
-    fontWeight: '500',
+    fontWeight: typography.weights.medium,
   },
   timestamp: {
-    fontSize: 10,
-    color: '#8E8E8E',
+    ...typography.styles.caption2,
+    color: colors.text.tertiary,
   },
 
-  // List styles
+  // List styles - iOS Design
   listCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white,
     borderRadius: 12,
-    marginHorizontal: 16,
-    marginVertical: 6,
-    padding: 12,
+    marginBottom: spacing.sm,
+    padding: spacing.sm,
     flexDirection: 'row',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 3,
+    ...shadows.small,
   },
   listImageContainer: {
     position: 'relative',
-    marginRight: 12,
+    marginRight: spacing.sm,
   },
   listImage: {
     width: listImageSize,
     height: listImageSize,
     borderRadius: 8,
+    backgroundColor: colors.neutral.lightGray,
   },
   listPlaceholderImage: {
     width: listImageSize,
     height: listImageSize,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: colors.neutral.lightGray,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
@@ -407,18 +396,19 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 4,
     right: 4,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 14,
     width: 28,
     height: 28,
     alignItems: 'center',
     justifyContent: 'center',
+    ...shadows.small,
   },
   listSoldBadge: {
     position: 'absolute',
     top: 4,
     left: 4,
-    backgroundColor: '#E74C3C',
+    backgroundColor: colors.danger,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -434,35 +424,36 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   listPrice: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#00A651',
+    ...typography.styles.headline,
+    color: colors.primary,
+    fontWeight: typography.weights.bold,
   },
   listTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#2C2C2C',
-    marginBottom: 8,
-    lineHeight: 18,
+    ...typography.styles.subhead,
+    color: colors.text.dark,
+    fontWeight: typography.weights.semibold,
+    marginBottom: spacing.xs,
+    lineHeight: typography.lineHeights.subhead,
   },
   listMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: spacing.xs,
   },
   listLocation: {
-    fontSize: 12,
-    color: '#8E8E8E',
+    ...typography.styles.caption1,
+    color: colors.text.light,
     marginLeft: 4,
     flex: 1,
   },
   listPropertyDetails: {
     flexDirection: 'row',
     marginBottom: 4,
+    gap: spacing.sm,
   },
   listTimestamp: {
-    fontSize: 10,
-    color: '#8E8E8E',
+    ...typography.styles.caption2,
+    color: colors.text.tertiary,
     alignSelf: 'flex-end',
   },
 });
