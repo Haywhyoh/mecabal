@@ -4,6 +4,7 @@ import { MarketplaceServiceController } from './marketplace-service.controller';
 import { MarketplaceServiceService } from './marketplace-service.service';
 import { ListingsModule } from './listings/listings.module';
 import { ListingCategoriesModule } from './listing-categories/listing-categories.module';
+import { SearchModule } from './search/search.module';
 import { DatabaseModule } from '@app/database';
 import { AuthModule } from '@app/auth';
 
@@ -16,6 +17,7 @@ import { AuthModule } from '@app/auth';
     AuthModule,
     ListingsModule,
     ListingCategoriesModule,
+    SearchModule,
   ],
   controllers: [MarketplaceServiceController],
   providers: [MarketplaceServiceService],

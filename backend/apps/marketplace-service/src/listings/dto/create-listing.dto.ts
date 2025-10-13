@@ -17,6 +17,7 @@ export enum ListingType {
   PROPERTY = 'property',
   ITEM = 'item',
   SERVICE = 'service',
+  JOB = 'job',
 }
 
 export enum PriceType {
@@ -43,6 +44,37 @@ export enum ItemCondition {
 export enum RentalPeriod {
   MONTHLY = 'monthly',
   YEARLY = 'yearly',
+}
+
+export enum ServiceType {
+  OFFERING = 'offering',
+  REQUEST = 'request',
+}
+
+export enum PricingModel {
+  HOURLY = 'hourly',
+  PROJECT = 'project',
+  FIXED = 'fixed',
+  NEGOTIABLE = 'negotiable',
+}
+
+export enum EmploymentType {
+  FULL_TIME = 'full_time',
+  PART_TIME = 'part_time',
+  CONTRACT = 'contract',
+  FREELANCE = 'freelance',
+}
+
+export enum WorkLocation {
+  REMOTE = 'remote',
+  ON_SITE = 'on_site',
+  HYBRID = 'hybrid',
+}
+
+export enum PetPolicy {
+  ALLOWED = 'allowed',
+  NOT_ALLOWED = 'not_allowed',
+  CASE_BY_CASE = 'case_by_case',
 }
 
 export class LocationDto {
@@ -111,6 +143,132 @@ export class ListingMediaDto {
   @IsNumber()
   @Min(0)
   displayOrder?: number;
+}
+
+export class AvailabilityScheduleDto {
+  @ApiProperty({
+    description: 'Available days of the week',
+    example: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+  })
+  @IsArray()
+  @IsString({ each: true })
+  days: string[];
+
+  @ApiProperty({
+    description: 'Start time',
+    example: '09:00',
+  })
+  @IsString()
+  startTime: string;
+
+  @ApiProperty({
+    description: 'End time',
+    example: '17:00',
+  })
+  @IsString()
+  endTime: string;
+
+  @ApiProperty({
+    description: 'Timezone',
+    example: 'Africa/Lagos',
+  })
+  @IsString()
+  timezone: string;
+}
+
+export class ProfessionalCredentialsDto {
+  @ApiProperty({
+    description: 'Professional licenses',
+    example: ['CAC Registration', 'Tax Clearance'],
+  })
+  @IsArray()
+  @IsString({ each: true })
+  licenses: string[];
+
+  @ApiProperty({
+    description: 'Professional certifications',
+    example: ['PMP', 'AWS Certified'],
+  })
+  @IsArray()
+  @IsString({ each: true })
+  certifications: string[];
+
+  @ApiProperty({
+    description: 'Years of experience',
+    example: 5,
+  })
+  @IsNumber()
+  @Min(0)
+  experience: number;
+
+  @ApiProperty({
+    description: 'Has professional insurance',
+    example: true,
+  })
+  @IsOptional()
+  insurance?: boolean;
+}
+
+export class CompanyInfoDto {
+  @ApiProperty({
+    description: 'Company name',
+    example: 'Tech Solutions Ltd',
+  })
+  @IsString()
+  name: string;
+
+  @ApiProperty({
+    description: 'Company size',
+    example: '10-50 employees',
+  })
+  @IsString()
+  size: string;
+
+  @ApiProperty({
+    description: 'Industry',
+    example: 'Technology',
+  })
+  @IsString()
+  industry: string;
+
+  @ApiPropertyOptional({
+    description: 'Company website',
+    example: 'https://techsolutions.com',
+  })
+  @IsOptional()
+  @IsString()
+  website?: string;
+}
+
+export class ContactPreferencesDto {
+  @ApiProperty({
+    description: 'Allow phone calls',
+    example: true,
+  })
+  @IsOptional()
+  allowCalls?: boolean;
+
+  @ApiProperty({
+    description: 'Allow messages',
+    example: true,
+  })
+  @IsOptional()
+  allowMessages?: boolean;
+
+  @ApiProperty({
+    description: 'Allow WhatsApp',
+    example: true,
+  })
+  @IsOptional()
+  allowWhatsApp?: boolean;
+
+  @ApiProperty({
+    description: 'Preferred contact time',
+    example: '9 AM - 5 PM',
+  })
+  @IsOptional()
+  @IsString()
+  preferredTime?: string;
 }
 
 export class CreateListingDto {
@@ -251,4 +409,235 @@ export class CreateListingDto {
   @IsOptional()
   @IsDateString()
   expiresAt?: string;
+
+  // Service-specific fields
+  @ApiPropertyOptional({
+    description: 'Service type (required for service listings)',
+    enum: ServiceType,
+    example: ServiceType.OFFERING,
+  })
+  @IsOptional()
+  @IsEnum(ServiceType)
+  serviceType?: ServiceType;
+
+  @ApiPropertyOptional({
+    description: 'Service availability schedule',
+    type: AvailabilityScheduleDto,
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => AvailabilityScheduleDto)
+  availabilitySchedule?: AvailabilityScheduleDto;
+
+  @ApiPropertyOptional({
+    description: 'Service radius in kilometers',
+    example: 10,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  serviceRadius?: number;
+
+  @ApiPropertyOptional({
+    description: 'Professional credentials',
+    type: ProfessionalCredentialsDto,
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ProfessionalCredentialsDto)
+  professionalCredentials?: ProfessionalCredentialsDto;
+
+  @ApiPropertyOptional({
+    description: 'Pricing model for services',
+    enum: PricingModel,
+    example: PricingModel.HOURLY,
+  })
+  @IsOptional()
+  @IsEnum(PricingModel)
+  pricingModel?: PricingModel;
+
+  @ApiPropertyOptional({
+    description: 'Response time in hours',
+    example: 24,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  responseTime?: number;
+
+  // Job-specific fields
+  @ApiPropertyOptional({
+    description: 'Employment type (required for job listings)',
+    enum: EmploymentType,
+    example: EmploymentType.FULL_TIME,
+  })
+  @IsOptional()
+  @IsEnum(EmploymentType)
+  employmentType?: EmploymentType;
+
+  @ApiPropertyOptional({
+    description: 'Minimum salary',
+    example: 500000,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  salaryMin?: number;
+
+  @ApiPropertyOptional({
+    description: 'Maximum salary',
+    example: 1000000,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  salaryMax?: number;
+
+  @ApiPropertyOptional({
+    description: 'Application deadline',
+    example: '2024-12-31T23:59:59Z',
+  })
+  @IsOptional()
+  @IsDateString()
+  applicationDeadline?: string;
+
+  @ApiPropertyOptional({
+    description: 'Required skills',
+    example: ['JavaScript', 'React', 'Node.js'],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  requiredSkills?: string[];
+
+  @ApiPropertyOptional({
+    description: 'Work location type',
+    enum: WorkLocation,
+    example: WorkLocation.REMOTE,
+  })
+  @IsOptional()
+  @IsEnum(WorkLocation)
+  workLocation?: WorkLocation;
+
+  @ApiPropertyOptional({
+    description: 'Company information',
+    type: CompanyInfoDto,
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CompanyInfoDto)
+  companyInfo?: CompanyInfoDto;
+
+  // Enhanced property fields
+  @ApiPropertyOptional({
+    description: 'Property amenities',
+    example: ['Swimming Pool', 'Gym', 'Parking'],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  propertyAmenities?: string[];
+
+  @ApiPropertyOptional({
+    description: 'Utilities included',
+    example: ['Electricity', 'Water', 'Internet'],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  utilitiesIncluded?: string[];
+
+  @ApiPropertyOptional({
+    description: 'Pet policy',
+    enum: PetPolicy,
+    example: PetPolicy.ALLOWED,
+  })
+  @IsOptional()
+  @IsEnum(PetPolicy)
+  petPolicy?: PetPolicy;
+
+  @ApiPropertyOptional({
+    description: 'Number of parking spaces',
+    example: 2,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  parkingSpaces?: number;
+
+  @ApiPropertyOptional({
+    description: 'Security features',
+    example: ['CCTV', 'Security Guard', 'Gated Community'],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  securityFeatures?: string[];
+
+  @ApiPropertyOptional({
+    description: 'Property size in square meters',
+    example: 120.5,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  propertySize?: number;
+
+  @ApiPropertyOptional({
+    description: 'Land size in square meters',
+    example: 500.0,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  landSize?: number;
+
+  // Enhanced location fields
+  @ApiPropertyOptional({
+    description: 'Estate ID',
+    example: 'estate-uuid-123',
+  })
+  @IsOptional()
+  @IsString()
+  estateId?: string;
+
+  @ApiPropertyOptional({
+    description: 'City',
+    example: 'Lagos',
+  })
+  @IsOptional()
+  @IsString()
+  city?: string;
+
+  @ApiPropertyOptional({
+    description: 'State',
+    example: 'Lagos State',
+  })
+  @IsOptional()
+  @IsString()
+  state?: string;
+
+  // Enhanced status and metadata
+  @ApiPropertyOptional({
+    description: 'Whether listing is featured',
+    example: false,
+  })
+  @IsOptional()
+  featured?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Whether listing is boosted',
+    example: false,
+  })
+  @IsOptional()
+  boosted?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Contact preferences',
+    type: ContactPreferencesDto,
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ContactPreferencesDto)
+  contactPreferences?: ContactPreferencesDto;
 }

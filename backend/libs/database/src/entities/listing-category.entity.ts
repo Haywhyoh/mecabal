@@ -4,6 +4,8 @@ import {
   Column,
   CreateDateColumn,
   OneToMany,
+  ManyToOne,
+  JoinColumn,
   Index,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
@@ -19,7 +21,7 @@ export class ListingCategory {
 
   @ApiProperty({
     description: 'Type of listing this category belongs to',
-    enum: ['property', 'item', 'service'],
+    enum: ['property', 'item', 'service', 'job'],
     example: 'item',
   })
   @Column({ name: 'listing_type', length: 20 })
@@ -69,6 +71,30 @@ export class ListingCategory {
   @Column({ name: 'is_active', default: true })
   isActive: boolean;
 
+  @ApiProperty({ description: 'Parent category ID for hierarchical structure', required: false })
+  @Column({ name: 'parent_id', type: 'int', nullable: true })
+  parentId?: number;
+
+  @ApiProperty({ description: 'Dynamic field definitions for this category', required: false })
+  @Column({ name: 'field_definitions', type: 'jsonb', nullable: true })
+  fieldDefinitions?: {
+    required: string[];
+    optional: string[];
+    validation: Record<string, any>;
+  };
+
+  @ApiProperty({ description: 'Search keywords for this category', required: false })
+  @Column({ name: 'search_keywords', type: 'jsonb', nullable: true })
+  searchKeywords?: string[];
+
+  @ApiProperty({ description: 'Whether category is featured', default: false })
+  @Column({ name: 'is_featured', type: 'boolean', default: false })
+  isFeatured: boolean;
+
+  @ApiProperty({ description: 'Sort order for category display', default: 0 })
+  @Column({ name: 'sort_order', type: 'int', default: 0 })
+  sortOrder: number;
+
   @ApiProperty({ description: 'Category creation timestamp' })
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
@@ -76,4 +102,11 @@ export class ListingCategory {
   // Relations
   @OneToMany('Listing', (listing: any) => listing.category)
   listings: any[];
+
+  @OneToMany('ListingCategory', (category: any) => category.parent)
+  children: any[];
+
+  @ManyToOne('ListingCategory', (category: any) => category.children)
+  @JoinColumn({ name: 'parent_id' })
+  parent: any;
 }

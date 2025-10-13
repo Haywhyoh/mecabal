@@ -58,7 +58,7 @@ export class ListingsService {
       );
     }
 
-    // Create listing using raw SQL
+    // Create listing using raw SQL with all new fields
     const { latitude, longitude, address } = createListingDto.location;
 
     const result = await this.listingRepository.query(
@@ -66,9 +66,16 @@ export class ListingsService {
       INSERT INTO listings (
         user_id, neighborhood_id, listing_type, category_id, title, description,
         price, currency, price_type, property_type, bedrooms, bathrooms, rental_period,
-        condition, brand, latitude, longitude, address, status, expires_at
+        condition, brand, latitude, longitude, address, status, expires_at,
+        service_type, availability_schedule, service_radius, professional_credentials,
+        pricing_model, response_time, employment_type, salary_min, salary_max,
+        application_deadline, required_skills, work_location, company_info,
+        property_amenities, utilities_included, pet_policy, parking_spaces,
+        security_features, property_size, land_size, estate_id, city, state,
+        featured, boosted, verification_status, contact_preferences
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
+        $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49
       ) RETURNING *
       `,
       [
@@ -92,6 +99,38 @@ export class ListingsService {
         address,
         'active',
         createListingDto.expiresAt || null,
+        // Service-specific fields
+        createListingDto.serviceType || null,
+        createListingDto.availabilitySchedule ? JSON.stringify(createListingDto.availabilitySchedule) : null,
+        createListingDto.serviceRadius || null,
+        createListingDto.professionalCredentials ? JSON.stringify(createListingDto.professionalCredentials) : null,
+        createListingDto.pricingModel || null,
+        createListingDto.responseTime || null,
+        // Job-specific fields
+        createListingDto.employmentType || null,
+        createListingDto.salaryMin || null,
+        createListingDto.salaryMax || null,
+        createListingDto.applicationDeadline || null,
+        createListingDto.requiredSkills ? JSON.stringify(createListingDto.requiredSkills) : null,
+        createListingDto.workLocation || null,
+        createListingDto.companyInfo ? JSON.stringify(createListingDto.companyInfo) : null,
+        // Enhanced property fields
+        createListingDto.propertyAmenities ? JSON.stringify(createListingDto.propertyAmenities) : null,
+        createListingDto.utilitiesIncluded ? JSON.stringify(createListingDto.utilitiesIncluded) : null,
+        createListingDto.petPolicy || null,
+        createListingDto.parkingSpaces || null,
+        createListingDto.securityFeatures ? JSON.stringify(createListingDto.securityFeatures) : null,
+        createListingDto.propertySize || null,
+        createListingDto.landSize || null,
+        // Enhanced location fields
+        createListingDto.estateId || null,
+        createListingDto.city || null,
+        createListingDto.state || null,
+        // Enhanced status and metadata
+        createListingDto.featured || false,
+        createListingDto.boosted || false,
+        'pending',
+        createListingDto.contactPreferences ? JSON.stringify(createListingDto.contactPreferences) : null,
       ],
     );
 
@@ -502,6 +541,179 @@ export class ListingsService {
       queryBuilder.andWhere('listing.brand ILIKE :brand', {
         brand: `%${filter.brand}%`,
       });
+    }
+
+    // Service-specific filters
+    if (filter.serviceType) {
+      queryBuilder.andWhere('listing.serviceType = :serviceType', {
+        serviceType: filter.serviceType,
+      });
+    }
+
+    if (filter.pricingModel) {
+      queryBuilder.andWhere('listing.pricingModel = :pricingModel', {
+        pricingModel: filter.pricingModel,
+      });
+    }
+
+    if (filter.minServiceRadius !== undefined) {
+      queryBuilder.andWhere('listing.serviceRadius >= :minServiceRadius', {
+        minServiceRadius: filter.minServiceRadius,
+      });
+    }
+
+    if (filter.maxResponseTime !== undefined) {
+      queryBuilder.andWhere('listing.responseTime <= :maxResponseTime', {
+        maxResponseTime: filter.maxResponseTime,
+      });
+    }
+
+    // Job-specific filters
+    if (filter.employmentType) {
+      queryBuilder.andWhere('listing.employmentType = :employmentType', {
+        employmentType: filter.employmentType,
+      });
+    }
+
+    if (filter.workLocation) {
+      queryBuilder.andWhere('listing.workLocation = :workLocation', {
+        workLocation: filter.workLocation,
+      });
+    }
+
+    if (filter.minSalary !== undefined) {
+      queryBuilder.andWhere('listing.salaryMin >= :minSalary', {
+        minSalary: filter.minSalary,
+      });
+    }
+
+    if (filter.maxSalary !== undefined) {
+      queryBuilder.andWhere('listing.salaryMax <= :maxSalary', {
+        maxSalary: filter.maxSalary,
+      });
+    }
+
+    if (filter.requiredSkills && filter.requiredSkills.length > 0) {
+      queryBuilder.andWhere(
+        'listing.requiredSkills && :requiredSkills',
+        { requiredSkills: filter.requiredSkills },
+      );
+    }
+
+    if (filter.applicationDeadlineBefore) {
+      queryBuilder.andWhere('listing.applicationDeadline <= :deadline', {
+        deadline: new Date(filter.applicationDeadlineBefore),
+      });
+    }
+
+    // Enhanced property filters
+    if (filter.propertyAmenities && filter.propertyAmenities.length > 0) {
+      queryBuilder.andWhere(
+        'listing.propertyAmenities && :propertyAmenities',
+        { propertyAmenities: filter.propertyAmenities },
+      );
+    }
+
+    if (filter.utilitiesIncluded && filter.utilitiesIncluded.length > 0) {
+      queryBuilder.andWhere(
+        'listing.utilitiesIncluded && :utilitiesIncluded',
+        { utilitiesIncluded: filter.utilitiesIncluded },
+      );
+    }
+
+    if (filter.petPolicy) {
+      queryBuilder.andWhere('listing.petPolicy = :petPolicy', {
+        petPolicy: filter.petPolicy,
+      });
+    }
+
+    if (filter.minParkingSpaces !== undefined) {
+      queryBuilder.andWhere('listing.parkingSpaces >= :minParkingSpaces', {
+        minParkingSpaces: filter.minParkingSpaces,
+      });
+    }
+
+    if (filter.securityFeatures && filter.securityFeatures.length > 0) {
+      queryBuilder.andWhere(
+        'listing.securityFeatures && :securityFeatures',
+        { securityFeatures: filter.securityFeatures },
+      );
+    }
+
+    if (filter.minPropertySize !== undefined) {
+      queryBuilder.andWhere('listing.propertySize >= :minPropertySize', {
+        minPropertySize: filter.minPropertySize,
+      });
+    }
+
+    if (filter.maxPropertySize !== undefined) {
+      queryBuilder.andWhere('listing.propertySize <= :maxPropertySize', {
+        maxPropertySize: filter.maxPropertySize,
+      });
+    }
+
+    if (filter.minLandSize !== undefined) {
+      queryBuilder.andWhere('listing.landSize >= :minLandSize', {
+        minLandSize: filter.minLandSize,
+      });
+    }
+
+    if (filter.maxLandSize !== undefined) {
+      queryBuilder.andWhere('listing.landSize <= :maxLandSize', {
+        maxLandSize: filter.maxLandSize,
+      });
+    }
+
+    // Enhanced location filters
+    if (filter.estateId) {
+      queryBuilder.andWhere('listing.estateId = :estateId', {
+        estateId: filter.estateId,
+      });
+    }
+
+    if (filter.city) {
+      queryBuilder.andWhere('listing.city ILIKE :city', {
+        city: `%${filter.city}%`,
+      });
+    }
+
+    if (filter.state) {
+      queryBuilder.andWhere('listing.state ILIKE :state', {
+        state: `%${filter.state}%`,
+      });
+    }
+
+    // Enhanced status filters
+    if (filter.featured !== undefined) {
+      queryBuilder.andWhere('listing.featured = :featured', {
+        featured: filter.featured,
+      });
+    }
+
+    if (filter.boosted !== undefined) {
+      queryBuilder.andWhere('listing.boosted = :boosted', {
+        boosted: filter.boosted,
+      });
+    }
+
+    if (filter.verificationStatus) {
+      queryBuilder.andWhere('listing.verificationStatus = :verificationStatus', {
+        verificationStatus: filter.verificationStatus,
+      });
+    }
+
+    // Advanced search
+    if (filter.query) {
+      queryBuilder.andWhere(
+        `(
+          listing.title ILIKE :query OR 
+          listing.description ILIKE :query OR
+          listing.brand ILIKE :query OR
+          listing.city ILIKE :query OR
+          listing.state ILIKE :query
+        )`,
+        { query: `%${filter.query}%` },
+      );
     }
   }
 

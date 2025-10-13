@@ -62,6 +62,7 @@ export { BusinessLicense } from './business-license.entity';
 export { BusinessService } from './business-service.entity';
 export { BusinessReview } from './business-review.entity';
 export { BusinessInquiry } from './business-inquiry.entity';
+export { ServiceInquiry } from './service-inquiry.entity';
 export { BusinessActivityLog } from './business-activity-log.entity';
 
 // Cultural Profile Entities

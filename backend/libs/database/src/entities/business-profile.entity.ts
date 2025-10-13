@@ -110,6 +110,41 @@ export class BusinessProfile {
   @Column({ type: 'jsonb', nullable: true })
   businessHours: Record<string, { open: string; close: string }>;
 
+  // Enhanced service offerings
+  @Column({ name: 'services_offered', type: 'jsonb', nullable: true })
+  servicesOffered: {
+    category: string;
+    subcategory: string;
+    description: string;
+    pricing: {
+      model: 'hourly' | 'project' | 'fixed' | 'negotiable';
+      rate?: number;
+    };
+    availability: {
+      days: string[];
+      startTime: string;
+      endTime: string;
+    };
+  }[];
+
+  @Column({ name: 'service_areas', type: 'jsonb' })
+  serviceAreas: {
+    type: 'estate' | 'neighborhood' | 'city' | 'state';
+    radius?: number;
+    specificAreas?: string[];
+  };
+
+  @Column({ name: 'response_time', type: 'int', default: 24 })
+  responseTime: number; // in hours
+
+  @Column({ name: 'contact_preferences', type: 'jsonb' })
+  contactPreferences: {
+    allowCalls: boolean;
+    allowMessages: boolean;
+    allowWhatsApp: boolean;
+    preferredTime: string;
+  };
+
   @CreateDateColumn()
   joinedDate: Date;
 

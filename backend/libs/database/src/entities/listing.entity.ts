@@ -38,7 +38,7 @@ export class Listing {
 
   @ApiProperty({
     description: 'Type of listing',
-    enum: ['property', 'item', 'service'],
+    enum: ['property', 'item', 'service', 'job'],
     example: 'item',
   })
   @Column({ name: 'listing_type', length: 20 })
@@ -113,6 +113,164 @@ export class Listing {
   @ApiProperty({ description: 'Brand name', required: false })
   @Column({ length: 100, nullable: true })
   brand?: string;
+
+  // Service-specific fields
+  @ApiProperty({
+    description: 'Service type',
+    enum: ['offering', 'request'],
+    required: false,
+  })
+  @Column({ name: 'service_type', length: 50, nullable: true })
+  serviceType?: string;
+
+  @ApiProperty({ description: 'Service availability schedule', required: false })
+  @Column({ name: 'availability_schedule', type: 'jsonb', nullable: true })
+  availabilitySchedule?: {
+    days: string[];
+    startTime: string;
+    endTime: string;
+    timezone: string;
+  };
+
+  @ApiProperty({ description: 'Service radius in kilometers', required: false })
+  @Column({ name: 'service_radius', type: 'int', nullable: true })
+  serviceRadius?: number;
+
+  @ApiProperty({ description: 'Professional credentials', required: false })
+  @Column({ name: 'professional_credentials', type: 'jsonb', nullable: true })
+  professionalCredentials?: {
+    licenses: string[];
+    certifications: string[];
+    experience: number;
+    insurance: boolean;
+  };
+
+  @ApiProperty({
+    description: 'Pricing model for services',
+    enum: ['hourly', 'project', 'fixed', 'negotiable'],
+    required: false,
+  })
+  @Column({ name: 'pricing_model', length: 20, nullable: true })
+  pricingModel?: string;
+
+  @ApiProperty({ description: 'Response time in hours', required: false })
+  @Column({ name: 'response_time', type: 'int', nullable: true })
+  responseTime?: number;
+
+  // Job-specific fields
+  @ApiProperty({
+    description: 'Employment type',
+    enum: ['full_time', 'part_time', 'contract', 'freelance'],
+    required: false,
+  })
+  @Column({ name: 'employment_type', length: 20, nullable: true })
+  employmentType?: string;
+
+  @ApiProperty({ description: 'Minimum salary', required: false })
+  @Column({ name: 'salary_min', type: 'decimal', precision: 12, scale: 2, nullable: true })
+  salaryMin?: number;
+
+  @ApiProperty({ description: 'Maximum salary', required: false })
+  @Column({ name: 'salary_max', type: 'decimal', precision: 12, scale: 2, nullable: true })
+  salaryMax?: number;
+
+  @ApiProperty({ description: 'Application deadline', required: false })
+  @Column({ name: 'application_deadline', type: 'timestamp', nullable: true })
+  applicationDeadline?: Date;
+
+  @ApiProperty({ description: 'Required skills', required: false })
+  @Column({ name: 'required_skills', type: 'jsonb', nullable: true })
+  requiredSkills?: string[];
+
+  @ApiProperty({
+    description: 'Work location type',
+    enum: ['remote', 'on_site', 'hybrid'],
+    required: false,
+  })
+  @Column({ name: 'work_location', length: 20, nullable: true })
+  workLocation?: string;
+
+  @ApiProperty({ description: 'Company information', required: false })
+  @Column({ name: 'company_info', type: 'jsonb', nullable: true })
+  companyInfo?: {
+    name: string;
+    size: string;
+    industry: string;
+    website?: string;
+  };
+
+  // Enhanced property fields
+  @ApiProperty({ description: 'Property amenities', required: false })
+  @Column({ name: 'property_amenities', type: 'jsonb', nullable: true })
+  propertyAmenities?: string[];
+
+  @ApiProperty({ description: 'Utilities included', required: false })
+  @Column({ name: 'utilities_included', type: 'jsonb', nullable: true })
+  utilitiesIncluded?: string[];
+
+  @ApiProperty({
+    description: 'Pet policy',
+    enum: ['allowed', 'not_allowed', 'case_by_case'],
+    required: false,
+  })
+  @Column({ name: 'pet_policy', length: 20, nullable: true })
+  petPolicy?: string;
+
+  @ApiProperty({ description: 'Number of parking spaces', required: false })
+  @Column({ name: 'parking_spaces', type: 'int', nullable: true })
+  parkingSpaces?: number;
+
+  @ApiProperty({ description: 'Security features', required: false })
+  @Column({ name: 'security_features', type: 'jsonb', nullable: true })
+  securityFeatures?: string[];
+
+  @ApiProperty({ description: 'Property size in square meters', required: false })
+  @Column({ name: 'property_size', type: 'decimal', precision: 10, scale: 2, nullable: true })
+  propertySize?: number;
+
+  @ApiProperty({ description: 'Land size in square meters', required: false })
+  @Column({ name: 'land_size', type: 'decimal', precision: 10, scale: 2, nullable: true })
+  landSize?: number;
+
+  // Enhanced location fields
+
+  @ApiProperty({ description: 'Estate ID', required: false })
+  @Column({ name: 'estate_id', length: 36, nullable: true })
+  estateId?: string;
+
+  @ApiProperty({ description: 'City', required: false })
+  @Column({ name: 'city', length: 100, nullable: true })
+  city?: string;
+
+  @ApiProperty({ description: 'State', required: false })
+  @Column({ name: 'state', length: 50, nullable: true })
+  state?: string;
+
+  // Enhanced status and metadata
+  @ApiProperty({ description: 'Whether listing is featured', default: false })
+  @Column({ name: 'featured', type: 'boolean', default: false })
+  featured: boolean;
+
+  @ApiProperty({ description: 'Whether listing is boosted', default: false })
+  @Column({ name: 'boosted', type: 'boolean', default: false })
+  boosted: boolean;
+
+  @ApiProperty({
+    description: 'Verification status',
+    enum: ['pending', 'verified', 'rejected'],
+    default: 'pending',
+  })
+  @Column({ name: 'verification_status', length: 20, default: 'pending' })
+  verificationStatus: string;
+
+  @ApiProperty({ description: 'Contact preferences', required: false })
+  @Column({ name: 'contact_preferences', type: 'jsonb', nullable: true })
+  contactPreferences?: {
+    allowCalls: boolean;
+    allowMessages: boolean;
+    allowWhatsApp: boolean;
+    preferredTime: string;
+  };
 
   // Location stored as separate latitude/longitude columns
   @ApiProperty({ description: 'Latitude coordinate' })

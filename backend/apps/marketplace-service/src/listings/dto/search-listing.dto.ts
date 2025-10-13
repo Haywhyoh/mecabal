@@ -4,47 +4,29 @@ import {
   IsEnum,
   IsNumber,
   IsString,
+  IsArray,
   Min,
   Max,
+  IsDateString,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { 
   ListingType, 
-  PriceType, 
-  PropertyType, 
-  ItemCondition, 
   ServiceType, 
   PricingModel, 
   EmploymentType, 
   WorkLocation, 
   PetPolicy 
 } from './create-listing.dto';
-import { ListingStatus } from './update-listing.dto';
 
-export class ListingFilterDto {
+export class SearchListingsDto {
   @ApiPropertyOptional({
-    description: 'Page number for pagination',
-    minimum: 1,
-    default: 1,
+    description: 'Full-text search query',
+    example: '3 bedroom apartment lekki',
   })
   @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  @Min(1)
-  page?: number = 1;
-
-  @ApiPropertyOptional({
-    description: 'Number of listings per page',
-    minimum: 1,
-    maximum: 100,
-    default: 20,
-  })
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  @Min(1)
-  @Max(100)
-  limit?: number = 20;
+  @IsString()
+  query?: string;
 
   @ApiPropertyOptional({
     description: 'Filter by listing type',
@@ -56,6 +38,7 @@ export class ListingFilterDto {
 
   @ApiPropertyOptional({
     description: 'Filter by category ID',
+    example: 1,
   })
   @IsOptional()
   @Type(() => Number)
@@ -81,14 +64,6 @@ export class ListingFilterDto {
   @IsNumber()
   @Min(0)
   maxPrice?: number;
-
-  @ApiPropertyOptional({
-    description: 'Search term for title and description',
-    example: 'apartment lekki',
-  })
-  @IsOptional()
-  @IsString()
-  search?: string;
 
   @ApiPropertyOptional({
     description: 'Latitude for location-based search',
@@ -123,12 +98,12 @@ export class ListingFilterDto {
 
   @ApiPropertyOptional({
     description: 'Sort by field',
-    enum: ['createdAt', 'price', 'viewsCount'],
+    enum: ['createdAt', 'price', 'viewsCount', 'relevance', 'savesCount'],
     default: 'createdAt',
   })
   @IsOptional()
-  @IsEnum(['createdAt', 'price', 'viewsCount'])
-  sortBy?: 'createdAt' | 'price' | 'viewsCount' = 'createdAt';
+  @IsEnum(['createdAt', 'price', 'viewsCount', 'relevance', 'savesCount'])
+  sortBy?: 'createdAt' | 'price' | 'viewsCount' | 'relevance' | 'savesCount' = 'createdAt';
 
   @ApiPropertyOptional({
     description: 'Sort order',
@@ -140,59 +115,28 @@ export class ListingFilterDto {
   sortOrder?: 'ASC' | 'DESC' = 'DESC';
 
   @ApiPropertyOptional({
-    description: 'Filter by status',
-    enum: ListingStatus,
-    default: ListingStatus.ACTIVE,
-  })
-  @IsOptional()
-  @IsEnum(ListingStatus)
-  status?: ListingStatus = ListingStatus.ACTIVE;
-
-  // Property-specific filters
-  @ApiPropertyOptional({
-    description: 'Filter by property type',
-    enum: PropertyType,
-  })
-  @IsOptional()
-  @IsEnum(PropertyType)
-  propertyType?: PropertyType;
-
-  @ApiPropertyOptional({
-    description: 'Minimum number of bedrooms',
-    example: 2,
+    description: 'Page number for pagination',
+    minimum: 1,
+    default: 1,
   })
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
-  @Min(0)
-  minBedrooms?: number;
+  @Min(1)
+  page?: number = 1;
 
   @ApiPropertyOptional({
-    description: 'Minimum number of bathrooms',
-    example: 1,
+    description: 'Number of listings per page',
+    minimum: 1,
+    maximum: 100,
+    default: 20,
   })
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
-  @Min(0)
-  minBathrooms?: number;
-
-  // Item-specific filters
-  @ApiPropertyOptional({
-    description: 'Filter by item condition',
-    enum: ItemCondition,
-  })
-  @IsOptional()
-  @IsEnum(ItemCondition)
-  condition?: ItemCondition;
-
-  @ApiPropertyOptional({
-    description: 'Filter by brand',
-    example: 'Samsung',
-  })
-  @IsOptional()
-  @IsString()
-  brand?: string;
+  @Min(1)
+  @Max(100)
+  limit?: number = 20;
 
   // Service-specific filters
   @ApiPropertyOptional({
@@ -282,10 +226,38 @@ export class ListingFilterDto {
     example: '2024-12-31T23:59:59Z',
   })
   @IsOptional()
-  @IsString()
+  @IsDateString()
   applicationDeadlineBefore?: string;
 
-  // Enhanced property filters
+  // Property-specific filters
+  @ApiPropertyOptional({
+    description: 'Filter by property type',
+    enum: ['apartment', 'house', 'land', 'office'],
+  })
+  @IsOptional()
+  @IsEnum(['apartment', 'house', 'land', 'office'])
+  propertyType?: 'apartment' | 'house' | 'land' | 'office';
+
+  @ApiPropertyOptional({
+    description: 'Filter by minimum bedrooms',
+    example: 2,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  minBedrooms?: number;
+
+  @ApiPropertyOptional({
+    description: 'Filter by minimum bathrooms',
+    example: 1,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  minBathrooms?: number;
+
   @ApiPropertyOptional({
     description: 'Filter by property amenities',
     example: ['Swimming Pool', 'Gym'],
@@ -351,27 +323,24 @@ export class ListingFilterDto {
   @Min(0)
   maxPropertySize?: number;
 
+  // Item-specific filters
   @ApiPropertyOptional({
-    description: 'Filter by minimum land size (square meters)',
-    example: 200,
+    description: 'Filter by item condition',
+    enum: ['new', 'like_new', 'good', 'fair'],
   })
   @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  @Min(0)
-  minLandSize?: number;
+  @IsEnum(['new', 'like_new', 'good', 'fair'])
+  condition?: 'new' | 'like_new' | 'good' | 'fair';
 
   @ApiPropertyOptional({
-    description: 'Filter by maximum land size (square meters)',
-    example: 1000,
+    description: 'Filter by brand',
+    example: 'Samsung',
   })
   @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  @Min(0)
-  maxLandSize?: number;
+  @IsString()
+  brand?: string;
 
-  // Enhanced location filters
+  // Location filters
   @ApiPropertyOptional({
     description: 'Filter by estate ID',
     example: 'estate-uuid-123',
@@ -396,7 +365,7 @@ export class ListingFilterDto {
   @IsString()
   state?: string;
 
-  // Enhanced status filters
+  // Status filters
   @ApiPropertyOptional({
     description: 'Filter by featured status',
     example: true,
@@ -418,22 +387,4 @@ export class ListingFilterDto {
   @IsOptional()
   @IsEnum(['pending', 'verified', 'rejected'])
   verificationStatus?: 'pending' | 'verified' | 'rejected';
-
-  // Advanced search options
-  @ApiPropertyOptional({
-    description: 'Full-text search query',
-    example: '3 bedroom apartment lekki',
-  })
-  @IsOptional()
-  @IsString()
-  query?: string;
-
-  @ApiPropertyOptional({
-    description: 'Sort by field',
-    enum: ['createdAt', 'price', 'viewsCount', 'relevance', 'savesCount'],
-    default: 'createdAt',
-  })
-  @IsOptional()
-  @IsEnum(['createdAt', 'price', 'viewsCount', 'relevance', 'savesCount'])
-  sortBy?: 'createdAt' | 'price' | 'viewsCount' | 'relevance' | 'savesCount' = 'createdAt';
 }
