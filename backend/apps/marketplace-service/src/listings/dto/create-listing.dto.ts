@@ -10,8 +10,24 @@ import {
   IsArray,
   ValidateNested,
   IsDateString,
+  IsBoolean,
+  IsObject,
+  IsInt,
+  Max,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import {
+  IsPositivePrice,
+  IsFutureDate,
+  IsValidCoordinates,
+  IsValidSalaryRange,
+  IsValidSkillsArray,
+  IsValidPropertySize,
+  IsValidServiceRadius,
+  IsValidResponseTime,
+  IsNigerianPhoneNumber,
+  IsValidUrl,
+} from '../../validators/custom-validators';
 
 export enum ListingType {
   PROPERTY = 'property',
@@ -83,6 +99,8 @@ export class LocationDto {
     example: 6.5244,
   })
   @IsNumber()
+  @Min(-90)
+  @Max(90)
   latitude: number;
 
   @ApiProperty({
@@ -90,6 +108,8 @@ export class LocationDto {
     example: 3.3792,
   })
   @IsNumber()
+  @Min(-180)
+  @Max(180)
   longitude: number;
 
   @ApiProperty({
@@ -285,6 +305,8 @@ export class CreateListingDto {
     example: 1,
   })
   @IsNumber()
+  @IsInt()
+  @Min(1)
   categoryId: number;
 
   @ApiProperty({
@@ -315,7 +337,7 @@ export class CreateListingDto {
     example: 4500000,
   })
   @IsNumber()
-  @Min(0)
+  @IsPositivePrice()
   price: number;
 
   @ApiProperty({
@@ -435,7 +457,7 @@ export class CreateListingDto {
   })
   @IsOptional()
   @IsNumber()
-  @Min(0)
+  @IsValidServiceRadius()
   serviceRadius?: number;
 
   @ApiPropertyOptional({
@@ -462,7 +484,7 @@ export class CreateListingDto {
   })
   @IsOptional()
   @IsNumber()
-  @Min(0)
+  @IsValidResponseTime()
   responseTime?: number;
 
   // Job-specific fields
@@ -481,7 +503,7 @@ export class CreateListingDto {
   })
   @IsOptional()
   @IsNumber()
-  @Min(0)
+  @IsPositivePrice()
   salaryMin?: number;
 
   @ApiPropertyOptional({
@@ -490,7 +512,7 @@ export class CreateListingDto {
   })
   @IsOptional()
   @IsNumber()
-  @Min(0)
+  @IsPositivePrice()
   salaryMax?: number;
 
   @ApiPropertyOptional({
@@ -499,6 +521,7 @@ export class CreateListingDto {
   })
   @IsOptional()
   @IsDateString()
+  @IsFutureDate()
   applicationDeadline?: string;
 
   @ApiPropertyOptional({
@@ -507,7 +530,7 @@ export class CreateListingDto {
   })
   @IsOptional()
   @IsArray()
-  @IsString({ each: true })
+  @IsValidSkillsArray()
   requiredSkills?: string[];
 
   @ApiPropertyOptional({
@@ -580,7 +603,7 @@ export class CreateListingDto {
   })
   @IsOptional()
   @IsNumber()
-  @Min(0)
+  @IsValidPropertySize()
   propertySize?: number;
 
   @ApiPropertyOptional({
@@ -589,7 +612,7 @@ export class CreateListingDto {
   })
   @IsOptional()
   @IsNumber()
-  @Min(0)
+  @IsValidPropertySize()
   landSize?: number;
 
   // Enhanced location fields
