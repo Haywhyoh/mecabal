@@ -23,6 +23,8 @@ import {
 } from './dto';
 import { BusinessRulesService } from '../validators/business-rules.service';
 import { DataIntegrityService } from '../validators/data-integrity.service';
+import { ListingCacheStrategy } from '../cache/strategies/listing-cache.strategy';
+import { CacheInvalidationService } from '../cache/services/cache-invalidation.service';
 
 @Injectable()
 export class ListingsService {
@@ -39,6 +41,8 @@ export class ListingsService {
     private readonly userRepository: Repository<User>,
     private readonly businessRulesService: BusinessRulesService,
     private readonly dataIntegrityService: DataIntegrityService,
+    private readonly listingCacheStrategy: ListingCacheStrategy,
+    private readonly cacheInvalidationService: CacheInvalidationService,
   ) {}
 
   async create(
@@ -161,6 +165,13 @@ export class ListingsService {
       await this.mediaRepository.save(mediaEntities);
     }
 
+    // Invalidate cache after creating listing
+    await this.cacheInvalidationService.onListingCreated({
+      id: savedListing.id,
+      userId,
+      categoryId: createListingDto.categoryId,
+    });
+
     return this.findOne(savedListing.id, userId);
   }
 
@@ -204,6 +215,12 @@ export class ListingsService {
   }
 
   async findOne(id: string, userId?: string): Promise<ListingResponseDto> {
+    // Try to get from cache first
+    const cachedListing = await this.listingCacheStrategy.getCachedListingDetail(id);
+    if (cachedListing) {
+      return cachedListing;
+    }
+
     const listing = await this.listingRepository.findOne({
       where: { id },
       relations: ['user', 'category', 'media'],
@@ -213,7 +230,12 @@ export class ListingsService {
       throw new NotFoundException('Listing not found');
     }
 
-    return this.formatListingResponse(listing, userId);
+    const formattedListing = this.formatListingResponse(listing, userId);
+    
+    // Cache the result
+    await this.listingCacheStrategy.cacheListingDetail(id, formattedListing);
+    
+    return formattedListing;
   }
 
   async update(

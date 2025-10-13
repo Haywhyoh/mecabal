@@ -18,6 +18,11 @@ import {
 } from '@nestjs/swagger';
 import { MarketplaceAuthGuard } from '../guards/marketplace-auth.guard';
 import { ListingsService } from './listings.service';
+import { 
+  CreateListingRateLimit, 
+  SearchRateLimit, 
+  GeneralRateLimit 
+} from '../rate-limiting/decorators/rate-limit.decorator';
 import {
   CreateListingDto,
   UpdateListingDto,
@@ -41,6 +46,7 @@ export class ListingsController {
   constructor(private readonly listingsService: ListingsService) {}
 
   @Post()
+  @CreateListingRateLimit()
   @ApiOperation({ summary: 'Create a new listing' })
   @ApiResponse({
     status: 201,
@@ -59,6 +65,7 @@ export class ListingsController {
   }
 
   @Get()
+  @SearchRateLimit()
   @ApiOperation({ summary: 'Get all listings with filters' })
   @ApiResponse({
     status: 200,

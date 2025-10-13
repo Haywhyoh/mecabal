@@ -7,6 +7,8 @@ import { ListingCategoriesModule } from './listing-categories/listing-categories
 import { SearchModule } from './search/search.module';
 import { BusinessModule } from './business/business.module';
 import { JobsModule } from './jobs/jobs.module';
+import { AppCacheModule } from './cache/cache.module';
+import { RateLimitingModule } from './rate-limiting/rate-limiting.module';
 import { DatabaseModule } from '@app/database';
 import { AuthModule } from '@app/auth';
 
@@ -22,6 +24,8 @@ import { AuthModule } from '@app/auth';
     SearchModule,
     BusinessModule,
     JobsModule,
+    AppCacheModule,
+    RateLimitingModule,
   ],
   controllers: [MarketplaceServiceController],
   providers: [MarketplaceServiceService],

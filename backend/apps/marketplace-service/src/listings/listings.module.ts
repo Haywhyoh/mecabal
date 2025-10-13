@@ -11,6 +11,7 @@ import { ListingsService } from './listings.service';
 import { ListingsController } from './listings.controller';
 import { MarketplaceAuthGuard } from '../guards/marketplace-auth.guard';
 import { ValidationModule } from '../validators/validation.module';
+import { AppCacheModule } from '../cache/cache.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { ValidationModule } from '../validators/validation.module';
       User,
     ]),
     ValidationModule,
+    AppCacheModule,
   ],
   controllers: [ListingsController],
   providers: [ListingsService, MarketplaceAuthGuard],
