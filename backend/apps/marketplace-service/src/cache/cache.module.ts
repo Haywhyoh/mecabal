@@ -1,10 +1,13 @@
-import { Module, Global } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { CacheModule } from '@nestjs/cache-manager';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { redisStore } from 'cache-manager-ioredis-yet';
 import { CacheService } from './cache.service';
+import { ListingCacheStrategy } from './strategies/listing-cache.strategy';
+import { CategoryCacheStrategy } from './strategies/category-cache.strategy';
+import { CacheInvalidationService } from './services/cache-invalidation.service';
+import { CacheInterceptor } from './interceptors/cache.interceptor';
 
-@Global()
 @Module({
   imports: [
     CacheModule.registerAsync({
@@ -28,7 +31,19 @@ import { CacheService } from './cache.service';
       inject: [ConfigService],
     }),
   ],
-  providers: [CacheService],
-  exports: [CacheService, CacheModule],
+  providers: [
+    CacheService,
+    ListingCacheStrategy,
+    CategoryCacheStrategy,
+    CacheInvalidationService,
+    CacheInterceptor,
+  ],
+  exports: [
+    CacheService,
+    ListingCacheStrategy,
+    CategoryCacheStrategy,
+    CacheInvalidationService,
+    CacheInterceptor,
+  ],
 })
 export class AppCacheModule {}
