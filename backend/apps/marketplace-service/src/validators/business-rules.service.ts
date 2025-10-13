@@ -38,7 +38,7 @@ export class BusinessRulesService {
     this.validateLocationRules(createListingDto);
 
     // Validate business rules
-    await this.validateBusinessRules(createListingDto);
+    await this.validateBusinessRules(userId, createListingDto);
   }
 
   /**

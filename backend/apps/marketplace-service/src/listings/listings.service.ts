@@ -21,6 +21,8 @@ import {
   PaginatedListingsResponseDto,
   ListingStatus,
 } from './dto';
+import { BusinessRulesService } from '../validators/business-rules.service';
+import { DataIntegrityService } from '../validators/data-integrity.service';
 
 @Injectable()
 export class ListingsService {
@@ -35,6 +37,8 @@ export class ListingsService {
     private readonly saveRepository: Repository<ListingSave>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    private readonly businessRulesService: BusinessRulesService,
+    private readonly dataIntegrityService: DataIntegrityService,
   ) {}
 
   async create(
@@ -42,6 +46,13 @@ export class ListingsService {
     neighborhoodId: string,
     createListingDto: CreateListingDto,
   ): Promise<ListingResponseDto> {
+    // Add user ID to DTO for validation
+    const listingData = { ...createListingDto, userId, neighborhoodId };
+
+    // Comprehensive validation
+    await this.businessRulesService.validateListingCreation(userId, createListingDto);
+    await this.dataIntegrityService.validateListingIntegrity(listingData);
+
     // Validate category
     const category = await this.categoryRepository.findOne({
       where: { id: createListingDto.categoryId, isActive: true },
