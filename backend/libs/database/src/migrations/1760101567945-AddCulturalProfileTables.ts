@@ -395,3 +395,5 @@ export class AddCulturalProfileTables1760101567945 implements MigrationInterface
 }
 
 
+
+
