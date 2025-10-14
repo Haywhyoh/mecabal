@@ -26,10 +26,11 @@ export enum PostType {
 }
 
 export enum HelpCategory {
-  JOB = 'job',
   ERRAND = 'errand',
+  TASK = 'task',
   RECOMMENDATION = 'recommendation',
   ADVICE = 'advice',
+  BORROW = 'borrow',
 }
 
 export enum Urgency {
@@ -170,4 +171,59 @@ export class CreatePostDto {
   @IsOptional()
   @IsDateString()
   deadline?: string;
+
+  // Borrow-specific fields
+  @ApiPropertyOptional({
+    description: 'Borrow duration (required if helpCategory is borrow)',
+    enum: ['few_hours', 'day', 'few_days', 'week'],
+    example: 'day',
+  })
+  @IsOptional()
+  @IsEnum(['few_hours', 'day', 'few_days', 'week'])
+  @ValidateIf((o) => o.helpCategory === HelpCategory.BORROW)
+  @IsNotEmpty({ message: 'Borrow duration is required for borrow requests' })
+  borrowDuration?: string;
+
+  @ApiPropertyOptional({
+    description: 'Item to borrow (required if helpCategory is borrow)',
+    example: 'Ladder',
+    maxLength: 200,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  @ValidateIf((o) => o.helpCategory === HelpCategory.BORROW)
+  @IsNotEmpty({ message: 'Borrow item is required for borrow requests' })
+  borrowItem?: string;
+
+  @ApiPropertyOptional({
+    description: 'Item condition notes (for borrow requests)',
+    example: 'Prefer one in good working condition',
+    maxLength: 500,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  itemCondition?: string;
+
+  // Task-specific fields
+  @ApiPropertyOptional({
+    description: 'Task type (for task requests)',
+    example: 'moving',
+    maxLength: 50,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  taskType?: string;
+
+  @ApiPropertyOptional({
+    description: 'Estimated duration (for task requests)',
+    example: '2 hours',
+    maxLength: 100,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  estimatedDuration?: string;
 }

@@ -38,7 +38,7 @@ export class Listing {
 
   @ApiProperty({
     description: 'Type of listing',
-    enum: ['property', 'item', 'service', 'job'],
+    enum: ['property', 'item', 'service'],
     example: 'item',
   })
   @Column({ name: 'listing_type', length: 20 })
@@ -177,40 +177,85 @@ export class Listing {
   @Column({ name: 'response_time', type: 'int', nullable: true })
   responseTime?: number;
 
-  // Job-specific fields
+  // Job-specific fields (DEPRECATED - use Community Help for job postings)
+  /**
+   * @deprecated Job listings are no longer supported in Marketplace.
+   * Use Community Help 'task' category instead.
+   * This field is kept for backward compatibility with existing data.
+   */
   @ApiProperty({
-    description: 'Employment type',
+    description: 'Employment type (DEPRECATED - use Community Help for jobs)',
     enum: ['full_time', 'part_time', 'contract', 'freelance'],
     required: false,
+    deprecated: true,
   })
   @Column({ name: 'employment_type', length: 20, nullable: true })
   employmentType?: string;
 
-  @ApiProperty({ description: 'Minimum salary', required: false })
+  /**
+   * @deprecated See employmentType deprecation notice
+   */
+  @ApiProperty({ 
+    description: 'Minimum salary (DEPRECATED)', 
+    required: false,
+    deprecated: true,
+  })
   @Column({ name: 'salary_min', type: 'decimal', precision: 12, scale: 2, nullable: true })
   salaryMin?: number;
 
-  @ApiProperty({ description: 'Maximum salary', required: false })
+  /**
+   * @deprecated See employmentType deprecation notice
+   */
+  @ApiProperty({ 
+    description: 'Maximum salary (DEPRECATED)', 
+    required: false,
+    deprecated: true,
+  })
   @Column({ name: 'salary_max', type: 'decimal', precision: 12, scale: 2, nullable: true })
   salaryMax?: number;
 
-  @ApiProperty({ description: 'Application deadline', required: false })
+  /**
+   * @deprecated See employmentType deprecation notice
+   */
+  @ApiProperty({ 
+    description: 'Application deadline (DEPRECATED)', 
+    required: false,
+    deprecated: true,
+  })
   @Column({ name: 'application_deadline', type: 'timestamp', nullable: true })
   applicationDeadline?: Date;
 
-  @ApiProperty({ description: 'Required skills', required: false })
+  /**
+   * @deprecated See employmentType deprecation notice
+   */
+  @ApiProperty({ 
+    description: 'Required skills (DEPRECATED)', 
+    required: false,
+    deprecated: true,
+  })
   @Column({ name: 'required_skills', type: 'jsonb', nullable: true })
   requiredSkills?: string[];
 
+  /**
+   * @deprecated See employmentType deprecation notice
+   */
   @ApiProperty({
-    description: 'Work location type',
+    description: 'Work location type (DEPRECATED)',
     enum: ['remote', 'on_site', 'hybrid'],
     required: false,
+    deprecated: true,
   })
   @Column({ name: 'work_location', length: 20, nullable: true })
   workLocation?: string;
 
-  @ApiProperty({ description: 'Company information', required: false })
+  /**
+   * @deprecated See employmentType deprecation notice
+   */
+  @ApiProperty({ 
+    description: 'Company information (DEPRECATED)', 
+    required: false,
+    deprecated: true,
+  })
   @Column({ name: 'company_info', type: 'jsonb', nullable: true })
   companyInfo?: {
     name: string;

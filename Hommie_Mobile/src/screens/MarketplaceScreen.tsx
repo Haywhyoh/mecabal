@@ -228,8 +228,8 @@ export default function MarketplaceScreen({ navigation }: MarketplaceScreenProps
   // Categories following iOS design
   // Show main categories or subcategories based on selection
   const displayCategories = selectedMainCategory
-    ? MARKETPLACE_CATEGORIES.filter(cat => cat.type === selectedMainCategory)
-    : MARKETPLACE_MAIN_CATEGORIES.map(mainCat => ({
+    ? MARKETPLACE_CATEGORIES.filter(cat => cat.type === selectedMainCategory && cat.type !== 'job')
+    : MARKETPLACE_MAIN_CATEGORIES.filter(cat => cat.type !== 'job').map(mainCat => ({
         id: mainCat.type,
         label: mainCat.label,
         icon: mainCat.icon,

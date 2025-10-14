@@ -23,6 +23,7 @@ import EmailLoginScreen from './src/screens/onBoarding/EmailLoginScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import EventsScreen from './src/screens/EventsScreen';
 import { MarketplaceNavigator } from './src/navigation/MarketplaceNavigation';
+import { HelpNavigator } from './src/navigation/HelpNavigation';
 import InboxScreen from './src/screens/InboxScreen';
 import MoreScreen from './src/screens/MoreScreen';
 
@@ -87,6 +88,7 @@ const linking = {
           Home: 'home',
           Inbox: 'inbox',
           Market: 'market',
+          Help: 'help',
           More: 'more',
         },
       },
@@ -155,6 +157,16 @@ function TabNavigator() {
           tabBarLabel: 'Market',
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="shopping" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tab.Screen 
+        name="Help" 
+        component={HelpNavigator}
+        options={{
+          tabBarLabel: 'Help',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="hand-heart" color={color} size={size} />
           ),
         }}
       />

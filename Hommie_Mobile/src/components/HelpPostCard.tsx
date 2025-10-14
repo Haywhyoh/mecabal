@@ -38,11 +38,45 @@ export const HelpPostCard: React.FC<HelpPostCardProps> = ({
 
   const getHelpIcon = () => {
     switch (post.helpCategory) {
-      case 'job': return 'briefcase';
       case 'errand': return 'bicycle';
+      case 'task': return 'construct';
+      case 'borrow': return 'sync';
       case 'recommendation': return 'star';
-      case 'advice': return 'help-circle';
+      case 'advice': return 'lightbulb';
       default: return 'help-circle';
+    }
+  };
+
+  const getActionButtonText = () => {
+    switch (post.helpCategory) {
+      case 'errand': return 'I Can Help';
+      case 'task': return 'I Can Do This';
+      case 'borrow': return 'I Can Lend';
+      case 'recommendation': return 'I Recommend';
+      case 'advice': return 'Share Advice';
+      default: return 'Respond';
+    }
+  };
+
+  const getCategoryLabel = () => {
+    switch (post.helpCategory) {
+      case 'errand': return 'Quick Errand';
+      case 'task': return 'Task';
+      case 'borrow': return 'Borrow/Lend';
+      case 'recommendation': return 'Recommendation';
+      case 'advice': return 'Advice';
+      default: return 'Help Request';
+    }
+  };
+
+  const getCategoryColor = () => {
+    switch (post.helpCategory) {
+      case 'errand': return '#FF6B35';  // Orange
+      case 'task': return '#9C27B0';    // Purple
+      case 'borrow': return '#2196F3';  // Blue
+      case 'recommendation': return '#FFC107';  // Yellow
+      case 'advice': return '#00BCD4';  // Cyan
+      default: return '#8E8E93';
     }
   };
 
@@ -117,14 +151,14 @@ export const HelpPostCard: React.FC<HelpPostCardProps> = ({
         </View>
 
         {/* Help Type Badge */}
-        <View style={[styles.helpBadge, { backgroundColor: getUrgencyColor() + '20' }]}>
+        <View style={[styles.helpBadge, { backgroundColor: getCategoryColor() + '20' }]}>
           <Ionicons
             name={getHelpIcon() as any}
             size={14}
-            color={getUrgencyColor()}
+            color={getCategoryColor()}
           />
-          <Text style={[styles.helpType, { color: getUrgencyColor() }]}>
-            {post.helpCategory?.toUpperCase()}
+          <Text style={[styles.helpType, { color: getCategoryColor() }]}>
+            {getCategoryLabel().toUpperCase()}
           </Text>
         </View>
       </View>
@@ -202,7 +236,7 @@ export const HelpPostCard: React.FC<HelpPostCardProps> = ({
 
           <TouchableOpacity style={styles.respondButton} onPress={handleRespond}>
             <Ionicons name="hand-right-outline" size={16} color="#FFFFFF" />
-            <Text style={styles.respondText}>I Can Help</Text>
+            <Text style={styles.respondText}>{getActionButtonText()}</Text>
           </TouchableOpacity>
         </View>
       )}

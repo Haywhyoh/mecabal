@@ -57,6 +57,20 @@ export class ListingsService {
     await this.businessRulesService.validateListingCreation(userId, createListingDto);
     await this.dataIntegrityService.validateListingIntegrity(listingData);
 
+    // Reject job listings
+    if (createListingDto.listingType === 'job' as any) {
+      throw new BadRequestException({
+        message: 'Job listings are no longer supported in Marketplace',
+        error: 'JOB_LISTINGS_DEPRECATED',
+        details: 'Job listings have been moved to Community Help "Tasks" feature.',
+        suggestion: 'Please use the Community Help section to post job opportunities or tasks.',
+        receivedData: {
+          listingType: createListingDto.listingType,
+          alternative: 'Use Community Help "Tasks" category instead'
+        },
+      });
+    }
+
     // Validate category
     const category = await this.categoryRepository.findOne({
       where: { id: createListingDto.categoryId, isActive: true },

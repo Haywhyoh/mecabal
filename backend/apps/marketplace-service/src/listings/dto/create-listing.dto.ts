@@ -33,7 +33,8 @@ export enum ListingType {
   PROPERTY = 'property',
   ITEM = 'item',
   SERVICE = 'service',
-  JOB = 'job',
+  // @deprecated Use Community Help 'task' category for job postings
+  // JOB = 'job',
 }
 
 export enum PriceType {
@@ -530,64 +531,92 @@ export class CreateListingDto {
   @IsValidResponseTime()
   responseTime?: number;
 
-  // Job-specific fields
+  // Job-specific fields (DEPRECATED - use Community Help for job postings)
+  /**
+   * @deprecated Job listings no longer supported. Use Community Help instead.
+   */
   @ApiPropertyOptional({
-    description: 'Employment type (required for job listings)',
+    description: 'Employment type (DEPRECATED)',
     enum: EmploymentType,
     example: EmploymentType.FULL_TIME,
+    deprecated: true,
   })
   @IsOptional()
   @IsEnum(EmploymentType)
   employmentType?: EmploymentType;
 
+  /**
+   * @deprecated Job listings no longer supported. Use Community Help instead.
+   */
   @ApiPropertyOptional({
-    description: 'Minimum salary',
+    description: 'Minimum salary (DEPRECATED)',
     example: 500000,
+    deprecated: true,
   })
   @IsOptional()
   @IsNumber()
   @IsPositivePrice()
   salaryMin?: number;
 
+  /**
+   * @deprecated Job listings no longer supported. Use Community Help instead.
+   */
   @ApiPropertyOptional({
-    description: 'Maximum salary',
+    description: 'Maximum salary (DEPRECATED)',
     example: 1000000,
+    deprecated: true,
   })
   @IsOptional()
   @IsNumber()
   @IsPositivePrice()
   salaryMax?: number;
 
+  /**
+   * @deprecated Job listings no longer supported. Use Community Help instead.
+   */
   @ApiPropertyOptional({
-    description: 'Application deadline',
+    description: 'Application deadline (DEPRECATED)',
     example: '2024-12-31T23:59:59Z',
+    deprecated: true,
   })
   @IsOptional()
   @IsDateString()
   @IsFutureDate()
   applicationDeadline?: string;
 
+  /**
+   * @deprecated Job listings no longer supported. Use Community Help instead.
+   */
   @ApiPropertyOptional({
-    description: 'Required skills',
+    description: 'Required skills (DEPRECATED)',
     example: ['JavaScript', 'React', 'Node.js'],
+    deprecated: true,
   })
   @IsOptional()
   @IsArray()
   @IsValidSkillsArray()
   requiredSkills?: string[];
 
+  /**
+   * @deprecated Job listings no longer supported. Use Community Help instead.
+   */
   @ApiPropertyOptional({
-    description: 'Work location type',
+    description: 'Work location type (DEPRECATED)',
     enum: WorkLocation,
     example: WorkLocation.REMOTE,
+    deprecated: true,
   })
   @IsOptional()
   @IsEnum(WorkLocation)
   workLocation?: WorkLocation;
 
+  /**
+   * @deprecated Job listings no longer supported. Use Community Help instead.
+   */
   @ApiPropertyOptional({
-    description: 'Company information',
+    description: 'Company information (DEPRECATED)',
     type: CompanyInfoDto,
+    deprecated: true,
   })
   @IsOptional()
   @ValidateNested()

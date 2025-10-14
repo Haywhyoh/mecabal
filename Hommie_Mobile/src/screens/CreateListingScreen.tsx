@@ -27,7 +27,7 @@ interface CreateListingScreenProps {
 }
 
 export default function CreateListingScreen({ navigation, route }: CreateListingScreenProps) {
-  const [listingType, setListingType] = useState<'property' | 'item' | 'service' | 'job'>('item');
+  const [listingType, setListingType] = useState<'property' | 'item' | 'service'>('item');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
@@ -54,20 +54,6 @@ export default function CreateListingScreen({ navigation, route }: CreateListing
   const [pricingModel, setPricingModel] = useState<'hourly' | 'project' | 'fixed' | 'negotiable'>('fixed');
   const [responseTime, setResponseTime] = useState('24');
 
-  // Job-specific state
-  const [employmentType, setEmploymentType] = useState<'full_time' | 'part_time' | 'contract' | 'freelance'>('full_time');
-  const [salaryMin, setSalaryMin] = useState('');
-  const [salaryMax, setSalaryMax] = useState('');
-  const [workLocation, setWorkLocation] = useState<'remote' | 'on_site' | 'hybrid'>('on_site');
-  const [requiredSkills, setRequiredSkills] = useState<string[]>([]);
-  const [requiredExperience, setRequiredExperience] = useState('');
-  const [education, setEducation] = useState('');
-  const [benefits, setBenefits] = useState<string[]>([]);
-  const [applicationDeadline, setApplicationDeadline] = useState<Date | null>(null);
-  const [companyName, setCompanyName] = useState('');
-  const [companySize, setCompanySize] = useState('');
-  const [companyIndustry, setCompanyIndustry] = useState('');
-  const [companyWebsite, setCompanyWebsite] = useState('');
 
   // Property-specific state
   const [propertyType, setPropertyType] = useState<'apartment' | 'house' | 'land' | 'office'>('apartment');
@@ -262,20 +248,6 @@ export default function CreateListingScreen({ navigation, route }: CreateListing
       }
     }
 
-    if (listingType === 'job') {
-      if (!salaryMin || !salaryMax || isNaN(parseFloat(salaryMin)) || isNaN(parseFloat(salaryMax))) {
-        Alert.alert('Missing Information', 'Please enter valid salary range.');
-        return;
-      }
-      if (requiredSkills.length === 0) {
-        Alert.alert('Missing Information', 'Please enter at least one required skill.');
-        return;
-      }
-      if (!companyName) {
-        Alert.alert('Missing Information', 'Please enter company name.');
-        return;
-      }
-    }
 
     if (listingType === 'property') {
       if ((propertyType === 'apartment' || propertyType === 'house') && (!bedrooms || !bathrooms)) {
@@ -352,24 +324,6 @@ export default function CreateListingScreen({ navigation, route }: CreateListing
             preferredTime: preferredContactTime
           }
         });
-      } else if (listingType === 'job') {
-        Object.assign(baseData, {
-          employmentType,
-          salaryMin: parseFloat(salaryMin),
-          salaryMax: parseFloat(salaryMax),
-          workLocation,
-          requiredSkills: requiredSkills.filter(s => s),
-          requiredExperience,
-          education,
-          benefits: benefits.filter(b => b),
-          applicationDeadline: applicationDeadline?.toISOString(),
-          companyInfo: {
-            name: companyName,
-            size: companySize,
-            industry: companyIndustry,
-            website: companyWebsite
-          }
-        });
       } else if (listingType === 'property') {
         const propertyData: any = {
           propertyType,
@@ -429,7 +383,6 @@ export default function CreateListingScreen({ navigation, route }: CreateListing
         {[
           { key: 'item', label: '🛍️ Sell Item', desc: 'Physical products and goods' },
           { key: 'service', label: '🔧 Offer Service', desc: 'Professional services' },
-          { key: 'job', label: '💼 Post Job', desc: 'Hire for a position' },
           { key: 'property', label: '🏠 List Property', desc: 'Rent or sell property' },
         ].map((type) => (
           <TouchableOpacity
@@ -526,7 +479,7 @@ export default function CreateListingScreen({ navigation, route }: CreateListing
         <TextInput
           style={styles.textInput}
           placeholder={
-            listingType === 'sell' ? 'e.g., iPhone 12 Pro Max 256GB' :
+            listingType === 'item' ? 'e.g., iPhone 12 Pro Max 256GB' :
             listingType === 'service' ? 'e.g., Professional Plumbing Service' :
             'e.g., Need a Graphic Designer'
           }
@@ -543,7 +496,7 @@ export default function CreateListingScreen({ navigation, route }: CreateListing
         <Text style={styles.inputLabel}>Description * (min 20 characters)</Text>
         <TextInput
           style={[styles.textInput, styles.textArea]}
-          placeholder={`Describe your ${listingType === 'sell' ? 'item' : listingType === 'service' ? 'service' : 'job requirements'} in detail...`}
+          placeholder={`Describe your ${listingType === 'item' ? 'item' : listingType === 'service' ? 'service' : 'property'} in detail...`}
           value={description}
           onChangeText={setDescription}
           multiline
@@ -557,14 +510,14 @@ export default function CreateListingScreen({ navigation, route }: CreateListing
 
       <View style={styles.inputGroup}>
         <Text style={styles.inputLabel}>
-          {listingType === 'sell' ? 'Price *' : listingType === 'service' ? 'Rate *' : 'Budget *'}
+          {listingType === 'item' ? 'Price *' : listingType === 'service' ? 'Rate *' : 'Budget *'}
         </Text>
         <View style={styles.priceInputContainer}>
           <Text style={styles.currencySymbol}>₦</Text>
           <TextInput
             style={styles.priceInput}
             placeholder={
-              listingType === 'sell' ? '150,000' :
+              listingType === 'item' ? '150,000' :
               listingType === 'service' ? '5,000/hour or 25,000/project' :
               '50,000 - 100,000'
             }
@@ -813,214 +766,7 @@ export default function CreateListingScreen({ navigation, route }: CreateListing
     );
   };
 
-  const renderJobFields = () => {
-    if (listingType !== 'job') return null;
 
-    return (
-      <View style={styles.sectionContainer}>
-        <Text style={styles.sectionTitle}>Job Details</Text>
-
-        {/* Employment Type */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Employment Type *</Text>
-          <View style={styles.employmentTypeSelector}>
-            {[
-              { value: 'full_time', label: 'Full-time' },
-              { value: 'part_time', label: 'Part-time' },
-              { value: 'contract', label: 'Contract' },
-              { value: 'freelance', label: 'Freelance' },
-            ].map((type) => (
-              <TouchableOpacity
-                key={type.value}
-                style={[
-                  styles.employmentChip,
-                  employmentType === type.value && styles.employmentChipActive
-                ]}
-                onPress={() => setEmploymentType(type.value as any)}
-              >
-                <Text style={[
-                  styles.employmentText,
-                  employmentType === type.value && styles.employmentTextActive
-                ]}>
-                  {type.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Salary Range */}
-        <View style={styles.salaryRangeGroup}>
-          <Text style={styles.inputLabel}>Salary Range *</Text>
-          <View style={styles.salaryInputs}>
-            <View style={[styles.inputGroup, { flex: 1 }]}>
-              <TextInput
-                style={styles.textInput}
-                placeholder="Min (₦)"
-                value={salaryMin}
-                onChangeText={setSalaryMin}
-                keyboardType="numeric"
-              />
-            </View>
-            <Text style={styles.salaryDivider}>to</Text>
-            <View style={[styles.inputGroup, { flex: 1 }]}>
-              <TextInput
-                style={styles.textInput}
-                placeholder="Max (₦)"
-                value={salaryMax}
-                onChangeText={setSalaryMax}
-                keyboardType="numeric"
-              />
-            </View>
-          </View>
-        </View>
-
-        {/* Work Location */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Work Location *</Text>
-          <View style={styles.workLocationSelector}>
-            {[
-              { value: 'remote', label: 'Remote', icon: 'home-outline' },
-              { value: 'on_site', label: 'On-site', icon: 'business-outline' },
-              { value: 'hybrid', label: 'Hybrid', icon: 'swap-horizontal-outline' },
-            ].map((location) => (
-              <TouchableOpacity
-                key={location.value}
-                style={[
-                  styles.workLocationOption,
-                  workLocation === location.value && styles.workLocationOptionActive
-                ]}
-                onPress={() => setWorkLocation(location.value as any)}
-              >
-                <Ionicons
-                  name={location.icon as any}
-                  size={20}
-                  color={workLocation === location.value ? colors.primary : colors.text.light}
-                />
-                <Text style={[
-                  styles.workLocationText,
-                  workLocation === location.value && styles.workLocationTextActive
-                ]}>
-                  {location.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Required Skills */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Required Skills * (comma-separated)</Text>
-          <TextInput
-            style={styles.textInput}
-            placeholder="e.g., JavaScript, React, Node.js"
-            value={requiredSkills.join(', ')}
-            onChangeText={(text) => setRequiredSkills(text.split(',').map(s => s.trim()))}
-            multiline
-          />
-        </View>
-
-        {/* Required Experience */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Required Experience *</Text>
-          <TextInput
-            style={styles.textInput}
-            placeholder="e.g., 3-5 years"
-            value={requiredExperience}
-            onChangeText={setRequiredExperience}
-          />
-        </View>
-
-        {/* Education */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Education Requirements</Text>
-          <TextInput
-            style={styles.textInput}
-            placeholder="e.g., Bachelor's degree in Computer Science"
-            value={education}
-            onChangeText={setEducation}
-          />
-        </View>
-
-        {/* Benefits */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Benefits (comma-separated)</Text>
-          <TextInput
-            style={[styles.textInput, styles.textArea]}
-            placeholder="e.g., Health Insurance, Pension, Annual Leave"
-            value={benefits.join(', ')}
-            onChangeText={(text) => setBenefits(text.split(',').map(b => b.trim()))}
-            multiline
-            numberOfLines={3}
-          />
-        </View>
-
-        {/* Application Deadline */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Application Deadline</Text>
-          <TouchableOpacity
-            style={styles.datePickerButton}
-            onPress={() => {
-              // Implement date picker
-            }}
-          >
-            <Ionicons name="calendar-outline" size={20} color={colors.text.light} />
-            <Text style={styles.dateText}>
-              {applicationDeadline
-                ? applicationDeadline.toLocaleDateString()
-                : 'Select deadline date'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Company Info */}
-        <View style={styles.companyInfoGroup}>
-          <Text style={styles.sectionTitle}>Company Information</Text>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Company Name *</Text>
-            <TextInput
-              style={styles.textInput}
-              placeholder="e.g., Tech Solutions Ltd"
-              value={companyName}
-              onChangeText={setCompanyName}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Company Size</Text>
-            <TextInput
-              style={styles.textInput}
-              placeholder="e.g., 10-50 employees"
-              value={companySize}
-              onChangeText={setCompanySize}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Industry</Text>
-            <TextInput
-              style={styles.textInput}
-              placeholder="e.g., Technology, Finance"
-              value={companyIndustry}
-              onChangeText={setCompanyIndustry}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Company Website</Text>
-            <TextInput
-              style={styles.textInput}
-              placeholder="https://www.company.com"
-              value={companyWebsite}
-              onChangeText={setCompanyWebsite}
-              keyboardType="url"
-            />
-          </View>
-        </View>
-      </View>
-    );
-  };
 
   const renderPropertyFields = () => {
     if (listingType !== 'property') return null;
@@ -1528,7 +1274,6 @@ export default function CreateListingScreen({ navigation, route }: CreateListing
 
           {/* Type-specific fields */}
           {renderServiceFields()}
-          {renderJobFields()}
           {renderPropertyFields()}
           {renderItemFields()}
 
@@ -1924,90 +1669,6 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.medium,
   },
   
-  // Job-specific styles
-  employmentTypeSelector: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  employmentChip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.neutral.lightGray,
-    backgroundColor: colors.white,
-  },
-  employmentChipActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary,
-  },
-  employmentText: {
-    fontSize: typography.sizes.sm,
-    color: colors.text.dark,
-    fontWeight: typography.weights.medium,
-  },
-  employmentTextActive: {
-    color: colors.white,
-    fontWeight: typography.weights.semibold,
-  },
-  salaryRangeGroup: {
-    marginBottom: spacing.md,
-  },
-  salaryInputs: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  salaryDivider: {
-    fontSize: typography.sizes.base,
-    color: colors.text.secondary,
-  },
-  workLocationSelector: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  workLocationOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.sm,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.neutral.lightGray,
-    gap: spacing.xs,
-    flex: 1,
-  },
-  workLocationOptionActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.lightGreen,
-  },
-  workLocationText: {
-    fontSize: typography.sizes.sm,
-    color: colors.text.dark,
-    fontWeight: typography.weights.medium,
-  },
-  workLocationTextActive: {
-    color: colors.primary,
-    fontWeight: typography.weights.semibold,
-  },
-  datePickerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.sm,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.neutral.lightGray,
-    backgroundColor: colors.white,
-    gap: spacing.sm,
-  },
-  dateText: {
-    fontSize: typography.sizes.base,
-    color: colors.text.dark,
-    fontWeight: typography.weights.medium,
-  },
-  companyInfoGroup: {
-    marginTop: spacing.md,
-  },
   
   // Property-specific styles
   propertyTypeSelector: {

@@ -60,7 +60,7 @@ export class Post {
   // Help-specific fields
   @ApiProperty({
     description: 'Help category (required if postType is help)',
-    enum: ['job', 'errand', 'recommendation', 'advice'],
+    enum: ['errand', 'task', 'recommendation', 'advice', 'borrow'],
     required: false,
   })
   @Column({ name: 'help_category', length: 50, nullable: true })
@@ -88,6 +88,44 @@ export class Post {
   })
   @Column({ name: 'deadline', type: 'timestamp', nullable: true })
   deadline?: Date;
+
+  // Borrow-specific fields
+  @ApiProperty({
+    description: 'Borrow duration (for borrow requests)',
+    enum: ['few_hours', 'day', 'few_days', 'week'],
+    required: false,
+  })
+  @Column({ name: 'borrow_duration', length: 50, nullable: true })
+  borrowDuration?: string;
+
+  @ApiProperty({
+    description: 'Item to borrow (for borrow requests)',
+    required: false,
+  })
+  @Column({ name: 'borrow_item', length: 200, nullable: true })
+  borrowItem?: string;
+
+  @ApiProperty({
+    description: 'Item condition notes (for borrow requests)',
+    required: false,
+  })
+  @Column({ name: 'item_condition', type: 'text', nullable: true })
+  itemCondition?: string;
+
+  // Task-specific fields
+  @ApiProperty({
+    description: 'Task type (for task requests)',
+    required: false,
+  })
+  @Column({ name: 'task_type', length: 50, nullable: true })
+  taskType?: string;
+
+  @ApiProperty({
+    description: 'Estimated duration (for task requests)',
+    required: false,
+  })
+  @Column({ name: 'estimated_duration', length: 100, nullable: true })
+  estimatedDuration?: string;
 
   @ApiProperty({
     description: 'Privacy level of the post',

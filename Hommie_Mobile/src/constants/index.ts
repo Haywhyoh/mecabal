@@ -66,7 +66,6 @@ export const colors = {
   background: '#FAFAFA',
   surface: '#FFFFFF',
   card: '#FFFFFF',
-  text: '#1F2937', // Updated for better contrast
   textSecondary: '#6B7280', // Updated for better contrast
   textTertiary: '#9CA3AF', // Updated for better contrast
   textInverse: '#FFFFFF',
@@ -136,7 +135,6 @@ export const darkColors = {
   background: '#1F2937',
   surface: '#374151',
   card: '#374151',
-  text: '#F9FAFB',
   textSecondary: '#D1D5DB',
   textTertiary: '#9CA3AF',
   textInverse: '#1F2937',
@@ -507,11 +505,22 @@ export const POST_CATEGORIES = [
 ];
 
 // Main marketplace categories for hierarchical filtering (Ionicons - no emojis)
+/**
+ * Marketplace Categories
+ *
+ * MARKETPLACE IS FOR:
+ * - Properties: Real estate for rent/sale
+ * - Goods: Physical items for sale
+ * - Services: Professional business services (plumbers, electricians, etc.)
+ *
+ * NOT FOR:
+ * - Jobs/Employment: Removed - use Community Help "Tasks" instead
+ * - Neighbor favors: Use Community Help
+ */
 export const MARKETPLACE_MAIN_CATEGORIES = [
   { id: 'property', label: 'Properties', icon: 'home-outline', type: 'property' },
   { id: 'item', label: 'Goods', icon: 'cube-outline', type: 'item' },
   { id: 'service', label: 'Services', icon: 'construct-outline', type: 'service' },
-  { id: 'job', label: 'Jobs', icon: 'briefcase-outline', type: 'job' },
 ];
 
 // Marketplace Categories - Mapped to backend listing_categories table
@@ -562,3 +571,41 @@ export const EVENT_CATEGORIES = [
   'Entertainment',
   'Other',
 ];
+
+// Community Help Categories - Updated per separation plan
+export const COMMUNITY_HELP_CATEGORIES = [
+  { id: 'errand', label: 'Quick Errands', icon: 'bicycle', description: 'Quick neighborhood favors' },
+  { id: 'task', label: 'Tasks & Favors', icon: 'construct', description: 'Small jobs and help' },
+  { id: 'recommendation', label: 'Recommendations', icon: 'star', description: 'Ask for advice on services' },
+  { id: 'advice', label: 'Advice & Tips', icon: 'lightbulb', description: 'Get community input' },
+  { id: 'borrow', label: 'Borrow/Lend', icon: 'sync', description: 'Share items temporarily' },
+];
+
+// Help Request Examples for each category
+export const HELP_REQUEST_EXAMPLES = {
+  errand: [
+    'Can someone pick up my package from the gate?',
+    'Need groceries delivered, willing to pay',
+    'Anyone going to the market? Can you help?'
+  ],
+  task: [
+    'Help moving furniture this Saturday',
+    'Need someone to walk my dog for a week',
+    'Looking for help with garden cleanup'
+  ],
+  borrow: [
+    'Can I borrow a ladder for the weekend?',
+    'Looking to borrow a pressure washer',
+    'Need a generator for tomorrow evening'
+  ],
+  recommendation: [
+    'Recommend a good plumber in the estate',
+    'Best place to buy fresh fish nearby?',
+    'Reliable generator repair person?'
+  ],
+  advice: [
+    'How do I deal with persistent mosquitoes?',
+    'Best way to maintain my compound garden?',
+    'Tips for organizing estate security?'
+  ]
+};

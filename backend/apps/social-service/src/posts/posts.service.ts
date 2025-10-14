@@ -65,6 +65,22 @@ export class PostsService {
           'Help category is required for help posts',
         );
       }
+
+      // Borrow-specific validation
+      if (createPostDto.helpCategory === 'borrow') {
+        if (!createPostDto.borrowItem || !createPostDto.borrowDuration) {
+          throw new BadRequestException(
+            'Borrow item and duration are required for borrow requests',
+          );
+        }
+      }
+
+      // Reject job category
+      if (createPostDto.helpCategory === 'job') {
+        throw new BadRequestException(
+          'Job category is no longer supported. Use "task" instead.',
+        );
+      }
     }
 
     // Create the post
