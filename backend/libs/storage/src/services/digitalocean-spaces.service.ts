@@ -335,6 +335,7 @@ export class DigitalOceanSpacesService {
       [FileCategory.MEDIA]: 50 * 1024 * 1024, // 50MB
       [FileCategory.BUSINESS_DOCS]: 10 * 1024 * 1024, // 10MB
       [FileCategory.EVENT_IMAGES]: 20 * 1024 * 1024, // 20MB
+      [FileCategory.MESSAGING_ATTACHMENTS]: 25 * 1024 * 1024, // 25MB
     };
 
     const allowedTypes: Record<FileCategory, string[]> = {
@@ -362,6 +363,20 @@ export class DigitalOceanSpacesService {
         'image/jpeg',
         'image/png',
         'image/webp',
+      ],
+      [FileCategory.MESSAGING_ATTACHMENTS]: [
+        'image/jpeg',
+        'image/png',
+        'image/webp',
+        'image/gif',
+        'video/mp4',
+        'video/quicktime',
+        'audio/mpeg',
+        'audio/wav',
+        'application/pdf',
+        'text/plain',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       ],
     };
 

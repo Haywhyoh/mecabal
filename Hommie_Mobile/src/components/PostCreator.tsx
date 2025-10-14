@@ -249,7 +249,7 @@ const PostCreator: React.FC<PostCreatorProps> = ({
                 style={styles.inlineMediaButton}
                 onPress={() => setShowCategoryModal(true)}
               >
-                <Ionicons name="pricetag-outline" size={20} color="#00A651" />
+                <Ionicons name="pricetag" size={20} color="#00A651" />
               </TouchableOpacity>
 
               {/* Privacy Indicator */}

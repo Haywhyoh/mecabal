@@ -4,4 +4,5 @@ export enum FileCategory {
   MEDIA = 'media',
   BUSINESS_DOCS = 'business-docs',
   EVENT_IMAGES = 'event-images',
+  MESSAGING_ATTACHMENTS = 'messaging-attachments',
 }

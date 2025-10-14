@@ -176,6 +176,59 @@ export class FileUploadService {
   }
 
   /**
+   * Upload messaging attachment (images, videos, audio, files)
+   */
+  async uploadMessagingAttachment(
+    file: MediaFile,
+    userId: string,
+    conversationId: string,
+    options?: { quality?: number; maxWidth?: number },
+  ): Promise<UploadResult> {
+    this.logger.log(`💬 Uploading messaging attachment for user ${userId} in conversation ${conversationId}`);
+
+    // Process images for messaging
+    if (file.mimeType.startsWith('image/')) {
+      const processed = await this.imageService.processImage(file.buffer, {
+        maxWidth: options?.maxWidth || 1920,
+        maxHeight: 1920,
+        quality: options?.quality || 85,
+        format: 'jpeg',
+      });
+
+      file = {
+        ...file,
+        buffer: processed.buffer,
+        mimeType: processed.mimeType,
+        size: processed.buffer.length,
+      };
+    }
+
+    return this.spacesService.uploadFile(
+      file,
+      FileCategory.MESSAGING_ATTACHMENTS,
+      { userId, makePublic: true },
+    );
+  }
+
+  /**
+   * Upload multiple messaging attachments
+   */
+  async uploadMessagingAttachments(
+    files: MediaFile[],
+    userId: string,
+    conversationId: string,
+    options?: { quality?: number; maxWidth?: number },
+  ): Promise<UploadResult[]> {
+    this.logger.log(`💬 Uploading ${files.length} messaging attachments for user ${userId} in conversation ${conversationId}`);
+
+    const uploadPromises = files.map(file => 
+      this.uploadMessagingAttachment(file, userId, conversationId, options)
+    );
+
+    return Promise.all(uploadPromises);
+  }
+
+  /**
    * Delete file
    */
   async deleteFile(key: string): Promise<boolean> {

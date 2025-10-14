@@ -14,7 +14,6 @@ import useUnifiedFeed from '../hooks/useUnifiedFeed';
 import { Post } from '../services/postsService';
 import { Event } from '../services/EventsApi';
 import UnifiedFeedList from '../components/UnifiedFeedList';
-import PostFilter from '../components/PostFilter';
 import PostCreator from '../components/PostCreator';
 import SegmentedControl from '../components/SegmentedControl';
 import HelpPostCard from '../components/HelpPostCard';
@@ -26,7 +25,6 @@ interface FeedScreenProps {
 
 export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
   const [selectedSegment, setSelectedSegment] = useState('all');
-  const [showFilter, setShowFilter] = useState(false);
   const [showPostCreator, setShowPostCreator] = useState(false);
   const { user: currentUser } = useAuth();
 
@@ -132,9 +130,6 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
     refreshFeed();
   }, [refreshFeed]);
 
-  const handleFilterApply = useCallback((newFilter: any) => {
-    updateFilter(newFilter);
-  }, [updateFilter]);
 
   // Handle segment change
   const handleSegmentChange = useCallback((segmentId: string) => {
@@ -189,12 +184,6 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
           onSegmentChange={handleSegmentChange}
           style={styles.segmentedControl}
         />
-        <TouchableOpacity
-          style={styles.advancedFilterButton}
-          onPress={() => setShowFilter(true)}
-        >
-          <Ionicons name="options-outline" size={20} color="#2C2C2C" />
-        </TouchableOpacity>
       </View>
 
       {/* Unified Feed List */}
@@ -219,13 +208,6 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
       />
 
 
-      {/* Post Filter Modal */}
-      <PostFilter
-        visible={showFilter}
-        onClose={() => setShowFilter(false)}
-        onApply={handleFilterApply}
-        currentFilter={filter}
-      />
 
       {/* Post Creator Modal */}
       <PostCreator
@@ -247,16 +229,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     paddingVertical: 8,
+    paddingHorizontal: 16,  // Add horizontal padding since filter button is removed
     borderBottomWidth: 0.5,
     borderBottomColor: '#F5F5F5',
   },
   segmentedControl: {
     flex: 1,
     marginLeft: 0,
-  },
-  advancedFilterButton: {
-    padding: 8,
-    marginRight: 16,
   },
 });
 

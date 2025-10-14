@@ -48,6 +48,12 @@ export { default as StatesApi, StatesApi as StatesService } from './StatesApi';
 export { default as verificationService } from './verificationService';
 export { default as userProfileService } from './userProfileService';
 
+// Messaging services
+export { default as MessagingService } from './MessagingService';
+export { messagingApi, MessagingApiService } from './api/messagingApi';
+export { webSocketService, WebSocketService } from './WebSocketService';
+export { simpleWebSocketService, SimpleWebSocketService } from './SimpleWebSocketService';
+
 // Type exports for convenience
 export type {
   NigerianUser,

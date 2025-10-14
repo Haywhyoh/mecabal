@@ -21,6 +21,7 @@ import {
   CULTURAL_BACKGROUNDS_SEED, 
   PROFESSIONAL_CATEGORIES_SEED 
 } from './cultural-data.seed';
+import { MessagingSeeder } from './messaging.seed';
 
 @Injectable()
 export class SeederService {

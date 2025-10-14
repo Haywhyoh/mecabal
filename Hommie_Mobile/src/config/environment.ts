@@ -136,6 +136,15 @@ export const API_ENDPOINTS = {
     GET_BY_ID: '/listing-categories',
     GET_BY_TYPE: '/listing-categories/type',
   },
+  MESSAGING: {
+    CONVERSATIONS: '/messaging/conversations',
+    MESSAGES: '/messaging/messages',
+    TYPING: '/messaging/typing',
+    MARK_READ: '/messaging/mark-read',
+    EVENT_CONVERSATION: '/messaging/conversations/event',
+    BUSINESS_CONVERSATION: '/messaging/conversations/business',
+    HEALTH: '/messaging/health',
+  },
 } as const;
 
 export default ENV;

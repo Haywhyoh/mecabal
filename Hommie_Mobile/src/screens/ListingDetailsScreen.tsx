@@ -661,7 +661,7 @@ export default function ListingDetailsScreen({ navigation, route }: ListingDetai
         <View style={styles.infoSection}>
           {/* Category */}
           <View style={styles.infoRow}>
-            <Ionicons name="pricetag-outline" size={20} color={colors.textTertiary} />
+            <Ionicons name="pricetag" size={20} color={colors.textTertiary} />
             <Text style={styles.infoLabel}>Category</Text>
             <Text style={styles.infoValue}>{listing.category.name}</Text>
           </View>

@@ -24,8 +24,6 @@ import HomeScreen from './src/screens/HomeScreen';
 import EventsScreen from './src/screens/EventsScreen';
 import { MarketplaceNavigator } from './src/navigation/MarketplaceNavigation';
 import { HelpNavigator } from './src/navigation/HelpNavigation';
-import InboxScreen from './src/screens/InboxScreen';
-import MoreScreen from './src/screens/MoreScreen';
 
 // Profile and Community Screens
 import ProfileScreen from './src/screens/ProfileScreen';
@@ -86,10 +84,10 @@ const linking = {
       MainTabs: {
         screens: {
           Home: 'home',
-          Inbox: 'inbox',
+          EventsTab: 'events-tab',  // Note: different from stack 'Events'
           Market: 'market',
           Help: 'help',
-          More: 'more',
+          ProfileTab: 'profile-tab',  // Note: different from stack 'Profile'
         },
       },
       Events: 'events',
@@ -98,6 +96,8 @@ const linking = {
       CreateEvent: 'events/create',
       Profile: 'profile',
       Notifications: 'notifications',
+      Messaging: 'messages',  // ADD THIS LINE
+      Chat: 'messages/:conversationId',  // ADD THIS LINE
       BusinessReviews: 'business/:businessId/reviews',
       WriteReview: 'business/:businessId/review/write',
       BusinessAnalytics: 'business/:businessId/analytics',
@@ -140,14 +140,16 @@ function TabNavigator() {
           ),
         }}
       />
-      <Tab.Screen 
-        name="Inbox" 
-        component={InboxScreen}
+      <Tab.Screen
+        name="EventsTab"
+        component={EventsScreen}
         options={{
-          tabBarLabel: 'Inbox',
+          tabBarLabel: 'Events',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="message-text" color={color} size={size} />
+            <MaterialCommunityIcons name="calendar" color={color} size={size} />
           ),
+          // Badge for upcoming events (optional enhancement)
+          tabBarBadge: undefined, // TODO: Add count of upcoming events user is attending
         }}
       />
       <Tab.Screen 
@@ -170,14 +172,22 @@ function TabNavigator() {
           ),
         }}
       />
-      <Tab.Screen 
-        name="More" 
-        component={MoreScreen}
+      <Tab.Screen
+        name="ProfileTab"
+        component={ProfileScreen}
         options={{
-          tabBarLabel: 'More',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="dots-horizontal" color={color} size={size} />
-          ),
+          tabBarLabel: 'Profile',
+          tabBarIcon: ({ color, focused, size }) => {
+            // NOTE: This requires useAuth hook to be accessible here
+            // We'll need to refactor to get user data
+            return (
+              <MaterialCommunityIcons
+                name="account-circle"
+                color={color}
+                size={size}
+              />
+            );
+          },
         }}
       />
     </Tab.Navigator>

@@ -43,7 +43,7 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ navigation 
       id: 'help',
       title: 'Ask for Help',
       description: 'Get help with jobs, errands, or recommendations',
-      icon: 'hand',
+      icon: 'help-circle',
       color: colors.accent.lagosOrange,
       onPress: () => handlePostType('help'),
     },
@@ -51,7 +51,7 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ navigation 
       id: 'listing',
       title: 'Create Listing',
       description: 'Sell property, items, or offer services',
-      icon: 'pricetag',
+      icon: 'tag',
       color: colors.accent.marketGreen,
       onPress: () => handlePostType('listing'),
     },
@@ -91,7 +91,9 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ navigation 
         navigation?.navigate('CreatePost', { postType: 'general' });
         break;
       case 'help':
-        navigation?.navigate('CreateHelpPost');
+        navigation?.navigate('Help', {
+          screen: 'CreateHelpPost'
+        });
         break;
       case 'listing':
         navigation?.navigate('Market', {

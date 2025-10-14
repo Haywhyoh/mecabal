@@ -1,3 +1,7 @@
+import { messagingApi, CreateConversationDto, SendMessageDto, UpdateMessageDto, MarkAsReadDto, GetConversationsDto, GetMessagesDto, TypingIndicatorDto, ConversationResponseDto, MessageResponseDto, PaginatedResponseDto } from './api/messagingApi';
+import { webSocketService, WebSocketEvents } from './WebSocketService';
+import { simpleWebSocketService } from './SimpleWebSocketService';
+
 // Simple event emitter for React Native compatibility
 class SimpleEventEmitter {
   private listeners: Map<string, Set<Function>> = new Map();
@@ -122,11 +126,14 @@ export class MessagingService extends SimpleEventEmitter {
   private typingStatus: Map<string, TypingStatus[]> = new Map();
   private currentUserId: string = 'current_user'; // This would come from auth service
   private isConnected: boolean = false;
+  private useRealBackend: boolean = true; // Toggle between real backend and mock data
 
   private constructor() {
     super();
     this.initializeService();
-    this.loadDemoData();
+    if (!this.useRealBackend) {
+      this.loadDemoData();
+    }
   }
 
   public static getInstance(): MessagingService {
@@ -136,39 +143,192 @@ export class MessagingService extends SimpleEventEmitter {
     return MessagingService.instance;
   }
 
-  private initializeService() {
-    // In a real app, this would establish WebSocket connection
+  private async initializeService() {
     console.log('Initializing messaging service...');
     
-    // Simulate connection
-    setTimeout(() => {
-      this.isConnected = true;
-      this.emit('connected');
-    }, 1000);
-
-    // Simulate periodic connection status changes
-    setInterval(() => {
-      const shouldDisconnect = Math.random() < 0.05; // 5% chance
-      if (shouldDisconnect && this.isConnected) {
-        this.isConnected = false;
-        this.emit('disconnected');
-        
-        // Reconnect after 2-5 seconds
-        setTimeout(() => {
+    if (this.useRealBackend) {
+      // Initialize WebSocket connection
+      try {
+        // Try the main WebSocket service first
+        try {
+          await webSocketService.connect();
+          this.setupWebSocketListeners();
           this.isConnected = true;
           this.emit('connected');
-        }, 2000 + Math.random() * 3000);
+          console.log('✅ Messaging service connected to backend (main WebSocket)');
+        } catch (error) {
+          console.warn('⚠️ Main WebSocket failed, trying simple WebSocket:', error);
+          // Fallback to simple WebSocket service
+          await simpleWebSocketService.connect();
+          this.setupSimpleWebSocketListeners();
+          this.isConnected = true;
+          this.emit('connected');
+          console.log('✅ Messaging service connected to backend (simple WebSocket)');
+        }
+      } catch (error) {
+        console.error('❌ Failed to connect to messaging backend:', error);
+        this.isConnected = false;
+        this.emit('disconnected');
       }
-    }, 30000); // Check every 30 seconds
+    } else {
+      // Mock connection for development
+      setTimeout(() => {
+        this.isConnected = true;
+        this.emit('connected');
+      }, 1000);
+
+      // Simulate periodic connection status changes
+      setInterval(() => {
+        const shouldDisconnect = Math.random() < 0.05; // 5% chance
+        if (shouldDisconnect && this.isConnected) {
+          this.isConnected = false;
+          this.emit('disconnected');
+          
+          // Reconnect after 2-5 seconds
+          setTimeout(() => {
+            this.isConnected = true;
+            this.emit('connected');
+          }, 2000 + Math.random() * 3000);
+        }
+      }, 30000); // Check every 30 seconds
+    }
   }
 
-  public getConversations(): Conversation[] {
-    return Array.from(this.conversations.values())
-      .sort((a, b) => {
-        if (a.isPinned && !b.isPinned) return -1;
-        if (!a.isPinned && b.isPinned) return 1;
-        return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-      });
+  private setupWebSocketListeners() {
+    // Connection events
+    webSocketService.on('connect', () => {
+      this.isConnected = true;
+      this.emit('connected');
+    });
+
+    webSocketService.on('disconnect', (reason) => {
+      this.isConnected = false;
+      this.emit('disconnected', reason);
+    });
+
+    // Message events
+    webSocketService.on('newMessage', (message) => {
+      this.handleNewMessage(message);
+    });
+
+    webSocketService.on('messageUpdated', (message) => {
+      this.handleMessageUpdated(message);
+    });
+
+    webSocketService.on('messageDeleted', (data) => {
+      this.handleMessageDeleted(data);
+    });
+
+    webSocketService.on('messageRead', (data) => {
+      this.handleMessageRead(data);
+    });
+
+    webSocketService.on('messageDelivered', (data) => {
+      this.handleMessageDelivered(data);
+    });
+
+    // Conversation events
+    webSocketService.on('conversationUpdated', (conversation) => {
+      this.handleConversationUpdated(conversation);
+    });
+
+    webSocketService.on('unreadCountsUpdated', (data) => {
+      this.handleUnreadCountsUpdated(data);
+    });
+
+    // Typing events
+    webSocketService.on('userTyping', (data) => {
+      this.handleUserTyping(data);
+    });
+
+    // Status events
+    webSocketService.on('userStatusChanged', (data) => {
+      this.handleUserStatusChanged(data);
+    });
+  }
+
+  private setupSimpleWebSocketListeners() {
+    // Connection events
+    simpleWebSocketService.on('connect', () => {
+      this.isConnected = true;
+      this.emit('connected');
+    });
+
+    simpleWebSocketService.on('disconnect', (reason) => {
+      this.isConnected = false;
+      this.emit('disconnected', reason);
+    });
+
+    // Message events
+    simpleWebSocketService.on('newMessage', (message) => {
+      this.handleNewMessage(message);
+    });
+
+    simpleWebSocketService.on('messageUpdated', (message) => {
+      this.handleMessageUpdated(message);
+    });
+
+    simpleWebSocketService.on('messageDeleted', (data) => {
+      this.handleMessageDeleted(data);
+    });
+
+    simpleWebSocketService.on('messageRead', (data) => {
+      this.handleMessageRead(data);
+    });
+
+    simpleWebSocketService.on('messageDelivered', (data) => {
+      this.handleMessageDelivered(data);
+    });
+
+    // Conversation events
+    simpleWebSocketService.on('conversationUpdated', (conversation) => {
+      this.handleConversationUpdated(conversation);
+    });
+
+    simpleWebSocketService.on('unreadCountsUpdated', (data) => {
+      this.handleUnreadCountsUpdated(data);
+    });
+
+    // Typing events
+    simpleWebSocketService.on('userTyping', (data) => {
+      this.handleUserTyping(data);
+    });
+
+    // Status events
+    simpleWebSocketService.on('userStatusChanged', (data) => {
+      this.handleUserStatusChanged(data);
+    });
+  }
+
+  public async getConversations(query: GetConversationsDto = {}): Promise<Conversation[]> {
+    if (this.useRealBackend) {
+      try {
+        const response = await messagingApi.getConversations(query);
+        const conversations = response.data.map(conv => this.mapConversationFromBackend(conv));
+        
+        // Update local cache
+        conversations.forEach(conv => {
+          this.conversations.set(conv.id, conv);
+        });
+        
+        return conversations.sort((a, b) => {
+          if (a.isPinned && !b.isPinned) return -1;
+          if (!a.isPinned && b.isPinned) return 1;
+          return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+        });
+      } catch (error) {
+        console.error('Failed to fetch conversations:', error);
+        return [];
+      }
+    } else {
+      // Return cached conversations for mock mode
+      return Array.from(this.conversations.values())
+        .sort((a, b) => {
+          if (a.isPinned && !b.isPinned) return -1;
+          if (!a.isPinned && b.isPinned) return 1;
+          return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+        });
+    }
   }
 
   public getConversation(conversationId: string): Conversation | undefined {
@@ -185,47 +345,86 @@ export class MessagingService extends SimpleEventEmitter {
     type: 'text' | 'image' | 'location' | 'audio' = 'text',
     metadata?: Message['metadata']
   ): Promise<Message> {
-    const conversation = this.conversations.get(conversationId);
-    if (!conversation) {
-      throw new Error('Conversation not found');
-    }
+    if (this.useRealBackend) {
+      try {
+        const sendData: SendMessageDto = {
+          conversationId,
+          content,
+          type,
+          metadata,
+        };
 
-    const message: Message = {
-      id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      conversationId,
-      senderId: this.currentUserId,
-      senderName: 'You',
-      content,
-      timestamp: new Date(),
-      type,
-      status: 'sending',
-      metadata,
-    };
+        // Send via WebSocket for real-time delivery
+        const response = await webSocketService.sendMessage(sendData);
+        
+        if (response.success && response.message) {
+          const message = this.mapMessageFromBackend(response.message);
+          
+          // Update local cache
+          const conversationMessages = this.messages.get(conversationId) || [];
+          conversationMessages.push(message);
+          this.messages.set(conversationId, conversationMessages);
 
-    // Add message to conversation
-    const conversationMessages = this.messages.get(conversationId) || [];
-    conversationMessages.push(message);
-    this.messages.set(conversationId, conversationMessages);
+          // Update conversation
+          const conversation = this.conversations.get(conversationId);
+          if (conversation) {
+            conversation.lastMessage = message;
+            conversation.updatedAt = new Date();
+          }
 
-    // Update conversation
-    conversation.lastMessage = message;
-    conversation.updatedAt = new Date();
+          this.emit('messageAdded', message);
+          return message;
+        } else {
+          throw new Error(response.error || 'Failed to send message');
+        }
+      } catch (error) {
+        console.error('Failed to send message:', error);
+        throw error;
+      }
+    } else {
+      // Mock implementation
+      const conversation = this.conversations.get(conversationId);
+      if (!conversation) {
+        throw new Error('Conversation not found');
+      }
 
-    this.emit('messageAdded', message);
+      const message: Message = {
+        id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        conversationId,
+        senderId: this.currentUserId,
+        senderName: 'You',
+        content,
+        timestamp: new Date(),
+        type,
+        status: 'sending',
+        metadata,
+      };
 
-    // Simulate sending delay
-    setTimeout(() => {
-      message.status = 'sent';
-      this.emit('messageStatusChanged', message);
+      // Add message to conversation
+      const conversationMessages = this.messages.get(conversationId) || [];
+      conversationMessages.push(message);
+      this.messages.set(conversationId, conversationMessages);
 
-      // Simulate delivery after another delay
+      // Update conversation
+      conversation.lastMessage = message;
+      conversation.updatedAt = new Date();
+
+      this.emit('messageAdded', message);
+
+      // Simulate sending delay
       setTimeout(() => {
-        message.status = 'delivered';
+        message.status = 'sent';
         this.emit('messageStatusChanged', message);
-      }, 1000 + Math.random() * 2000);
-    }, 500 + Math.random() * 1500);
 
-    return message;
+        // Simulate delivery after another delay
+        setTimeout(() => {
+          message.status = 'delivered';
+          this.emit('messageStatusChanged', message);
+        }, 1000 + Math.random() * 2000);
+      }, 500 + Math.random() * 1500);
+
+      return message;
+    }
   }
 
   public async editMessage(messageId: string, newContent: string): Promise<void> {
@@ -679,6 +878,312 @@ export class MessagingService extends SimpleEventEmitter {
         conversation.lastMessage = messages[messages.length - 1];
       }
     });
+  }
+
+  // ========== BACKEND INTEGRATION METHODS ==========
+
+  /**
+   * Map backend conversation to local format
+   */
+  private mapConversationFromBackend(backendConv: ConversationResponseDto): Conversation {
+    return {
+      id: backendConv.id,
+      type: backendConv.type,
+      title: backendConv.title,
+      participants: backendConv.participants.map(p => ({
+        id: p.userId,
+        name: p.user ? `${p.user.firstName} ${p.user.lastName}` : 'Unknown User',
+        avatar: p.user?.profilePictureUrl,
+        role: p.role,
+        isOnline: p.user?.isOnline || false,
+        lastSeen: p.user?.lastSeen,
+        joinedAt: p.joinedAt,
+        isVerified: true, // TODO: Get from user data
+        location: 'Lagos, Nigeria', // TODO: Get from user data
+      })),
+      lastMessage: backendConv.lastMessage ? this.mapMessageFromBackend(backendConv.lastMessage) : undefined,
+      unreadCount: backendConv.unreadCount,
+      isArchived: backendConv.isArchived,
+      isPinned: backendConv.isPinned,
+      createdAt: backendConv.createdAt,
+      updatedAt: backendConv.updatedAt,
+      metadata: {
+        description: backendConv.description,
+        avatar: backendConv.avatar,
+        communityId: backendConv.contextType === 'event' ? backendConv.contextId : undefined,
+        eventId: backendConv.contextType === 'event' ? backendConv.contextId : undefined,
+        groupAdmin: backendConv.participants.filter(p => p.role === 'admin').map(p => p.userId),
+      },
+    };
+  }
+
+  /**
+   * Map backend message to local format
+   */
+  private mapMessageFromBackend(backendMsg: MessageResponseDto): Message {
+    return {
+      id: backendMsg.id,
+      conversationId: backendMsg.conversationId,
+      senderId: backendMsg.senderId,
+      senderName: backendMsg.sender ? `${backendMsg.sender.firstName} ${backendMsg.sender.lastName}` : 'Unknown User',
+      senderAvatar: backendMsg.sender?.profilePictureUrl,
+      content: backendMsg.content,
+      timestamp: backendMsg.createdAt,
+      type: backendMsg.type as any,
+      status: 'delivered', // TODO: Get actual status from receipts
+      replyTo: backendMsg.replyToMessageId,
+      edited: backendMsg.isEdited,
+      editedAt: backendMsg.editedAt,
+      metadata: backendMsg.metadata,
+    };
+  }
+
+  // ========== WEBSOCKET EVENT HANDLERS ==========
+
+  private handleNewMessage(message: any): void {
+    const localMessage = this.mapMessageFromBackend(message);
+    
+    // Update local cache
+    const conversationMessages = this.messages.get(message.conversationId) || [];
+    conversationMessages.push(localMessage);
+    this.messages.set(message.conversationId, conversationMessages);
+
+    // Update conversation
+    const conversation = this.conversations.get(message.conversationId);
+    if (conversation) {
+      conversation.lastMessage = localMessage;
+      conversation.updatedAt = new Date();
+    }
+
+    this.emit('messageAdded', localMessage);
+  }
+
+  private handleMessageUpdated(message: any): void {
+    const localMessage = this.mapMessageFromBackend(message);
+    
+    // Update local cache
+    const conversationMessages = this.messages.get(message.conversationId) || [];
+    const messageIndex = conversationMessages.findIndex(m => m.id === message.id);
+    if (messageIndex !== -1) {
+      conversationMessages[messageIndex] = localMessage;
+      this.messages.set(message.conversationId, conversationMessages);
+    }
+
+    this.emit('messageEdited', localMessage);
+  }
+
+  private handleMessageDeleted(data: { messageId: string; conversationId: string }): void {
+    const conversationMessages = this.messages.get(data.conversationId) || [];
+    const messageIndex = conversationMessages.findIndex(m => m.id === data.messageId);
+    if (messageIndex !== -1) {
+      conversationMessages.splice(messageIndex, 1);
+      this.messages.set(data.conversationId, conversationMessages);
+    }
+
+    this.emit('messageDeleted', data.messageId, data.conversationId);
+  }
+
+  private handleMessageRead(data: { conversationId: string; userId: string; messageId?: string; timestamp: Date }): void {
+    // Update message status to read
+    const conversationMessages = this.messages.get(data.conversationId) || [];
+    conversationMessages.forEach(message => {
+      if (message.senderId !== this.currentUserId && message.status !== 'read') {
+        message.status = 'read';
+        this.emit('messageStatusChanged', message);
+      }
+    });
+
+    // Update conversation unread count
+    const conversation = this.conversations.get(data.conversationId);
+    if (conversation) {
+      conversation.unreadCount = 0;
+      this.emit('conversationUpdated', conversation);
+    }
+  }
+
+  private handleMessageDelivered(data: { messageId: string; conversationId: string; userId: string; timestamp: Date }): void {
+    // Update message status to delivered
+    const conversationMessages = this.messages.get(data.conversationId) || [];
+    const message = conversationMessages.find(m => m.id === data.messageId);
+    if (message && message.status === 'sent') {
+      message.status = 'delivered';
+      this.emit('messageStatusChanged', message);
+    }
+  }
+
+  private handleConversationUpdated(conversation: any): void {
+    const localConversation = this.mapConversationFromBackend(conversation);
+    this.conversations.set(conversation.id, localConversation);
+    this.emit('conversationUpdated', localConversation);
+  }
+
+  private handleUnreadCountsUpdated(data: { conversationId: string; unreadCounts: Record<string, number> }): void {
+    const conversation = this.conversations.get(data.conversationId);
+    if (conversation) {
+      conversation.unreadCount = data.unreadCounts[this.currentUserId] || 0;
+      this.emit('conversationUpdated', conversation);
+    }
+  }
+
+  private handleUserTyping(data: { conversationId: string; userId: string; isTyping: boolean; timestamp: Date; userInfo?: any }): void {
+    const typingUsers = this.typingStatus.get(data.conversationId) || [];
+    const existingIndex = typingUsers.findIndex(t => t.userId === data.userId);
+    
+    const typingStatus: TypingStatus = {
+      conversationId: data.conversationId,
+      userId: data.userId,
+      userName: data.userInfo ? `${data.userInfo.firstName} ${data.userInfo.lastName}` : 'Unknown User',
+      isTyping: data.isTyping,
+      timestamp: data.timestamp,
+    };
+
+    if (data.isTyping) {
+      if (existingIndex >= 0) {
+        typingUsers[existingIndex] = typingStatus;
+      } else {
+        typingUsers.push(typingStatus);
+      }
+    } else {
+      const filteredUsers = typingUsers.filter(t => t.userId !== data.userId);
+      typingUsers.splice(0, typingUsers.length, ...filteredUsers);
+    }
+
+    this.typingStatus.set(data.conversationId, typingUsers);
+    this.emit('typingStatusChanged', data.conversationId, typingUsers);
+  }
+
+  private handleUserStatusChanged(data: { userId: string; isOnline: boolean; timestamp: Date }): void {
+    // Update participant online status in all conversations
+    for (const conversation of this.conversations.values()) {
+      const participant = conversation.participants.find(p => p.id === data.userId);
+      if (participant) {
+        participant.isOnline = data.isOnline;
+        participant.lastSeen = data.isOnline ? undefined : data.timestamp;
+        this.emit('conversationUpdated', conversation);
+      }
+    }
+  }
+
+  // ========== EVENT ORGANIZER MESSAGING ==========
+
+  /**
+   * Get or create event conversation
+   */
+  public async getOrCreateEventConversation(eventId: string): Promise<Conversation> {
+    if (this.useRealBackend) {
+      try {
+        const response = await messagingApi.getOrCreateEventConversation(eventId);
+        const conversation = this.mapConversationFromBackend(response);
+        
+        // Update local cache
+        this.conversations.set(conversation.id, conversation);
+        
+        return conversation;
+      } catch (error) {
+        console.error('Failed to get/create event conversation:', error);
+        throw error;
+      }
+    } else {
+      // Mock implementation
+      const conversationId = `event_${eventId}`;
+      let conversation = this.conversations.get(conversationId);
+      
+      if (!conversation) {
+        conversation = {
+          id: conversationId,
+          type: 'group',
+          title: `Event Chat - ${eventId}`,
+          participants: [
+            {
+              id: this.currentUserId,
+              name: 'You',
+              role: 'member',
+              isOnline: true,
+              joinedAt: new Date(),
+              isVerified: true,
+            },
+          ],
+          unreadCount: 0,
+          isArchived: false,
+          isPinned: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          metadata: {
+            eventId,
+            description: `Chat for event ${eventId}`,
+          },
+        };
+        
+        this.conversations.set(conversationId, conversation);
+        this.messages.set(conversationId, []);
+        this.emit('conversationCreated', conversation);
+      }
+      
+      return conversation;
+    }
+  }
+
+  /**
+   * Get or create business conversation
+   */
+  public async getOrCreateBusinessConversation(businessId: string): Promise<Conversation> {
+    if (this.useRealBackend) {
+      try {
+        const response = await messagingApi.getOrCreateBusinessConversation(businessId);
+        const conversation = this.mapConversationFromBackend(response);
+        
+        // Update local cache
+        this.conversations.set(conversation.id, conversation);
+        
+        return conversation;
+      } catch (error) {
+        console.error('Failed to get/create business conversation:', error);
+        throw error;
+      }
+    } else {
+      // Mock implementation
+      const conversationId = `business_${businessId}`;
+      let conversation = this.conversations.get(conversationId);
+      
+      if (!conversation) {
+        conversation = {
+          id: conversationId,
+          type: 'direct',
+          title: `Business Inquiry - ${businessId}`,
+          participants: [
+            {
+              id: this.currentUserId,
+              name: 'You',
+              isOnline: true,
+              joinedAt: new Date(),
+              isVerified: true,
+            },
+            {
+              id: `business_${businessId}`,
+              name: `Business ${businessId}`,
+              isOnline: Math.random() > 0.3,
+              joinedAt: new Date(),
+              isVerified: true,
+            },
+          ],
+          unreadCount: 0,
+          isArchived: false,
+          isPinned: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          metadata: {
+            businessId,
+            description: `Inquiry for business ${businessId}`,
+          },
+        };
+        
+        this.conversations.set(conversationId, conversation);
+        this.messages.set(conversationId, []);
+        this.emit('conversationCreated', conversation);
+      }
+      
+      return conversation;
+    }
   }
 }
 

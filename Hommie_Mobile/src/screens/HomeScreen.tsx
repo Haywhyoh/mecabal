@@ -7,6 +7,7 @@ import { PostsService } from '../services/postsService';
 import { ListingsService } from '../services/listingsService';
 import { DataService } from '../services/data';
 import { EventsApi } from '../services/EventsApi';
+import MessagingService from '../services/MessagingService';
 import FloatingActionButton from '../components/FloatingActionButton';
 import { useAuth } from '../contexts/AuthContext';
 import { FeedScreen } from '../screens/FeedScreen';
@@ -18,6 +19,7 @@ export default function HomeScreen() {
   const [searchText, setSearchText] = useState('');
   const [sidebarVisible, setSidebarVisible] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const [searchResults, setSearchResults] = useState({
     posts: [],
     events: [],
@@ -42,6 +44,24 @@ export default function HomeScreen() {
 
     return () => {
       unsubscribeNotifications();
+    };
+  }, []);
+
+  // Subscribe to messaging service updates for unread count
+  useEffect(() => {
+    const messagingService = MessagingService.getInstance();
+
+    const updateUnreadCount = () => {
+      const conversations = messagingService.getConversations();
+      const total = conversations.reduce((sum, conv) => sum + conv.unreadCount, 0);
+      setUnreadMessagesCount(total);
+    };
+
+    updateUnreadCount();
+    messagingService.on('conversationUpdated', updateUnreadCount);
+
+    return () => {
+      messagingService.off('conversationUpdated', updateUnreadCount);
     };
   }, []);
 
@@ -301,9 +321,18 @@ export default function HomeScreen() {
                 {/* Messages - if exists */}
                 <TouchableOpacity
                   style={styles.menuItem}
-                  onPress={() => handleMenuItemPress(() => navigation.navigate('Messages' as never))}
+                  onPress={() => handleMenuItemPress(() => navigation.navigate('Messaging' as never))}
                 >
-                  <MaterialCommunityIcons name="message" size={24} color="#FF9800" />
+                  <View style={styles.menuIconContainer}>
+                    <MaterialCommunityIcons name="message" size={24} color="#FF9800" />
+                    {unreadMessagesCount > 0 && (
+                      <View style={styles.menuBadge}>
+                        <Text style={styles.menuBadgeText}>
+                          {unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                   <Text style={styles.menuItemText}>Messages</Text>
                   <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E93" />
                 </TouchableOpacity>
@@ -311,13 +340,13 @@ export default function HomeScreen() {
                 {/* Divider */}
                 <View style={styles.menuDivider} />
 
-                {/* More (links to More screen) */}
+                {/* Profile (links to Profile screen) */}
                 <TouchableOpacity
                   style={styles.menuItem}
-                  onPress={() => handleMenuItemPress(() => navigation.navigate('More' as never))}
+                  onPress={() => handleMenuItemPress(() => navigation.navigate('Profile' as never))}
                 >
-                  <MaterialCommunityIcons name="dots-horizontal-circle" size={24} color="#8E8E93" />
-                  <Text style={styles.menuItemText}>More</Text>
+                  <MaterialCommunityIcons name="account-circle" size={24} color="#8E8E93" />
+                  <Text style={styles.menuItemText}>Profile</Text>
                   <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E93" />
                 </TouchableOpacity>
               </View>
@@ -326,10 +355,10 @@ export default function HomeScreen() {
               <View style={styles.sidebarFooter}>
                 <TouchableOpacity
                   style={styles.footerButton}
-                  onPress={() => handleMenuItemPress(() => navigation.navigate('More' as never))}
+                  onPress={() => handleMenuItemPress(() => navigation.navigate('Profile' as never))}
                 >
-                  <MaterialCommunityIcons name="dots-horizontal-circle" size={20} color="#8E8E93" />
-                  <Text style={styles.footerButtonText}>Settings & More</Text>
+                  <MaterialCommunityIcons name="account-circle" size={20} color="#8E8E93" />
+                  <Text style={styles.footerButtonText}>Profile & Settings</Text>
                 </TouchableOpacity>
               </View>
             </SafeAreaView>
@@ -700,6 +729,31 @@ const styles = StyleSheet.create({
     color: '#2C2C2C',
     marginLeft: 16,
     flex: 1,
+  },
+  menuIconContainer: {
+    position: 'relative',
+    width: 24,
+    height: 24,
+    marginRight: 16,
+  },
+  menuBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -8,
+    backgroundColor: '#E74C3C',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  menuBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   menuDivider: {
     height: 0.5,

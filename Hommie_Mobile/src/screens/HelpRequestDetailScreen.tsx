@@ -15,7 +15,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { HelpStackParamList } from '../navigation/HelpNavigation';
-import { postsService } from '../services/postsService';
+import { PostsService } from '../services/postsService';
 import { useAuth } from '../contexts/AuthContext';
 
 type HelpRequestDetailScreenProps = {
@@ -28,6 +28,7 @@ export const HelpRequestDetailScreen: React.FC<HelpRequestDetailScreenProps> = (
   route,
 }) => {
   const { user } = useAuth();
+  const postsService = PostsService.getInstance();
   const { requestId, focusComment } = route.params;
   const [request, setRequest] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -254,7 +255,7 @@ export const HelpRequestDetailScreen: React.FC<HelpRequestDetailScreenProps> = (
     return (
       <View style={styles.actionsSection}>
         <TouchableOpacity style={styles.offerHelpButton} onPress={handleOfferHelp}>
-          <Ionicons name="hand" size={20} color="#FFFFFF" />
+          <Ionicons name="help-circle" size={20} color="#FFFFFF" />
           <Text style={styles.offerHelpText}>Offer Help</Text>
         </TouchableOpacity>
       </View>

@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { HelpStackParamList } from '../navigation/HelpNavigation';
-import { postsService } from '../services/postsService';
+import { PostsService } from '../services/postsService';
 import { useAuth } from '../contexts/AuthContext';
 
 type MyHelpActivityScreenProps = {
@@ -33,6 +33,7 @@ export const MyHelpActivityScreen: React.FC<MyHelpActivityScreenProps> = ({
   navigation,
 }) => {
   const { user } = useAuth();
+  const postsService = PostsService.getInstance();
   const [activities, setActivities] = useState<HelpActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

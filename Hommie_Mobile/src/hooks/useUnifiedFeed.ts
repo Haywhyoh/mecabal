@@ -143,25 +143,41 @@ export const useUnifiedFeed = (options: UnifiedFeedOptions = {}) => {
       let events: Event[] = [];
 
       // Determine what to fetch based on filter
-      const shouldFetchPosts = !filter.postType || filter.postType === 'all' || filter.postType !== 'event';
-      const shouldFetchEvents = !filter.postType || filter.postType === 'all' || filter.postType === 'event';
+      // Post types: 'general', 'help', 'alert', 'marketplace', 'lost_found'
+      // Event type: 'event'
+      const shouldFetchPosts = !filter.postType ||
+        filter.postType === 'all' ||
+        ['general', 'help', 'alert', 'marketplace', 'lost_found'].includes(filter.postType);
+
+      const shouldFetchEvents = !filter.postType ||
+        filter.postType === 'all' ||
+        filter.postType === 'event';
 
       // Fetch posts if needed
       if (shouldFetchPosts) {
-        const postsFilter = {
-          ...filter,
-          page: currentPage,
-          limit: filter.postType === 'event' ? 0 : limit, // Don't fetch posts if only events are requested
-        };
+        try {
+          // Build filter object for posts API
+          const postsFilter: any = {
+            ...filter,
+            page: currentPage,
+            limit: shouldFetchEvents && (!filter.postType || filter.postType === 'all')
+              ? Math.floor(limit / 2)  // Split limit between posts and events when showing both
+              : limit,
+          };
 
-        if (filter.postType !== 'event') {
-          try {
-            const result = await postsService.getPosts(postsFilter);
-            posts = result.data || [];
-          } catch (error) {
-            console.error('Error loading posts:', error);
-            // Continue with events even if posts fail
+          // IMPORTANT: Remove postType if it's 'all'
+          // The API doesn't understand 'all' - it should fetch all types
+          if (filter.postType === 'all') {
+            delete postsFilter.postType;
           }
+
+          console.log('📨 Fetching posts with filter:', postsFilter);
+          const result = await postsService.getPosts(postsFilter);
+          posts = result.data || [];
+          console.log(`✅ Fetched ${posts.length} posts`);
+        } catch (error) {
+          console.error('❌ Error loading posts:', error);
+          // Continue with events even if posts fail
         }
       }
 
@@ -170,14 +186,18 @@ export const useUnifiedFeed = (options: UnifiedFeedOptions = {}) => {
         try {
           const eventFilter: EventFilterDto = {
             page: currentPage,
-            limit: filter.postType === 'event' ? limit : Math.max(0, limit - posts.length),
+            limit: shouldFetchPosts && (!filter.postType || filter.postType === 'all')
+              ? Math.floor(limit / 2)  // Split limit when showing both
+              : limit,
             search: filter.search,
           };
 
+          console.log('📅 Fetching events with filter:', eventFilter);
           const result = await EventsApi.getEvents(eventFilter);
           events = result.data || [];
+          console.log(`✅ Fetched ${events.length} events`);
         } catch (error) {
-          console.error('Error loading events:', error);
+          console.error('❌ Error loading events:', error);
           // Continue with posts even if events fail
         }
       }

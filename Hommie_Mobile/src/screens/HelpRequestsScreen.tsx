@@ -15,7 +15,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { HelpStackParamList } from '../navigation/HelpNavigation';
 import { COMMUNITY_HELP_CATEGORIES } from '../constants';
-import { postsService } from '../services/postsService';
+import { PostsService } from '../services/postsService';
 import { useAuth } from '../contexts/AuthContext';
 import { HelpPostCard } from '../components/HelpPostCard';
 
@@ -27,6 +27,7 @@ export const HelpRequestsScreen: React.FC<HelpRequestsScreenProps> = ({
   navigation,
 }) => {
   const { user } = useAuth();
+  const postsService = PostsService.getInstance();
   const [helpRequests, setHelpRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -37,18 +38,45 @@ export const HelpRequestsScreen: React.FC<HelpRequestsScreenProps> = ({
   const loadHelpRequests = useCallback(async () => {
     try {
       setLoading(true);
+
+      // Call API with proper parameters
       const response = await postsService.getPosts({
         postType: 'help',
         limit: 50,
-        offset: 0,
+        page: 1,  // Use 'page' instead of 'offset' (consistent with API)
       });
-      
-      if (response.success && response.data) {
-        setHelpRequests(response.data.posts || []);
+
+      console.log('🔍 Help posts API response:', response);
+      console.log('🔍 Response data type:', typeof response.data);
+      console.log('🔍 Is array?:', Array.isArray(response.data));
+
+      // Handle different response structures
+      let helpPosts = [];
+
+      if (response.data) {
+        if (Array.isArray(response.data)) {
+          // Response is directly an array
+          helpPosts = response.data;
+          console.log('✅ Response is array, found', helpPosts.length, 'posts');
+        } else if (response.data.posts && Array.isArray(response.data.posts)) {
+          // Response has posts property
+          helpPosts = response.data.posts;
+          console.log('✅ Response has posts property, found', helpPosts.length, 'posts');
+        } else {
+          console.warn('⚠️ Unexpected response structure:', response.data);
+        }
+
+        setHelpRequests(helpPosts);
+        console.log(`✅ Loaded ${helpPosts.length} help requests`);
+      } else {
+        console.warn('⚠️ Response has no data property');
+        setHelpRequests([]);
       }
     } catch (error) {
-      console.error('Error loading help requests:', error);
-      Alert.alert('Error', 'Failed to load help requests');
+      console.error('❌ Error loading help requests:', error);
+      console.error('❌ Error details:', error.response?.data || error.message);
+      Alert.alert('Error', 'Failed to load help requests. Please try again.');
+      setHelpRequests([]);
     } finally {
       setLoading(false);
     }

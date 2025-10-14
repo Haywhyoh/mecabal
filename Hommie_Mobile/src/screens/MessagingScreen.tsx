@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,12 +9,14 @@ import {
   Alert,
   Platform,
   TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { colors, spacing, typography } from '../constants';
 import MessagingService, { Conversation, TypingStatus } from '../services/MessagingService';
+import { webSocketService } from '../services/WebSocketService';
 
 interface ConversationItemProps {
   conversation: Conversation;
@@ -124,7 +126,7 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
             <MaterialCommunityIcons 
               name={conversation.type === 'direct' ? 'account' : 'account-group'}
               size={24} 
-              color={colors.neutral.pureWhite} 
+              color={colors.white} 
             />
           </View>
         )}
@@ -134,7 +136,7 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
           <View style={[
             styles.onlineIndicator,
             { backgroundColor: conversation.participants.find(p => p.id !== 'current_user')?.isOnline 
-              ? colors.accent.marketGreen : colors.neutral.friendlyGray }
+              ? colors.accent.marketGreen : colors.neutral.gray }
           ]} />
         )}
         
@@ -204,17 +206,41 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
 const MessagingScreen: React.FC = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   const navigation = useNavigation();
   const messagingService = MessagingService.getInstance();
 
+  // Load conversations from backend
+  const loadConversations = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const conversationsData = await messagingService.getConversations({
+        page: 1,
+        limit: 50,
+        isArchived: false,
+      });
+      setConversations(conversationsData);
+    } catch (err) {
+      console.error('Failed to load conversations:', err);
+      setError('Failed to load conversations. Please try again.');
+      // Fallback to cached conversations
+      const cachedConversations = messagingService.getConversations();
+      setConversations(Array.isArray(cachedConversations) ? cachedConversations : []);
+    } finally {
+      setLoading(false);
+    }
+  }, [messagingService]);
+
   useEffect(() => {
     // Load initial conversations
-    setConversations(messagingService.getConversations());
+    loadConversations();
 
-    // Subscribe to updates
+    // Subscribe to real-time updates
     const handleConversationUpdated = (conversation: Conversation) => {
       setConversations(prev => 
         prev.map(c => c.id === conversation.id ? conversation : c)
@@ -225,37 +251,95 @@ const MessagingScreen: React.FC = () => {
       setConversations(prev => [conversation, ...prev]);
     };
 
+    const handleConnectionStatus = (isConnected: boolean) => {
+      setConnectionStatus(isConnected);
+    };
+
+    // WebSocket connection status
+    const handleWebSocketConnect = () => {
+      setConnectionStatus(true);
+    };
+
+    const handleWebSocketDisconnect = () => {
+      setConnectionStatus(false);
+    };
+
+    // Subscribe to messaging service events
     messagingService.on('conversationUpdated', handleConversationUpdated);
     messagingService.on('conversationCreated', handleConversationCreated);
+    messagingService.on('connected', handleConnectionStatus);
+    messagingService.on('disconnected', handleConnectionStatus);
+
+    // Subscribe to WebSocket events
+    webSocketService.on('connect', handleWebSocketConnect);
+    webSocketService.on('disconnect', handleWebSocketDisconnect);
+
+    // Set initial connection status
+    setConnectionStatus(messagingService.getConnectionStatus());
 
     return () => {
       messagingService.off('conversationUpdated', handleConversationUpdated);
       messagingService.off('conversationCreated', handleConversationCreated);
+      messagingService.off('connected', handleConnectionStatus);
+      messagingService.off('disconnected', handleConnectionStatus);
+      webSocketService.off('connect', handleWebSocketConnect);
+      webSocketService.off('disconnect', handleWebSocketDisconnect);
     };
-  }, []);
+  }, [loadConversations, messagingService]);
+
+  // Refresh conversations when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      loadConversations();
+    }, [loadConversations])
+  );
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    // Simulate refresh delay
-    setTimeout(() => {
-      setConversations(messagingService.getConversations());
+    try {
+      await loadConversations();
+    } catch (err) {
+      console.error('Refresh failed:', err);
+    } finally {
       setRefreshing(false);
-    }, 1000);
+    }
   };
 
   const handleConversationPress = (conversation: Conversation) => {
     console.log('Navigate to chat:', conversation.id);
-    // This would navigate to the ChatScreen with the conversation ID
+    (navigation as any).navigate('Chat', {
+      conversationId: conversation.id,
+      conversationType: conversation.type,
+      conversationTitle: conversation.type === 'direct'
+        ? conversation.participants.find(p => p.id !== 'current_user')?.name
+        : conversation.title,
+    });
   };
 
   const handleArchiveConversation = async (conversationId: string) => {
-    await messagingService.archiveConversation(conversationId);
-    setConversations(messagingService.getConversations());
+    try {
+      await messagingService.archiveConversation(conversationId);
+      // Update local state
+      setConversations(prev => 
+        prev.map(c => c.id === conversationId ? { ...c, isArchived: !c.isArchived } : c)
+      );
+    } catch (err) {
+      console.error('Failed to archive conversation:', err);
+      Alert.alert('Error', 'Failed to archive conversation. Please try again.');
+    }
   };
 
   const handlePinConversation = async (conversationId: string) => {
-    await messagingService.pinConversation(conversationId);
-    setConversations(messagingService.getConversations());
+    try {
+      await messagingService.pinConversation(conversationId);
+      // Update local state
+      setConversations(prev => 
+        prev.map(c => c.id === conversationId ? { ...c, isPinned: !c.isPinned } : c)
+      );
+    } catch (err) {
+      console.error('Failed to pin conversation:', err);
+      Alert.alert('Error', 'Failed to pin conversation. Please try again.');
+    }
   };
 
   const handleNewChat = () => {
@@ -265,11 +349,33 @@ const MessagingScreen: React.FC = () => {
       [
         {
           text: 'Direct Message',
-          onPress: () => console.log('Create direct message'),
+          onPress: () => {
+            // Navigate to neighbor selection screen
+            (navigation as any).navigate('NeighborConnections', {
+              mode: 'select',
+              onSelect: async (userId: string) => {
+                try {
+                  // Create new conversation with selected user
+                  const newConversation = await messagingService.createDirectConversation(userId, 'Neighbor');
+                  (navigation as any).navigate('Chat', {
+                    conversationId: newConversation.id,
+                    conversationType: 'direct',
+                    conversationTitle: 'Neighbor',
+                  });
+                } catch (err) {
+                  console.error('Failed to create conversation:', err);
+                  Alert.alert('Error', 'Failed to create conversation. Please try again.');
+                }
+              },
+            });
+          },
         },
         {
           text: 'Group Chat',
-          onPress: () => console.log('Create group chat'),
+          onPress: () => {
+            // Navigate to group creation screen (to be implemented)
+            (navigation as any).navigate('CreateGroupChat');
+          },
         },
         {
           text: 'Cancel',
@@ -292,22 +398,50 @@ const MessagingScreen: React.FC = () => {
   };
 
   const filteredConversations = getFilteredConversations();
-  const totalUnreadCount = conversations.reduce((total, conv) => total + conv.unreadCount, 0);
+  const totalUnreadCount = conversations?.reduce((total, conv) => total + (conv.unreadCount || 0), 0) || 0;
 
   const EmptyState = () => (
     <View style={styles.emptyState}>
-      <MaterialCommunityIcons 
-        name="message-text-outline" 
-        size={64} 
-        color={colors.neutral.friendlyGray} 
-      />
-      <Text style={styles.emptyTitle}>No Conversations</Text>
+      {/* Large icon with subtle background */}
+      <View style={styles.emptyIconContainer}>
+        <MaterialCommunityIcons
+          name="message-text-outline"
+          size={80}
+          color="#8E8E93"
+        />
+      </View>
+
+      <Text style={styles.emptyTitle}>No Conversations Yet</Text>
+
       <Text style={styles.emptyMessage}>
-        Start connecting with your neighbors! Tap the + button to begin a new conversation.
+        Connect with your neighbors and start building your community. Your conversations will appear here.
       </Text>
-      <TouchableOpacity style={styles.startChatButton} onPress={handleNewChat}>
-        <Text style={styles.startChatButtonText}>Start Your First Chat</Text>
+
+      <TouchableOpacity
+        style={styles.startChatButton}
+        onPress={handleNewChat}
+        activeOpacity={0.7}
+      >
+        <MaterialCommunityIcons
+          name="plus-circle"
+          size={20}
+          color="#FFFFFF"
+          style={{ marginRight: 8 }}
+        />
+        <Text style={styles.startChatButtonText}>Start a Conversation</Text>
       </TouchableOpacity>
+
+      {/* Helper tips */}
+      <View style={styles.tipsContainer}>
+        <View style={styles.tipItem}>
+          <MaterialCommunityIcons name="account-plus" size={20} color="#00A651" />
+          <Text style={styles.tipText}>Connect with neighbors first</Text>
+        </View>
+        <View style={styles.tipItem}>
+          <MaterialCommunityIcons name="shield-check" size={20} color="#00A651" />
+          <Text style={styles.tipText}>Verified users only</Text>
+        </View>
+      </View>
     </View>
   );
 
@@ -315,7 +449,7 @@ const MessagingScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
+        <View style={styles.headerTop}>
           <TouchableOpacity 
             style={styles.backButton}
             onPress={() => navigation.goBack()}
@@ -324,10 +458,12 @@ const MessagingScreen: React.FC = () => {
             <MaterialCommunityIcons 
               name="arrow-left" 
               size={24} 
-              color={colors.primary} 
+              color="#00A651" 
             />
           </TouchableOpacity>
+
           <Text style={styles.headerTitle}>Messages</Text>
+
           {totalUnreadCount > 0 && (
             <View style={styles.totalUnreadBadge}>
               <Text style={styles.totalUnreadText}>
@@ -335,67 +471,55 @@ const MessagingScreen: React.FC = () => {
               </Text>
             </View>
           )}
-        </View>
-        
-        <View style={styles.headerActions}>
-          <TouchableOpacity 
+
+          <View style={{ flex: 1 }} />
+
+          <TouchableOpacity
             style={styles.headerButton}
-            onPress={() => setIsSearching(!isSearching)}
+            onPress={handleNewChat}
           >
-            <MaterialCommunityIcons 
-              name={isSearching ? 'close' : 'magnify'} 
-              size={24} 
-              color={colors.primary} 
+            <MaterialCommunityIcons
+              name="square-edit-outline"
+              size={24}
+              color="#00A651"
             />
           </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.headerButton} onPress={handleNewChat}>
-            <MaterialCommunityIcons 
-              name="plus" 
-              size={24} 
-              color={colors.primary} 
-            />
-          </TouchableOpacity>
+        </View>
+
+        {/* Always-visible search */}
+        <View style={styles.searchContainer}>
+          <MaterialCommunityIcons
+            name="magnify"
+            size={18}
+            color="#8E8E93"
+          />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholderTextColor="#8E8E93"
+            clearButtonMode="while-editing" // iOS only
+          />
+          {searchQuery.length > 0 && Platform.OS === 'android' && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <MaterialCommunityIcons
+                name="close-circle"
+                size={18}
+                color="#8E8E93"
+              />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
-      {/* Search Bar */}
-      {isSearching && (
-        <View style={styles.searchContainer}>
-          <View style={styles.searchInputContainer}>
-            <MaterialCommunityIcons 
-              name="magnify" 
-              size={20} 
-              color={colors.neutral.friendlyGray} 
-            />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search conversations..."
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              autoFocus
-              placeholderTextColor={colors.neutral.friendlyGray}
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <MaterialCommunityIcons 
-                  name="close-circle" 
-                  size={20} 
-                  color={colors.neutral.friendlyGray} 
-                />
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-      )}
-
       {/* Connection Status */}
-      {!messagingService.getConnectionStatus() && (
+      {!connectionStatus && (
         <View style={styles.connectionStatus}>
           <MaterialCommunityIcons 
             name="wifi-off" 
             size={16} 
-            color={colors.neutral.pureWhite} 
+            color={colors.white} 
           />
           <Text style={styles.connectionStatusText}>
             Reconnecting...
@@ -403,30 +527,53 @@ const MessagingScreen: React.FC = () => {
         </View>
       )}
 
-      {/* Conversations List */}
-      <FlatList
-        data={filteredConversations}
-        renderItem={({ item }) => (
-          <ConversationItem
-            conversation={item}
-            onPress={() => handleConversationPress(item)}
-            onArchive={() => handleArchiveConversation(item.id)}
-            onPin={() => handlePinConversation(item.id)}
+      {/* Error Message */}
+      {error && (
+        <View style={styles.errorContainer}>
+          <MaterialCommunityIcons 
+            name="alert-circle" 
+            size={16} 
+            color={colors.accent.safetyRed} 
           />
-        )}
-        keyExtractor={item => item.id}
-        ListEmptyComponent={EmptyState}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            colors={[colors.primary]}
-            tintColor={colors.primary}
-          />
-        }
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-      />
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity onPress={loadConversations}>
+            <Text style={styles.retryText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Loading State */}
+      {loading && !refreshing ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Loading conversations...</Text>
+        </View>
+      ) : (
+        /* Conversations List */
+        <FlatList
+          data={filteredConversations}
+          renderItem={({ item }) => (
+            <ConversationItem
+              conversation={item}
+              onPress={() => handleConversationPress(item)}
+              onArchive={() => handleArchiveConversation(item.id)}
+              onPin={() => handlePinConversation(item.id)}
+            />
+          )}
+          keyExtractor={item => item.id}
+          ListEmptyComponent={!loading ? EmptyState : null}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={[colors.primary]}
+              tintColor={colors.primary}
+            />
+          }
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
     </SafeAreaView>
   );
 };
@@ -434,23 +581,20 @@ const MessagingScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.neutral.warmOffWhite,
+    backgroundColor: colors.neutral.offWhite,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.neutral.pureWhite,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral.softGray,
+    borderBottomColor: '#E5E5EA',
+    paddingBottom: 12,
   },
-  headerLeft: {
+  headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 12,
   },
   backButton: {
     padding: spacing.xs,
@@ -459,7 +603,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: typography.sizes['2xl'],
     fontWeight: '700',
-    color: colors.neutral.richCharcoal,
+    color: colors.text.dark,
   },
   totalUnreadBadge: {
     backgroundColor: colors.accent.safetyRed,
@@ -471,7 +615,7 @@ const styles = StyleSheet.create({
   },
   totalUnreadText: {
     fontSize: typography.sizes.xs,
-    color: colors.neutral.pureWhite,
+    color: colors.white,
     fontWeight: '600',
   },
   headerActions: {
@@ -483,25 +627,20 @@ const styles = StyleSheet.create({
     padding: spacing.xs,
   },
   searchContainer: {
-    backgroundColor: colors.neutral.pureWhite,
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral.softGray,
-  },
-  searchInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.neutral.softGray,
-    borderRadius: 20,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    gap: spacing.sm,
+    backgroundColor: '#F2F2F7',
+    marginHorizontal: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    gap: 8,
   },
   searchInput: {
     flex: 1,
-    fontSize: typography.sizes.base,
-    color: colors.neutral.richCharcoal,
+    fontSize: 16,
+    color: '#1C1C1E',
+    paddingVertical: 0, // Remove default padding
   },
   connectionStatus: {
     backgroundColor: colors.accent.safetyRed,
@@ -513,8 +652,40 @@ const styles = StyleSheet.create({
   },
   connectionStatusText: {
     fontSize: typography.sizes.sm,
-    color: colors.neutral.pureWhite,
+    color: colors.white,
     fontWeight: '500',
+  },
+  errorContainer: {
+    backgroundColor: '#FFEBEE',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    gap: spacing.sm,
+  },
+  errorText: {
+    fontSize: typography.sizes.sm,
+    color: colors.accent.safetyRed,
+    fontWeight: '500',
+    flex: 1,
+  },
+  retryText: {
+    fontSize: typography.sizes.sm,
+    color: colors.primary,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: spacing.xl,
+  },
+  loadingText: {
+    fontSize: typography.sizes.base,
+    color: colors.neutral.gray,
+    marginTop: spacing.md,
   },
   listContent: {
     flexGrow: 1,
@@ -523,14 +694,14 @@ const styles = StyleSheet.create({
   conversationItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.neutral.pureWhite,
+    backgroundColor: colors.white,
     marginHorizontal: spacing.md,
     marginBottom: spacing.sm,
     padding: spacing.md,
     borderRadius: 12,
     ...Platform.select({
       ios: {
-        shadowColor: colors.neutral.deepBlack,
+        shadowColor: colors.black,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 8,
@@ -552,14 +723,14 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: colors.neutral.friendlyGray,
+    backgroundColor: colors.neutral.gray,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarPlaceholder: {
     fontSize: typography.sizes.lg,
     fontWeight: '600',
-    color: colors.neutral.pureWhite,
+    color: colors.white,
   },
   onlineIndicator: {
     position: 'absolute',
@@ -569,18 +740,18 @@ const styles = StyleSheet.create({
     height: 12,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: colors.neutral.pureWhite,
+    borderColor: colors.white,
   },
   pinnedIndicator: {
     position: 'absolute',
     top: -4,
     right: -4,
-    backgroundColor: colors.neutral.pureWhite,
+    backgroundColor: colors.white,
     borderRadius: 8,
     padding: 2,
     ...Platform.select({
       ios: {
-        shadowColor: colors.neutral.deepBlack,
+        shadowColor: colors.black,
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.2,
         shadowRadius: 2,
@@ -603,7 +774,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: typography.sizes.base,
     fontWeight: '600',
-    color: colors.neutral.richCharcoal,
+    color: colors.text.dark,
   },
   unreadTitle: {
     fontWeight: '700',
@@ -620,12 +791,12 @@ const styles = StyleSheet.create({
   },
   onlineText: {
     fontSize: typography.sizes.xs,
-    color: colors.neutral.pureWhite,
+    color: colors.white,
     fontWeight: '500',
   },
   timeText: {
     fontSize: typography.sizes.xs,
-    color: colors.neutral.friendlyGray,
+    color: colors.neutral.gray,
   },
   conversationFooter: {
     flexDirection: 'row',
@@ -635,11 +806,11 @@ const styles = StyleSheet.create({
   lastMessageText: {
     flex: 1,
     fontSize: typography.sizes.sm,
-    color: colors.neutral.friendlyGray,
+    color: colors.neutral.gray,
   },
   unreadMessage: {
     fontWeight: '600',
-    color: colors.neutral.richCharcoal,
+    color: colors.text.dark,
   },
   unreadBadge: {
     backgroundColor: colors.primary,
@@ -651,40 +822,71 @@ const styles = StyleSheet.create({
   },
   unreadCount: {
     fontSize: typography.sizes.xs,
-    color: colors.neutral.pureWhite,
+    color: colors.white,
     fontWeight: '600',
   },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing['3xl'],
+    paddingHorizontal: 40,
+    paddingVertical: 60,
+  },
+  emptyIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#F2F2F7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
   },
   emptyTitle: {
-    fontSize: typography.sizes.xl,
-    fontWeight: '600',
-    color: colors.neutral.richCharcoal,
-    marginTop: spacing.lg,
-    marginBottom: spacing.sm,
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1C1C1E',
+    marginBottom: 12,
+    textAlign: 'center',
   },
   emptyMessage: {
-    fontSize: typography.sizes.base,
-    color: colors.neutral.friendlyGray,
+    fontSize: 16,
+    color: '#8E8E93',
     textAlign: 'center',
     lineHeight: 24,
-    marginBottom: spacing.lg,
+    marginBottom: 32,
+    maxWidth: 280,
   },
   startChatButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderRadius: 20,
+    flexDirection: 'row',
+    backgroundColor: '#00A651',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   startChatButtonText: {
-    fontSize: typography.sizes.base,
-    color: colors.neutral.pureWhite,
+    fontSize: 16,
+    color: '#FFFFFF',
     fontWeight: '600',
+  },
+  tipsContainer: {
+    marginTop: 40,
+    gap: 16,
+  },
+  tipItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  tipText: {
+    fontSize: 14,
+    color: '#8E8E93',
+    fontWeight: '500',
   },
 });
 
