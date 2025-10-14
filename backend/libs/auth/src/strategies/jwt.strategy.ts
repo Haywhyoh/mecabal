@@ -42,11 +42,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('Invalid token type');
     }
 
-    // Fix UUID format if it has an extra character (common issue with JWT tokens)
-    let userId = payload.sub || payload.userId;
-    if (userId && userId.length === 37 && userId.endsWith('f')) {
-      userId = userId.slice(0, -1); // Remove the trailing 'f'
-    }
+    // Get user ID from token payload
+    const userId = payload.sub || payload.userId;
 
     const user = await this.userRepository.findOne({
       where: { id: userId },

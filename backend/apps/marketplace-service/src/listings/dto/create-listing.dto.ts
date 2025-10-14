@@ -50,6 +50,12 @@ export enum PropertyType {
   OFFICE = 'office',
 }
 
+export enum TransactionType {
+  SALE = 'sale',
+  RENT = 'rent',
+  LEASE = 'lease',
+}
+
 export enum ItemCondition {
   NEW = 'new',
   LIKE_NEW = 'like_new',
@@ -359,6 +365,15 @@ export class CreateListingDto {
   propertyType?: PropertyType;
 
   @ApiPropertyOptional({
+    description: 'Transaction type for properties',
+    enum: TransactionType,
+    example: TransactionType.RENT,
+  })
+  @IsOptional()
+  @IsEnum(TransactionType)
+  transactionType?: TransactionType;
+
+  @ApiPropertyOptional({
     description: 'Number of bedrooms',
     example: 3,
   })
@@ -377,7 +392,7 @@ export class CreateListingDto {
   bathrooms?: number;
 
   @ApiPropertyOptional({
-    description: 'Rental period',
+    description: 'Rental period (required only when transactionType is "rent")',
     enum: RentalPeriod,
     example: RentalPeriod.YEARLY,
   })

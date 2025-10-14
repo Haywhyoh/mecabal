@@ -27,20 +27,74 @@ interface CreateListingScreenProps {
 }
 
 export default function CreateListingScreen({ navigation, route }: CreateListingScreenProps) {
-  const [listingType, setListingType] = useState<'sell' | 'service' | 'job'>('sell');
+  const [listingType, setListingType] = useState<'property' | 'item' | 'service' | 'job'>('item');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [category, setCategory] = useState('');
-  const [condition, setCondition] = useState('');
   const [location, setLocation] = useState('');
-  const [contactMethod, setContactMethod] = useState<'in_app' | 'phone' | 'both'>('in_app');
   const [images, setImages] = useState<string[]>([]);
   const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
-  const [showConditionPicker, setShowConditionPicker] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [showConditionPicker, setShowConditionPicker] = useState(false);
+  const [contactMethod, setContactMethod] = useState<'in_app' | 'phone' | 'both'>('in_app');
+
+  // Service-specific state
+  const [serviceType, setServiceType] = useState<'offering' | 'request'>('offering');
+  const [availabilityDays, setAvailabilityDays] = useState<string[]>([]);
+  const [startTime, setStartTime] = useState('09:00');
+  const [endTime, setEndTime] = useState('17:00');
+  const [serviceRadius, setServiceRadius] = useState('5');
+  const [licenses, setLicenses] = useState<string[]>([]);
+  const [certifications, setCertifications] = useState<string[]>([]);
+  const [yearsExperience, setYearsExperience] = useState('');
+  const [hasInsurance, setHasInsurance] = useState(false);
+  const [pricingModel, setPricingModel] = useState<'hourly' | 'project' | 'fixed' | 'negotiable'>('fixed');
+  const [responseTime, setResponseTime] = useState('24');
+
+  // Job-specific state
+  const [employmentType, setEmploymentType] = useState<'full_time' | 'part_time' | 'contract' | 'freelance'>('full_time');
+  const [salaryMin, setSalaryMin] = useState('');
+  const [salaryMax, setSalaryMax] = useState('');
+  const [workLocation, setWorkLocation] = useState<'remote' | 'on_site' | 'hybrid'>('on_site');
+  const [requiredSkills, setRequiredSkills] = useState<string[]>([]);
+  const [requiredExperience, setRequiredExperience] = useState('');
+  const [education, setEducation] = useState('');
+  const [benefits, setBenefits] = useState<string[]>([]);
+  const [applicationDeadline, setApplicationDeadline] = useState<Date | null>(null);
+  const [companyName, setCompanyName] = useState('');
+  const [companySize, setCompanySize] = useState('');
+  const [companyIndustry, setCompanyIndustry] = useState('');
+  const [companyWebsite, setCompanyWebsite] = useState('');
+
+  // Property-specific state
+  const [propertyType, setPropertyType] = useState<'apartment' | 'house' | 'land' | 'office'>('apartment');
+  const [transactionType, setTransactionType] = useState<'sale' | 'rent' | 'lease'>('rent');
+  const [bedrooms, setBedrooms] = useState('');
+  const [bathrooms, setBathrooms] = useState('');
+  const [propertySize, setPropertySize] = useState('');
+  const [landSize, setLandSize] = useState('');
+  const [parkingSpaces, setParkingSpaces] = useState('');
+  const [petPolicy, setPetPolicy] = useState<'allowed' | 'not_allowed' | 'case_by_case'>('not_allowed');
+  const [rentalPeriod, setRentalPeriod] = useState<'monthly' | 'yearly'>('yearly');
+  const [amenities, setAmenities] = useState<string[]>([]);
+  const [utilitiesIncluded, setUtilitiesIncluded] = useState<string[]>([]);
+  const [securityFeatures, setSecurityFeatures] = useState<string[]>([]);
+
+  // Item-specific state
+  const [condition, setCondition] = useState('');
+  const [brand, setBrand] = useState('');
+  const [model, setModel] = useState('');
+  const [year, setYear] = useState('');
+  const [warranty, setWarranty] = useState('');
+
+  // Contact preferences state
+  const [allowCalls, setAllowCalls] = useState(true);
+  const [allowMessages, setAllowMessages] = useState(true);
+  const [allowWhatsApp, setAllowWhatsApp] = useState(false);
+  const [preferredContactTime, setPreferredContactTime] = useState('');
 
   const mediaService = MediaService.getInstance();
   const listingsService = ListingsService.getInstance();
@@ -196,12 +250,52 @@ export default function CreateListingScreen({ navigation, route }: CreateListing
       return;
     }
 
+    // Type-specific validation
+    if (listingType === 'service') {
+      if (availabilityDays.length === 0) {
+        Alert.alert('Missing Information', 'Please select at least one available day.');
+        return;
+      }
+      if (!serviceRadius || isNaN(parseInt(serviceRadius))) {
+        Alert.alert('Missing Information', 'Please enter a valid service radius.');
+        return;
+      }
+    }
+
+    if (listingType === 'job') {
+      if (!salaryMin || !salaryMax || isNaN(parseFloat(salaryMin)) || isNaN(parseFloat(salaryMax))) {
+        Alert.alert('Missing Information', 'Please enter valid salary range.');
+        return;
+      }
+      if (requiredSkills.length === 0) {
+        Alert.alert('Missing Information', 'Please enter at least one required skill.');
+        return;
+      }
+      if (!companyName) {
+        Alert.alert('Missing Information', 'Please enter company name.');
+        return;
+      }
+    }
+
+    if (listingType === 'property') {
+      if ((propertyType === 'apartment' || propertyType === 'house') && (!bedrooms || !bathrooms)) {
+        Alert.alert('Missing Information', 'Please enter number of bedrooms and bathrooms.');
+        return;
+      }
+      if (propertyType === 'land' && (!landSize || isNaN(parseFloat(landSize)))) {
+        Alert.alert('Missing Information', 'Please enter valid land size.');
+        return;
+      }
+    }
+
+    if (listingType === 'item' && !condition) {
+      Alert.alert('Missing Information', 'Please select item condition.');
+      return;
+    }
+
     try {
       setSubmitting(true);
       triggerHaptic();
-
-      // Map listingType to API expected format
-      const apiListingType = listingType === 'sell' ? 'item' : listingType === 'service' ? 'service' : 'item';
 
       // Find category backend ID from constants
       const categoryData = MARKETPLACE_CATEGORIES.find(cat => cat.name === category);
@@ -212,27 +306,102 @@ export default function CreateListingScreen({ navigation, route }: CreateListing
       }
       const categoryId = categoryData.backendId;
 
-      const listingData: CreateListingRequest = {
-        listingType: apiListingType as any,
+      const baseData: CreateListingRequest = {
+        listingType: listingType,
         categoryId: categoryId,
         title,
         description,
         price: parseFloat(price.replace(/,/g, '')),
         priceType: 'fixed',
-        condition,
         location: {
           latitude: 0, // TODO: Get from user's location
           longitude: 0,
           address: location || 'Default Location Address'
         },
         media: uploadedImageUrls.map((url, index) => ({
+          id: `media-${index}`,
           url,
           type: 'image' as const,
           displayOrder: index
         }))
       };
 
-      await listingsService.createListing(listingData);
+      // Add type-specific fields
+      if (listingType === 'service') {
+        Object.assign(baseData, {
+          serviceType,
+          availabilitySchedule: {
+            days: availabilityDays,
+            startTime,
+            endTime,
+            timezone: 'Africa/Lagos'
+          },
+          serviceRadius: parseInt(serviceRadius),
+          professionalCredentials: {
+            licenses: licenses.filter(l => l),
+            certifications: certifications.filter(c => c),
+            experience: parseInt(yearsExperience) || 0,
+            insurance: hasInsurance
+          },
+          pricingModel,
+          responseTime: parseInt(responseTime),
+          contactPreferences: {
+            allowCalls,
+            allowMessages,
+            allowWhatsApp,
+            preferredTime: preferredContactTime
+          }
+        });
+      } else if (listingType === 'job') {
+        Object.assign(baseData, {
+          employmentType,
+          salaryMin: parseFloat(salaryMin),
+          salaryMax: parseFloat(salaryMax),
+          workLocation,
+          requiredSkills: requiredSkills.filter(s => s),
+          requiredExperience,
+          education,
+          benefits: benefits.filter(b => b),
+          applicationDeadline: applicationDeadline?.toISOString(),
+          companyInfo: {
+            name: companyName,
+            size: companySize,
+            industry: companyIndustry,
+            website: companyWebsite
+          }
+        });
+      } else if (listingType === 'property') {
+        const propertyData: any = {
+          propertyType,
+          transactionType, // Add transaction type
+          bedrooms: parseInt(bedrooms) || undefined,
+          bathrooms: parseInt(bathrooms) || undefined,
+          propertySize: parseFloat(propertySize) || undefined,
+          landSize: parseFloat(landSize) || undefined,
+          parkingSpaces: parseInt(parkingSpaces) || undefined,
+          petPolicy,
+          propertyAmenities: amenities.length > 0 ? amenities : undefined, // Rename field
+          utilitiesIncluded: utilitiesIncluded.length > 0 ? utilitiesIncluded : undefined,
+          securityFeatures: securityFeatures.length > 0 ? securityFeatures : undefined
+        };
+
+        // Only include rentalPeriod if transaction type is rent
+        if (transactionType === 'rent') {
+          propertyData.rentalPeriod = rentalPeriod;
+        }
+
+        Object.assign(baseData, propertyData);
+      } else if (listingType === 'item') {
+        Object.assign(baseData, {
+          condition,
+          brand,
+          model,
+          year: parseInt(year) || undefined,
+          warranty
+        });
+      }
+
+      await listingsService.createListing(baseData);
 
       Alert.alert(
         'Success!',
@@ -255,12 +424,13 @@ export default function CreateListingScreen({ navigation, route }: CreateListing
 
   const renderListingTypeSelector = () => (
     <View style={styles.sectionContainer}>
-      <Text style={styles.sectionTitle}>What are you offering?</Text>
+      <Text style={styles.sectionTitle}>What type of listing?</Text>
       <View style={styles.typeSelector}>
         {[
-          { key: 'sell', label: '🛍️ Sell Item', desc: 'Physical products' },
-          { key: 'service', label: '🔧 Offer Service', desc: 'Skills & services' },
-          { key: 'job', label: '💼 Post Job', desc: 'Hire someone' },
+          { key: 'item', label: '🛍️ Sell Item', desc: 'Physical products and goods' },
+          { key: 'service', label: '🔧 Offer Service', desc: 'Professional services' },
+          { key: 'job', label: '💼 Post Job', desc: 'Hire for a position' },
+          { key: 'property', label: '🏠 List Property', desc: 'Rent or sell property' },
         ].map((type) => (
           <TouchableOpacity
             key={type.key}
@@ -422,11 +592,9 @@ export default function CreateListingScreen({ navigation, route }: CreateListing
       
       {showCategoryPicker && (
         <View style={styles.pickerDropdown}>
-          {MARKETPLACE_CATEGORIES
-            .filter(cat => cat.backendId !== null && (
-              listingType === 'service' ? cat.type === 'service' : cat.type === 'item'
-            ))
-            .map((cat) => (
+        {MARKETPLACE_CATEGORIES
+          .filter(cat => cat.backendId !== null && cat.type === listingType)
+          .map((cat) => (
               <TouchableOpacity
                 key={cat.id}
                 style={styles.pickerOption}
@@ -443,8 +611,798 @@ export default function CreateListingScreen({ navigation, route }: CreateListing
     </View>
   );
 
+  const renderServiceFields = () => {
+    if (listingType !== 'service') return null;
+
+    return (
+      <View style={styles.sectionContainer}>
+        <Text style={styles.sectionTitle}>Service Details</Text>
+
+        {/* Service Type */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Service Type *</Text>
+          <View style={styles.radioGroup}>
+            <TouchableOpacity
+              style={[styles.radioOption, serviceType === 'offering' && styles.radioOptionActive]}
+              onPress={() => setServiceType('offering')}
+            >
+              <Ionicons
+                name={serviceType === 'offering' ? 'radio-button-on' : 'radio-button-off'}
+                size={20}
+                color={serviceType === 'offering' ? colors.primary : colors.text.light}
+              />
+              <Text style={styles.radioLabel}>I Offer This Service</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.radioOption, serviceType === 'request' && styles.radioOptionActive]}
+              onPress={() => setServiceType('request')}
+            >
+              <Ionicons
+                name={serviceType === 'request' ? 'radio-button-on' : 'radio-button-off'}
+                size={20}
+                color={serviceType === 'request' ? colors.primary : colors.text.light}
+              />
+              <Text style={styles.radioLabel}>I Need This Service</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Availability Days */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Available Days *</Text>
+          <View style={styles.daysSelector}>
+            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
+              <TouchableOpacity
+                key={day}
+                style={[
+                  styles.dayChip,
+                  availabilityDays.includes(day) && styles.dayChipActive
+                ]}
+                onPress={() => {
+                  if (availabilityDays.includes(day)) {
+                    setAvailabilityDays(availabilityDays.filter(d => d !== day));
+                  } else {
+                    setAvailabilityDays([...availabilityDays, day]);
+                  }
+                }}
+              >
+                <Text style={[
+                  styles.dayText,
+                  availabilityDays.includes(day) && styles.dayTextActive
+                ]}>
+                  {day}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Time Range */}
+        <View style={styles.timeRangeGroup}>
+          <View style={[styles.inputGroup, { flex: 1 }]}>
+            <Text style={styles.inputLabel}>Start Time *</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="09:00"
+              value={startTime}
+              onChangeText={setStartTime}
+            />
+          </View>
+          <View style={[styles.inputGroup, { flex: 1 }]}>
+            <Text style={styles.inputLabel}>End Time *</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="17:00"
+              value={endTime}
+              onChangeText={setEndTime}
+            />
+          </View>
+        </View>
+
+        {/* Service Radius */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Service Radius (km) *</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="e.g., 5"
+            value={serviceRadius}
+            onChangeText={setServiceRadius}
+            keyboardType="numeric"
+          />
+        </View>
+
+        {/* Pricing Model */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Pricing Model *</Text>
+          <View style={styles.pricingModelSelector}>
+            {[
+              { value: 'hourly', label: '₦ /hour', icon: 'time-outline' },
+              { value: 'project', label: 'Per Project', icon: 'briefcase-outline' },
+              { value: 'fixed', label: 'Fixed Rate', icon: 'cash-outline' },
+              { value: 'negotiable', label: 'Negotiable', icon: 'swap-horizontal-outline' },
+            ].map((model) => (
+              <TouchableOpacity
+                key={model.value}
+                style={[
+                  styles.pricingOption,
+                  pricingModel === model.value && styles.pricingOptionActive
+                ]}
+                onPress={() => setPricingModel(model.value as any)}
+              >
+                <Ionicons
+                  name={model.icon as any}
+                  size={20}
+                  color={pricingModel === model.value ? colors.primary : colors.text.light}
+                />
+                <Text style={[
+                  styles.pricingLabel,
+                  pricingModel === model.value && styles.pricingLabelActive
+                ]}>
+                  {model.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Response Time */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Response Time (hours)</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="24"
+            value={responseTime}
+            onChangeText={setResponseTime}
+            keyboardType="numeric"
+          />
+          <Text style={styles.inputHint}>How quickly can you respond to inquiries?</Text>
+        </View>
+
+        {/* Professional Credentials */}
+        <View style={styles.credentialsGroup}>
+          <Text style={styles.sectionTitle}>Professional Credentials (Optional)</Text>
+
+          {/* Years of Experience */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Years of Experience</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="e.g., 5"
+              value={yearsExperience}
+              onChangeText={setYearsExperience}
+              keyboardType="numeric"
+            />
+          </View>
+
+          {/* Insurance */}
+          <TouchableOpacity
+            style={styles.checkboxRow}
+            onPress={() => setHasInsurance(!hasInsurance)}
+          >
+            <Ionicons
+              name={hasInsurance ? 'checkbox' : 'square-outline'}
+              size={24}
+              color={hasInsurance ? colors.primary : colors.text.light}
+            />
+            <Text style={styles.checkboxLabel}>I have professional insurance</Text>
+          </TouchableOpacity>
+
+          {/* Licenses */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Licenses (comma-separated)</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="e.g., Electrician License, CAC Registration"
+              value={licenses.join(', ')}
+              onChangeText={(text) => setLicenses(text.split(',').map(l => l.trim()))}
+            />
+          </View>
+
+          {/* Certifications */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Certifications (comma-separated)</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="e.g., ISO Certified, Safety Training"
+              value={certifications.join(', ')}
+              onChangeText={(text) => setCertifications(text.split(',').map(c => c.trim()))}
+            />
+          </View>
+        </View>
+      </View>
+    );
+  };
+
+  const renderJobFields = () => {
+    if (listingType !== 'job') return null;
+
+    return (
+      <View style={styles.sectionContainer}>
+        <Text style={styles.sectionTitle}>Job Details</Text>
+
+        {/* Employment Type */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Employment Type *</Text>
+          <View style={styles.employmentTypeSelector}>
+            {[
+              { value: 'full_time', label: 'Full-time' },
+              { value: 'part_time', label: 'Part-time' },
+              { value: 'contract', label: 'Contract' },
+              { value: 'freelance', label: 'Freelance' },
+            ].map((type) => (
+              <TouchableOpacity
+                key={type.value}
+                style={[
+                  styles.employmentChip,
+                  employmentType === type.value && styles.employmentChipActive
+                ]}
+                onPress={() => setEmploymentType(type.value as any)}
+              >
+                <Text style={[
+                  styles.employmentText,
+                  employmentType === type.value && styles.employmentTextActive
+                ]}>
+                  {type.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Salary Range */}
+        <View style={styles.salaryRangeGroup}>
+          <Text style={styles.inputLabel}>Salary Range *</Text>
+          <View style={styles.salaryInputs}>
+            <View style={[styles.inputGroup, { flex: 1 }]}>
+              <TextInput
+                style={styles.textInput}
+                placeholder="Min (₦)"
+                value={salaryMin}
+                onChangeText={setSalaryMin}
+                keyboardType="numeric"
+              />
+            </View>
+            <Text style={styles.salaryDivider}>to</Text>
+            <View style={[styles.inputGroup, { flex: 1 }]}>
+              <TextInput
+                style={styles.textInput}
+                placeholder="Max (₦)"
+                value={salaryMax}
+                onChangeText={setSalaryMax}
+                keyboardType="numeric"
+              />
+            </View>
+          </View>
+        </View>
+
+        {/* Work Location */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Work Location *</Text>
+          <View style={styles.workLocationSelector}>
+            {[
+              { value: 'remote', label: 'Remote', icon: 'home-outline' },
+              { value: 'on_site', label: 'On-site', icon: 'business-outline' },
+              { value: 'hybrid', label: 'Hybrid', icon: 'swap-horizontal-outline' },
+            ].map((location) => (
+              <TouchableOpacity
+                key={location.value}
+                style={[
+                  styles.workLocationOption,
+                  workLocation === location.value && styles.workLocationOptionActive
+                ]}
+                onPress={() => setWorkLocation(location.value as any)}
+              >
+                <Ionicons
+                  name={location.icon as any}
+                  size={20}
+                  color={workLocation === location.value ? colors.primary : colors.text.light}
+                />
+                <Text style={[
+                  styles.workLocationText,
+                  workLocation === location.value && styles.workLocationTextActive
+                ]}>
+                  {location.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Required Skills */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Required Skills * (comma-separated)</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="e.g., JavaScript, React, Node.js"
+            value={requiredSkills.join(', ')}
+            onChangeText={(text) => setRequiredSkills(text.split(',').map(s => s.trim()))}
+            multiline
+          />
+        </View>
+
+        {/* Required Experience */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Required Experience *</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="e.g., 3-5 years"
+            value={requiredExperience}
+            onChangeText={setRequiredExperience}
+          />
+        </View>
+
+        {/* Education */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Education Requirements</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="e.g., Bachelor's degree in Computer Science"
+            value={education}
+            onChangeText={setEducation}
+          />
+        </View>
+
+        {/* Benefits */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Benefits (comma-separated)</Text>
+          <TextInput
+            style={[styles.textInput, styles.textArea]}
+            placeholder="e.g., Health Insurance, Pension, Annual Leave"
+            value={benefits.join(', ')}
+            onChangeText={(text) => setBenefits(text.split(',').map(b => b.trim()))}
+            multiline
+            numberOfLines={3}
+          />
+        </View>
+
+        {/* Application Deadline */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Application Deadline</Text>
+          <TouchableOpacity
+            style={styles.datePickerButton}
+            onPress={() => {
+              // Implement date picker
+            }}
+          >
+            <Ionicons name="calendar-outline" size={20} color={colors.text.light} />
+            <Text style={styles.dateText}>
+              {applicationDeadline
+                ? applicationDeadline.toLocaleDateString()
+                : 'Select deadline date'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Company Info */}
+        <View style={styles.companyInfoGroup}>
+          <Text style={styles.sectionTitle}>Company Information</Text>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Company Name *</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="e.g., Tech Solutions Ltd"
+              value={companyName}
+              onChangeText={setCompanyName}
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Company Size</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="e.g., 10-50 employees"
+              value={companySize}
+              onChangeText={setCompanySize}
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Industry</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="e.g., Technology, Finance"
+              value={companyIndustry}
+              onChangeText={setCompanyIndustry}
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Company Website</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="https://www.company.com"
+              value={companyWebsite}
+              onChangeText={setCompanyWebsite}
+              keyboardType="url"
+            />
+          </View>
+        </View>
+      </View>
+    );
+  };
+
+  const renderPropertyFields = () => {
+    if (listingType !== 'property') return null;
+
+    return (
+      <View style={styles.sectionContainer}>
+        <Text style={styles.sectionTitle}>Property Details</Text>
+
+        {/* Property Type */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Property Type *</Text>
+          <View style={styles.propertyTypeSelector}>
+            {[
+              { value: 'apartment', label: 'Apartment', icon: 'business-outline' },
+              { value: 'house', label: 'House', icon: 'home-outline' },
+              { value: 'land', label: 'Land', icon: 'map-outline' },
+              { value: 'office', label: 'Office', icon: 'briefcase-outline' },
+            ].map((type) => (
+              <TouchableOpacity
+                key={type.value}
+                style={[
+                  styles.propertyTypeOption,
+                  propertyType === type.value && styles.propertyTypeOptionActive
+                ]}
+                onPress={() => setPropertyType(type.value as any)}
+              >
+                <Ionicons
+                  name={type.icon as any}
+                  size={24}
+                  color={propertyType === type.value ? colors.primary : colors.text.light}
+                />
+                <Text style={[
+                  styles.propertyTypeText,
+                  propertyType === type.value && styles.propertyTypeTextActive
+                ]}>
+                  {type.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Bedrooms & Bathrooms */}
+        {(propertyType === 'apartment' || propertyType === 'house') && (
+          <View style={styles.roomsGroup}>
+            <View style={[styles.inputGroup, { flex: 1 }]}>
+              <Text style={styles.inputLabel}>Bedrooms *</Text>
+              <TextInput
+                style={styles.textInput}
+                placeholder="e.g., 3"
+                value={bedrooms}
+                onChangeText={setBedrooms}
+                keyboardType="numeric"
+              />
+            </View>
+            <View style={[styles.inputGroup, { flex: 1 }]}>
+              <Text style={styles.inputLabel}>Bathrooms *</Text>
+              <TextInput
+                style={styles.textInput}
+                placeholder="e.g., 2"
+                value={bathrooms}
+                onChangeText={setBathrooms}
+                keyboardType="numeric"
+              />
+            </View>
+          </View>
+        )}
+
+        {/* Property Size */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Property Size (m²)</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="e.g., 150"
+            value={propertySize}
+            onChangeText={setPropertySize}
+            keyboardType="numeric"
+          />
+        </View>
+
+        {/* Land Size */}
+        {propertyType === 'land' && (
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Land Size (m²) *</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="e.g., 500"
+              value={landSize}
+              onChangeText={setLandSize}
+              keyboardType="numeric"
+            />
+          </View>
+        )}
+
+        {/* Parking Spaces */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Parking Spaces</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="e.g., 2"
+            value={parkingSpaces}
+            onChangeText={setParkingSpaces}
+            keyboardType="numeric"
+          />
+        </View>
+
+        {/* Pet Policy */}
+        {(propertyType === 'apartment' || propertyType === 'house') && (
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Pet Policy</Text>
+            <View style={styles.petPolicySelector}>
+              {[
+                { value: 'allowed', label: 'Allowed' },
+                { value: 'not_allowed', label: 'Not Allowed' },
+                { value: 'case_by_case', label: 'Case by Case' },
+              ].map((policy) => (
+                <TouchableOpacity
+                  key={policy.value}
+                  style={[
+                    styles.petPolicyOption,
+                    petPolicy === policy.value && styles.petPolicyOptionActive
+                  ]}
+                  onPress={() => setPetPolicy(policy.value as any)}
+                >
+                  <Text style={[
+                    styles.petPolicyText,
+                    petPolicy === policy.value && styles.petPolicyTextActive
+                  ]}>
+                    {policy.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Transaction Type */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Transaction Type *</Text>
+          <View style={styles.transactionTypeSelector}>
+            {[
+              { value: 'sale', label: 'For Sale', icon: 'cash-outline' },
+              { value: 'rent', label: 'For Rent', icon: 'key-outline' },
+              { value: 'lease', label: 'For Lease', icon: 'document-text-outline' },
+            ].map((type) => (
+              <TouchableOpacity
+                key={type.value}
+                style={[
+                  styles.transactionTypeOption,
+                  transactionType === type.value && styles.transactionTypeOptionActive
+                ]}
+                onPress={() => setTransactionType(type.value as any)}
+              >
+                <Ionicons
+                  name={type.icon as any}
+                  size={20}
+                  color={transactionType === type.value ? colors.primary : colors.text.light}
+                />
+                <Text style={[
+                  styles.transactionTypeText,
+                  transactionType === type.value && styles.transactionTypeTextActive
+                ]}>
+                  {type.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Rental Period - Only show for rent transactions */}
+        {transactionType === 'rent' && (
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Rental Period *</Text>
+          <View style={styles.rentalPeriodSelector}>
+            {[
+              { value: 'monthly', label: 'Monthly' },
+              { value: 'yearly', label: 'Yearly' },
+            ].map((period) => (
+              <TouchableOpacity
+                key={period.value}
+                style={[
+                  styles.rentalPeriodOption,
+                  rentalPeriod === period.value && styles.rentalPeriodOptionActive
+                ]}
+                onPress={() => setRentalPeriod(period.value as any)}
+              >
+                <Text style={[
+                  styles.rentalPeriodText,
+                  rentalPeriod === period.value && styles.rentalPeriodTextActive
+                ]}>
+                  {period.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+        )}
+
+        {/* Amenities */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Amenities (select all that apply)</Text>
+          <View style={styles.amenitiesSelector}>
+            {[
+              'Swimming Pool', 'Gym', 'Generator', 'Air Conditioning',
+              'Water Heater', 'Balcony', 'Garden', 'Elevator',
+              'Garage', 'Playground', 'Security', 'CCTV'
+            ].map((amenity) => (
+              <TouchableOpacity
+                key={amenity}
+                style={[
+                  styles.amenityChip,
+                  amenities.includes(amenity) && styles.amenityChipActive
+                ]}
+                onPress={() => {
+                  if (amenities.includes(amenity)) {
+                    setAmenities(amenities.filter(a => a !== amenity));
+                  } else {
+                    setAmenities([...amenities, amenity]);
+                  }
+                }}
+              >
+                <Text style={[
+                  styles.amenityChipText,
+                  amenities.includes(amenity) && styles.amenityChipTextActive
+                ]}>
+                  {amenity}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Utilities Included */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Utilities Included</Text>
+          <View style={styles.utilitiesSelector}>
+            {[
+              'Water', 'Electricity', 'Gas', 'Internet',
+              'Cable TV', 'Trash Collection', 'Security'
+            ].map((utility) => (
+              <TouchableOpacity
+                key={utility}
+                style={[
+                  styles.utilityChip,
+                  utilitiesIncluded.includes(utility) && styles.utilityChipActive
+                ]}
+                onPress={() => {
+                  if (utilitiesIncluded.includes(utility)) {
+                    setUtilitiesIncluded(utilitiesIncluded.filter(u => u !== utility));
+                  } else {
+                    setUtilitiesIncluded([...utilitiesIncluded, utility]);
+                  }
+                }}
+              >
+                <Text style={[
+                  styles.utilityChipText,
+                  utilitiesIncluded.includes(utility) && styles.utilityChipTextActive
+                ]}>
+                  {utility}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Security Features */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Security Features</Text>
+          <View style={styles.securitySelector}>
+            {[
+              'Gated Estate', '24/7 Security', 'CCTV', 'Alarm System',
+              'Security Door', 'Intercom', 'Fire Extinguisher'
+            ].map((feature) => (
+              <TouchableOpacity
+                key={feature}
+                style={[
+                  styles.securityChip,
+                  securityFeatures.includes(feature) && styles.securityChipActive
+                ]}
+                onPress={() => {
+                  if (securityFeatures.includes(feature)) {
+                    setSecurityFeatures(securityFeatures.filter(f => f !== feature));
+                  } else {
+                    setSecurityFeatures([...securityFeatures, feature]);
+                  }
+                }}
+              >
+                <Text style={[
+                  styles.securityChipText,
+                  securityFeatures.includes(feature) && styles.securityChipTextActive
+                ]}>
+                  {feature}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </View>
+    );
+  };
+
+  const renderItemFields = () => {
+    if (listingType !== 'item') return null;
+
+    return (
+      <View style={styles.sectionContainer}>
+        <Text style={styles.sectionTitle}>Item Details</Text>
+
+        {/* Condition */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Condition *</Text>
+          <View style={styles.conditionSelector}>
+            {conditionOptions.map((cond) => (
+              <TouchableOpacity
+                key={cond.value}
+                style={[
+                  styles.conditionChip,
+                  condition === cond.value && styles.conditionChipActive
+                ]}
+                onPress={() => setCondition(cond.value)}
+              >
+                <Text style={[
+                  styles.conditionText,
+                  condition === cond.value && styles.conditionTextActive
+                ]}>
+                  {cond.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Brand */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Brand</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="e.g., Apple, Samsung, Nike"
+            value={brand}
+            onChangeText={setBrand}
+          />
+        </View>
+
+        {/* Model */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Model</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="e.g., iPhone 12 Pro, Galaxy S21"
+            value={model}
+            onChangeText={setModel}
+          />
+        </View>
+
+        {/* Year */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Year</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="e.g., 2023"
+            value={year}
+            onChangeText={setYear}
+            keyboardType="numeric"
+          />
+        </View>
+
+        {/* Warranty */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Warranty</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="e.g., 1 year manufacturer warranty"
+            value={warranty}
+            onChangeText={setWarranty}
+          />
+        </View>
+      </View>
+    );
+  };
+
   const renderConditionSelection = () => (
-    listingType === 'sell' && (
+    listingType === 'item' && (
       <View style={styles.sectionContainer}>
         <Text style={styles.sectionTitle}>Condition</Text>
         <TouchableOpacity
@@ -567,7 +1525,13 @@ export default function CreateListingScreen({ navigation, route }: CreateListing
           {renderImageUpload()}
           {renderBasicInfo()}
           {renderCategorySelection()}
-          {renderConditionSelection()}
+
+          {/* Type-specific fields */}
+          {renderServiceFields()}
+          {renderJobFields()}
+          {renderPropertyFields()}
+          {renderItemFields()}
+
           {renderLocationContact()}
 
           {/* Preview & Submit */}
@@ -858,5 +1822,411 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.lg,
     fontWeight: typography.weights.semibold,
     color: colors.white,
+  },
+  
+  // Service-specific styles
+  radioGroup: {
+    gap: spacing.sm,
+  },
+  radioOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.sm,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.neutral.lightGray,
+    gap: spacing.sm,
+  },
+  radioOptionActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.lightGreen,
+  },
+  radioLabel: {
+    fontSize: typography.sizes.base,
+    color: colors.text.dark,
+    fontWeight: typography.weights.medium,
+  },
+  daysSelector: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+  },
+  dayChip: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.neutral.lightGray,
+    backgroundColor: colors.white,
+  },
+  dayChipActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primary,
+  },
+  dayText: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.dark,
+    fontWeight: typography.weights.medium,
+  },
+  dayTextActive: {
+    color: colors.white,
+    fontWeight: typography.weights.semibold,
+  },
+  timeRangeGroup: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  pricingModelSelector: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  pricingOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.sm,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.neutral.lightGray,
+    gap: spacing.xs,
+    minWidth: 120,
+  },
+  pricingOptionActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.lightGreen,
+  },
+  pricingLabel: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.dark,
+    fontWeight: typography.weights.medium,
+  },
+  pricingLabelActive: {
+    color: colors.primary,
+    fontWeight: typography.weights.semibold,
+  },
+  inputHint: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.secondary,
+    marginTop: spacing.xs / 2,
+  },
+  credentialsGroup: {
+    marginTop: spacing.md,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    gap: spacing.sm,
+  },
+  checkboxLabel: {
+    fontSize: typography.sizes.base,
+    color: colors.text.dark,
+    fontWeight: typography.weights.medium,
+  },
+  
+  // Job-specific styles
+  employmentTypeSelector: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  employmentChip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.neutral.lightGray,
+    backgroundColor: colors.white,
+  },
+  employmentChipActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primary,
+  },
+  employmentText: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.dark,
+    fontWeight: typography.weights.medium,
+  },
+  employmentTextActive: {
+    color: colors.white,
+    fontWeight: typography.weights.semibold,
+  },
+  salaryRangeGroup: {
+    marginBottom: spacing.md,
+  },
+  salaryInputs: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  salaryDivider: {
+    fontSize: typography.sizes.base,
+    color: colors.text.secondary,
+  },
+  workLocationSelector: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  workLocationOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.sm,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.neutral.lightGray,
+    gap: spacing.xs,
+    flex: 1,
+  },
+  workLocationOptionActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.lightGreen,
+  },
+  workLocationText: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.dark,
+    fontWeight: typography.weights.medium,
+  },
+  workLocationTextActive: {
+    color: colors.primary,
+    fontWeight: typography.weights.semibold,
+  },
+  datePickerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.sm,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.neutral.lightGray,
+    backgroundColor: colors.white,
+    gap: spacing.sm,
+  },
+  dateText: {
+    fontSize: typography.sizes.base,
+    color: colors.text.dark,
+    fontWeight: typography.weights.medium,
+  },
+  companyInfoGroup: {
+    marginTop: spacing.md,
+  },
+  
+  // Property-specific styles
+  propertyTypeSelector: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  propertyTypeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.sm,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.neutral.lightGray,
+    gap: spacing.xs,
+    minWidth: 100,
+  },
+  propertyTypeOptionActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.lightGreen,
+  },
+  propertyTypeText: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.dark,
+    fontWeight: typography.weights.medium,
+  },
+  propertyTypeTextActive: {
+    color: colors.primary,
+    fontWeight: typography.weights.semibold,
+  },
+  roomsGroup: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  petPolicySelector: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  petPolicyOption: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.neutral.lightGray,
+    backgroundColor: colors.white,
+    flex: 1,
+  },
+  petPolicyOptionActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primary,
+  },
+  petPolicyText: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.dark,
+    textAlign: 'center',
+    fontWeight: typography.weights.medium,
+  },
+  petPolicyTextActive: {
+    color: colors.white,
+    fontWeight: typography.weights.semibold,
+  },
+  rentalPeriodSelector: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  rentalPeriodOption: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.neutral.lightGray,
+    backgroundColor: colors.white,
+    flex: 1,
+  },
+  rentalPeriodOptionActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primary,
+  },
+  rentalPeriodText: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.dark,
+    textAlign: 'center',
+    fontWeight: typography.weights.medium,
+  },
+  rentalPeriodTextActive: {
+    color: colors.white,
+    fontWeight: typography.weights.semibold,
+  },
+  amenitiesSelector: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  amenityChip: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.neutral.lightGray,
+    backgroundColor: colors.white,
+  },
+  amenityChipActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primary,
+  },
+  amenityChipText: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.dark,
+    fontWeight: typography.weights.medium,
+  },
+  amenityChipTextActive: {
+    color: colors.white,
+    fontWeight: typography.weights.semibold,
+  },
+  utilitiesSelector: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  utilityChip: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.neutral.lightGray,
+    backgroundColor: colors.white,
+  },
+  utilityChipActive: {
+    borderColor: colors.success,
+    backgroundColor: colors.success,
+  },
+  utilityChipText: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.dark,
+    fontWeight: typography.weights.medium,
+  },
+  utilityChipTextActive: {
+    color: colors.white,
+    fontWeight: typography.weights.semibold,
+  },
+  securitySelector: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  securityChip: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.neutral.lightGray,
+    backgroundColor: colors.white,
+  },
+  securityChipActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primary,
+  },
+  securityChipText: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.dark,
+    fontWeight: typography.weights.medium,
+  },
+  securityChipTextActive: {
+    color: colors.white,
+    fontWeight: typography.weights.semibold,
+  },
+  
+  // Item-specific styles
+  conditionSelector: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  conditionChip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.neutral.lightGray,
+    backgroundColor: colors.white,
+  },
+  conditionChipActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primary,
+  },
+  conditionText: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.dark,
+    fontWeight: typography.weights.medium,
+  },
+  conditionTextActive: {
+    color: colors.white,
+    fontWeight: typography.weights.semibold,
+  },
+  transactionTypeSelector: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  transactionTypeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.sm,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.neutral.lightGray,
+    gap: spacing.xs,
+    flex: 1,
+  },
+  transactionTypeOptionActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.lightGreen,
+  },
+  transactionTypeText: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.dark,
+    fontWeight: typography.weights.medium,
+  },
+  transactionTypeTextActive: {
+    color: colors.primary,
+    fontWeight: typography.weights.semibold,
   },
 });

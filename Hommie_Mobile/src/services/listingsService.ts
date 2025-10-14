@@ -98,6 +98,7 @@ export interface Listing {
   state?: string;
   featured?: boolean;
   boosted?: boolean;
+  businessId?: string; // For service listings linked to business profiles
   verificationStatus?: 'pending' | 'verified' | 'rejected';
   
   location: {
@@ -142,18 +143,76 @@ export interface Media {
 }
 
 export interface CreateListingRequest {
-  listingType: 'property' | 'item' | 'service';
+  listingType: 'property' | 'item' | 'service' | 'job';
   categoryId: number;
   title: string;
   description: string;
   price: number;
   priceType: 'fixed' | 'negotiable' | 'per_hour' | 'per_day';
+  
+  // Property-specific fields
   propertyType?: string;
   bedrooms?: number;
   bathrooms?: number;
   rentalPeriod?: string;
+  amenities?: string[];
+  propertySize?: number;
+  parkingSpaces?: number;
+  petPolicy?: 'allowed' | 'not_allowed' | 'case_by_case';
+  utilitiesIncluded?: string[];
+  securityFeatures?: string[];
+  landSize?: number;
+  
+  // Item-specific fields
   condition?: string;
   brand?: string;
+  model?: string;
+  year?: number;
+  warranty?: string;
+  
+  // Service-specific fields
+  serviceType?: 'offering' | 'request';
+  availabilitySchedule?: {
+    days: string[];
+    startTime: string;
+    endTime: string;
+    timezone: string;
+  };
+  serviceRadius?: number;
+  responseTime?: number;
+  pricingModel?: 'hourly' | 'project' | 'fixed' | 'negotiable';
+  professionalCredentials?: {
+    licenses: string[];
+    certifications: string[];
+    experience: number;
+    insurance: boolean;
+  };
+  
+  // Job-specific fields
+  employmentType?: 'full_time' | 'part_time' | 'contract' | 'freelance';
+  workLocation?: 'remote' | 'on_site' | 'hybrid';
+  requiredSkills?: string[];
+  requiredExperience?: string;
+  education?: string;
+  benefits?: string[];
+  applicationDeadline?: string;
+  salaryMin?: number;
+  salaryMax?: number;
+  companyInfo?: {
+    name: string;
+    size: string;
+    industry: string;
+    website?: string;
+  };
+  
+  // Contact preferences
+  contactPreferences?: {
+    allowCalls: boolean;
+    allowMessages: boolean;
+    allowWhatsApp: boolean;
+    preferredTime: string;
+  };
+  
   location: {
     latitude: number;
     longitude: number;

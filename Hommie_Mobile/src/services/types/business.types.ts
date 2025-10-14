@@ -2,27 +2,37 @@
 
 // Enums matching backend
 export enum ServiceArea {
+  ESTATE_ONLY = 'estate-only',
   NEIGHBORHOOD = 'neighborhood',
+  DISTRICT = 'district',
+  CITY_WIDE = 'city-wide',
+  STATE_WIDE = 'state-wide',
+  // Legacy values for backward compatibility
   TWO_KM = '2km',
   FIVE_KM = '5km',
   TEN_KM = '10km',
-  CITY_WIDE = 'city-wide',
-  STATE_WIDE = 'state-wide',
   NATIONWIDE = 'nationwide',
 }
 
 export enum PricingModel {
   FIXED_RATE = 'fixed-rate',
+  HOURLY_RATE = 'hourly-rate',
+  PROJECT_BASED = 'project-based',
+  NEGOTIABLE = 'negotiable',
+  // Legacy values for backward compatibility
   HOURLY = 'hourly',
   PER_ITEM = 'per-item',
-  PROJECT_BASED = 'project-based',
   CUSTOM_QUOTE = 'custom-quote',
 }
 
 export enum Availability {
   BUSINESS_HOURS = 'business-hours',
+  EXTENDED_HOURS = 'extended-hours',
+  WEEKEND_AVAILABLE = 'weekend-available',
+  TWENTY_FOUR_SEVEN = 'twenty-four-seven',
+  FLEXIBLE = 'flexible',
+  // Legacy values for backward compatibility
   WEEKDAYS = 'weekdays',
-  TWENTY_FOUR_SEVEN = '24/7',
   WEEKENDS = 'weekends',
   CUSTOM = 'custom',
 }

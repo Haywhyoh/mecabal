@@ -2080,7 +2080,7 @@ const styles = StyleSheet.create({
     color: colors.text.light,
   },
   verificationBadge: {
-    alignSelf: 'flex-start',
+    alignSelf: 'flex-start',   
     backgroundColor: colors.lightGreen,
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,

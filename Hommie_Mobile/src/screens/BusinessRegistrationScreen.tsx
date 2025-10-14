@@ -138,22 +138,36 @@ export default function BusinessRegistrationScreen({ navigation }: BusinessRegis
     try {
       setSubmitting(true);
 
-      // Map form data to API DTO
-      const businessData = {
+      // Map form data to API DTO - only include defined fields
+      const businessData: any = {
         businessName: registration.businessName.trim(),
-        description: registration.description.trim() || undefined,
         category: registration.category,
-        subcategory: registration.subcategory || undefined,
         serviceArea: registration.serviceArea as ServiceArea,
         pricingModel: registration.pricingModel as PricingModel,
         availability: registration.availability as Availability,
-        phoneNumber: registration.phoneNumber.trim() || undefined,
-        whatsappNumber: registration.whatsappNumber.trim() || undefined,
-        businessAddress: registration.businessAddress.trim() || undefined,
         yearsOfExperience: registration.yearsOfExperience,
-        paymentMethods: registration.paymentMethods.length > 0 ? registration.paymentMethods : undefined,
         hasInsurance: registration.hasInsurance,
       };
+
+      // Add optional fields only if they have values
+      if (registration.description.trim()) {
+        businessData.description = registration.description.trim();
+      }
+      if (registration.subcategory) {
+        businessData.subcategory = registration.subcategory;
+      }
+      if (registration.phoneNumber.trim()) {
+        businessData.phoneNumber = registration.phoneNumber.trim();
+      }
+      if (registration.whatsappNumber.trim()) {
+        businessData.whatsappNumber = registration.whatsappNumber.trim();
+      }
+      if (registration.businessAddress.trim()) {
+        businessData.businessAddress = registration.businessAddress.trim();
+      }
+      if (registration.paymentMethods.length > 0) {
+        businessData.paymentMethods = registration.paymentMethods;
+      }
 
       console.log('Submitting business registration:', businessData);
 

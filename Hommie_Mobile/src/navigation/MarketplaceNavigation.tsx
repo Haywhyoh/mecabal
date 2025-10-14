@@ -6,6 +6,8 @@ import ListingDetailsScreen from '../screens/ListingDetailsScreen';
 import CreateListingScreen from '../screens/CreateListingScreen';
 import ServiceProviderProfileScreen from '../screens/ServiceProviderProfileScreen';
 import MyListingsScreen from '../screens/MyListingsScreen';
+import BusinessSearchScreen from '../screens/BusinessSearchScreen';
+import BusinessDetailScreen from '../screens/BusinessDetailScreen';
 
 // Define navigation parameter types
 export type MarketplaceStackParamList = {
@@ -22,6 +24,10 @@ export type MarketplaceStackParamList = {
     providerId: string;
   };
   MyListings: undefined;
+  BusinessSearch: undefined;
+  BusinessDetail: {
+    businessId: string;
+  };
 };
 
 const Stack = createStackNavigator<MarketplaceStackParamList>();
@@ -79,6 +85,16 @@ export const MarketplaceNavigator: React.FC = () => {
         name="MyListings" 
         component={MyListingsScreen}
         options={{ title: 'My Listings' }}
+      />
+      <Stack.Screen 
+        name="BusinessSearch" 
+        component={BusinessSearchScreen}
+        options={{ title: 'Local Businesses' }}
+      />
+      <Stack.Screen 
+        name="BusinessDetail" 
+        component={BusinessDetailScreen}
+        options={{ title: 'Business Details' }}
       />
     </Stack.Navigator>
   );

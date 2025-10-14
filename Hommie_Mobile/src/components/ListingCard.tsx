@@ -10,12 +10,14 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, shadows } from '../constants';
 import { Listing } from '../services/listingsService';
+import { BusinessProfile } from '../services/businessService';
 
 interface ListingCardProps {
   listing: Listing;
   onPress: () => void;
   onSave?: () => void;
   viewMode?: 'grid' | 'list';
+  businessProfile?: BusinessProfile;
 }
 
 const { width } = Dimensions.get('window');
@@ -27,6 +29,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({
   onPress,
   onSave,
   viewMode = 'grid',
+  businessProfile,
 }) => {
   const formatPrice = (price: number) => {
     if (price >= 1000000) {
@@ -124,6 +127,30 @@ export const ListingCard: React.FC<ListingCardProps> = ({
           </View>
         )}
 
+        {/* Business Profile Info for Services */}
+        {listing.listingType === 'service' && businessProfile && (
+          <View style={styles.businessInfo}>
+            <View style={styles.businessHeader}>
+              <Text style={styles.businessName}>{businessProfile.businessName}</Text>
+              {businessProfile.isVerified && (
+                <Ionicons name="shield-checkmark" size={12} color={colors.primary} />
+              )}
+            </View>
+            <View style={styles.businessStats}>
+              <View style={styles.businessStat}>
+                <Ionicons name="star" size={12} color={colors.accent.warmGold} />
+                <Text style={styles.businessStatText}>
+                  {businessProfile.rating.toFixed(1)} ({businessProfile.reviewCount})
+                </Text>
+              </View>
+              <View style={styles.businessStat}>
+                <Ionicons name="checkmark-circle" size={12} color={colors.success} />
+                <Text style={styles.businessStatText}>{businessProfile.completedJobs} jobs</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
         {/* Verification Badge */}
         {listing.author.isVerified && (
           <View style={styles.verifiedBadge}>
@@ -145,6 +172,7 @@ const ListingCardList: React.FC<Omit<ListingCardProps, 'viewMode'>> = ({
   listing,
   onPress,
   onSave,
+  businessProfile,
 }) => {
   const formatPrice = (price: number) => {
     if (price >= 1000000) {
@@ -242,6 +270,30 @@ const ListingCardList: React.FC<Omit<ListingCardProps, 'viewMode'>> = ({
                 <Text style={styles.propertyDetailText}>{listing.bathrooms} bath</Text>
               </View>
             )}
+          </View>
+        )}
+
+        {/* Business Profile Info for Services */}
+        {listing.listingType === 'service' && businessProfile && (
+          <View style={styles.listBusinessInfo}>
+            <View style={styles.listBusinessHeader}>
+              <Text style={styles.listBusinessName}>{businessProfile.businessName}</Text>
+              {businessProfile.isVerified && (
+                <Ionicons name="shield-checkmark" size={14} color={colors.primary} />
+              )}
+            </View>
+            <View style={styles.listBusinessStats}>
+              <View style={styles.businessStat}>
+                <Ionicons name="star" size={12} color={colors.accent.warmGold} />
+                <Text style={styles.businessStatText}>
+                  {businessProfile.rating.toFixed(1)} ({businessProfile.reviewCount})
+                </Text>
+              </View>
+              <View style={styles.businessStat}>
+                <Ionicons name="checkmark-circle" size={12} color={colors.success} />
+                <Text style={styles.businessStatText}>{businessProfile.completedJobs} jobs</Text>
+              </View>
+            </View>
           </View>
         )}
 
@@ -364,6 +416,37 @@ const styles = StyleSheet.create({
     ...typography.styles.caption2,
     color: colors.text.tertiary,
   },
+  businessInfo: {
+    marginBottom: spacing.xs,
+    padding: spacing.xs,
+    backgroundColor: colors.lightGreen,
+    borderRadius: 6,
+  },
+  businessHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.xs / 2,
+    gap: spacing.xs / 2,
+  },
+  businessName: {
+    ...typography.styles.caption1,
+    color: colors.primary,
+    fontWeight: typography.weights.semibold,
+    flex: 1,
+  },
+  businessStats: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  businessStat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  businessStatText: {
+    ...typography.styles.caption2,
+    color: colors.text.secondary,
+  },
 
   // List styles - iOS Design
   listCard: {
@@ -455,6 +538,28 @@ const styles = StyleSheet.create({
     ...typography.styles.caption2,
     color: colors.text.tertiary,
     alignSelf: 'flex-end',
+  },
+  listBusinessInfo: {
+    marginBottom: spacing.xs,
+    padding: spacing.xs,
+    backgroundColor: colors.lightGreen,
+    borderRadius: 6,
+  },
+  listBusinessHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.xs / 2,
+    gap: spacing.xs / 2,
+  },
+  listBusinessName: {
+    ...typography.styles.caption1,
+    color: colors.primary,
+    fontWeight: typography.weights.semibold,
+    flex: 1,
+  },
+  listBusinessStats: {
+    flexDirection: 'row',
+    gap: spacing.sm,
   },
 });
 

@@ -2,13 +2,24 @@ import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-// API base URL configuration for different platforms
-const API_BASE_URL = Platform.select({
-  ios: 'http://localhost:3000',
-  android: 'http://10.0.2.2:3000', // Android emulator localhost
-  web: 'http://localhost:3000',
-  default: 'http://localhost:3000',
-});
+// API base URL configuration from environment variable
+// Falls back to platform-specific localhost if not configured
+const getApiBaseUrl = () => {
+  const envUrl = process.env.EXPO_PUBLIC_API_URL;
+  if (envUrl) {
+    return envUrl.trim();
+  }
+
+  // Fallback to platform-specific localhost
+  return Platform.select({
+    ios: 'http://localhost:3000',
+    android: 'http://10.0.2.2:3000', // Android emulator localhost
+    web: 'http://localhost:3000',
+    default: 'http://localhost:3000',
+  });
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 // Storage keys - must match auth.ts
 const AUTH_TOKEN_KEY = 'auth_token';

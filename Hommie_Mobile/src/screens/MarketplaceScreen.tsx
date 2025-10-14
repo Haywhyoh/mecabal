@@ -5,6 +5,7 @@ import { colors, typography, spacing, shadows } from '../constants';
 import { ListingCard } from '../components/ListingCard';
 import { EmptyState } from '../components/EmptyState';
 import { ListingsService, Listing, ListingFilter } from '../services/listingsService';
+import { BusinessService, BusinessProfile } from '../services/businessService';
 
 interface MarketplaceScreenProps {
   navigation?: any;
@@ -23,8 +24,38 @@ export default function MarketplaceScreen({ navigation }: MarketplaceScreenProps
     sortBy: 'createdAt',
     sortOrder: 'DESC',
   });
+  const [businessProfiles, setBusinessProfiles] = useState<Map<string, BusinessProfile>>(new Map());
 
   const listingsService = ListingsService.getInstance();
+  const businessService = BusinessService.getInstance();
+
+  // Fetch business profiles for service listings
+  const fetchBusinessProfiles = useCallback(async (serviceListings: Listing[]) => {
+    try {
+      const businessIds = serviceListings
+        .filter(listing => listing.listingType === 'service' && listing.businessId)
+        .map(listing => listing.businessId!);
+
+      if (businessIds.length === 0) return;
+
+      const profiles = new Map<string, BusinessProfile>();
+      
+      // Fetch business profiles in parallel
+      const profilePromises = businessIds.map(async (businessId) => {
+        try {
+          const profile = await businessService.getBusiness(businessId);
+          profiles.set(businessId, profile);
+        } catch (error) {
+          console.error(`Error fetching business profile for ${businessId}:`, error);
+        }
+      });
+
+      await Promise.all(profilePromises);
+      setBusinessProfiles(profiles);
+    } catch (error) {
+      console.error('Error fetching business profiles:', error);
+    }
+  }, [businessService]);
 
   // Fetch listings
   const fetchListings = useCallback(async () => {
@@ -36,6 +67,9 @@ export default function MarketplaceScreen({ navigation }: MarketplaceScreenProps
         search: searchQuery || undefined,
       });
       setListings(result.data);
+      
+      // Fetch business profiles for service listings
+      await fetchBusinessProfiles(result.data);
     } catch (error: any) {
       console.error('Error fetching listings:', error);
       
@@ -58,7 +92,7 @@ export default function MarketplaceScreen({ navigation }: MarketplaceScreenProps
     } finally {
       setLoading(false);
     }
-  }, [filter, selectedCategory, searchQuery]);
+  }, [filter, selectedCategory, searchQuery, fetchBusinessProfiles]);
 
   // Refresh listings
   const handleRefresh = useCallback(async () => {
@@ -159,16 +193,21 @@ export default function MarketplaceScreen({ navigation }: MarketplaceScreenProps
     </TouchableOpacity>
   );
 
-  const renderItem = ({ item }: { item: Listing }) => (
-    <View style={viewMode === 'grid' ? styles.gridItem : styles.listItem}>
-      <ListingCard
-        listing={item}
-        onPress={() => navigation?.navigate('ListingDetail', { listingId: item.id })}
-        onSave={() => handleSaveListing(item.id)}
-        viewMode={viewMode}
-      />
-    </View>
-  );
+  const renderItem = ({ item }: { item: Listing }) => {
+    const businessProfile = item.businessId ? businessProfiles.get(item.businessId) : undefined;
+    
+    return (
+      <View style={viewMode === 'grid' ? styles.gridItem : styles.listItem}>
+        <ListingCard
+          listing={item}
+          onPress={() => navigation?.navigate('ListingDetail', { listingId: item.id })}
+          onSave={() => handleSaveListing(item.id)}
+          viewMode={viewMode}
+          businessProfile={businessProfile}
+        />
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>

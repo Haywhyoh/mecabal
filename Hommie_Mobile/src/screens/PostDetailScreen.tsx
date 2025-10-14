@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { VideoView, useVideoPlayer } from 'expo-video';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, NavigationProp } from '@react-navigation/native';
 import { Post } from '../services/postsService';
 import { UserAvatar } from '../components/UserAvatar';
 import { PostActionMenu } from '../components/PostActionMenu';
@@ -28,10 +28,23 @@ interface PostDetailRouteParams {
 }
 
 const { width } = Dimensions.get('window');
-const imageWidth = width - 32; // Account for marginHorizontal (16*2)
+const imageWidth = width - 64; // Account for marginHorizontal (16*2) + container padding (16*2)
+
+// Separate component for video to avoid hook order issues
+const VideoMedia: React.FC<{ url: string; style: any }> = ({ url, style }) => {
+  const player = useVideoPlayer(url);
+  return (
+    <VideoView
+      player={player}
+      style={style}
+      allowsFullscreen
+      allowsPictureInPicture
+    />
+  );
+};
 
 export const PostDetailScreen: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp<any>>();
   const route = useRoute();
   const { postId, focusComment = false } = (route.params as PostDetailRouteParams) || {};
   const { user: currentUser } = useAuth();
@@ -390,12 +403,7 @@ export const PostDetailScreen: React.FC = () => {
                       resizeMode="cover"
                     />
                   ) : (
-                    <VideoView
-                      player={useVideoPlayer(media.url)}
-                      style={styles.mediaVideo}
-                      allowsFullscreen
-                      allowsPictureInPicture
-                    />
+                    <VideoMedia url={media.url} style={styles.mediaVideo} />
                   )}
                   {media.caption && (
                     <Text style={styles.mediaCaption}>{media.caption}</Text>

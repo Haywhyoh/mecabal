@@ -92,13 +92,9 @@ export class ApiGatewayService {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         Pragma: 'no-cache',
         Expires: '0',
-        // Pass user information to social service - fix UUID format
+        // Pass user information to social service
         ...(user && {
-          'X-User-Id':
-            (user as { id: string }).id.length === 37 &&
-            (user as { id: string }).id.endsWith('f')
-              ? (user as { id: string }).id.slice(0, -1)
-              : (user as { id: string }).id,
+          'X-User-Id': (user as { id: string }).id,
         }),
       };
 
@@ -302,11 +298,7 @@ export class ApiGatewayService {
             : headers.authorization,
         }),
         ...(user && {
-          'X-User-Id':
-            (user as { id: string }).id.length === 37 &&
-            (user as { id: string }).id.endsWith('f')
-              ? (user as { id: string }).id.slice(0, -1)
-              : (user as { id: string }).id,
+          'X-User-Id': (user as { id: string }).id,
         }),
       };
 
@@ -406,11 +398,7 @@ export class ApiGatewayService {
             : headers.authorization,
         }),
         ...(user && {
-          'X-User-Id':
-            (user as { id: string }).id.length === 37 &&
-            (user as { id: string }).id.endsWith('f')
-              ? (user as { id: string }).id.slice(0, -1)
-              : (user as { id: string }).id,
+          'X-User-Id': (user as { id: string }).id,
         }),
       };
 
@@ -508,11 +496,7 @@ export class ApiGatewayService {
             : headers.authorization,
         }),
         ...(user && {
-          'X-User-Id':
-            (user as { id: string }).id.length === 37 &&
-            (user as { id: string }).id.endsWith('f')
-              ? (user as { id: string }).id.slice(0, -1)
-              : (user as { id: string }).id,
+          'X-User-Id': (user as { id: string }).id,
         }),
       };
 
@@ -621,11 +605,7 @@ export class ApiGatewayService {
             : headers.authorization,
         }),
         ...(user && {
-          'X-User-Id':
-            (user as { id: string }).id.length === 37 &&
-            (user as { id: string }).id.endsWith('f')
-              ? (user as { id: string }).id.slice(0, -1)
-              : (user as { id: string }).id,
+          'X-User-Id': (user as { id: string }).id,
         }),
       };
 

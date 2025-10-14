@@ -19,7 +19,8 @@
       "Bash(netstat:*)",
       "Bash(mkdir:*)",
       "Bash(if exist dist rmdir /s /q dist)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []
