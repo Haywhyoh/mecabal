@@ -73,6 +73,31 @@ export class ListingsService {
       );
     }
 
+    // Validate property-specific requirements
+    if (createListingDto.listingType === 'property') {
+      const { propertyType, bedrooms, bathrooms, transactionType, rentalPeriod } = createListingDto;
+
+      // Apartments and houses require bedrooms and bathrooms
+      if ((propertyType === 'apartment' || propertyType === 'house')) {
+        if (!bedrooms || bedrooms < 1) {
+          throw new BadRequestException(`${propertyType} listings must specify number of bedrooms`);
+        }
+        if (!bathrooms || bathrooms < 1) {
+          throw new BadRequestException(`${propertyType} listings must specify number of bathrooms`);
+        }
+      }
+
+      // Rental period only required for rent transactions
+      if (transactionType === 'rent' && !rentalPeriod) {
+        throw new BadRequestException('Rental period is required for rent transactions');
+      }
+
+      // Rental period should not be provided for sales/leases
+      if (transactionType !== 'rent' && rentalPeriod) {
+        throw new BadRequestException('Rental period should only be specified for rent transactions');
+      }
+    }
+
     // Create listing using raw SQL with all new fields
     const { latitude, longitude, address } = createListingDto.location;
 
@@ -80,7 +105,7 @@ export class ListingsService {
       `
       INSERT INTO listings (
         user_id, neighborhood_id, listing_type, category_id, title, description,
-        price, currency, price_type, property_type, bedrooms, bathrooms, rental_period,
+        price, currency, price_type, property_type, transaction_type, bedrooms, bathrooms, rental_period,
         condition, brand, latitude, longitude, address, status, expires_at,
         service_type, availability_schedule, service_radius, professional_credentials,
         pricing_model, response_time, employment_type, salary_min, salary_max,
@@ -89,8 +114,8 @@ export class ListingsService {
         security_features, property_size, land_size, estate_id, city, state,
         featured, boosted, verification_status, contact_preferences
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
-        $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21,
+        $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50
       ) RETURNING *
       `,
       [
@@ -104,6 +129,7 @@ export class ListingsService {
         'NGN',
         createListingDto.priceType,
         createListingDto.propertyType || null,
+        createListingDto.transactionType || null,
         createListingDto.bedrooms || null,
         createListingDto.bathrooms || null,
         createListingDto.rentalPeriod || null,

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView, TextInput, Alert, ActivityIndicator, SafeAreaView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, typography, spacing, shadows } from '../constants';
+import { colors, typography, spacing, shadows, MARKETPLACE_MAIN_CATEGORIES, MARKETPLACE_CATEGORIES } from '../constants';
 import { ListingCard } from '../components/ListingCard';
 import { EmptyState } from '../components/EmptyState';
 import { ListingsService, Listing, ListingFilter } from '../services/listingsService';
@@ -16,6 +16,8 @@ export default function MarketplaceScreen({ navigation }: MarketplaceScreenProps
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const [selectedMainCategory, setSelectedMainCategory] = useState<string | null>(null);
+  const [showSubcategories, setShowSubcategories] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filter, setFilter] = useState<ListingFilter>({
@@ -145,8 +147,22 @@ export default function MarketplaceScreen({ navigation }: MarketplaceScreenProps
   }, [listings, listingsService]);
 
   // Handle category selection
-  const handleCategorySelect = useCallback((categoryId: number | null) => {
-    setSelectedCategory(categoryId);
+  const handleCategorySelect = useCallback((categoryId: number | null, isMainCategory = false) => {
+    if (isMainCategory) {
+      // User clicked a main category, show subcategories
+      setSelectedMainCategory(categoryId as string);
+      setShowSubcategories(true);
+    } else {
+      // User clicked a subcategory, apply filter
+      setSelectedCategory(categoryId);
+      setShowSubcategories(false);
+    }
+  }, []);
+
+  const handleBackToMainCategories = useCallback(() => {
+    setSelectedMainCategory(null);
+    setShowSubcategories(false);
+    setSelectedCategory(null);
   }, []);
 
   // Handle search
@@ -160,14 +176,15 @@ export default function MarketplaceScreen({ navigation }: MarketplaceScreenProps
   }, [filter, selectedCategory, searchQuery]);
 
   // Categories following iOS design
-  const categories = [
-    { id: null, label: 'All', icon: 'apps-outline' },
-    { id: 5, label: 'Electronics', icon: 'phone-portrait-outline' },
-    { id: 6, label: 'Furniture', icon: 'bed-outline' },
-    { id: 7, label: 'Vehicles', icon: 'car-outline' },
-    { id: 10, label: 'Services', icon: 'construct-outline' },
-    { id: 1, label: 'Property', icon: 'home-outline' },
-  ];
+  // Show main categories or subcategories based on selection
+  const displayCategories = selectedMainCategory
+    ? MARKETPLACE_CATEGORIES.filter(cat => cat.type === selectedMainCategory)
+    : MARKETPLACE_MAIN_CATEGORIES.map(mainCat => ({
+        id: mainCat.type,
+        label: mainCat.label,
+        icon: mainCat.icon,
+        isMainCategory: true,
+      }));
 
   const renderCategoryItem = ({ item }: { item: any }) => (
     <TouchableOpacity
@@ -269,34 +286,56 @@ export default function MarketplaceScreen({ navigation }: MarketplaceScreenProps
 
       {/* Categories - iOS Segmented Control Style */}
       <View style={styles.categoriesContainer}>
+        {selectedMainCategory && (
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={handleBackToMainCategories}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="arrow-back" size={20} color={colors.primary} />
+            <Text style={styles.backButtonText}>Back to Categories</Text>
+          </TouchableOpacity>
+        )}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoriesContent}
         >
-          {categories.map((item) => (
+          {displayCategories.map((item: any) => (
             <TouchableOpacity
               key={item.id?.toString() || 'all'}
               style={[
                 styles.categoryChip,
-                selectedCategory === item.id && styles.categoryChipActive
+                (item.isMainCategory
+                  ? selectedMainCategory === item.id
+                  : selectedCategory === item.backendId
+                ) && styles.categoryChipActive
               ]}
-              onPress={() => handleCategorySelect(item.id)}
+              onPress={() => handleCategorySelect(
+                item.isMainCategory ? item.id : item.backendId,
+                item.isMainCategory
+              )}
               activeOpacity={0.7}
             >
               <Ionicons
                 name={item.icon as any}
                 size={18}
-                color={selectedCategory === item.id ? colors.white : colors.text.dark}
+                color={(item.isMainCategory
+                  ? selectedMainCategory === item.id
+                  : selectedCategory === item.backendId
+                ) ? colors.white : colors.text.dark}
                 style={styles.categoryChipIcon}
               />
               <Text
                 style={[
                   styles.categoryChipText,
-                  selectedCategory === item.id && styles.categoryChipTextActive
+                  (item.isMainCategory
+                    ? selectedMainCategory === item.id
+                    : selectedCategory === item.backendId
+                  ) && styles.categoryChipTextActive
                 ]}
               >
-                {item.label}
+                {item.label || item.name}
               </Text>
             </TouchableOpacity>
           ))}
@@ -567,5 +606,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     ...shadows.large,
     elevation: 8,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    gap: spacing.xs,
+  },
+  backButtonText: {
+    ...typography.styles.subhead,
+    color: colors.primary,
+    fontWeight: typography.weights.medium,
   },
 });

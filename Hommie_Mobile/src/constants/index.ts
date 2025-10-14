@@ -506,6 +506,14 @@ export const POST_CATEGORIES = [
   'Transportation',
 ];
 
+// Main marketplace categories for hierarchical filtering (Ionicons - no emojis)
+export const MARKETPLACE_MAIN_CATEGORIES = [
+  { id: 'property', label: 'Properties', icon: 'home-outline', type: 'property' },
+  { id: 'item', label: 'Goods', icon: 'cube-outline', type: 'item' },
+  { id: 'service', label: 'Services', icon: 'construct-outline', type: 'service' },
+  { id: 'job', label: 'Jobs', icon: 'briefcase-outline', type: 'job' },
+];
+
 // Marketplace Categories - Mapped to backend listing_categories table
 // Backend IDs from migration: Property (1-4), Item (5-9), Service (10-14)
 export const MARKETPLACE_CATEGORIES = [

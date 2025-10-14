@@ -374,7 +374,7 @@ export class CreateListingDto {
   transactionType?: TransactionType;
 
   @ApiPropertyOptional({
-    description: 'Number of bedrooms',
+    description: 'Number of bedrooms (required for apartments and houses)',
     example: 3,
   })
   @IsOptional()
@@ -383,7 +383,7 @@ export class CreateListingDto {
   bedrooms?: number;
 
   @ApiPropertyOptional({
-    description: 'Number of bathrooms',
+    description: 'Number of bathrooms (required for apartments and houses)',
     example: 2,
   })
   @IsOptional()
