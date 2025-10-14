@@ -152,7 +152,7 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
   // Define segments for the segmented control
   const segments = [
     { id: 'all', label: 'All', icon: 'apps-outline' },
-    { id: 'help', label: 'Help', icon: 'hand-right-outline' },
+    { id: 'help', label: 'Help', icon: 'help-circle-outline' },
     { id: 'event', label: 'Events', icon: 'calendar-outline' },
     { id: 'alert', label: 'Alerts', icon: 'warning-outline' },
   ];

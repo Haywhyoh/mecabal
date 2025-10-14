@@ -142,7 +142,7 @@ export const MyHelpActivityScreen: React.FC<MyHelpActivityScreenProps> = ({
       task: { label: 'Task', icon: 'construct', color: '#9C27B0' },
       borrow: { label: 'Borrow/Lend', icon: 'sync', color: '#2196F3' },
       recommendation: { label: 'Recommendation', icon: 'star', color: '#FFC107' },
-      advice: { label: 'Advice', icon: 'lightbulb', color: '#00BCD4' },
+      advice: { label: 'Advice', icon: 'bulb', color: '#00BCD4' },
     };
     return categoryMap[category] || { label: 'Help Request', icon: 'help-circle', color: '#8E8E93' };
   };
@@ -238,7 +238,7 @@ export const MyHelpActivityScreen: React.FC<MyHelpActivityScreenProps> = ({
         <View style={styles.activityHeader}>
           <View style={styles.activityTypeContainer}>
             <Ionicons
-              name={isRequest ? 'help-circle-outline' : 'hand-right-outline'}
+              name={isRequest ? 'help-circle-outline' : 'help-circle-outline'}
               size={20}
               color={isRequest ? '#FF9500' : '#00A651'}
             />
@@ -295,7 +295,7 @@ export const MyHelpActivityScreen: React.FC<MyHelpActivityScreenProps> = ({
 
     return (
       <View style={styles.emptyState}>
-        <Ionicons name="hand-heart-outline" size={64} color="#CCCCCC" />
+        <Ionicons name="heart-outline" size={64} color="#CCCCCC" />
         <Text style={styles.emptyTitle}>{emptyMessages[selectedTab]}</Text>
         <Text style={styles.emptySubtitle}>
           {selectedTab === 'all' || selectedTab === 'requested'

@@ -42,7 +42,7 @@ export const HelpPostCard: React.FC<HelpPostCardProps> = ({
       case 'task': return 'construct';
       case 'borrow': return 'sync';
       case 'recommendation': return 'star';
-      case 'advice': return 'lightbulb';
+      case 'advice': return 'bulb';
       default: return 'help-circle';
     }
   };
@@ -132,7 +132,7 @@ export const HelpPostCard: React.FC<HelpPostCardProps> = ({
       {/* Author Info */}
       <View style={styles.header}>
         <UserAvatar 
-          user={post.author} 
+          user={post.author as any} 
           size="medium" 
           showBadge={post.author.isVerified}
         />
@@ -147,18 +147,6 @@ export const HelpPostCard: React.FC<HelpPostCardProps> = ({
           </View>
           <Text style={styles.timestamp}>
             {formatTimeAgo(post.createdAt)}
-          </Text>
-        </View>
-
-        {/* Help Type Badge */}
-        <View style={[styles.helpBadge, { backgroundColor: getCategoryColor() + '20' }]}>
-          <Ionicons
-            name={getHelpIcon() as any}
-            size={14}
-            color={getCategoryColor()}
-          />
-          <Text style={[styles.helpType, { color: getCategoryColor() }]}>
-            {getCategoryLabel().toUpperCase()}
           </Text>
         </View>
       </View>
@@ -190,6 +178,17 @@ export const HelpPostCard: React.FC<HelpPostCardProps> = ({
             </Text>
           </View>
         )}
+        {/* Help Type Badge */}
+        <View style={[styles.helpBadge, { backgroundColor: getCategoryColor() + '20' }]}>
+          <Ionicons
+            name={getHelpIcon() as any}
+            size={14}
+            color={getCategoryColor()}
+          />
+          <Text style={[styles.helpType, { color: getCategoryColor() }]}>
+            {getCategoryLabel().toUpperCase()}
+          </Text>
+        </View>
       </View>
 
       {/* Media */}
@@ -289,7 +288,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 8,
+    marginRight: 8,
+    marginBottom: 4,
   },
   helpType: {
     fontSize: 10,

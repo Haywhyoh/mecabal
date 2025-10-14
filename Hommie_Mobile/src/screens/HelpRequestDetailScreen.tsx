@@ -84,7 +84,7 @@ export const HelpRequestDetailScreen: React.FC<HelpRequestDetailScreenProps> = (
       task: { label: 'Task', icon: 'construct', color: '#9C27B0' },
       borrow: { label: 'Borrow/Lend', icon: 'sync', color: '#2196F3' },
       recommendation: { label: 'Recommendation', icon: 'star', color: '#FFC107' },
-      advice: { label: 'Advice', icon: 'lightbulb', color: '#00BCD4' },
+      advice: { label: 'Advice', icon: 'bulb', color: '#00BCD4' },
     };
     return categoryMap[category] || { label: 'Help Request', icon: 'help-circle', color: '#8E8E93' };
   };
@@ -254,7 +254,7 @@ export const HelpRequestDetailScreen: React.FC<HelpRequestDetailScreenProps> = (
     return (
       <View style={styles.actionsSection}>
         <TouchableOpacity style={styles.offerHelpButton} onPress={handleOfferHelp}>
-          <Ionicons name="hand-right" size={20} color="#FFFFFF" />
+          <Ionicons name="hand" size={20} color="#FFFFFF" />
           <Text style={styles.offerHelpText}>Offer Help</Text>
         </TouchableOpacity>
       </View>

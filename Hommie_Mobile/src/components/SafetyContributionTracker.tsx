@@ -24,7 +24,7 @@ interface SafetyContributionTrackerProps {
 
 const SAFETY_TYPES = {
   incident_report: { name: 'Incident Report', icon: 'alert-circle', color: '#E74C3C' },
-  security_tip: { name: 'Security Tip', icon: 'lightbulb', color: '#FFC107' },
+  security_tip: { name: 'Security Tip', icon: 'bulb', color: '#FFC107' },
   emergency_response: { name: 'Emergency Response', icon: 'medical-bag', color: '#E74C3C' },
   patrol_volunteer: { name: 'Patrol Volunteer', icon: 'walk', color: '#0066CC' },
   safety_meeting: { name: 'Safety Meeting', icon: 'account-group', color: '#00A651' }

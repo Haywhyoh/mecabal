@@ -659,7 +659,7 @@ export default function NeighborRecommendationSystem({
       safety_critical: 'shield-alert',
       community_builder: 'account-group'
     };
-    return icons[type] || 'lightbulb';
+    return icons[type] || 'bulb';
   };
 
   const getInsightColor = (type: string) => {

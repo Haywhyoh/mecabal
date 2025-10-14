@@ -43,7 +43,7 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({ navigation 
       id: 'help',
       title: 'Ask for Help',
       description: 'Get help with jobs, errands, or recommendations',
-      icon: 'hand-right',
+      icon: 'hand',
       color: colors.accent.lagosOrange,
       onPress: () => handlePostType('help'),
     },

@@ -577,7 +577,7 @@ export const COMMUNITY_HELP_CATEGORIES = [
   { id: 'errand', label: 'Quick Errands', icon: 'bicycle', description: 'Quick neighborhood favors' },
   { id: 'task', label: 'Tasks & Favors', icon: 'construct', description: 'Small jobs and help' },
   { id: 'recommendation', label: 'Recommendations', icon: 'star', description: 'Ask for advice on services' },
-  { id: 'advice', label: 'Advice & Tips', icon: 'lightbulb', description: 'Get community input' },
+  { id: 'advice', label: 'Advice & Tips', icon: 'bulb', description: 'Get community input' },
   { id: 'borrow', label: 'Borrow/Lend', icon: 'sync', description: 'Share items temporarily' },
 ];
 

@@ -93,12 +93,13 @@ const helpPosts = [
 async function createHelpPosts() {
   console.log('🚀 Creating help posts...');
   
-  for (let i = 0; i < helpPosts.length; i++) {
+  // Try just the first post first
+  for (let i = 0; i < 1; i++) {
     const post = helpPosts[i];
     try {
       console.log(`Creating post ${i + 1}/${helpPosts.length}: ${post.helpCategory}`);
       
-      const response = await axios.post(`${API_BASE_URL}/api/social/posts`, post, {
+      const response = await axios.post(`${API_BASE_URL}/posts`, post, {
         headers: {
           'Authorization': TOKEN,
           'Content-Type': 'application/json'
@@ -111,7 +112,12 @@ async function createHelpPosts() {
         console.log(`❌ Failed to create post ${i + 1}: ${response.data.message}`);
       }
     } catch (error) {
-      console.log(`❌ Error creating post ${i + 1}: ${error.response?.data?.message || error.message}`);
+      console.log(`❌ Error creating post ${i + 1}:`, {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message
+      });
     }
     
     // Wait 1 second between requests to avoid overwhelming the server

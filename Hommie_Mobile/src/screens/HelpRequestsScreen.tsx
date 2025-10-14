@@ -142,7 +142,7 @@ export const HelpRequestsScreen: React.FC<HelpRequestsScreenProps> = ({
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <Ionicons name="hand-heart-outline" size={64} color="#CCCCCC" />
+      <Ionicons name="heart-outline" size={64} color="#CCCCCC" />
       <Text style={styles.emptyTitle}>No Help Requests Yet</Text>
       <Text style={styles.emptySubtitle}>
         Be the first to ask for help in your community

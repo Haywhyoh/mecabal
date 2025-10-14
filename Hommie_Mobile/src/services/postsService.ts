@@ -21,6 +21,14 @@ export interface Post {
     profilePicture?: string;
     isVerified: boolean;
     trustScore: number;
+    phoneNumber?: string;
+    phoneVerified?: boolean;
+    identityVerified?: boolean;
+    addressVerified?: boolean;
+    email?: string;
+    emailVerified?: boolean;
+    dateOfBirth?: string;
+    gender?: string;
   };
   category?: {
     id: number;
@@ -44,8 +52,8 @@ export interface Post {
   };
   isVisible: boolean;
   isExpired: boolean;
-  // Help-specific fields
-  helpCategory?: 'job' | 'errand' | 'recommendation' | 'advice';
+  // Help-specific fields - Updated with new categories
+  helpCategory?: 'errand' | 'task' | 'recommendation' | 'advice' | 'borrow';
   urgency?: 'low' | 'medium' | 'high';
   budget?: string;
   deadline?: string;

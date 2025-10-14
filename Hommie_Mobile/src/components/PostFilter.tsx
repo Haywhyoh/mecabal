@@ -31,7 +31,7 @@ export const PostFilter: React.FC<PostFilterProps> = ({
 
   const postTypes = [
     { id: 'general', label: 'General', icon: 'chatbubble-outline', color: '#3498db' },
-    { id: 'help', label: 'Help', icon: 'hand-right-outline', color: '#FF6B35' },
+    { id: 'help', label: 'Help', icon: 'help-circle-outline', color: '#FF6B35' },
     { id: 'event', label: 'Event', icon: 'calendar-outline', color: '#e74c3c' },
     { id: 'alert', label: 'Alert', icon: 'warning-outline', color: '#f39c12' },
     { id: 'marketplace', label: 'Marketplace', icon: 'storefront-outline', color: '#2ecc71' },
