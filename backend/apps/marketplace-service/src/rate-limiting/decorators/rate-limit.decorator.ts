@@ -14,7 +14,11 @@ export interface RateLimitOptions {
  */
 export function RateLimit(options: RateLimitOptions = {}) {
   return (target: any, propertyKey?: string | symbol, descriptor?: PropertyDescriptor) => {
-    SetMetadata(RATE_LIMIT_KEY, options)(target, propertyKey, descriptor);
+    if (propertyKey !== undefined && descriptor !== undefined) {
+      SetMetadata(RATE_LIMIT_KEY, options)(target, propertyKey, descriptor);
+    } else {
+      SetMetadata(RATE_LIMIT_KEY, options)(target);
+    }
     return descriptor;
   };
 }
@@ -24,7 +28,11 @@ export function RateLimit(options: RateLimitOptions = {}) {
  */
 export function SkipRateLimit() {
   return (target: any, propertyKey?: string | symbol, descriptor?: PropertyDescriptor) => {
-    SetMetadata(RATE_LIMIT_SKIP_KEY, true)(target, propertyKey, descriptor);
+    if (propertyKey !== undefined && descriptor !== undefined) {
+      SetMetadata(RATE_LIMIT_SKIP_KEY, true)(target, propertyKey, descriptor);
+    } else {
+      SetMetadata(RATE_LIMIT_SKIP_KEY, true)(target);
+    }
     return descriptor;
   };
 }

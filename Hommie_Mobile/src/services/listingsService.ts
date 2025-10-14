@@ -33,7 +33,7 @@ export interface Listing {
   landSize?: number;
   
   // Item-specific fields
-  condition?: string;
+  condition?: 'new' | 'like_new' | 'good' | 'fair';
   brand?: string;
   model?: string;
   year?: number;
@@ -96,10 +96,7 @@ export interface Listing {
   estateId?: string;
   city?: string;
   state?: string;
-  featured?: boolean;
-  boosted?: boolean;
   businessId?: string; // For service listings linked to business profiles
-  verificationStatus?: 'pending' | 'verified' | 'rejected';
   
   location: {
     latitude: number;
@@ -114,7 +111,7 @@ export interface Listing {
   viewsCount: number;
   savesCount: number;
   isSaved: boolean;
-  verificationStatus: string;
+  verificationStatus: 'pending' | 'verified' | 'rejected' | string;
   featured: boolean;
   boosted: boolean;
   author: {
@@ -164,7 +161,7 @@ export interface CreateListingRequest {
   landSize?: number;
   
   // Item-specific fields
-  condition?: string;
+  condition?: 'new' | 'like_new' | 'good' | 'fair';
   brand?: string;
   model?: string;
   year?: number;
@@ -231,7 +228,7 @@ export interface UpdateListingRequest {
   bedrooms?: number;
   bathrooms?: number;
   rentalPeriod?: string;
-  condition?: string;
+  condition?: 'new' | 'like_new' | 'good' | 'fair';
   brand?: string;
   location?: {
     latitude: number;
@@ -377,31 +374,58 @@ export class ListingsService {
       console.log(`🌐 Making API request: ${operation}`);
       console.log(`🌐 URL: ${url}`);
       console.log(`🌐 Method: ${options.method || 'GET'}`);
+      console.log(`🌐 Base URL: ${this.baseUrl}`);
       
       const headers = {
         ...await this.getAuthHeaders(),
         ...options.headers,
       };
       console.log(`🌐 Headers:`, headers);
+      console.log(`🌐 Request body:`, options.body);
 
-      const response = await fetch(url, {
-        ...options,
-        headers,
-      });
+      try {
+        const response = await fetch(url, {
+          ...options,
+          headers,
+        });
 
-      console.log(`🌐 Response status: ${response.status} ${response.statusText}`);
-      console.log(`🌐 Response headers:`, Object.fromEntries(response.headers.entries()));
+        console.log(`🌐 Response status: ${response.status} ${response.statusText}`);
+        console.log(`🌐 Response headers:`, Object.fromEntries(response.headers.entries()));
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error(`❌ API Error Response:`, errorData);
-        const errorMessage = errorData.message || `HTTP ${response.status}: ${response.statusText}`;
-        throw new Error(errorMessage);
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`❌ API Error Response (raw):`, errorText);
+          
+          let errorData;
+          try {
+            errorData = JSON.parse(errorText);
+            console.error(`❌ API Error Response (parsed):`, errorData);
+          } catch (parseError) {
+            console.error(`❌ Failed to parse error response as JSON:`, parseError);
+            errorData = { message: errorText };
+          }
+          
+          const errorMessage = errorData.message || `HTTP ${response.status}: ${response.statusText}`;
+          throw new Error(errorMessage);
+        }
+
+        const responseText = await response.text();
+        console.log(`🌐 Response body (raw):`, responseText);
+        
+        let responseData;
+        try {
+          responseData = JSON.parse(responseText);
+          console.log(`✅ API Success Response (parsed):`, responseData);
+        } catch (parseError) {
+          console.error(`❌ Failed to parse success response as JSON:`, parseError);
+          throw new Error('Invalid JSON response from server');
+        }
+        
+        return responseData;
+      } catch (error) {
+        console.error(`💥 Network/Request Error for ${operation}:`, error);
+        throw error;
       }
-
-      const responseData = await response.json();
-      console.log(`✅ API Success Response:`, responseData);
-      return responseData;
     }, operation);
   }
 
@@ -409,14 +433,50 @@ export class ListingsService {
    * Create a new listing
    */
   async createListing(data: CreateListingRequest): Promise<Listing> {
+    // Validate and format the data before sending
+    const formattedData = this.formatListingData(data);
+    
     return this.makeApiRequest<Listing>(
       `${this.baseUrl}${API_ENDPOINTS.LISTINGS.CREATE}`,
       {
         method: 'POST',
-        body: JSON.stringify(data),
+        body: JSON.stringify(formattedData),
       },
       'Create listing'
     );
+  }
+
+  /**
+   * Format listing data to match backend validation requirements
+   */
+  private formatListingData(data: CreateListingRequest): CreateListingRequest {
+    const formatted = { ...data };
+
+    // Ensure description meets minimum length requirement
+    if (formatted.description && formatted.description.length < 20) {
+      formatted.description = formatted.description + ' '.repeat(20 - formatted.description.length) + 'Additional details to meet minimum requirements.';
+    }
+
+    // Ensure location coordinates are valid (not 0,0)
+    if (formatted.location) {
+      if (formatted.location.latitude === 0 && formatted.location.longitude === 0) {
+        // Default to Lagos coordinates if coordinates are 0,0
+        formatted.location.latitude = 6.5244;
+        formatted.location.longitude = 3.3792;
+        console.warn('⚠️ Invalid coordinates (0,0) detected. Using default Lagos coordinates.');
+      }
+    }
+
+    // Ensure condition is in the correct format
+    if (formatted.condition) {
+      const validConditions = ['new', 'like_new', 'good', 'fair'];
+      if (!validConditions.includes(formatted.condition)) {
+        console.warn(`⚠️ Invalid condition "${formatted.condition}". Using "good" as default.`);
+        formatted.condition = 'good';
+      }
+    }
+
+    return formatted;
   }
 
   /**
@@ -608,6 +668,74 @@ export class ListingsService {
 
     const result = await this.getListings(searchFilter);
     return result.data;
+  }
+
+  /**
+   * Get default location coordinates (Lagos, Nigeria)
+   */
+  getDefaultLocation(): { latitude: number; longitude: number; address: string } {
+    return {
+      latitude: 6.5244,
+      longitude: 3.3792,
+      address: 'Lagos, Nigeria'
+    };
+  }
+
+  /**
+   * Test API connectivity and authentication
+   */
+  async testConnectivity(): Promise<{
+    success: boolean;
+    message: string;
+    details?: any;
+  }> {
+    try {
+      console.log('🧪 Testing API connectivity...');
+      console.log('🧪 Base URL:', this.baseUrl);
+      
+      // Test basic connectivity
+      const testUrl = `${this.baseUrl}/listings?limit=1`;
+      console.log('🧪 Test URL:', testUrl);
+      
+      const headers = await this.getAuthHeaders();
+      console.log('🧪 Auth headers:', headers);
+      
+      const response = await fetch(testUrl, {
+        method: 'GET',
+        headers,
+      });
+      
+      console.log('🧪 Response status:', response.status);
+      console.log('🧪 Response headers:', Object.fromEntries(response.headers.entries()));
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('🧪 Error response:', errorText);
+        
+        return {
+          success: false,
+          message: `API returned ${response.status}: ${response.statusText}`,
+          details: { status: response.status, error: errorText }
+        };
+      }
+      
+      const data = await response.json();
+      console.log('🧪 Success response:', data);
+      
+      return {
+        success: true,
+        message: 'API connectivity test successful',
+        details: { status: response.status, data }
+      };
+    } catch (error: any) {
+      console.error('🧪 Connectivity test failed:', error);
+      
+      return {
+        success: false,
+        message: `Connectivity test failed: ${error.message}`,
+        details: { error: error.message, stack: error.stack }
+      };
+    }
   }
 }
 

@@ -159,6 +159,18 @@ export class ListingResponseDto {
   @Expose()
   brand?: string;
 
+  @ApiPropertyOptional({ description: 'Model name' })
+  @Expose()
+  model?: string;
+
+  @ApiPropertyOptional({ description: 'Year of manufacture' })
+  @Expose()
+  year?: number;
+
+  @ApiPropertyOptional({ description: 'Warranty period' })
+  @Expose()
+  warranty?: string;
+
   // Location
   @ApiProperty({ description: 'Location information' })
   @Expose()

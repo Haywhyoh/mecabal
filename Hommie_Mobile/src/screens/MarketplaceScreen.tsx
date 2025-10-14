@@ -6,6 +6,7 @@ import { ListingCard } from '../components/ListingCard';
 import { EmptyState } from '../components/EmptyState';
 import { ListingsService, Listing, ListingFilter } from '../services/listingsService';
 import { BusinessService, BusinessProfile } from '../services/businessService';
+import { ENV } from '../config/environment';
 
 interface MarketplaceScreenProps {
   navigation?: any;
@@ -62,28 +63,49 @@ export default function MarketplaceScreen({ navigation }: MarketplaceScreenProps
   // Fetch listings
   const fetchListings = useCallback(async () => {
     try {
+      console.log('🔄 Starting to fetch listings...');
+      console.log('🔄 Filter:', filter);
+      console.log('🔄 Selected category:', selectedCategory);
+      console.log('🔄 Search query:', searchQuery);
+      
       setLoading(true);
+      
       const result = await listingsService.getListings({
         ...filter,
         categoryId: selectedCategory || undefined,
         search: searchQuery || undefined,
       });
-      setListings(result.data);
+      
+      console.log('✅ Listings fetched successfully:', result);
+      console.log('✅ Number of listings:', result.data?.length || 0);
+      
+      setListings(result.data || []);
       
       // Fetch business profiles for service listings
-      await fetchBusinessProfiles(result.data);
+      if (result.data && result.data.length > 0) {
+        console.log('🔄 Fetching business profiles for service listings...');
+        await fetchBusinessProfiles(result.data);
+      }
     } catch (error: any) {
-      console.error('Error fetching listings:', error);
+      console.error('❌ Error fetching listings:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      });
       
       // Show user-friendly error message
       const errorMessage = error.message || 'Failed to load listings';
       Alert.alert(
         'Connection Error', 
-        errorMessage,
+        `${errorMessage}\n\nPlease check your internet connection and try again.`,
         [
           {
             text: 'Retry',
-            onPress: () => fetchListings(),
+            onPress: () => {
+              console.log('🔄 User requested retry...');
+              fetchListings();
+            },
           },
           {
             text: 'Cancel',
@@ -170,6 +192,34 @@ export default function MarketplaceScreen({ navigation }: MarketplaceScreenProps
     setSearchQuery(query);
   }, []);
 
+  // Test API connectivity
+  const testConnectivity = useCallback(async () => {
+    try {
+      console.log('🧪 Testing API connectivity...');
+      console.log('🧪 Environment config:', {
+        API_BASE_URL: ENV.API.BASE_URL,
+        API_TIMEOUT: ENV.API.TIMEOUT,
+        IS_DEVELOPMENT: ENV.DEV.IS_DEVELOPMENT,
+        ENABLE_LOGGING: ENV.DEV.ENABLE_LOGGING,
+      });
+      
+      const result = await listingsService.testConnectivity();
+      
+      Alert.alert(
+        'API Test Result',
+        `${result.message}\n\nEnvironment: ${ENV.API.BASE_URL}\n\nDetails: ${JSON.stringify(result.details, null, 2)}`,
+        [{ text: 'OK' }]
+      );
+    } catch (error: any) {
+      console.error('❌ Connectivity test failed:', error);
+      Alert.alert(
+        'API Test Failed',
+        `Environment: ${ENV.API.BASE_URL}\n\nError: ${error.message}`,
+        [{ text: 'OK' }]
+      );
+    }
+  }, [listingsService]);
+
   // Fetch on mount and filter changes
   useEffect(() => {
     fetchListings();
@@ -248,19 +298,35 @@ export default function MarketplaceScreen({ navigation }: MarketplaceScreenProps
           
           <Text style={styles.largeTitle}>Marketplace</Text>
           
-          <TouchableOpacity
-            style={styles.viewModeButton}
-            onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-            activeOpacity={0.6}
-            accessibilityLabel={viewMode === 'grid' ? 'Switch to list view' : 'Switch to grid view'}
-            accessibilityRole="button"
-          >
-            <Ionicons
-              name={viewMode === 'grid' ? 'list-outline' : 'grid-outline'}
-              size={22}
-              color={colors.primary}
-            />
-          </TouchableOpacity>
+          <View style={styles.headerButtons}>
+            <TouchableOpacity
+              style={styles.debugButton}
+              onPress={testConnectivity}
+              activeOpacity={0.6}
+              accessibilityLabel="Test API connectivity"
+              accessibilityRole="button"
+            >
+              <Ionicons
+                name="bug-outline"
+                size={20}
+                color={colors.primary}
+              />
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.viewModeButton}
+              onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+              activeOpacity={0.6}
+              accessibilityLabel={viewMode === 'grid' ? 'Switch to list view' : 'Switch to grid view'}
+              accessibilityRole="button"
+            >
+              <Ionicons
+                name={viewMode === 'grid' ? 'list-outline' : 'grid-outline'}
+                size={22}
+                color={colors.primary}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Search Bar - iOS Style */}
@@ -466,6 +532,19 @@ const styles = StyleSheet.create({
   largeTitle: {
     ...typography.styles.largeTitle,
     color: colors.text.dark,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  debugButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 20,
+    backgroundColor: colors.neutral.offWhite,
   },
   viewModeButton: {
     width: 40,

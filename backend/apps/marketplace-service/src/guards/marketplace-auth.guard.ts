@@ -20,6 +20,8 @@ export class MarketplaceAuthGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    console.log('🔍 MarketplaceAuthGuard - canActivate called');
+    
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -31,6 +33,10 @@ export class MarketplaceAuthGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest();
+    console.log('🔍 MarketplaceAuthGuard - Request headers:', {
+      'x-user-id': request.headers['x-user-id'],
+      'authorization': request.headers['authorization'] ? 'present' : 'missing'
+    });
 
     // Check if request is coming from API Gateway with user ID in headers
     const userIdFromGateway = request.headers['x-user-id'];
@@ -58,6 +64,12 @@ export class MarketplaceAuthGuard implements CanActivate {
 
       // Get primary neighborhood ID
       const primaryNeighborhood = user.userNeighborhoods?.[0]?.neighborhood?.id;
+      
+      console.log('🔍 MarketplaceAuthGuard - User neighborhoods:', {
+        userId: user.id,
+        userNeighborhoods: user.userNeighborhoods,
+        primaryNeighborhood: primaryNeighborhood
+      });
 
       // Attach user to request with required fields
       request.user = {

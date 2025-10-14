@@ -39,56 +39,56 @@ export class RateLimitingService {
     this.rateLimitConfigs.set('general', {
       name: 'general',
       ttl: 60000, // 1 minute
-      limit: 100, // 100 requests per minute
+      limit: 1000, // 1000 requests per minute (increased from 100)
     });
 
     // Search API rate limits
     this.rateLimitConfigs.set('search', {
       name: 'search',
       ttl: 60000, // 1 minute
-      limit: 50, // 50 requests per minute
+      limit: 500, // 500 requests per minute (increased from 50)
     });
 
     // Create listing rate limits
     this.rateLimitConfigs.set('create-listing', {
       name: 'create-listing',
-      ttl: 3600000, // 1 hour
-      limit: 10, // 10 requests per hour
+      ttl: 300000, // 5 minutes (reduced from 1 hour)
+      limit: 100, // 100 requests per 5 minutes (increased from 10 per hour)
     });
 
     // Upload media rate limits
     this.rateLimitConfigs.set('upload-media', {
       name: 'upload-media',
-      ttl: 3600000, // 1 hour
-      limit: 20, // 20 requests per hour
+      ttl: 300000, // 5 minutes (reduced from 1 hour)
+      limit: 200, // 200 requests per 5 minutes (increased from 20 per hour)
     });
 
     // User-specific rate limits
     this.rateLimitConfigs.set('user-specific', {
       name: 'user-specific',
       ttl: 60000, // 1 minute
-      limit: 200, // 200 requests per minute for authenticated users
+      limit: 2000, // 2000 requests per minute for authenticated users (increased from 200)
     });
 
     // IP-based rate limits
     this.rateLimitConfigs.set('ip-based', {
       name: 'ip-based',
       ttl: 60000, // 1 minute
-      limit: 150, // 150 requests per minute per IP
+      limit: 1500, // 1500 requests per minute per IP (increased from 150)
     });
 
     // Business operations rate limits
     this.rateLimitConfigs.set('business-operations', {
       name: 'business-operations',
       ttl: 300000, // 5 minutes
-      limit: 30, // 30 requests per 5 minutes
+      limit: 300, // 300 requests per 5 minutes (increased from 30)
     });
 
     // Job operations rate limits
     this.rateLimitConfigs.set('job-operations', {
       name: 'job-operations',
       ttl: 300000, // 5 minutes
-      limit: 25, // 25 requests per 5 minutes
+      limit: 250, // 250 requests per 5 minutes (increased from 25)
     });
   }
 

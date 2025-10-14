@@ -20,6 +20,14 @@ export class DataIntegrityService {
    * Validate data integrity for listing creation
    */
   async validateListingIntegrity(listingData: any): Promise<void> {
+    console.log('🔍 DataIntegrityService - Starting validation with data:', {
+      userId: listingData.userId,
+      categoryId: listingData.categoryId,
+      neighborhoodId: listingData.neighborhoodId,
+      listingType: listingData.listingType,
+      propertyType: listingData.propertyType
+    });
+
     // Validate foreign key relationships
     await this.validateForeignKeyIntegrity(listingData);
 
@@ -28,6 +36,8 @@ export class DataIntegrityService {
 
     // Validate business logic constraints
     this.validateBusinessConstraints(listingData);
+    
+    console.log('✅ DataIntegrityService - All validations passed');
   }
 
   /**

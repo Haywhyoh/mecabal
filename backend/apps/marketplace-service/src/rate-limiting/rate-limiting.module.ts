@@ -18,17 +18,17 @@ import { RateLimitStatsController } from './controllers/rate-limit-stats.control
         {
           name: 'short',
           ttl: 60000, // 1 minute
-          limit: 100, // 100 requests per minute
+          limit: 1000, // 1000 requests per minute (increased from 100)
         },
         {
           name: 'medium',
           ttl: 300000, // 5 minutes
-          limit: 500, // 500 requests per 5 minutes
+          limit: 5000, // 5000 requests per 5 minutes (increased from 500)
         },
         {
           name: 'long',
           ttl: 3600000, // 1 hour
-          limit: 1000, // 1000 requests per hour
+          limit: 10000, // 10000 requests per hour (increased from 1000)
         },
       ],
       inject: [ConfigService],

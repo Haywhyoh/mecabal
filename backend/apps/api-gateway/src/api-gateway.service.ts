@@ -276,6 +276,9 @@ export class ApiGatewayService {
       console.log('🌐 API Gateway - Proxying to marketplace service:');
       console.log('  - URL:', url);
       console.log('  - Method:', method);
+      console.log('  - Data:', data);
+      console.log('  - Data type:', typeof data);
+      console.log('  - Data stringified:', JSON.stringify(data, null, 2));
       console.log(
         '  - User:',
         user
@@ -306,7 +309,8 @@ export class ApiGatewayService {
         headers: baseHeaders,
         timeout: 60000,
         maxRedirects: 5,
-        transformRequest: [(data: unknown) => JSON.stringify(data)],
+        // Only apply transformRequest for non-string data to avoid double-stringification
+        ...(typeof data === 'string' ? {} : { transformRequest: [(data: unknown) => JSON.stringify(data)] }),
       };
 
       let response;
@@ -345,11 +349,21 @@ export class ApiGatewayService {
       console.error(`Error proxying to marketplace service: ${errorMessage}`);
 
       if (error && typeof error === 'object' && 'response' in error) {
-        const response = (
-          error as { response: { status: number; statusText: string } }
-        ).response;
+        const axiosError = error as { 
+          response: { 
+            status: number; 
+            statusText: string;
+            data?: any;
+          } 
+        };
+        const response = axiosError.response;
         const status = response.status;
         const statusText = response.statusText;
+        const responseData = response.data;
+
+        console.error(`Marketplace Service Error Details:`);
+        console.error(`  - Status: ${status} ${statusText}`);
+        console.error(`  - Response Data:`, responseData);
 
         throw new Error(
           `Marketplace request failed with status code ${status}: ${statusText}`,
@@ -406,7 +420,8 @@ export class ApiGatewayService {
         headers: baseHeaders,
         timeout: 60000,
         maxRedirects: 5,
-        transformRequest: [(data: unknown) => JSON.stringify(data)],
+        // Only apply transformRequest for non-string data to avoid double-stringification
+        ...(typeof data === 'string' ? {} : { transformRequest: [(data: unknown) => JSON.stringify(data)] }),
       };
 
       let response;
@@ -504,7 +519,8 @@ export class ApiGatewayService {
         headers: baseHeaders,
         timeout: 60000,
         maxRedirects: 5,
-        transformRequest: [(data: unknown) => JSON.stringify(data)],
+        // Only apply transformRequest for non-string data to avoid double-stringification
+        ...(typeof data === 'string' ? {} : { transformRequest: [(data: unknown) => JSON.stringify(data)] }),
       };
 
       let response;

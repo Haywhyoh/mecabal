@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner, Table } from 'typeorm';
+import { MigrationInterface, QueryRunner, Table, TableIndex } from 'typeorm';
 
 export class CreateJobApplicationsTable1760012952694 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -88,21 +88,37 @@ export class CreateJobApplicationsTable1760012952694 implements MigrationInterfa
     );
 
     // Create indexes
-    await queryRunner.query(`
-      CREATE INDEX IDX_job_applications_job_id ON job_applications (job_id)
-    `);
+    await queryRunner.createIndex(
+      'job_applications',
+      new TableIndex({
+        name: 'IDX_job_applications_job_id',
+        columnNames: ['job_id']
+      }),
+    );
 
-    await queryRunner.query(`
-      CREATE INDEX IDX_job_applications_user_id ON job_applications (user_id)
-    `);
+    await queryRunner.createIndex(
+      'job_applications',
+      new TableIndex({
+        name: 'IDX_job_applications_user_id',
+        columnNames: ['user_id']
+      }),
+    );
 
-    await queryRunner.query(`
-      CREATE INDEX IDX_job_applications_status ON job_applications (status)
-    `);
+    await queryRunner.createIndex(
+      'job_applications',
+      new TableIndex({
+        name: 'IDX_job_applications_status',
+        columnNames: ['status']
+      }),
+    );
 
-    await queryRunner.query(`
-      CREATE INDEX IDX_job_applications_job_user ON job_applications (job_id, user_id)
-    `);
+    await queryRunner.createIndex(
+      'job_applications',
+      new TableIndex({
+        name: 'IDX_job_applications_job_user',
+        columnNames: ['job_id', 'user_id']
+      }),
+    );
 
     // Add foreign key constraints
     await queryRunner.query(`

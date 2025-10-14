@@ -76,6 +76,14 @@ export class Listing {
   @Column({ name: 'price_type', length: 20 })
   priceType: string;
 
+  @ApiProperty({
+    description: 'Transaction type for property listings',
+    enum: ['rent', 'sale'],
+    required: false,
+  })
+  @Column({ name: 'transaction_type', length: 20, nullable: true })
+  transactionType?: string;
+
   // Property-specific fields
   @ApiProperty({
     description: 'Property type',
@@ -113,6 +121,18 @@ export class Listing {
   @ApiProperty({ description: 'Brand name', required: false })
   @Column({ length: 100, nullable: true })
   brand?: string;
+
+  @ApiProperty({ description: 'Model name', required: false })
+  @Column({ length: 100, nullable: true })
+  model?: string;
+
+  @ApiProperty({ description: 'Year of manufacture', required: false })
+  @Column({ type: 'int', nullable: true })
+  year?: number;
+
+  @ApiProperty({ description: 'Warranty period', required: false })
+  @Column({ length: 100, nullable: true })
+  warranty?: string;
 
   // Service-specific fields
   @ApiProperty({

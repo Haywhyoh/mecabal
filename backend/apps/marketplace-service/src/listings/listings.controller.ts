@@ -57,6 +57,14 @@ export class ListingsController {
     @Request() req: AuthenticatedRequest,
     @Body() createListingDto: CreateListingDto,
   ): Promise<ListingResponseDto> {
+    console.log('🔍 ListingsController - Create method called with:', {
+      userId: req.user?.userId,
+      neighborhoodId: req.user?.neighborhoodId,
+      listingType: createListingDto.listingType,
+      categoryId: createListingDto.categoryId,
+      propertyType: createListingDto.propertyType
+    });
+    
     return this.listingsService.create(
       req.user.userId,
       req.user.neighborhoodId,

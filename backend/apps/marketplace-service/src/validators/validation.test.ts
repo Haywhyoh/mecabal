@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { BadRequestException } from '@nestjs/common';
 import { ValidationPipe } from './validation.pipe';
 import { CreateListingDto } from '../listings/dto/create-listing.dto';
 
@@ -36,7 +37,7 @@ describe('ValidationPipe', () => {
       },
     };
 
-    const result = await pipe.transform(validDto, { metatype: CreateListingDto });
+    const result = await pipe.transform(validDto, { metatype: CreateListingDto, type: 'body' });
     expect(result).toBeDefined();
     expect(result.listingType).toBe('property');
   });
@@ -58,7 +59,7 @@ describe('ValidationPipe', () => {
     };
 
     await expect(
-      pipe.transform(invalidDto, { metatype: CreateListingDto }),
+      pipe.transform(invalidDto, { metatype: CreateListingDto, type: 'body' }),
     ).rejects.toThrow(BadRequestException);
   });
 
@@ -79,7 +80,7 @@ describe('ValidationPipe', () => {
     };
 
     await expect(
-      pipe.transform(invalidDto, { metatype: CreateListingDto }),
+      pipe.transform(invalidDto, { metatype: CreateListingDto, type: 'body' }),
     ).rejects.toThrow(BadRequestException);
   });
 
@@ -105,7 +106,7 @@ describe('ValidationPipe', () => {
     };
 
     await expect(
-      pipe.transform(invalidDto, { metatype: CreateListingDto }),
+      pipe.transform(invalidDto, { metatype: CreateListingDto, type: 'body' }),
     ).rejects.toThrow(BadRequestException);
   });
 
@@ -128,7 +129,7 @@ describe('ValidationPipe', () => {
     };
 
     await expect(
-      pipe.transform(invalidDto, { metatype: CreateListingDto }),
+      pipe.transform(invalidDto, { metatype: CreateListingDto, type: 'body' }),
     ).rejects.toThrow(BadRequestException);
   });
 
@@ -152,7 +153,7 @@ describe('ValidationPipe', () => {
     };
 
     await expect(
-      pipe.transform(invalidDto, { metatype: CreateListingDto }),
+      pipe.transform(invalidDto, { metatype: CreateListingDto, type: 'body' }),
     ).rejects.toThrow(BadRequestException);
   });
 
@@ -176,7 +177,7 @@ describe('ValidationPipe', () => {
     };
 
     await expect(
-      pipe.transform(invalidDto, { metatype: CreateListingDto }),
+      pipe.transform(invalidDto, { metatype: CreateListingDto, type: 'body' }),
     ).rejects.toThrow(BadRequestException);
   });
 
@@ -200,7 +201,7 @@ describe('ValidationPipe', () => {
     };
 
     await expect(
-      pipe.transform(invalidDto, { metatype: CreateListingDto }),
+      pipe.transform(invalidDto, { metatype: CreateListingDto, type: 'body' }),
     ).rejects.toThrow(BadRequestException);
   });
 
@@ -225,7 +226,7 @@ describe('ValidationPipe', () => {
     };
 
     await expect(
-      pipe.transform(invalidDto, { metatype: CreateListingDto }),
+      pipe.transform(invalidDto, { metatype: CreateListingDto, type: 'body' }),
     ).rejects.toThrow(BadRequestException);
   });
 });

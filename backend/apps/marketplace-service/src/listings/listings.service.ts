@@ -63,14 +63,29 @@ export class ListingsService {
     });
 
     if (!category) {
-      throw new BadRequestException('Invalid category ID');
+      throw new BadRequestException({
+        message: 'Invalid category ID',
+        error: 'INVALID_CATEGORY_ID',
+        details: `The category with ID '${createListingDto.categoryId}' does not exist or is not active.`,
+        suggestion: 'Please select a valid category from the available options.',
+        receivedCategoryId: createListingDto.categoryId,
+      });
     }
 
     // Validate listing type matches category type
     if (category.listingType !== createListingDto.listingType) {
-      throw new BadRequestException(
-        `Category does not match listing type ${createListingDto.listingType}`,
-      );
+      throw new BadRequestException({
+        message: 'Category type mismatch',
+        error: 'CATEGORY_TYPE_MISMATCH',
+        details: `The selected category '${category.name}' is for '${category.listingType}' listings, but you're trying to create a '${createListingDto.listingType}' listing.`,
+        suggestion: `Please select a category that matches your listing type (${createListingDto.listingType}) or change your listing type to match the selected category.`,
+        receivedData: {
+          categoryId: createListingDto.categoryId,
+          categoryName: category.name,
+          categoryType: category.listingType,
+          listingType: createListingDto.listingType,
+        },
+      });
     }
 
     // Validate property-specific requirements
@@ -80,25 +95,63 @@ export class ListingsService {
       // Apartments and houses require bedrooms and bathrooms
       if ((propertyType === 'apartment' || propertyType === 'house')) {
         if (!bedrooms || bedrooms < 1) {
-          throw new BadRequestException(`${propertyType} listings must specify number of bedrooms`);
+          throw new BadRequestException({
+            message: `${propertyType} listings must specify number of bedrooms`,
+            error: 'MISSING_BEDROOMS',
+            details: `${propertyType} listings require at least 1 bedroom to be specified.`,
+            suggestion: 'Please specify the number of bedrooms for this property.',
+            receivedData: {
+              propertyType,
+              bedrooms,
+            },
+          });
         }
         if (!bathrooms || bathrooms < 1) {
-          throw new BadRequestException(`${propertyType} listings must specify number of bathrooms`);
+          throw new BadRequestException({
+            message: `${propertyType} listings must specify number of bathrooms`,
+            error: 'MISSING_BATHROOMS',
+            details: `${propertyType} listings require at least 1 bathroom to be specified.`,
+            suggestion: 'Please specify the number of bathrooms for this property.',
+            receivedData: {
+              propertyType,
+              bathrooms,
+            },
+          });
         }
       }
 
       // Rental period only required for rent transactions
       if (transactionType === 'rent' && !rentalPeriod) {
-        throw new BadRequestException('Rental period is required for rent transactions');
+        throw new BadRequestException({
+          message: 'Rental period is required for rent transactions',
+          error: 'MISSING_RENTAL_PERIOD',
+          details: 'When listing a property for rent, you must specify the rental period (e.g., monthly, yearly).',
+          suggestion: 'Please select the appropriate rental period for this property.',
+          receivedData: {
+            transactionType,
+            rentalPeriod,
+          },
+        });
       }
 
       // Rental period should not be provided for sales/leases
       if (transactionType !== 'rent' && rentalPeriod) {
-        throw new BadRequestException('Rental period should only be specified for rent transactions');
+        throw new BadRequestException({
+          message: 'Rental period should only be specified for rent transactions',
+          error: 'INVALID_RENTAL_PERIOD_USAGE',
+          details: `Rental period is only applicable for rent transactions, but you selected '${transactionType}' transaction type.`,
+          suggestion: 'Please remove the rental period or change the transaction type to rent.',
+          receivedData: {
+            transactionType,
+            rentalPeriod,
+          },
+        });
       }
     }
 
     // Create listing using raw SQL with all new fields
+    // Note: Location coordinates may have been updated by business rules service 
+    // if they were originally (0,0) and user has a primary neighborhood
     const { latitude, longitude, address } = createListingDto.location;
 
     const result = await this.listingRepository.query(
@@ -106,7 +159,7 @@ export class ListingsService {
       INSERT INTO listings (
         user_id, neighborhood_id, listing_type, category_id, title, description,
         price, currency, price_type, property_type, transaction_type, bedrooms, bathrooms, rental_period,
-        condition, brand, latitude, longitude, address, status, expires_at,
+        condition, brand, model, year, warranty, latitude, longitude, address, status, expires_at,
         service_type, availability_schedule, service_radius, professional_credentials,
         pricing_model, response_time, employment_type, salary_min, salary_max,
         application_deadline, required_skills, work_location, company_info,
@@ -115,7 +168,7 @@ export class ListingsService {
         featured, boosted, verification_status, contact_preferences
       ) VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21,
-        $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50
+        $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51
       ) RETURNING *
       `,
       [
@@ -135,6 +188,9 @@ export class ListingsService {
         createListingDto.rentalPeriod || null,
         createListingDto.condition || null,
         createListingDto.brand || null,
+        createListingDto.model || null,
+        createListingDto.year || null,
+        createListingDto.warranty || null,
         latitude,
         longitude,
         address,
@@ -816,6 +872,9 @@ export class ListingsService {
       rentalPeriod: listing.rentalPeriod as any,
       condition: listing.condition as any,
       brand: listing.brand,
+      model: listing.model,
+      year: listing.year,
+      warranty: listing.warranty,
       location: {
         latitude,
         longitude,

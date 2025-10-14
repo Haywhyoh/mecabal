@@ -1,11 +1,15 @@
 {
   "listingType": "item",
   "categoryId": 5,
-  "title": "iPhone 12 Pro Max 256GB Pacific Blue",
-  "description": "Brand new iPhone 12 Pro Max with 256GB storage in Pacific Blue. Never used, still in original packaging with all accessories included.",
+  "title": "iPhone 12 Pro Max 256GB Pacific Blue - Test",
+  "description": "Brand new iPhone 12 Pro Max with 256GB storage in Pacific Blue. Never used, still in original packaging with all accessories included. Perfect condition with warranty.",
   "price": 350000,
   "priceType": "fixed",
   "condition": "new",
+  "brand": "Apple",
+  "model": "iPhone 12 Pro Max",
+  "year": 2020,
+  "warranty": "1 year",
   "location": {
     "latitude": 6.5244,
     "longitude": 3.3792,

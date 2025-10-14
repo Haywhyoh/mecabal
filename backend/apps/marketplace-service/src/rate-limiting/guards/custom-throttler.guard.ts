@@ -1,21 +1,35 @@
 import { Injectable, ExecutionContext } from '@nestjs/common';
-import { ThrottlerGuard, ThrottlerException } from '@nestjs/throttler';
+import type { ThrottlerModuleOptions } from '@nestjs/throttler';
+import { ThrottlerGuard, ThrottlerException, ThrottlerStorage } from '@nestjs/throttler';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { RateLimitingService } from '../rate-limiting.service';
 
+interface ThrottlerRequest {
+  context: ExecutionContext;
+  limit: number;
+  ttl: number;
+  throttler: any;
+  blockDuration: number;
+  getTracker: any;
+  generateKey: any;
+}
+
 @Injectable()
 export class CustomThrottlerGuard extends ThrottlerGuard {
   constructor(
+    options: ThrottlerModuleOptions,
+    storageService: ThrottlerStorage,
     reflector: Reflector,
     private readonly rateLimitingService: RateLimitingService,
   ) {
-    super({}, reflector);
+    super(options, storageService, reflector);
   }
 
-  async handleRequest(
-    context: ExecutionContext,
+  protected async handleRequest(
+    requestProps: ThrottlerRequest,
   ): Promise<boolean> {
+    const context = requestProps.context;
     const request = context.switchToHttp().getRequest<Request>();
     const userId = (request as any).user?.userId;
     const ipAddress = this.getClientIP(request);
@@ -23,7 +37,7 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
 
     // Determine rate limit configuration based on endpoint
     const configName = this.getConfigNameForEndpoint(endpoint);
-    
+
     try {
       // Check user-specific rate limit if user is authenticated
       if (userId) {
@@ -56,12 +70,13 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
         );
       }
 
-      return true;
+      // Call parent implementation
+      return await super.handleRequest(requestProps);
     } catch (error) {
       if (error instanceof ThrottlerException) {
         throw error;
       }
-      
+
       // If there's an error with rate limiting, allow the request but log it
       console.error('Rate limiting error:', error);
       return true;
