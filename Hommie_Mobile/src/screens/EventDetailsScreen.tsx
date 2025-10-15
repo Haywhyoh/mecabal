@@ -586,7 +586,7 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ route, navigati
                 <Text style={styles.infoLabel}>Date & Time</Text>
                 <Text style={styles.infoValue}>{formatDate(event.eventDate)}</Text>
                 <Text style={styles.infoSubValue}>
-                  {formatTime(event.startTime)}{event.endTime && ` - ${formatTime(event.endTime)}`}
+                  {formatTime(event.startTime)}{event.endTime ? ` - ${formatTime(event.endTime)}` : ''}
                 </Text>
               </View>
             </View>
@@ -723,7 +723,7 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ route, navigati
           <View style={styles.attendeesSection}>
             <Text style={styles.sectionTitle}>
               Who's going ({event.attendeesCount})
-              {event.maxAttendees && ` • ${event.maxAttendees} max`}
+              {event.maxAttendees ? ` • ${event.maxAttendees} max` : ''}
             </Text>
             <View style={styles.attendeesList}>
               {/* For now, we'll show a placeholder since we don't have attendee avatars in the API response */}
