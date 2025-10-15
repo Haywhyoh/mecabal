@@ -322,10 +322,11 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.white,
     borderRadius: 12,
-    marginHorizontal: spacing.md,
+    marginHorizontal: 0, // CHANGED: Remove horizontal margin
     marginVertical: spacing.sm,
     ...shadows.medium,
     overflow: 'hidden',
+    alignSelf: 'stretch', // ADD: Ensure card stretches to container width
   },
   featuredCard: {
     marginRight: spacing.md,

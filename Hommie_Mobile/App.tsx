@@ -61,6 +61,7 @@ import MapPickerScreen from './src/screens/onBoarding/MapPickerScreen';
 import CreateEventScreen from './src/screens/CreateEventScreen';
 import EventDetailsScreen from './src/screens/EventDetailsScreen';
 import EventAttendeesScreen from './src/screens/EventAttendeesScreen';
+import CategoryEventsScreen from './src/screens/CategoryEventsScreen';
 import CommunityEndorsementScreen from './src/screens/CommunityEndorsementScreen';
 import EventPaymentScreen from './src/screens/EventPaymentScreen';
 
@@ -91,6 +92,7 @@ const linking = {
         },
       },
       Events: 'events',
+      CategoryEvents: 'events/category/:categoryId',
       EventDetails: 'events/:id',
       EventAttendees: 'events/:id/attendees',
       CreateEvent: 'events/create',
@@ -232,6 +234,7 @@ function MainStackNavigator() {
       {/* Event Screens */}
       <Stack.Screen name="Events" component={EventsScreen} />
       <Stack.Screen name="CreateEvent" component={CreateEventScreen} />
+      <Stack.Screen name="CategoryEvents" component={CategoryEventsScreen} />
       <Stack.Screen name="EventDetails" component={EventDetailsScreen} />
       <Stack.Screen name="EventAttendees" component={EventAttendeesScreen} />
       <Stack.Screen name="CommunityEndorsement" component={CommunityEndorsementScreen} />

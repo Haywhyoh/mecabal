@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,6 @@ import {
   Modal,
   Dimensions,
   RefreshControl,
-  Animated,
   Platform,
   StatusBar,
   Alert,
@@ -30,9 +29,6 @@ import { colors, spacing, typography, shadows } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
 
 const { width, height } = Dimensions.get('window');
-const HEADER_MAX_HEIGHT = 200;
-const HEADER_MIN_HEIGHT = 88;
-const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
 
 type ViewMode = 'list' | 'calendar' | 'map';
 type QuickFilter = 'upcoming' | 'this_weekend' | 'this_month' | 'my_events';
@@ -43,11 +39,9 @@ interface EventsScreenProps {
 
 export default function EventsScreen({ navigation }: EventsScreenProps) {
   const { user } = useAuth();
-  const scrollY = useRef(new Animated.Value(0)).current;
   const [events, setEvents] = useState<Event[]>([]);
   const [featuredEvents, setFeaturedEvents] = useState<Event[]>([]);
   const [myEvents, setMyEvents] = useState<Event[]>([]);
-  const [categoryEventCounts, setCategoryEventCounts] = useState<Record<number, number>>({});
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | undefined>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -68,25 +62,6 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
   const userEstate = user?.estate || 'Your Estate';
   const userCity = user?.city || 'Your City';
   const userState = user?.state || 'Lagos';
-
-  // Animated header values
-  const headerHeight = scrollY.interpolate({
-    inputRange: [0, HEADER_SCROLL_DISTANCE],
-    outputRange: [HEADER_MAX_HEIGHT, HEADER_MIN_HEIGHT],
-    extrapolate: 'clamp',
-  });
-
-  const headerOpacity = scrollY.interpolate({
-    inputRange: [0, HEADER_SCROLL_DISTANCE / 2, HEADER_SCROLL_DISTANCE],
-    outputRange: [1, 0.5, 0],
-    extrapolate: 'clamp',
-  });
-
-  const titleScale = scrollY.interpolate({
-    inputRange: [0, HEADER_SCROLL_DISTANCE],
-    outputRange: [1, 0.9],
-    extrapolate: 'clamp',
-  });
 
   // Fetch events from API
   const fetchEvents = useCallback(async (filters: EventFilterDto = {}) => {
@@ -158,25 +133,6 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
     }
   }, []);
 
-  const fetchCategoryEventCounts = useCallback(async () => {
-    try {
-      const counts: Record<number, number> = {};
-      await Promise.all(
-        EVENT_CATEGORIES.map(async (category) => {
-          try {
-            const response = await EventsApi.getEvents({ categoryId: category.id });
-            counts[category.id] = response.data?.length || 0;
-          } catch (err) {
-            console.error(`Error fetching count for category ${category.id}:`, err);
-            counts[category.id] = 0;
-          }
-        })
-      );
-      setCategoryEventCounts(counts);
-    } catch (err) {
-      console.error('Error fetching category event counts:', err);
-    }
-  }, []);
 
   const fetchUserLocation = useCallback(async () => {
     try {
@@ -222,9 +178,8 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
     fetchEvents();
     fetchFeaturedEvents();
     fetchMyEvents();
-    fetchCategoryEventCounts();
     fetchUserLocation();
-  }, [fetchEvents, fetchFeaturedEvents, fetchMyEvents, fetchCategoryEventCounts, fetchUserLocation]);
+  }, [fetchEvents, fetchFeaturedEvents, fetchMyEvents, fetchUserLocation]);
 
   const onRefresh = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -234,7 +189,6 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
         fetchEvents(),
         fetchFeaturedEvents(),
         fetchMyEvents(),
-        fetchCategoryEventCounts(),
         fetchUserLocation()
       ]);
     } catch (err) {
@@ -277,18 +231,6 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
     navigation.navigate('EventDetails', { eventId: event.id });
   };
 
-  const handleCategoryNavigation = (category: any) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    navigation.navigate('CategoryEvents', {
-      categoryId: category.id,
-      categoryName: category.name,
-      categoryColor: category.colorCode,
-    });
-  };
-
-  const getCategoryEventCount = (categoryId: number): number => {
-    return categoryEventCounts[categoryId] || 0;
-  };
 
   const renderFeaturedEvents = () => {
     if (!featuredEvents || featuredEvents.length === 0) return null;
@@ -314,7 +256,7 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
                 <Text style={styles.featuredCardSubtitle} numberOfLines={1}>
                   {(() => {
                     try {
-                      const date = new Date(item.startDate);
+                      const date = new Date(item.eventDate);
                       if (isNaN(date.getTime())) return 'Date TBA';
                       return date.toLocaleDateString('en-US', {
                         month: 'short',
@@ -340,43 +282,13 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
     );
   };
 
-  const renderCategoryGrid = () => (
-    <View style={styles.section}>
-      <View style={styles.sectionHeaderContainer}>
-        <Text style={styles.sectionTitle}>Browse by Interest</Text>
-      </View>
-
-      <View style={styles.categoriesGrid}>
-        {EVENT_CATEGORIES.slice(0, 6).map((category) => (
-          <TouchableOpacity
-            key={category.id}
-            style={styles.categoryCard}
-            onPress={() => handleCategoryNavigation(category)}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.categoryIconContainer, { backgroundColor: category.colorCode + '15' }]}>
-              <MaterialCommunityIcons
-                name={category.icon as any}
-                size={32}
-                color={category.colorCode}
-              />
-            </View>
-            <Text style={styles.categoryName} numberOfLines={1}>{category.name}</Text>
-            <Text style={styles.categoryCount}>
-              {getCategoryEventCount(category.id)}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </View>
-  );
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.white} />
 
-      {/* Animated Large Title Header */}
-      <Animated.View style={[styles.animatedHeader, { height: headerHeight }]}>
+      {/* Fixed Header */}
+      <View style={styles.fixedHeader}>
         <SafeAreaView>
           <View style={styles.headerContent}>
             {/* Top Navigation Row */}
@@ -438,9 +350,9 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
             </View>
 
             {/* Large Title */}
-            <Animated.View style={[styles.largeTitleContainer, { opacity: headerOpacity, transform: [{ scale: titleScale }] }]}>
+            <View style={styles.largeTitleContainer}>
               <Text style={styles.largeTitle}>Events</Text>
-            </Animated.View>
+            </View>
 
             {/* Search Bar */}
             <View style={styles.searchBarContainer}>
@@ -479,49 +391,45 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
                 )}
               </TouchableOpacity>
             </View>
+
+            {/* Quick Filters - Horizontal Pills */}
+            <View style={styles.quickFilterContainer}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.quickFilterContent}
+              >
+                {(['upcoming', 'this_weekend', 'this_month', 'my_events'] as QuickFilter[]).map((filter) => (
+                  <TouchableOpacity
+                    key={filter}
+                    style={[
+                      styles.quickFilterPill,
+                      selectedQuickFilter === filter && styles.quickFilterPillActive
+                    ]}
+                    onPress={() => handleQuickFilter(filter)}
+                  >
+                    <Text style={[
+                      styles.quickFilterText,
+                      selectedQuickFilter === filter && styles.quickFilterTextActive
+                    ]}>
+                      {filter === 'upcoming' ? 'Upcoming' :
+                       filter === 'this_weekend' ? 'This Weekend' :
+                       filter === 'this_month' ? 'This Month' : 'My Events'}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
           </View>
         </SafeAreaView>
-      </Animated.View>
-
-      {/* Quick Filters - Horizontal Pills */}
-      <View style={styles.quickFilterContainer}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.quickFilterContent}
-        >
-          {(['upcoming', 'this_weekend', 'this_month', 'my_events'] as QuickFilter[]).map((filter) => (
-            <TouchableOpacity
-              key={filter}
-              style={[
-                styles.quickFilterPill,
-                selectedQuickFilter === filter && styles.quickFilterPillActive
-              ]}
-              onPress={() => handleQuickFilter(filter)}
-            >
-              <Text style={[
-                styles.quickFilterText,
-                selectedQuickFilter === filter && styles.quickFilterTextActive
-              ]}>
-                {filter === 'upcoming' ? 'Upcoming' :
-                 filter === 'this_weekend' ? 'This Weekend' :
-                 filter === 'this_month' ? 'This Month' : 'My Events'}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
       </View>
 
       {/* Main Content */}
-      <Animated.ScrollView
+      <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false }
-        )}
-        scrollEventThrottle={16}
+        contentInsetAdjustmentBehavior="automatic"
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -552,7 +460,6 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
           </TouchableOpacity>
         )}
 
-        {selectedQuickFilter !== 'my_events' && renderCategoryGrid()}
 
         {/* Events List */}
         <View style={styles.section}>
@@ -590,11 +497,12 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
                 </View>
               ) : (
                 events.map((event) => (
-                  <EventCard
-                    key={event.id}
-                    event={event}
-                    onPress={() => handleEventPress(event)}
-                  />
+                  <View key={event.id} style={{ width: '100%' }}> {/* ADD wrapper */}
+                    <EventCard
+                      event={event}
+                      onPress={() => handleEventPress(event)}
+                    />
+                  </View>
                 ))
               )}
             </View>
@@ -618,7 +526,7 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
         </View>
 
         <View style={{ height: 100 }} />
-      </Animated.ScrollView>
+      </ScrollView>
 
       {/* Floating Action Button */}
       <TouchableOpacity
@@ -703,17 +611,22 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F2F2F7', // iOS system background
+    zIndex: 0,
   },
-  animatedHeader: {
+  fixedHeader: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     backgroundColor: colors.white,
     zIndex: 1000,
-    overflow: 'hidden',
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(0,0,0,0.1)',
+    elevation: 5, // Android shadow
+    shadowColor: '#000', // iOS shadow
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   headerContent: {
     paddingHorizontal: spacing.md,
@@ -831,10 +744,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   quickFilterContainer: {
-    marginTop: HEADER_MAX_HEIGHT,
-    backgroundColor: colors.white,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(0,0,0,0.1)',
+    marginTop: spacing.sm,
+    paddingBottom: spacing.sm,
   },
   quickFilterContent: {
     paddingHorizontal: spacing.md,
@@ -861,9 +772,12 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    zIndex: 1, // Ensure content stays below header
+    marginTop: 320, // Push content below the fixed header
   },
   contentContainer: {
-    paddingTop: spacing.md,
+    paddingTop: 0, // No padding needed since we have margin-top
+    // Prevent content from going under the header during scroll
   },
   section: {
     marginBottom: spacing.xl,
@@ -961,48 +875,10 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.neutral.gray,
   },
-  categoriesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: spacing.md,
-    gap: spacing.sm,
-  },
-  categoryCard: {
-    width: (width - spacing.md * 2 - spacing.sm * 2) / 3,
-    aspectRatio: 1,
-    backgroundColor: colors.white,
-    borderRadius: 12,
-    padding: spacing.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  categoryIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.xs,
-  },
-  categoryName: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.text.dark,
-    textAlign: 'center',
-    marginBottom: 2,
-  },
-  categoryCount: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: colors.neutral.gray,
-  },
   eventsList: {
     paddingHorizontal: spacing.md,
+    // Container will provide the horizontal spacing
+    gap: spacing.sm, // ADD: Consistent spacing between cards
   },
   emptyState: {
     alignItems: 'center',

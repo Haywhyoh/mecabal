@@ -409,7 +409,7 @@ export const handleApiError = (error: any): string => {
 // Event Categories (for reference)
 export const EVENT_CATEGORIES = [
   { id: 1, name: 'Religious Services', icon: 'church', colorCode: '#7B68EE' },
-  { id: 2, name: 'Cultural Festivals', icon: 'festival', colorCode: '#FF6B35' },
+  { id: 2, name: 'Cultural Festivals', icon: 'party-popper', colorCode: '#FF6B35' },
   { id: 3, name: 'Community Events', icon: 'account-group', colorCode: '#4CAF50' },
   { id: 4, name: 'Sports & Fitness', icon: 'dumbbell', colorCode: '#FF9800' },
   { id: 5, name: 'Educational', icon: 'school', colorCode: '#2196F3' },
