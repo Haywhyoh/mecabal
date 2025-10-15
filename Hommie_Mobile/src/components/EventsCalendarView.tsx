@@ -15,6 +15,31 @@ import type { Event } from '../services/EventsApi';
 
 const { width } = Dimensions.get('window');
 
+/**
+ * Safely parse event date and return valid Date object or null
+ */
+const parseEventDate = (dateString: string): Date | null => {
+  try {
+    if (!dateString || typeof dateString !== 'string') {
+      console.warn('Invalid date string:', dateString);
+      return null;
+    }
+
+    const date = new Date(dateString);
+
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      console.warn('Invalid date value:', dateString);
+      return null;
+    }
+
+    return date;
+  } catch (error) {
+    console.error('Error parsing date:', dateString, error);
+    return null;
+  }
+};
+
 interface EventsCalendarViewProps {
   events: Event[];
   onDateSelect?: (date: Date) => void;
@@ -33,7 +58,14 @@ export default function EventsCalendarView({
     const marked: any = {};
     
     events.forEach((event) => {
-      const eventDate = new Date(event.startDate);
+      const eventDate = parseEventDate(event.eventDate); // CHANGED: Use safe parser and correct property
+      
+      // Skip invalid dates
+      if (!eventDate) {
+        console.warn('Skipping event with invalid date:', event.id, event.eventDate);
+        return;
+      }
+      
       const dateString = eventDate.toISOString().split('T')[0];
       
       if (!marked[dateString]) {
@@ -66,7 +98,13 @@ export default function EventsCalendarView({
   const selectedDateEvents = useMemo(() => {
     const selectedDateString = selectedDate.toISOString().split('T')[0];
     return events.filter((event) => {
-      const eventDate = new Date(event.startDate);
+      const eventDate = parseEventDate(event.eventDate); // CHANGED: Use safe parser and correct property
+      
+      // Filter out invalid dates
+      if (!eventDate) {
+        return false;
+      }
+      
       const eventDateString = eventDate.toISOString().split('T')[0];
       return eventDateString === selectedDateString;
     });
@@ -82,39 +120,51 @@ export default function EventsCalendarView({
 
   // Generate calendar days for current month
   const generateCalendarDays = () => {
-    const year = selectedDate.getFullYear();
-    const month = selectedDate.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const daysInMonth = lastDay.getDate();
-    const startingDayOfWeek = firstDay.getDay();
+    try {
+      const year = selectedDate.getFullYear();
+      const month = selectedDate.getMonth();
 
-    const days = [];
-    
-    // Add empty cells for days before the first day of the month
-    for (let i = 0; i < startingDayOfWeek; i++) {
-      days.push({ day: '', isCurrentMonth: false, date: null });
-    }
-    
-    // Add days of the month
-    for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(year, month, day);
-      const dateString = date.toISOString().split('T')[0];
-      const hasEvents = markedDates[dateString]?.events?.length > 0;
-      const isSelected = dateString === selectedDate.toISOString().split('T')[0];
-      const isToday = dateString === new Date().toISOString().split('T')[0];
+      // Validate year and month are valid numbers
+      if (isNaN(year) || isNaN(month)) {
+        console.error('Invalid year or month:', year, month);
+        return [];
+      }
+
+      const firstDay = new Date(year, month, 1);
+      const lastDay = new Date(year, month + 1, 0);
+      const daysInMonth = lastDay.getDate();
+      const startingDayOfWeek = firstDay.getDay();
+
+      const days = [];
       
-      days.push({
-        day: day.toString(),
-        isCurrentMonth: true,
-        date,
-        hasEvents,
-        isSelected,
-        isToday,
-      });
+      // Add empty cells for days before the first day of the month
+      for (let i = 0; i < startingDayOfWeek; i++) {
+        days.push({ day: '', isCurrentMonth: false, date: null });
+      }
+      
+      // Add days of the month
+      for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(year, month, day);
+        const dateString = date.toISOString().split('T')[0];
+        const hasEvents = markedDates[dateString]?.events?.length > 0;
+        const isSelected = dateString === selectedDate.toISOString().split('T')[0];
+        const isToday = dateString === new Date().toISOString().split('T')[0];
+        
+        days.push({
+          day: day.toString(),
+          isCurrentMonth: true,
+          date,
+          hasEvents,
+          isSelected,
+          isToday,
+        });
+      }
+      
+      return days;
+    } catch (error) {
+      console.error('Error generating calendar days:', error);
+      return [];
     }
-    
-    return days;
   };
 
   const calendarDays = generateCalendarDays();
