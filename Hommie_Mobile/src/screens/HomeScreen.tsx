@@ -51,10 +51,17 @@ export default function HomeScreen() {
   useEffect(() => {
     const messagingService = MessagingService.getInstance();
 
-    const updateUnreadCount = () => {
-      const conversations = messagingService.getConversations();
-      const total = conversations.reduce((sum, conv) => sum + conv.unreadCount, 0);
-      setUnreadMessagesCount(total);
+    const updateUnreadCount = async () => {
+      try {
+        const conversations = await messagingService.getConversations();
+        const total = Array.isArray(conversations)
+          ? conversations.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0)
+          : 0;
+        setUnreadMessagesCount(total);
+      } catch (error) {
+        console.error('Failed to get conversations for unread count:', error);
+        setUnreadMessagesCount(0);
+      }
     };
 
     updateUnreadCount();

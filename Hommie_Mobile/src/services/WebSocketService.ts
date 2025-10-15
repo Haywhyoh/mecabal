@@ -153,7 +153,9 @@ export class WebSocketService {
 
       // Create WebSocket connection using Socket.IO
       const io = require('socket.io-client').io;
-      this.socket = io(`${ENV.API.BASE_URL}/messaging`, {
+      // Use messaging service port (3004) instead of main API port (3000)
+      const messagingUrl = ENV.API.BASE_URL.replace(':3000', ':3004');
+      this.socket = io(`${messagingUrl}/messaging`, {
         auth: {
           token: this.authToken,
         },

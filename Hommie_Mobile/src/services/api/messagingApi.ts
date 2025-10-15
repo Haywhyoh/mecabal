@@ -1,5 +1,28 @@
 import { apiClient } from './apiClient';
 import { ENV } from '../../config/environment';
+import axios, { AxiosInstance } from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Messaging service runs on port 3004
+const getMessagingApiUrl = () => {
+  const baseUrl = ENV.API.BASE_URL.replace(':3000', ':3004');
+  return baseUrl;
+};
+
+// Create a separate API client for messaging service
+const messagingApiClient: AxiosInstance = axios.create({
+  baseURL: getMessagingApiUrl(),
+  timeout: 10000,
+});
+
+// Add auth interceptor for messaging API
+messagingApiClient.interceptors.request.use(async (config) => {
+  const token = await AsyncStorage.getItem('auth_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
 // Messaging API endpoints
 const MESSAGING_ENDPOINTS = {
@@ -185,7 +208,7 @@ export class MessagingApiService {
     if (query.search) params.append('search', query.search);
 
     const url = `${MESSAGING_ENDPOINTS.CONVERSATIONS}?${params.toString()}`;
-    return await apiClient.get<PaginatedResponseDto<ConversationResponseDto>>(url);
+    return await messagingApiClient.get<PaginatedResponseDto<ConversationResponseDto>>(url);
   }
 
   /**
@@ -193,14 +216,14 @@ export class MessagingApiService {
    */
   async getConversation(conversationId: string): Promise<ConversationResponseDto> {
     const url = `${MESSAGING_ENDPOINTS.CONVERSATIONS}/${conversationId}`;
-    return await apiClient.get<ConversationResponseDto>(url);
+    return await messagingApiClient.get<ConversationResponseDto>(url);
   }
 
   /**
    * Create new conversation
    */
   async createConversation(data: CreateConversationDto): Promise<ConversationResponseDto> {
-    return await apiClient.post<ConversationResponseDto>(MESSAGING_ENDPOINTS.CONVERSATIONS, data);
+    return await messagingApiClient.post<ConversationResponseDto>(MESSAGING_ENDPOINTS.CONVERSATIONS, data);
   }
 
   /**
@@ -208,7 +231,7 @@ export class MessagingApiService {
    */
   async archiveConversation(conversationId: string): Promise<ApiResponseDto<void>> {
     const url = `${MESSAGING_ENDPOINTS.CONVERSATIONS}/${conversationId}/archive`;
-    return await apiClient.post<ApiResponseDto<void>>(url);
+    return await messagingApiClient.post<ApiResponseDto<void>>(url);
   }
 
   /**
@@ -216,7 +239,7 @@ export class MessagingApiService {
    */
   async pinConversation(conversationId: string): Promise<ApiResponseDto<void>> {
     const url = `${MESSAGING_ENDPOINTS.CONVERSATIONS}/${conversationId}/pin`;
-    return await apiClient.post<ApiResponseDto<void>>(url);
+    return await messagingApiClient.post<ApiResponseDto<void>>(url);
   }
 
   /**
@@ -224,7 +247,7 @@ export class MessagingApiService {
    */
   async getOrCreateEventConversation(eventId: string): Promise<ConversationResponseDto> {
     const url = `${MESSAGING_ENDPOINTS.EVENT_CONVERSATION}/${eventId}`;
-    return await apiClient.get<ConversationResponseDto>(url);
+    return await messagingApiClient.get<ConversationResponseDto>(url);
   }
 
   /**
@@ -232,7 +255,7 @@ export class MessagingApiService {
    */
   async getOrCreateBusinessConversation(businessId: string): Promise<ConversationResponseDto> {
     const url = `${MESSAGING_ENDPOINTS.BUSINESS_CONVERSATION}/${businessId}`;
-    return await apiClient.get<ConversationResponseDto>(url);
+    return await messagingApiClient.get<ConversationResponseDto>(url);
   }
 
   // ========== MESSAGE METHODS ==========
@@ -249,14 +272,14 @@ export class MessagingApiService {
     if (query.after) params.append('after', query.after);
 
     const url = `${MESSAGING_ENDPOINTS.CONVERSATIONS}/${conversationId}/messages?${params.toString()}`;
-    return await apiClient.get<PaginatedResponseDto<MessageResponseDto>>(url);
+    return await messagingApiClient.get<PaginatedResponseDto<MessageResponseDto>>(url);
   }
 
   /**
    * Send message
    */
   async sendMessage(data: SendMessageDto): Promise<MessageResponseDto> {
-    return await apiClient.post<MessageResponseDto>(MESSAGING_ENDPOINTS.MESSAGES, data);
+    return await messagingApiClient.post<MessageResponseDto>(MESSAGING_ENDPOINTS.MESSAGES, data);
   }
 
   /**
@@ -264,7 +287,7 @@ export class MessagingApiService {
    */
   async editMessage(messageId: string, data: UpdateMessageDto): Promise<MessageResponseDto> {
     const url = `${MESSAGING_ENDPOINTS.MESSAGES}/${messageId}`;
-    return await apiClient.put<MessageResponseDto>(url, data);
+    return await messagingApiClient.put<MessageResponseDto>(url, data);
   }
 
   /**
@@ -272,7 +295,7 @@ export class MessagingApiService {
    */
   async deleteMessage(messageId: string): Promise<ApiResponseDto<void>> {
     const url = `${MESSAGING_ENDPOINTS.MESSAGES}/${messageId}`;
-    return await apiClient.delete<ApiResponseDto<void>>(url);
+    return await messagingApiClient.delete<ApiResponseDto<void>>(url);
   }
 
   /**
@@ -280,7 +303,7 @@ export class MessagingApiService {
    */
   async markAsRead(data: MarkAsReadDto): Promise<ApiResponseDto<void>> {
     const url = `${MESSAGING_ENDPOINTS.CONVERSATIONS}/${data.conversationId}/mark-read`;
-    return await apiClient.post<ApiResponseDto<void>>(url, data);
+    return await messagingApiClient.post<ApiResponseDto<void>>(url, data);
   }
 
   // ========== TYPING INDICATORS ==========
@@ -289,7 +312,7 @@ export class MessagingApiService {
    * Update typing indicator
    */
   async updateTypingIndicator(data: TypingIndicatorDto): Promise<ApiResponseDto<void>> {
-    return await apiClient.post<ApiResponseDto<void>>(MESSAGING_ENDPOINTS.TYPING, data);
+    return await messagingApiClient.post<ApiResponseDto<void>>(MESSAGING_ENDPOINTS.TYPING, data);
   }
 
   // ========== UTILITY METHODS ==========
@@ -298,14 +321,14 @@ export class MessagingApiService {
    * Get API health status
    */
   async getHealthStatus(): Promise<ApiResponseDto<{ status: string; timestamp: Date }>> {
-    return await apiClient.get<ApiResponseDto<{ status: string; timestamp: Date }>>('/messaging/health');
+    return await messagingApiClient.get<ApiResponseDto<{ status: string; timestamp: Date }>>('/messaging/health');
   }
 
   /**
    * Get service info
    */
   async getServiceInfo(): Promise<ApiResponseDto<{ service: string; version: string }>> {
-    return await apiClient.get<ApiResponseDto<{ service: string; version: string }>>('/messaging');
+    return await messagingApiClient.get<ApiResponseDto<{ service: string; version: string }>>('/messaging');
   }
 }
 

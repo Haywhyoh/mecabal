@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
 import { ApiGatewayModule } from './api-gateway.module';
+import { createProxyMiddleware } from 'http-proxy-middleware';
 
 async function bootstrap() {
   const app = await NestFactory.create(ApiGatewayModule, {
@@ -71,10 +72,33 @@ async function bootstrap() {
     customSiteTitle: 'MeCabal Gateway API Docs',
   });
 
+  // Configure WebSocket proxy for messaging service
+  const messagingServiceUrl = process.env.MESSAGING_SERVICE_URL || 'http://localhost:3004';
+
+  app.use(
+    '/socket.io',
+    createProxyMiddleware({
+      target: messagingServiceUrl,
+      changeOrigin: true,
+      ws: true, // Enable WebSocket proxying
+      logLevel: 'debug',
+      onError: (err, req, res) => {
+        console.error('WebSocket proxy error:', err);
+      },
+    }),
+  );
+
   const port = 3000; // Force port 3000 for API gateway
-  await app.listen(port);
+  const server = await app.listen(port);
+
+  // Handle WebSocket upgrade requests
+  server.on('upgrade', (req: any, socket: any, head: any) => {
+    console.log('WebSocket upgrade request:', req.url);
+    // The http-proxy-middleware will handle the upgrade
+  });
 
   console.log(`🚀 API Gateway running on: http://localhost:${port}`);
   console.log(`📚 Swagger UI available at: http://localhost:${port}/api/docs`);
+  console.log(`🔌 WebSocket proxy configured for: ${messagingServiceUrl}`);
 }
 void bootstrap();

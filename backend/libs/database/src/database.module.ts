@@ -57,6 +57,12 @@ import {
   UserLanguage,
   UserPrivacySettings,
 } from './entities';
+// Import messaging entities from the messaging service
+import { Conversation } from '../../../apps/messaging-service/src/entities/conversation.entity';
+import { ConversationParticipant } from '../../../apps/messaging-service/src/entities/conversation-participant.entity';
+import { Message } from '../../../apps/messaging-service/src/entities/message.entity';
+import { MessageReceipt } from '../../../apps/messaging-service/src/entities/message-receipt.entity';
+import { TypingIndicator } from '../../../apps/messaging-service/src/entities/typing-indicator.entity';
 
 @Module({
   imports: [

@@ -45,7 +45,9 @@ export class SimpleWebSocketService {
       }
 
       // Create WebSocket connection
-      const wsUrl = `${ENV.API.BASE_URL.replace('http', 'ws')}/messaging/ws?token=${this.authToken}`;
+              // Use messaging service port (3004) instead of main API port (3000)
+              const messagingUrl = ENV.API.BASE_URL.replace(':3000', ':3004');
+              const wsUrl = `${messagingUrl.replace('http', 'ws')}/messaging/ws?token=${this.authToken}`;
       this.socket = new WebSocket(wsUrl);
 
       this.setupEventListeners();

@@ -117,7 +117,7 @@ export default function ListingDetailsScreen({ navigation, route }: ListingDetai
           text: 'Message',
           onPress: () => {
             // Navigate to messaging screen
-            navigation.navigate('Messages', {
+            navigation.navigate('Messaging', {
               recipientId: listing.author.id,
               recipientName: `${listing.author.firstName} ${listing.author.lastName}`,
             });

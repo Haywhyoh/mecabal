@@ -1090,4 +1090,145 @@ export class ApiGatewayController {
         .json({ error: errorMessage });
     }
   }
+
+  // ========== MESSAGING SERVICE ROUTES ==========
+
+  // Messaging routes - Specific routes first
+  @All('messaging/health')
+  @ApiOperation({ summary: 'Proxy messaging health check' })
+  async proxyMessagingHealth(@Req() req: Request, @Res() res: Response) {
+    return this.proxyMessagingRequest(req, res);
+  }
+
+  @All('messaging/conversations/event/*path')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Proxy event conversation requests' })
+  async proxyMessagingEventConversations(@Req() req: Request, @Res() res: Response) {
+    return this.proxyMessagingRequest(req, res);
+  }
+
+  @All('messaging/conversations/business/*path')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Proxy business conversation requests' })
+  async proxyMessagingBusinessConversations(@Req() req: Request, @Res() res: Response) {
+    return this.proxyMessagingRequest(req, res);
+  }
+
+  @All('messaging/conversations/:id/messages')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Proxy conversation messages requests' })
+  async proxyMessagingConversationMessages(@Req() req: Request, @Res() res: Response) {
+    return this.proxyMessagingRequest(req, res);
+  }
+
+  @All('messaging/conversations/:id/mark-read')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Proxy mark as read requests' })
+  async proxyMessagingMarkRead(@Req() req: Request, @Res() res: Response) {
+    return this.proxyMessagingRequest(req, res);
+  }
+
+  @All('messaging/conversations/:id/archive')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Proxy archive conversation requests' })
+  async proxyMessagingArchive(@Req() req: Request, @Res() res: Response) {
+    return this.proxyMessagingRequest(req, res);
+  }
+
+  @All('messaging/conversations/:id/pin')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Proxy pin conversation requests' })
+  async proxyMessagingPin(@Req() req: Request, @Res() res: Response) {
+    return this.proxyMessagingRequest(req, res);
+  }
+
+  @All('messaging/conversations/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Proxy conversation by ID requests' })
+  async proxyMessagingConversationById(@Req() req: Request, @Res() res: Response) {
+    return this.proxyMessagingRequest(req, res);
+  }
+
+  @All('messaging/conversations')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Proxy conversations requests' })
+  async proxyMessagingConversations(@Req() req: Request, @Res() res: Response) {
+    return this.proxyMessagingRequest(req, res);
+  }
+
+  @All('messaging/messages/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Proxy message by ID requests' })
+  async proxyMessagingMessageById(@Req() req: Request, @Res() res: Response) {
+    return this.proxyMessagingRequest(req, res);
+  }
+
+  @All('messaging/messages')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Proxy messages requests' })
+  async proxyMessagingMessages(@Req() req: Request, @Res() res: Response) {
+    return this.proxyMessagingRequest(req, res);
+  }
+
+  @All('messaging/typing')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Proxy typing indicator requests' })
+  async proxyMessagingTyping(@Req() req: Request, @Res() res: Response) {
+    return this.proxyMessagingRequest(req, res);
+  }
+
+  @All('messaging/*path')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Proxy all other messaging requests' })
+  async proxyMessagingWildcard(@Req() req: Request, @Res() res: Response) {
+    return this.proxyMessagingRequest(req, res);
+  }
+
+  // Helper method for messaging requests
+  private async proxyMessagingRequest(@Req() req: Request, @Res() res: Response) {
+    try {
+      console.log(
+        '🌐 API Gateway - Proxying messaging service request:',
+        'URL:', req.url,
+        'Method:', req.method,
+      );
+
+      const result: unknown =
+        await this.apiGatewayService.proxyToMessagingService(
+          req.url,
+          req.method,
+          req.body,
+          req.headers as Record<string, string | string[] | undefined>,
+          req.user,
+        );
+
+      let statusCode = HttpStatus.OK;
+      if (req.method === 'POST') {
+        statusCode = HttpStatus.CREATED;
+      } else if (req.method === 'DELETE') {
+        statusCode = HttpStatus.NO_CONTENT;
+      }
+
+      res.status(statusCode).json(result);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error proxying messaging service request:', errorMessage);
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: errorMessage });
+    }
+  }
 }

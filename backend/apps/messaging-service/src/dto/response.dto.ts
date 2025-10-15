@@ -140,8 +140,6 @@ export class ConversationResponseDto {
 
   @ApiPropertyOptional({
     description: 'Last message in the conversation',
-    type: 'object',
-    additionalProperties: true,
   })
   lastMessage?: any;
 
@@ -243,8 +241,6 @@ export class MessageResponseDto {
 
   @ApiPropertyOptional({
     description: 'Reply to message information',
-    type: 'object',
-    additionalProperties: true,
   })
   replyToMessage?: any;
 }

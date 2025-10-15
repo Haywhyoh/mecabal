@@ -1,9 +1,9 @@
 import { DataSource } from 'typeorm';
-import { Conversation } from '../entities/conversation.entity';
-import { ConversationParticipant } from '../entities/conversation-participant.entity';
-import { Message } from '../entities/message.entity';
-import { MessageReceipt } from '../entities/message-receipt.entity';
-import { TypingIndicator } from '../entities/typing-indicator.entity';
+import { Conversation } from '../../../../apps/messaging-service/src/entities/conversation.entity';
+import { ConversationParticipant } from '../../../../apps/messaging-service/src/entities/conversation-participant.entity';
+import { Message } from '../../../../apps/messaging-service/src/entities/message.entity';
+import { MessageReceipt } from '../../../../apps/messaging-service/src/entities/message-receipt.entity';
+import { TypingIndicator } from '../../../../apps/messaging-service/src/entities/typing-indicator.entity';
 import { User } from '../entities/user.entity';
 
 export class MessagingSeeder {
