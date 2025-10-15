@@ -22,6 +22,8 @@ async function bootstrap() {
       'http://192.168.1.100:3004', // Local network
       'http://10.0.2.2:3000', // Android emulator
       'http://10.0.2.2:3004', // Android emulator
+      'https://guided-gobbler-outgoing.ngrok-free.app', // Your ngrok domain
+      /^https:\/\/.*\.ngrok-free\.app$/, // Allow all ngrok domains
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

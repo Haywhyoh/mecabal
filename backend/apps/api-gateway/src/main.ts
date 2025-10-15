@@ -27,6 +27,8 @@ async function bootstrap() {
       'exp://localhost:19000', // Expo development
       'exp://localhost:19001', // Expo development
       'exp://localhost:19002', // Expo development
+      'https://guided-gobbler-outgoing.ngrok-free.app', // Your ngrok domain
+      /^https:\/\/.*\.ngrok-free\.app$/, // Allow all ngrok domains
     ],
     credentials: true,
   });
