@@ -7,8 +7,25 @@ async function bootstrap() {
   
   // Enable CORS
   app.enableCors({
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://localhost:8080',
+      'http://localhost:8081', // Expo development server
+      'http://localhost:19000', // Expo web
+      'http://localhost:19001', // Expo web
+      'http://localhost:19002', // Expo web
+      'exp://localhost:19000', // Expo development
+      'exp://localhost:19001', // Expo development
+      'exp://localhost:19002', // Expo development
+      'http://192.168.1.100:3000', // Local network
+      'http://192.168.1.100:3004', // Local network
+      'http://10.0.2.2:3000', // Android emulator
+      'http://10.0.2.2:3004', // Android emulator
+    ],
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   });
 
   // Enable validation pipes

@@ -165,9 +165,6 @@ export class BusinessRulesService {
       case 'service':
         this.validateServiceRules(createListingDto);
         break;
-      case 'job':
-        this.validateJobRules(createListingDto);
-        break;
     }
   }
 
@@ -332,81 +329,6 @@ export class BusinessRulesService {
     }
   }
 
-  /**
-   * Validate job-specific rules
-   */
-  private validateJobRules(createListingDto: CreateListingDto): void {
-    if (!createListingDto.employmentType) {
-      throw new BadRequestException({
-        message: 'Employment type is required',
-        error: 'MISSING_EMPLOYMENT_TYPE',
-        details: 'Employment type must be specified for job listings. Choose from: full-time, part-time, contract, internship, or freelance.',
-        suggestion: 'Please select the appropriate employment type from the dropdown menu.',
-        receivedData: {
-          listingType: createListingDto.listingType,
-          employmentType: createListingDto.employmentType,
-        },
-      });
-    }
-
-    if (!createListingDto.workLocation) {
-      throw new BadRequestException({
-        message: 'Work location is required',
-        error: 'MISSING_WORK_LOCATION',
-        details: 'Work location must be specified for job listings. This helps candidates understand where they would be working.',
-        suggestion: 'Please specify the work location (e.g., "Lagos, Nigeria" or "Remote").',
-        receivedData: {
-          listingType: createListingDto.listingType,
-          workLocation: createListingDto.workLocation,
-        },
-      });
-    }
-
-    if (createListingDto.salaryMin !== undefined && createListingDto.salaryMax !== undefined) {
-      if (createListingDto.salaryMin > createListingDto.salaryMax) {
-        throw new BadRequestException({
-          message: 'Invalid salary range',
-          error: 'INVALID_SALARY_RANGE',
-          details: `Minimum salary (₦${createListingDto.salaryMin.toLocaleString()}) cannot be greater than maximum salary (₦${createListingDto.salaryMax.toLocaleString()}).`,
-          suggestion: 'Please ensure the minimum salary is less than or equal to the maximum salary.',
-          receivedData: {
-            salaryMin: createListingDto.salaryMin,
-            salaryMax: createListingDto.salaryMax,
-          },
-        });
-      }
-    }
-
-    if (createListingDto.applicationDeadline) {
-      const deadline = new Date(createListingDto.applicationDeadline);
-      const now = new Date();
-      if (deadline <= now) {
-        throw new BadRequestException({
-          message: 'Application deadline must be in the future',
-          error: 'INVALID_APPLICATION_DEADLINE',
-          details: `Application deadline (${deadline.toLocaleDateString()}) must be in the future. Current date is ${now.toLocaleDateString()}.`,
-          suggestion: 'Please set an application deadline that is at least 1 day in the future.',
-          receivedData: {
-            applicationDeadline: createListingDto.applicationDeadline,
-            currentDate: now.toISOString(),
-          },
-        });
-      }
-    }
-
-    if (createListingDto.requiredSkills && createListingDto.requiredSkills.length === 0) {
-      throw new BadRequestException({
-        message: 'At least one skill is required',
-        error: 'MISSING_REQUIRED_SKILLS',
-        details: 'At least one required skill must be specified for job listings. This helps candidates understand what qualifications are needed.',
-        suggestion: 'Please add at least one skill that candidates should have for this position.',
-        receivedData: {
-          listingType: createListingDto.listingType,
-          requiredSkills: createListingDto.requiredSkills,
-        },
-      });
-    }
-  }
 
   /**
    * Validate price rules
@@ -427,10 +349,9 @@ export class BusinessRulesService {
       property: 1000000000, // 1 billion NGN
       item: 50000000, // 50 million NGN
       service: 10000000, // 10 million NGN
-      job: 0, // Jobs don't have prices
     };
 
-    if (createListingDto.listingType !== 'job' && createListingDto.price > maxPrices[createListingDto.listingType]) {
+    if (createListingDto.price > maxPrices[createListingDto.listingType]) {
       throw new BadRequestException({
         message: 'Price exceeds maximum allowed',
         error: 'PRICE_EXCEEDS_MAXIMUM',

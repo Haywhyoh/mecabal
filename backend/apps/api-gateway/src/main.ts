@@ -75,26 +75,27 @@ async function bootstrap() {
   // Configure WebSocket proxy for messaging service
   const messagingServiceUrl = process.env.MESSAGING_SERVICE_URL || 'http://localhost:3004';
 
-  app.use(
-    '/socket.io',
-    createProxyMiddleware({
-      target: messagingServiceUrl,
-      changeOrigin: true,
-      ws: true, // Enable WebSocket proxying
-      logLevel: 'debug',
-      onError: (err, req, res) => {
-        console.error('WebSocket proxy error:', err);
-      },
-    }),
-  );
+  // Create WebSocket proxy middleware
+  const wsProxy = createProxyMiddleware({
+    target: messagingServiceUrl,
+    changeOrigin: true,
+    ws: true, // Enable WebSocket proxying
+  });
+
+  // Apply the proxy middleware for Socket.IO and messaging namespace
+  app.use('/socket.io', wsProxy);
+  app.use('/messaging', wsProxy);
 
   const port = 3000; // Force port 3000 for API gateway
   const server = await app.listen(port);
 
   // Handle WebSocket upgrade requests
   server.on('upgrade', (req: any, socket: any, head: any) => {
-    console.log('WebSocket upgrade request:', req.url);
-    // The http-proxy-middleware will handle the upgrade
+    console.log('🔌 WebSocket upgrade request:', req.url);
+    console.log('🔌 Upgrade headers:', req.headers);
+    
+    // Apply the WebSocket proxy to the upgrade request
+    wsProxy.upgrade(req, socket, head);
   });
 
   console.log(`🚀 API Gateway running on: http://localhost:${port}`);

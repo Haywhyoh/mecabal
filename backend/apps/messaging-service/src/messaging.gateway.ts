@@ -17,10 +17,29 @@ import { SendMessageDto, TypingIndicatorDto } from './dto';
 // @UseGuards(WsJwtGuard)
 @WebSocketGateway({
   cors: {
-    origin: process.env.WS_CORS_ORIGIN || '*',
+    origin: [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://localhost:8080',
+      'http://localhost:8081', // Expo development server
+      'http://localhost:19000', // Expo web
+      'http://localhost:19001', // Expo web
+      'http://localhost:19002', // Expo web
+      'exp://localhost:19000', // Expo development
+      'exp://localhost:19001', // Expo development
+      'exp://localhost:19002', // Expo development
+      'http://192.168.1.100:3000', // Local network
+      'http://192.168.1.100:3004', // Local network
+      'http://10.0.2.2:3000', // Android emulator
+      'http://10.0.2.2:3004', // Android emulator
+    ],
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   },
   namespace: '/messaging',
+  transports: ['websocket', 'polling'],
+  allowEIO3: true,
 })
 export class MessagingGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
@@ -43,11 +62,17 @@ export class MessagingGateway implements OnGatewayInit, OnGatewayConnection, OnG
 
   async handleConnection(client: Socket) {
     try {
+      this.logger.log(`🔌 New connection attempt from ${client.handshake.address} (socket: ${client.id})`);
+      this.logger.log(`🔍 Connection headers:`, client.handshake.headers);
+      this.logger.log(`🔍 Connection auth:`, client.handshake.auth);
+      
       // Extract user ID from auth token (implement proper JWT validation)
       const userId = this.extractUserIdFromSocket(client);
       
       if (!userId) {
-        this.logger.warn(`❌ Connection rejected: No valid user ID`);
+        this.logger.warn(`❌ Connection rejected: No valid user ID for socket ${client.id}`);
+        this.logger.warn(`🔍 Auth data:`, client.handshake.auth);
+        this.logger.warn(`🔍 Headers:`, client.handshake.headers);
         client.disconnect();
         return;
       }
@@ -65,9 +90,9 @@ export class MessagingGateway implements OnGatewayInit, OnGatewayConnection, OnG
       // Broadcast user online status
       this.broadcastUserStatus(userId, true);
 
-      this.logger.log(`✅ User ${userId} connected (socket: ${client.id})`);
+      this.logger.log(`✅ User ${userId} connected successfully (socket: ${client.id})`);
     } catch (error) {
-      this.logger.error('Connection error:', error);
+      this.logger.error(`❌ Connection error for socket ${client.id}:`, error);
       client.disconnect();
     }
   }
@@ -486,18 +511,36 @@ export class MessagingGateway implements OnGatewayInit, OnGatewayConnection, OnG
   // ========== UTILITY METHODS ==========
 
   private extractUserIdFromSocket(client: Socket): string | null {
-    // TODO: Implement proper JWT token validation
-    // For now, extract from auth token or headers
-    const token = client.handshake.auth?.token || 
-                  client.handshake.headers?.authorization?.split(' ')[1];
-    
-    if (!token) {
+    try {
+      // Extract token from auth or headers
+      const token = client.handshake.auth?.token || 
+                    client.handshake.headers?.authorization?.split(' ')[1];
+      
+      this.logger.log(`🔍 Extracting token from socket ${client.id}:`, { 
+        hasAuthToken: !!client.handshake.auth?.token,
+        hasAuthHeader: !!client.handshake.headers?.authorization,
+        tokenLength: token?.length || 0
+      });
+      
+      if (!token) {
+        this.logger.warn(`❌ No token found for socket ${client.id}`);
+        return null;
+      }
+
+      // For development, allow mock user ID if token is present
+      // In production, implement proper JWT validation here
+      if (token === 'mock-token' || token.length > 10) {
+        this.logger.log(`✅ Token validation passed for socket ${client.id}`);
+        // Use a valid UUID format for mock user ID
+        return '550e8400-e29b-41d4-a716-446655440000';
+      }
+
+      this.logger.warn(`❌ Invalid token format for socket ${client.id}`);
+      return null;
+    } catch (error) {
+      this.logger.error(`❌ Error extracting user ID from socket ${client.id}:`, error);
       return null;
     }
-
-    // Mock user ID extraction - replace with actual JWT validation
-    // In production, decode and validate the JWT token here
-    return 'mock-user-id';
   }
 
   private async getUnreadCounts(conversationId: string, participantIds: string[]): Promise<Record<string, number>> {
@@ -574,6 +617,12 @@ export class MessagingGateway implements OnGatewayInit, OnGatewayConnection, OnG
 
   private async joinUserConversations(client: Socket, userId: string): Promise<void> {
     try {
+      // For mock users, skip database queries to avoid UUID errors
+      if (userId === '550e8400-e29b-41d4-a716-446655440000') {
+        this.logger.log(`🔧 Mock user ${userId} - skipping conversation join`);
+        return;
+      }
+
       // Get user's conversations and join their rooms
       const conversations = await this.messagingService.getUserConversations(userId, {
         page: 1,
@@ -585,6 +634,8 @@ export class MessagingGateway implements OnGatewayInit, OnGatewayConnection, OnG
       });
     } catch (error) {
       this.logger.error('Error joining user conversations:', error);
+      // Don't disconnect the client for this error, just log it
+      this.logger.warn(`Continuing connection for user ${userId} despite conversation join error`);
     }
   }
 

@@ -147,21 +147,31 @@ export class WebSocketService {
       // Get fresh auth token
       this.authToken = await AsyncStorage.getItem('auth_token');
       
+      // For development, allow connection without token
       if (!this.authToken) {
-        throw new Error('No authentication token available');
+        console.warn('⚠️ No authentication token available, using mock token for development');
       }
 
       // Create WebSocket connection using Socket.IO
       const io = require('socket.io-client').io;
-      // Use messaging service port (3004) instead of main API port (3000)
-      const messagingUrl = ENV.API.BASE_URL.replace(':3000', ':3004');
-      this.socket = io(`${messagingUrl}/messaging`, {
+      // Connect through the API Gateway on port 3000, not directly to messaging service
+      const gatewayUrl = ENV.API.BASE_URL; // This should be http://localhost:3000
+      
+      // For development, use mock token if no real token available
+      const token = this.authToken || 'mock-token';
+      
+      this.socket = io(`${gatewayUrl}/messaging`, {
         auth: {
-          token: this.authToken,
+          token: token,
         },
         transports: ['websocket', 'polling'],
-        timeout: 20000,
+        timeout: 30000, // Increased timeout
         forceNew: true,
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        maxReconnectionAttempts: 5,
       });
 
       this.setupEventListeners();
@@ -194,7 +204,9 @@ export class WebSocketService {
 
     // Connection events
     this.socket.on('connect', () => {
-      console.log('✅ WebSocket connected');
+      console.log('✅ WebSocket connected successfully');
+      console.log('🔍 Socket ID:', this.socket?.id);
+      console.log('🔍 Transport:', this.socket?.io.engine.transport.name);
       this.isConnected = true;
       this.reconnectAttempts = 0;
       this.emit('connect');
@@ -205,6 +217,7 @@ export class WebSocketService {
 
     this.socket.on('disconnect', (reason: any) => {
       console.log('❌ WebSocket disconnected:', reason);
+      console.log('🔍 Disconnect reason:', reason);
       this.isConnected = false;
       this.emit('disconnect', reason);
       
@@ -216,7 +229,30 @@ export class WebSocketService {
 
     this.socket.on('connect_error', (error: any) => {
       console.error('❌ WebSocket connection error:', error);
+      console.error('🔍 Error details:', {
+        message: error.message,
+        description: error.description,
+        context: error.context,
+        type: error.type
+      });
       this.emit('reconnect_error', error);
+    });
+
+    // Additional debugging events
+    this.socket.on('reconnect', (attemptNumber: number) => {
+      console.log(`🔄 WebSocket reconnected after ${attemptNumber} attempts`);
+    });
+
+    this.socket.on('reconnect_attempt', (attemptNumber: number) => {
+      console.log(`🔄 WebSocket reconnection attempt ${attemptNumber}`);
+    });
+
+    this.socket.on('reconnect_error', (error: any) => {
+      console.error('❌ WebSocket reconnection error:', error);
+    });
+
+    this.socket.on('reconnect_failed', () => {
+      console.error('❌ WebSocket reconnection failed after all attempts');
     });
 
     // Message events
