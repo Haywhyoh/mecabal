@@ -480,7 +480,7 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ route, navigati
         <Text style={styles.rsvpTitle}>Will you be attending?</Text>
         <View style={styles.rsvpButtons}>
           {buttons.map((button) => {
-            const isSelected = event.rsvpStatus === button.status;
+            const isSelected = event.userRsvpStatus === button.status;
             return (
               <AnimatedRSVPButton
                 key={button.status}

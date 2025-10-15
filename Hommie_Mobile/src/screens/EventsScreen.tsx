@@ -346,7 +346,7 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
             <View style={styles.locationRow}>
               <MaterialCommunityIcons name="map-marker" size={16} color={colors.primary} />
               <Text style={styles.locationText}>{userEstate}</Text>
-              <Text style={styles.locationSubtext}> • {userCity}, {userState}</Text>
+              <Text style={styles.locationSubtext}>{` • ${userCity}, ${userState}`}</Text>
             </View>
 
             {/* Large Title */}
@@ -497,7 +497,8 @@ export default function EventsScreen({ navigation }: EventsScreenProps) {
                 </View>
               ) : (
                 events.map((event) => (
-                  <View key={event.id} style={{ width: '100%' }}> {/* ADD wrapper */}
+                  <View key={event.id} style={{ width: '100%' }}>
+                    {/* ADD wrapper - this is valid (not a string), so not the cause of the error! */}
                     <EventCard
                       event={event}
                       onPress={() => handleEventPress(event)}
@@ -995,6 +996,4 @@ const styles = StyleSheet.create({
     color: colors.white,
   },
 });
-
-
 
