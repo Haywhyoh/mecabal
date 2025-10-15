@@ -72,6 +72,9 @@ export class EventOrganizerResponseDto {
 
   @ApiProperty({ description: 'Whether user is verified' })
   isVerified: boolean;
+
+  @ApiProperty({ description: 'Phone number', required: false })
+  phoneNumber?: string;
 }
 
 export class EventResponseDto {

@@ -335,17 +335,98 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ route, navigati
     }
   };
 
-  const handleContact = () => {
+  /**
+   * Handle messaging the event organizer
+   * Navigates to chat screen with organizer
+   */
+  const handleMessageOrganizer = (organizerId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Alert.alert(
-      'Contact Organizer',
-      'How would you like to contact the organizer?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Message', onPress: () => console.log('Open message') },
-        { text: 'Call', onPress: () => console.log('Open phone') },
-      ]
-    );
+
+    try {
+      // Navigate to messaging screen with organizer
+      navigation.navigate('Chat', {
+        userId: organizerId,
+        userName: event?.organizer.fullName,
+        userAvatar: event?.organizer.profilePictureUrl,
+      });
+    } catch (error) {
+      console.error('Error navigating to chat:', error);
+      Alert.alert(
+        'Error',
+        'Could not open messaging. Please try again.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  /**
+   * Handle calling the event organizer
+   * Opens phone dialer with organizer's number
+   */
+  const handleCallOrganizer = (phoneNumber?: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    // For MVP, if phone number is not available, show alert
+    if (!phoneNumber) {
+      Alert.alert(
+        'Contact Organizer',
+        'Phone number not available. Would you like to send a message instead?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Send Message',
+            onPress: () => handleMessageOrganizer(event.organizer.id)
+          },
+        ]
+      );
+      return;
+    }
+
+    // Format phone number for dialing (remove spaces, dashes, etc.)
+    const cleanPhoneNumber = phoneNumber.replace(/[^0-9+]/g, '');
+    const phoneUrl = `tel:${cleanPhoneNumber}`;
+
+    // Check if device can make phone calls
+    Linking.canOpenURL(phoneUrl)
+      .then((supported) => {
+        if (!supported) {
+          Alert.alert(
+            'Cannot Make Calls',
+            'Your device does not support phone calls.',
+            [{ text: 'OK' }]
+          );
+        } else {
+          // Confirm before dialing
+          Alert.alert(
+            'Call Organizer',
+            `Would you like to call ${event.organizer.fullName}?`,
+            [
+              { text: 'Cancel', style: 'cancel' },
+              {
+                text: 'Call',
+                onPress: () => {
+                  Linking.openURL(phoneUrl).catch((err) => {
+                    console.error('Error opening phone dialer:', err);
+                    Alert.alert(
+                      'Error',
+                      'Could not open phone dialer. Please try again.',
+                      [{ text: 'OK' }]
+                    );
+                  });
+                }
+              },
+            ]
+          );
+        }
+      })
+      .catch((err) => {
+        console.error('Error checking phone capability:', err);
+        Alert.alert(
+          'Error',
+          'Could not access phone dialer.',
+          [{ text: 'OK' }]
+        );
+      });
   };
 
   const renderImageGallery = () => {
@@ -565,16 +646,28 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ route, navigati
                   </View>
                 </View>
               </View>
-              <TouchableOpacity 
-                style={styles.contactButton} 
-                onPress={handleContact}
-                accessible={true}
-                accessibilityLabel="Contact organizer"
-                accessibilityHint="Send a message or call the event organizer"
-                accessibilityRole="button"
-              >
-                <MaterialCommunityIcons name="message-outline" size={20} color={colors.primary} />
-              </TouchableOpacity>
+              <View style={styles.contactButtons}> {/* CHANGED: New container for buttons */}
+                <TouchableOpacity
+                  style={styles.contactButton}
+                  onPress={() => handleMessageOrganizer(event.organizer.id)}
+                  accessible={true}
+                  accessibilityLabel="Message organizer"
+                  accessibilityHint="Send a message to the event organizer"
+                  accessibilityRole="button"
+                >
+                  <MaterialCommunityIcons name="message-outline" size={20} color={colors.primary} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.contactButton, { marginLeft: spacing.sm }]} // ADD spacing
+                  onPress={() => handleCallOrganizer(event.organizer.phoneNumber)}
+                  accessible={true}
+                  accessibilityLabel="Call organizer"
+                  accessibilityHint="Call the event organizer"
+                  accessibilityRole="button"
+                >
+                  <MaterialCommunityIcons name="phone-outline" size={20} color={colors.primary} />
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
 
@@ -927,6 +1020,14 @@ const styles = StyleSheet.create({
     minWidth: 44,
     minHeight: 44,
     justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1, // ADD border
+    borderColor: colors.neutral.lightGray, // ADD border color
+  },
+  
+  // ADD new style for button container
+  contactButtons: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
   calendarSection: {

@@ -172,6 +172,7 @@ export interface EventOrganizer {
   profilePictureUrl?: string;
   trustScore: number;
   isVerified: boolean;
+  phoneNumber?: string; // ADD THIS LINE (if backend provides it)
 }
 
 export interface EventMedia {

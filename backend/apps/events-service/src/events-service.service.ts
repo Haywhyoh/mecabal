@@ -860,6 +860,7 @@ export class EventsServiceService {
         profilePictureUrl: event.user.profilePictureUrl,
         trustScore: event.user.trustScore,
         isVerified: event.user.isVerified,
+        phoneNumber: event.user.phoneNumber,
       },
       media: event.media.map((media: any) => ({
         id: media.id,
