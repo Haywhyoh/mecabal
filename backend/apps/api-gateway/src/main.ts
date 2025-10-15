@@ -74,8 +74,17 @@ async function bootstrap() {
     customSiteTitle: 'MeCabal Gateway API Docs',
   });
 
-  // Configure WebSocket proxy for messaging service
+  // Configure proxy for messaging service
   const messagingServiceUrl = process.env.MESSAGING_SERVICE_URL || 'http://localhost:3004';
+
+  // Create HTTP proxy middleware for REST API
+  const httpProxy = createProxyMiddleware({
+    target: messagingServiceUrl,
+    changeOrigin: true,
+    pathRewrite: {
+      '^/messaging': '/messaging', // Keep the /messaging prefix
+    },
+  });
 
   // Create WebSocket proxy middleware
   const wsProxy = createProxyMiddleware({
@@ -84,9 +93,9 @@ async function bootstrap() {
     ws: true, // Enable WebSocket proxying
   });
 
-  // Apply the proxy middleware for Socket.IO and messaging namespace
-  app.use('/socket.io', wsProxy);
-  app.use('/messaging', wsProxy);
+  // Apply the proxy middleware for HTTP REST API and WebSocket
+  app.use('/messaging', httpProxy); // HTTP REST API routes
+  app.use('/socket.io', wsProxy); // WebSocket connections
 
   const port = 3000; // Force port 3000 for API gateway
   const server = await app.listen(port);
@@ -96,8 +105,13 @@ async function bootstrap() {
     console.log('🔌 WebSocket upgrade request:', req.url);
     console.log('🔌 Upgrade headers:', req.headers);
     
-    // Apply the WebSocket proxy to the upgrade request
-    wsProxy.upgrade(req, socket, head);
+    // Only handle WebSocket upgrades for /socket.io
+    if (req.url?.startsWith('/socket.io')) {
+      wsProxy.upgrade(req, socket, head);
+    } else {
+      // For other WebSocket requests, close the connection
+      socket.destroy();
+    }
   });
 
   console.log(`🚀 API Gateway running on: http://localhost:${port}`);

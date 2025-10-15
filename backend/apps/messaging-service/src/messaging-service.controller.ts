@@ -45,7 +45,7 @@ import {
 @UseGuards() // Add JWT guard here
 @ApiBearerAuth()
 @ApiTags('messaging')
-@Controller('messaging')
+@Controller()
 export class MessagingServiceController {
   constructor(
     private readonly messagingServiceService: MessagingServiceService,
