@@ -14,8 +14,10 @@ import {
   Request,
   UseInterceptors,
   UploadedFile,
-  UploadedFiles
+  UploadedFiles,
+  UnauthorizedException
 } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { 
   ApiTags, 
@@ -41,14 +43,13 @@ import {
   ApiResponseDto
 } from './dto';
 
-// Mock JWT Guard - Replace with actual JWT guard from auth service
-@UseGuards() // Add JWT guard here
 @ApiBearerAuth()
 @ApiTags('messaging')
 @Controller()
 export class MessagingServiceController {
   constructor(
     private readonly messagingServiceService: MessagingServiceService,
+    private readonly jwtService: JwtService,
   ) {}
 
   @Get()
@@ -84,7 +85,7 @@ export class MessagingServiceController {
     @Req() req: any,
     @Query() query: GetConversationsDto,
   ): Promise<PaginatedResponseDto<ConversationResponseDto>> {
-    const userId = req.user?.id || 'mock-user-id'; // Replace with actual user extraction
+    const userId = this.extractUserIdFromRequest(req);
     return this.messagingServiceService.getUserConversations(userId, query);
   }
 
@@ -513,5 +514,43 @@ export class MessagingServiceController {
       success: true,
       data: { exists },
     };
+  }
+
+  // ========== UTILITY METHODS ==========
+
+  private extractUserIdFromRequest(req: any): string {
+    try {
+      // Extract token from Authorization header
+      const authHeader = req.headers?.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        throw new UnauthorizedException('No valid authorization header');
+      }
+
+      const token = authHeader.split(' ')[1];
+      if (!token) {
+        throw new UnauthorizedException('No token provided');
+      }
+
+      // Verify and decode the JWT token
+      const payload = this.jwtService.verify(token, {
+        secret: process.env.JWT_ACCESS_SECRET || 'your-secret-key',
+      });
+
+      // Extract user ID from token payload
+      const userId = payload.sub || payload.userId;
+      if (!userId) {
+        throw new UnauthorizedException('No user ID in token');
+      }
+
+      return userId;
+    } catch (error) {
+      // For development, allow mock user ID if JWT verification fails
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('JWT verification failed, using mock user ID for development');
+        return '550e8400-e29b-41d4-a716-446655440000'; // Valid UUID for mock user
+      }
+      
+      throw new UnauthorizedException('Invalid token');
+    }
   }
 }

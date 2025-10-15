@@ -304,7 +304,16 @@ export class MessagingService extends SimpleEventEmitter {
     if (this.useRealBackend) {
       try {
         const response = await messagingApi.getConversations(query);
-        const conversations = response.data.map(conv => this.mapConversationFromBackend(conv));
+
+        // Handle case where response.data might be undefined
+        if (!response || !response.data) {
+          console.warn('No data in conversations response:', response);
+          return [];
+        }
+
+        // Backend returns { data: [], meta: {} } structure
+        const conversationsData = Array.isArray(response.data.data) ? response.data.data : [];
+        const conversations = conversationsData.map(conv => this.mapConversationFromBackend(conv));
         
         // Update local cache
         conversations.forEach(conv => {

@@ -3,10 +3,10 @@ import { ENV } from '../../config/environment';
 import axios, { AxiosInstance } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Messaging service runs on port 3004
+// Messaging service runs through the API Gateway on port 3000
 const getMessagingApiUrl = () => {
-  const baseUrl = ENV.API.BASE_URL.replace(':3000', ':3004');
-  return baseUrl;
+  // Use the gateway URL directly - it will proxy to messaging service
+  return ENV.API.BASE_URL;
 };
 
 // Create a separate API client for messaging service
