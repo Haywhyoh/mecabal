@@ -52,6 +52,7 @@ import NeighborConnectionsScreen from './src/screens/NeighborConnectionsScreen';
 import RegisterScreen from './src/screens/onBoarding/RegisterScreen';
 import LocationTestScreen from './src/screens/LocationTestScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
+import MoreScreen from './src/screens/MoreScreen';
 
 // Map Picker Screen
 import MapPickerScreen from './src/screens/onBoarding/MapPickerScreen';
@@ -226,6 +227,7 @@ function MainStackNavigator() {
       
       {/* Community Screens */}
       <Stack.Screen name="Dashboard" component={DashboardScreen} />
+      <Stack.Screen name="More" component={MoreScreen} />
       <Stack.Screen name="CommunityActivity" component={CommunityActivityScreen} />
       <Stack.Screen name="NeighborRating" component={NeighborRatingScreen} />
       <Stack.Screen name="CommunityEngagement" component={CommunityEngagementScreen} />

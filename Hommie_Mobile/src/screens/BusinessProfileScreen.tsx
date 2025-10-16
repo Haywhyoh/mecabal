@@ -26,11 +26,13 @@ export default function BusinessProfileScreen({ navigation }: BusinessProfileScr
     try {
       setLoading(true);
       setError(null);
+      console.log('🔧 Loading business profile...');
       const business = await businessApi.getMyBusiness();
+      console.log('🔧 Business profile loaded:', business);
       setBusinessProfile(business);
     } catch (err: any) {
+      console.error('❌ Error loading business profile:', err);
       setError(err.message || 'Failed to load business profile');
-      console.error('Error loading business profile:', err);
     } finally {
       setLoading(false);
     }
@@ -120,6 +122,7 @@ export default function BusinessProfileScreen({ navigation }: BusinessProfileScr
 
   // No business profile state
   if (!businessProfile && !loading) {
+    console.log('🔧 No business profile found, showing empty state');
     return (
       <SafeAreaView style={styles.container}>
         <ScreenHeader title="Business Profile" navigation={navigation} />
@@ -160,6 +163,8 @@ export default function BusinessProfileScreen({ navigation }: BusinessProfileScr
       </SafeAreaView>
     );
   }
+
+  console.log('🔧 Rendering business profile with data:', businessProfile);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -217,7 +222,7 @@ export default function BusinessProfileScreen({ navigation }: BusinessProfileScr
                 )}
               </View>
               
-              <Text style={styles.subcategory}>{businessProfile.subcategory}</Text>
+              <Text style={styles.subcategory}>{businessProfile.subcategory || 'No subcategory'}</Text>
               <Text style={styles.experience}>{businessProfile.yearsOfExperience} years experience</Text>
               
               <View style={styles.ratingContainer}>
@@ -271,7 +276,7 @@ export default function BusinessProfileScreen({ navigation }: BusinessProfileScr
         {/* Business Description */}
         <View style={styles.descriptionCard}>
           <Text style={styles.cardTitle}>About This Business</Text>
-          <Text style={styles.description}>{businessProfile.description}</Text>
+          <Text style={styles.description}>{businessProfile.description || 'No description available'}</Text>
           
           <View style={styles.businessDetails}>
             <View style={styles.detailItem}>

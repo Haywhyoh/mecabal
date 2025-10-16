@@ -12,6 +12,7 @@ import FloatingActionButton from '../components/FloatingActionButton';
 import { useAuth } from '../contexts/AuthContext';
 import { FeedScreen } from '../screens/FeedScreen';
 import { UserAvatar } from '../components/UserAvatar';
+import MoreScreen from './MoreScreen';
 
 const { width } = Dimensions.get('window');
 
@@ -347,13 +348,13 @@ export default function HomeScreen() {
                 {/* Divider */}
                 <View style={styles.menuDivider} />
 
-                {/* Profile (links to Profile screen) */}
+                {/* More/Settings (links to MoreScreen) */}
                 <TouchableOpacity
                   style={styles.menuItem}
-                  onPress={() => handleMenuItemPress(() => navigation.navigate('Profile' as never))}
+                  onPress={() => handleMenuItemPress(() => navigation.navigate('More' as never))}
                 >
-                  <MaterialCommunityIcons name="account-circle" size={24} color="#8E8E93" />
-                  <Text style={styles.menuItemText}>Profile</Text>
+                  <MaterialCommunityIcons name="menu" size={24} color="#8E8E93" />
+                  <Text style={styles.menuItemText}>More</Text>
                   <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E93" />
                 </TouchableOpacity>
               </View>

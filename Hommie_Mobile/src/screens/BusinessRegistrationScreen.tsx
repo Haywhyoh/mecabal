@@ -19,7 +19,7 @@ interface BusinessRegistration {
   description: string;
   category: string;
   subcategory: string;
-  serviceArea: string;
+  serviceArea: string;  
   pricingModel: string;
   priceRange: { min: number; max: number };
   availability: string;
@@ -142,9 +142,9 @@ export default function BusinessRegistrationScreen({ navigation }: BusinessRegis
       const businessData: any = {
         businessName: registration.businessName.trim(),
         category: registration.category,
-        serviceArea: registration.serviceArea as ServiceArea,
-        pricingModel: registration.pricingModel as PricingModel,
-        availability: registration.availability as Availability,
+        serviceArea: registration.serviceArea,
+        pricingModel: registration.pricingModel,
+        availability: registration.availability,
         yearsOfExperience: registration.yearsOfExperience,
         hasInsurance: registration.hasInsurance,
       };
@@ -169,12 +169,12 @@ export default function BusinessRegistrationScreen({ navigation }: BusinessRegis
         businessData.paymentMethods = registration.paymentMethods;
       }
 
-      console.log('Submitting business registration:', businessData);
+      console.log('🔧 Submitting business registration:', businessData);
 
       // Call the API
       const response = await businessApi.registerBusiness(businessData);
 
-      console.log('Business registered successfully:', response);
+      console.log('✅ Business registered successfully:', response);
 
       Alert.alert(
         'Registration Successful!',

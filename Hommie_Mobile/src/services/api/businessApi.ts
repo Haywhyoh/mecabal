@@ -18,10 +18,12 @@ export const businessApi = {
   async registerBusiness(
     data: CreateBusinessProfileDto
   ): Promise<BusinessProfile> {
+    console.log('🔧 BusinessApi: Registering business with data:', data);
     const response = await apiClient.post<ApiResponse<BusinessProfile>>(
       '/business/register',
       data
     );
+    console.log('🔧 BusinessApi: Registration response:', response);
     return response.data;
   },
 
@@ -32,11 +34,14 @@ export const businessApi = {
    */
   async getMyBusiness(): Promise<BusinessProfile | null> {
     try {
+      console.log('🔧 BusinessApi: Getting my business...');
       const response = await apiClient.get<ApiResponse<BusinessProfile>>(
         '/business/my-business'
       );
+      console.log('🔧 BusinessApi: My business response:', response);
       return response.data;
     } catch (error: any) {
+      console.log('🔧 BusinessApi: Error getting my business:', error);
       // Return null if 404 (no business found)
       if (error.response?.status === 404) {
         return null;
