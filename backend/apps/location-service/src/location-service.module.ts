@@ -7,7 +7,8 @@ import {
   Ward, 
   Neighborhood, 
   Landmark, 
-  User 
+  User,
+  UserLocation
 } from '../../libs/database/src/entities';
 import { GoogleMapsService } from '../../libs/common/src/services/google-maps.service';
 
@@ -18,6 +19,7 @@ import { LgasController } from './controllers/lgas.controller';
 import { WardsController } from './controllers/wards.controller';
 import { NeighborhoodsController } from './controllers/neighborhoods.controller';
 import { LandmarksController } from './controllers/landmarks.controller';
+import { VerificationController } from './controllers/verification.controller';
 
 // Services
 import { LocationServiceService } from './location-service.service';
@@ -27,6 +29,14 @@ import { WardsService } from './services/wards.service';
 import { NeighborhoodsService } from './services/neighborhoods.service';
 import { LandmarksService } from './services/landmarks.service';
 import { EstateManagementService } from './services/estate-management.service';
+import { LocationHierarchyService } from './services/location-hierarchy.service';
+import { NeighborhoodRecommendationService } from './services/neighborhood-recommendation.service';
+import { LocationVerificationService } from './verification/location-verification.service';
+
+// Repositories
+import { NeighborhoodRepository } from './repositories/neighborhood.repository';
+import { LandmarkRepository } from './repositories/landmark.repository';
+import { UserLocationRepository } from './repositories/user-location.repository';
 
 @Module({
   imports: [
@@ -40,6 +50,7 @@ import { EstateManagementService } from './services/estate-management.service';
       Neighborhood,
       Landmark,
       User,
+      UserLocation,
     ]),
   ],
   controllers: [
@@ -49,6 +60,7 @@ import { EstateManagementService } from './services/estate-management.service';
     WardsController,
     NeighborhoodsController,
     LandmarksController,
+    VerificationController,
   ],
   providers: [
     LocationServiceService,
@@ -58,6 +70,12 @@ import { EstateManagementService } from './services/estate-management.service';
     NeighborhoodsService,
     LandmarksService,
     EstateManagementService,
+    LocationHierarchyService,
+    NeighborhoodRecommendationService,
+    LocationVerificationService,
+    NeighborhoodRepository,
+    LandmarkRepository,
+    UserLocationRepository,
     GoogleMapsService,
   ],
   exports: [
@@ -67,6 +85,12 @@ import { EstateManagementService } from './services/estate-management.service';
     NeighborhoodsService,
     LandmarksService,
     EstateManagementService,
+    LocationHierarchyService,
+    NeighborhoodRecommendationService,
+    LocationVerificationService,
+    NeighborhoodRepository,
+    LandmarkRepository,
+    UserLocationRepository,
     GoogleMapsService,
   ],
 })

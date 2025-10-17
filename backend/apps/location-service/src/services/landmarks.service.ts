@@ -197,4 +197,55 @@ export class LandmarksService {
       byType,
     };
   }
+
+  /**
+   * Create landmark (user-submitted)
+   */
+  async createLandmark(dto: CreateLandmarkDto): Promise<Landmark> {
+    const landmark = this.landmarkRepository.create({
+      ...dto,
+      location: {
+        type: 'Point',
+        coordinates: [dto.location.longitude, dto.location.latitude],
+      },
+      verificationStatus: LandmarkVerificationStatus.PENDING,
+    });
+
+    return this.landmarkRepository.save(landmark);
+  }
+
+  /**
+   * Get nearby landmarks for a neighborhood (simplified version)
+   */
+  async getNearbyLandmarksSimple(neighborhoodId: string): Promise<Landmark[]> {
+    return this.landmarkRepository.find({
+      where: { neighborhoodId },
+      relations: ['neighborhood'],
+      order: { name: 'ASC' },
+    });
+  }
+
+  /**
+   * Verify landmark (admin function)
+   */
+  async verifyLandmark(landmarkId: string): Promise<void> {
+    const landmark = await this.getLandmarkById(landmarkId);
+    landmark.verificationStatus = LandmarkVerificationStatus.VERIFIED;
+    await this.landmarkRepository.save(landmark);
+  }
+
+  /**
+   * Search landmarks by query and type
+   */
+  async searchLandmarks(query: string, type?: string): Promise<Landmark[]> {
+    const searchDto: LandmarkSearchDto = {
+      query,
+      type,
+      limit: 20,
+      offset: 0,
+    };
+
+    const result = await this.searchLandmarks(searchDto);
+    return result.data;
+  }
 }

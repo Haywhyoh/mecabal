@@ -1326,4 +1326,253 @@ export class ApiGatewayController {
         .json({ error: errorMessage });
     }
   }
+
+  // ==================== LOCATION SERVICE ENDPOINTS ====================
+
+  @Get('location/states')
+  @ApiOperation({ summary: 'Get all states' })
+  @ApiResponse({ status: 200, description: 'List of all states' })
+  async getStates(@Res() res: Response) {
+    try {
+      const result: unknown = await this.apiGatewayService.proxyToLocationService(
+        '/states',
+        'GET',
+      );
+      res.status(HttpStatus.OK).json(result);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error fetching states:', errorMessage);
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: errorMessage });
+    }
+  }
+
+  @Get('location/states/:stateId/lgas')
+  @ApiOperation({ summary: 'Get LGAs by state ID' })
+  @ApiResponse({ status: 200, description: 'List of LGAs in the state' })
+  async getLgasByState(@Req() req: Request, @Res() res: Response) {
+    try {
+      const result: unknown = await this.apiGatewayService.proxyToLocationService(
+        req.url,
+        'GET',
+      );
+      res.status(HttpStatus.OK).json(result);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error fetching LGAs:', errorMessage);
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: errorMessage });
+    }
+  }
+
+  @Get('location/lgas/:lgaId/wards')
+  @ApiOperation({ summary: 'Get wards by LGA ID' })
+  @ApiResponse({ status: 200, description: 'List of wards in the LGA' })
+  async getWardsByLga(@Req() req: Request, @Res() res: Response) {
+    try {
+      const result: unknown = await this.apiGatewayService.proxyToLocationService(
+        req.url,
+        'GET',
+      );
+      res.status(HttpStatus.OK).json(result);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error fetching wards:', errorMessage);
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: errorMessage });
+    }
+  }
+
+  @Get('location/wards/:wardId/neighborhoods')
+  @ApiOperation({ summary: 'Get neighborhoods by ward ID' })
+  @ApiResponse({ status: 200, description: 'List of neighborhoods in the ward' })
+  async getNeighborhoodsByWard(@Req() req: Request, @Res() res: Response) {
+    try {
+      const result: unknown = await this.apiGatewayService.proxyToLocationService(
+        req.url,
+        'GET',
+      );
+      res.status(HttpStatus.OK).json(result);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error fetching neighborhoods:', errorMessage);
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: errorMessage });
+    }
+  }
+
+  @Get('location/neighborhoods/:id')
+  @ApiOperation({ summary: 'Get neighborhood by ID' })
+  @ApiResponse({ status: 200, description: 'Neighborhood details' })
+  async getNeighborhoodById(@Req() req: Request, @Res() res: Response) {
+    try {
+      const result: unknown = await this.apiGatewayService.proxyToLocationService(
+        req.url,
+        'GET',
+      );
+      res.status(HttpStatus.OK).json(result);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error fetching neighborhood:', errorMessage);
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: errorMessage });
+    }
+  }
+
+  @Post('location/neighborhoods')
+  @ApiOperation({ summary: 'Create new neighborhood' })
+  @ApiResponse({ status: 201, description: 'Neighborhood created successfully' })
+  async createNeighborhood(@Req() req: Request, @Res() res: Response) {
+    try {
+      const result: unknown = await this.apiGatewayService.proxyToLocationService(
+        req.url,
+        'POST',
+        req.body,
+        req.headers as Record<string, string | string[] | undefined>,
+        req.user,
+      );
+      res.status(HttpStatus.CREATED).json(result);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error creating neighborhood:', errorMessage);
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: errorMessage });
+    }
+  }
+
+  @Get('location/neighborhoods/search')
+  @ApiOperation({ summary: 'Search neighborhoods' })
+  @ApiResponse({ status: 200, description: 'Search results' })
+  async searchNeighborhoods(@Req() req: Request, @Res() res: Response) {
+    try {
+      const result: unknown = await this.apiGatewayService.proxyToLocationService(
+        req.url,
+        'GET',
+      );
+      res.status(HttpStatus.OK).json(result);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error searching neighborhoods:', errorMessage);
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: errorMessage });
+    }
+  }
+
+  @Post('location/neighborhoods/recommend')
+  @ApiOperation({ summary: 'Get neighborhood recommendations' })
+  @ApiResponse({ status: 200, description: 'Neighborhood recommendations' })
+  async recommendNeighborhoods(@Req() req: Request, @Res() res: Response) {
+    try {
+      const result: unknown = await this.apiGatewayService.proxyToLocationService(
+        req.url,
+        'POST',
+        req.body,
+        req.headers as Record<string, string | string[] | undefined>,
+        req.user,
+      );
+      res.status(HttpStatus.OK).json(result);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error getting recommendations:', errorMessage);
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: errorMessage });
+    }
+  }
+
+  @Post('location/landmarks')
+  @ApiOperation({ summary: 'Create new landmark' })
+  @ApiResponse({ status: 201, description: 'Landmark created successfully' })
+  async createLandmark(@Req() req: Request, @Res() res: Response) {
+    try {
+      const result: unknown = await this.apiGatewayService.proxyToLocationService(
+        req.url,
+        'POST',
+        req.body,
+        req.headers as Record<string, string | string[] | undefined>,
+        req.user,
+      );
+      res.status(HttpStatus.CREATED).json(result);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error creating landmark:', errorMessage);
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: errorMessage });
+    }
+  }
+
+  @Get('location/landmarks/nearby/:neighborhoodId')
+  @ApiOperation({ summary: 'Get landmarks near a neighborhood' })
+  @ApiResponse({ status: 200, description: 'List of nearby landmarks' })
+  async getNearbyLandmarks(@Req() req: Request, @Res() res: Response) {
+    try {
+      const result: unknown = await this.apiGatewayService.proxyToLocationService(
+        req.url,
+        'GET',
+      );
+      res.status(HttpStatus.OK).json(result);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error fetching nearby landmarks:', errorMessage);
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: errorMessage });
+    }
+  }
+
+  // Catch-all route for location service
+  @All('location/*')
+  @ApiOperation({ summary: 'Proxy all location service requests' })
+  async proxyLocationService(@Req() req: Request, @Res() res: Response) {
+    try {
+      console.log(
+        '🌐 API Gateway - Proxying location service request:',
+        'URL:', req.url,
+        'Method:', req.method,
+      );
+
+      const result: unknown =
+        await this.apiGatewayService.proxyToLocationService(
+          req.url,
+          req.method,
+          req.body,
+          req.headers as Record<string, string | string[] | undefined>,
+          req.user,
+        );
+
+      let statusCode = HttpStatus.OK;
+      if (req.method === 'POST') {
+        statusCode = HttpStatus.CREATED;
+      } else if (req.method === 'DELETE') {
+        statusCode = HttpStatus.NO_CONTENT;
+      }
+
+      res.status(statusCode).json(result);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error proxying location service request:', errorMessage);
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: errorMessage });
+    }
+  }
 }

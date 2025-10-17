@@ -28,6 +28,7 @@ import { NigerianLanguage } from './nigerian-language.entity';
 import { NigerianState } from './nigerian-state.entity';
 import { CulturalBackground } from './cultural-background.entity';
 import { ProfessionalCategory } from './professional-category.entity';
+import { UserLocation } from './user-location.entity';
 import type { UserBookmark } from './user-bookmark.entity';
 import type { UserDashboardStats } from './user-dashboard-stats.entity';
 import type { Listing } from './listing.entity';
@@ -103,50 +104,13 @@ export class User {
   @Column({ name: 'last_login_at', type: 'timestamp', nullable: true })
   lastLoginAt?: Date;
 
-  // Location Information (Nigerian Context) - DEPRECATED: Use neighborhoods instead
-  @ApiProperty({
-    description: 'Nigerian state - DEPRECATED: Use neighborhoods instead',
-    example: 'Lagos',
-    required: false,
+  // Location Information - Now handled by UserLocation entity
+  @ApiProperty({ 
+    description: 'Primary location ID',
+    required: false 
   })
-  @Column({ nullable: true })
-  state?: string;
-
-  @ApiProperty({
-    description: 'City within state - DEPRECATED: Use neighborhoods instead',
-    example: 'Ikeja',
-    required: false,
-  })
-  @Column({ nullable: true })
-  city?: string;
-
-  @ApiProperty({
-    description:
-      'Estate or compound name - DEPRECATED: Use neighborhoods instead',
-    example: 'Victoria Island Estate',
-    required: false,
-  })
-  @Column({ nullable: true })
-  estate?: string;
-
-  @ApiProperty({
-    description: 'GPS coordinates (PostGIS Point)',
-    required: false,
-  })
-  @Column({ type: 'text', nullable: true })
-  location?: string; // Temporarily using text instead of geography
-
-  @ApiProperty({
-    description: 'Landmark for location reference',
-    example: 'Ikeja City Mall',
-    required: false,
-  })
-  @Column({ nullable: true })
-  landmark?: string;
-
-  @ApiProperty({ description: 'Full address text', required: false })
-  @Column({ type: 'text', nullable: true })
-  address?: string;
+  @Column({ name: 'primary_location_id', nullable: true })
+  primaryLocationId?: string;
 
   // Social and Cultural Information
   // Note: culturalBackground field moved to relations section below
@@ -339,6 +303,14 @@ export class User {
   @JoinColumn({ name: 'professional_category_id' })
   professionalCategory?: ProfessionalCategory;
 
+  // Location relationships
+  @OneToMany(() => UserLocation, (userLocation) => userLocation.user)
+  userLocations?: UserLocation[];
+
+  @OneToOne(() => UserLocation, { nullable: true })
+  @JoinColumn({ name: 'primary_location_id' })
+  primaryLocation?: UserLocation;
+
   // Unidirectional relations - no inverse side to avoid circular dependencies
   // Relations are defined only in the child entities (UserBookmark, UserDashboardStats)
 
@@ -404,26 +376,39 @@ export class User {
 
   // Location and verification helpers
   getLocationString(): string {
-    // Use neighborhoods if available, fallback to deprecated fields
+    // Use primary location if available
+    if (this.primaryLocation) {
+      return this.primaryLocation.neighborhood?.name || 'Location not set';
+    }
+
+    // Fallback to neighborhoods for backward compatibility
     if (this.primaryNeighborhood) {
       return this.primaryNeighborhood.name;
     }
 
-    // Fallback to deprecated fields for backward compatibility
-    const parts = [this.estate, this.city, this.state].filter(Boolean);
-    return parts.join(', ') || 'Location not set';
+    return 'Location not set';
   }
 
   getDetailedLocationString(): string {
-    // Use neighborhoods if available
+    // Use primary location if available
+    if (this.primaryLocation) {
+      const location = this.primaryLocation;
+      const parts = [
+        location.neighborhood?.name,
+        location.cityTown,
+        location.lga?.name,
+        location.state?.name
+      ].filter(Boolean);
+      return parts.join(', ') || 'Location not set';
+    }
+
+    // Fallback to neighborhoods for backward compatibility
     if (this.primaryNeighborhood) {
       const neighborhood = this.primaryNeighborhood;
       return `${neighborhood.name}, ${neighborhood.lga?.name || 'Unknown LGA'}, ${neighborhood.lga?.state?.name || 'Unknown State'}`;
     }
 
-    // Fallback to deprecated fields
-    const parts = [this.estate, this.city, this.state].filter(Boolean);
-    return parts.join(', ') || 'Location not set';
+    return 'Location not set';
   }
 
   getVerificationLevel(): 'unverified' | 'phone' | 'identity' | 'full' {
@@ -471,7 +456,7 @@ export class User {
       this.email &&
       this.phoneNumber &&
       this.phoneVerified &&
-      (this.primaryNeighborhood || (this.state && this.city)) // Use neighborhoods or fallback to deprecated fields
+      (this.primaryLocation || this.primaryNeighborhood) // Use new location system or fallback to neighborhoods
     );
   }
 

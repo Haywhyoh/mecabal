@@ -21,6 +21,8 @@ export class ApiGatewayService {
     process.env.USER_SERVICE_URL || 'http://localhost:3002';
   private readonly messagingServiceUrl =
     process.env.MESSAGING_SERVICE_URL || 'http://localhost:3004';
+  private readonly locationServiceUrl =
+    process.env.LOCATION_SERVICE_URL || 'http://localhost:3007';
 
   constructor(
     private readonly httpService: HttpService,
@@ -35,6 +37,7 @@ export class ApiGatewayService {
     console.log('  - Business Service URL:', this.businessServiceUrl);
     console.log('  - User Service URL:', this.userServiceUrl);
     console.log('  - Messaging Service URL:', this.messagingServiceUrl);
+    console.log('  - Location Service URL:', this.locationServiceUrl);
   }
 
   getHello(): string {
@@ -766,6 +769,82 @@ export class ApiGatewayService {
 
         throw new Error(
           `Messaging request failed with status code ${status}: ${statusText}`,
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  // Proxy methods for location service
+  async proxyToLocationService(
+    path: string,
+    method: string,
+    data?: unknown,
+    headers?: Record<string, string | string[] | undefined>,
+    user?: any,
+  ) {
+    try {
+      const url = `${this.locationServiceUrl}${path}`;
+
+      console.log('🌐 API Gateway - Proxying to location service:');
+      console.log('  - URL:', url);
+      console.log('  - Method:', method);
+      console.log(
+        '  - User:',
+        user
+          ? {
+              id: (user as { id: string; email: string }).id,
+              email: (user as { id: string; email: string }).email,
+            }
+          : 'No user',
+      );
+
+      const config = {
+        headers: {
+          'Content-Type': 'application/json',
+          ...headers,
+        },
+        timeout: 30000, // 30 seconds timeout
+      };
+
+      let response;
+      switch (method.toLowerCase()) {
+        case 'get':
+          response = await firstValueFrom(this.httpService.get(url, config));
+          break;
+        case 'post':
+          response = await firstValueFrom(
+            this.httpService.post(url, data, config),
+          );
+          break;
+        case 'put':
+          response = await firstValueFrom(
+            this.httpService.put(url, data, config),
+          );
+          break;
+        case 'delete':
+          response = await firstValueFrom(this.httpService.delete(url, config));
+          break;
+        default:
+          throw new Error(`Unsupported HTTP method: ${method}`);
+      }
+
+      return response.data as unknown;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      console.error(`Error proxying to location service: ${errorMessage}`);
+
+      if (error && typeof error === 'object' && 'response' in error) {
+        const response = (
+          error as { response: { status: number; statusText: string } }
+        ).response;
+        const status = response.status;
+        const statusText = response.statusText;
+
+        throw new Error(
+          `Location request failed with status code ${status}: ${statusText}`,
         );
       }
 
