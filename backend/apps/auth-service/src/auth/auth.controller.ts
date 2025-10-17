@@ -8,6 +8,8 @@ import {
   Get,
   HttpStatus,
   HttpCode,
+  Req,
+  Res,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -19,6 +21,7 @@ import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
 import {
   LocalAuthGuard,
   JwtAuthGuard,
+  GoogleAuthGuard,
   RolesGuard,
   Public,
   CurrentUser,
@@ -27,6 +30,7 @@ import {
 import { AuthService } from '../services/auth.service';
 import { EmailOtpService } from '../services/email-otp.service';
 import { PhoneOtpService } from '../services/phone-otp.service';
+import { GoogleTokenVerifierService } from '../services/google-token-verifier.service';
 import {
   RegisterDto,
   LoginDto,
@@ -49,6 +53,11 @@ import {
   UpdateOnboardingStepDto,
 } from '../dto/auth.dto';
 import { MobileRegisterDto } from '../dto/mobile-register.dto';
+import { 
+  GoogleAuthMobileDto, 
+  GoogleAuthResponseDto, 
+  LinkGoogleAccountDto 
+} from '@app/validation';
 import { User } from '@app/database';
 
 @ApiTags('Authentication')
@@ -59,6 +68,7 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly emailOtpService: EmailOtpService,
     private readonly phoneOtpService: PhoneOtpService,
+    private readonly googleTokenVerifierService: GoogleTokenVerifierService,
   ) {}
 
   @Post('register')
@@ -602,6 +612,178 @@ export class AuthController {
   })
   unlinkSocialAccount() {
     throw new Error('Method not implemented yet');
+  }
+
+  // Google OAuth Endpoints
+  @Get('google')
+  @Public()
+  @UseGuards(GoogleAuthGuard)
+  @ApiOperation({ summary: 'Initiate Google OAuth flow' })
+  @ApiResponse({
+    status: 302,
+    description: 'Redirects to Google OAuth consent screen',
+  })
+  googleAuth() {
+    // This will be handled by the GoogleAuthGuard
+    // The guard will redirect to Google's OAuth consent screen
+  }
+
+  @Get('google/callback')
+  @Public()
+  @UseGuards(GoogleAuthGuard)
+  @ApiOperation({ summary: 'Handle Google OAuth callback' })
+  @ApiResponse({
+    status: 200,
+    description: 'Google OAuth authentication successful',
+    type: GoogleAuthResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Google OAuth authentication failed',
+  })
+  async googleAuthCallback(@Req() req: any, @Res() res: any) {
+    try {
+      const googleProfile = req.user;
+      
+      if (!googleProfile) {
+        return res.status(400).json({
+          success: false,
+          error: 'Google authentication failed',
+        });
+      }
+
+      // Process the Google user
+      const result = await this.authService.validateGoogleUser({
+        googleId: googleProfile.googleId,
+        email: googleProfile.email,
+        firstName: googleProfile.firstName,
+        lastName: googleProfile.lastName,
+        profilePicture: googleProfile.profilePicture,
+        emailVerified: googleProfile.emailVerified,
+      });
+
+      // For web flow, redirect to frontend with tokens
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const redirectUrl = `${frontendUrl}/auth/callback?access_token=${result.accessToken}&refresh_token=${result.refreshToken}&is_new_user=${result.isNewUser}`;
+      
+      return res.redirect(redirectUrl);
+    } catch (error) {
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const errorUrl = `${frontendUrl}/auth/error?error=${encodeURIComponent(error.message)}`;
+      return res.redirect(errorUrl);
+    }
+  }
+
+  @Post('google/mobile')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Google OAuth for mobile apps using ID token' })
+  @ApiResponse({
+    status: 200,
+    description: 'Google authentication successful',
+    type: GoogleAuthResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid Google ID token',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Account conflict - email already exists',
+  })
+  async googleAuthMobile(@Body() dto: GoogleAuthMobileDto) {
+    try {
+      // Verify the Google ID token
+      const payload = await this.googleTokenVerifierService.verifyIdToken(dto.idToken);
+
+      // Process the Google user
+      const result = await this.authService.validateGoogleUser({
+        googleId: payload.sub,
+        email: payload.email,
+        firstName: payload.given_name,
+        lastName: payload.family_name,
+        profilePicture: payload.picture,
+        emailVerified: payload.email_verified,
+      });
+
+      return {
+        success: true,
+        message: result.isNewUser ? 'Account created successfully' : 'Login successful',
+        ...result,
+      };
+    } catch (error) {
+      if (error.message?.includes('already exists')) {
+        return {
+          success: false,
+          error: error.message,
+          code: 'ACCOUNT_EXISTS_WITH_EMAIL',
+          suggestedAction: 'link_account',
+        };
+      }
+
+      return {
+        success: false,
+        error: error.message || 'Google authentication failed',
+      };
+    }
+  }
+
+  @Post('google/link')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Link Google account to existing user' })
+  @ApiResponse({
+    status: 200,
+    description: 'Google account linked successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid Google ID token or account already linked',
+  })
+  async linkGoogleAccount(
+    @CurrentUser() user: User,
+    @Body() dto: LinkGoogleAccountDto,
+  ) {
+    try {
+      // Verify the Google ID token
+      const payload = await this.googleTokenVerifierService.verifyIdToken(dto.idToken);
+
+      // Link the Google account
+      const result = await this.authService.linkGoogleAccount(user.id, payload.sub);
+
+      return result;
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message || 'Failed to link Google account',
+      };
+    }
+  }
+
+  @Post('google/unlink')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Unlink Google account from user' })
+  @ApiResponse({
+    status: 200,
+    description: 'Google account unlinked successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Cannot unlink last authentication method',
+  })
+  async unlinkGoogleAccount(@CurrentUser() user: User) {
+    try {
+      const result = await this.authService.unlinkGoogleAccount(user.id);
+      return result;
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message || 'Failed to unlink Google account',
+      };
+    }
   }
 
   // Enhanced Registration with Onboarding

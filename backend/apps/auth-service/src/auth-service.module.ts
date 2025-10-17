@@ -81,7 +81,7 @@ import { TokenService } from './services/token.service';
           CulturalBackground,
           ProfessionalCategory,
         ],
-        synchronize: configService.get('NODE_ENV') !== 'production',
+        synchronize: false, // Disabled to prevent automatic schema changes
         logging: configService.get('NODE_ENV') === 'development',
         ssl:
           configService.get('NODE_ENV') === 'production'

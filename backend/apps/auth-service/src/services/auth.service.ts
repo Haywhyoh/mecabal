@@ -361,7 +361,7 @@ export class AuthService {
       // Verify password
       const passwordValid = await bcrypt.compare(
         loginDto.password,
-        user.passwordHash,
+        user.passwordHash || '',
       );
       if (!passwordValid) {
         return {
@@ -1188,12 +1188,14 @@ export class AuthService {
             user: {
               id: existingUser.id,
               email: existingUser.email,
+              name: `${existingUser.firstName || ''} ${existingUser.lastName || ''}`.trim(),
               firstName: existingUser.firstName,
               lastName: existingUser.lastName,
-              profilePicture: existingUser.profilePicture,
+              profilePicture: existingUser.profilePictureUrl,
               googleId: existingUser.googleId,
               authProvider: 'google' as const,
               isEmailVerified: existingUser.isVerified,
+              verified_email: existingUser.isVerified,
             },
             accessToken: tokenPair.accessToken,
             refreshToken: tokenPair.refreshToken,
@@ -1219,10 +1221,10 @@ export class AuthService {
         if (existingGoogleUser) {
           // Update email if it changed
           existingGoogleUser.email = googleProfile.email;
-          existingGoogleUser.firstName = googleProfile.firstName || existingGoogleUser.firstName;
-          existingGoogleUser.lastName = googleProfile.lastName || existingGoogleUser.lastName;
-          existingGoogleUser.profilePicture = googleProfile.profilePicture || existingGoogleUser.profilePicture;
-          existingGoogleUser.isVerified = googleProfile.emailVerified;
+          existingGoogleUser.firstName = (googleProfile as any).given_name || googleProfile.firstName || existingGoogleUser.firstName;
+          existingGoogleUser.lastName = (googleProfile as any).family_name || googleProfile.lastName || existingGoogleUser.lastName;
+          existingGoogleUser.profilePictureUrl = (googleProfile as any).picture || googleProfile.profilePicture || existingGoogleUser.profilePictureUrl;
+          existingGoogleUser.isVerified = (googleProfile as any).verified_email || googleProfile.emailVerified || false;
           existingGoogleUser.lastLoginAt = new Date();
 
           const savedUser = await this.userRepository.save(existingGoogleUser);
@@ -1234,12 +1236,14 @@ export class AuthService {
             user: {
               id: savedUser.id,
               email: savedUser.email,
+              name: `${savedUser.firstName || ''} ${savedUser.lastName || ''}`.trim(),
               firstName: savedUser.firstName,
               lastName: savedUser.lastName,
-              profilePicture: savedUser.profilePicture,
+              profilePicture: savedUser.profilePictureUrl,
               googleId: savedUser.googleId,
               authProvider: 'google' as const,
               isEmailVerified: savedUser.isVerified,
+              verified_email: savedUser.isVerified,
             },
             accessToken: tokenPair.accessToken,
             refreshToken: tokenPair.refreshToken,
@@ -1252,12 +1256,12 @@ export class AuthService {
         
         const newUser = this.userRepository.create({
           email: googleProfile.email,
-          firstName: googleProfile.firstName || '',
-          lastName: googleProfile.lastName || '',
-          profilePicture: googleProfile.profilePicture,
-          googleId: googleProfile.googleId,
+          firstName: (googleProfile as any).given_name || googleProfile.firstName || '',
+          lastName: (googleProfile as any).family_name || googleProfile.lastName || '',
+          profilePictureUrl: (googleProfile as any).picture || googleProfile.profilePicture || '',
+          googleId: (googleProfile as any).id || googleProfile.googleId,
           authProvider: 'google',
-          isVerified: googleProfile.emailVerified,
+          isVerified: (googleProfile as any).verified_email || googleProfile.emailVerified || false,
           isActive: true,
           memberSince: new Date(),
           lastLoginAt: new Date(),
@@ -1274,12 +1278,14 @@ export class AuthService {
           user: {
             id: savedUser.id,
             email: savedUser.email,
+            name: `${savedUser.firstName || ''} ${savedUser.lastName || ''}`.trim(),
             firstName: savedUser.firstName,
             lastName: savedUser.lastName,
-            profilePicture: savedUser.profilePicture,
+            profilePicture: savedUser.profilePictureUrl,
             googleId: savedUser.googleId,
             authProvider: 'google' as const,
             isEmailVerified: savedUser.isVerified,
+            verified_email: savedUser.isVerified,
           },
           accessToken: tokenPair.accessToken,
           refreshToken: tokenPair.refreshToken,
@@ -1311,7 +1317,7 @@ export class AuthService {
         user.email = googleData.email;
         user.firstName = googleData.firstName || user.firstName;
         user.lastName = googleData.lastName || user.lastName;
-        user.profilePicture = googleData.profilePicture || user.profilePicture;
+        user.profilePictureUrl = (googleData as any).picture || user.profilePictureUrl;
         user.isVerified = googleData.emailVerified;
         user.lastLoginAt = new Date();
 
@@ -1328,7 +1334,7 @@ export class AuthService {
         // Link Google account to existing user
         user.googleId = googleData.googleId;
         user.authProvider = 'google';
-        user.profilePicture = googleData.profilePicture || user.profilePicture;
+        user.profilePictureUrl = (googleData as any).picture || user.profilePictureUrl;
         user.isVerified = googleData.emailVerified;
         user.lastLoginAt = new Date();
 
@@ -1339,12 +1345,12 @@ export class AuthService {
       // Create new user
       const newUser = this.userRepository.create({
         email: googleData.email,
-        firstName: googleData.firstName || '',
-        lastName: googleData.lastName || '',
-        profilePicture: googleData.profilePicture,
+        firstName: (googleData as any).given_name || googleData.firstName || '',
+        lastName: (googleData as any).family_name || googleData.lastName || '',
+        profilePictureUrl: (googleData as any).picture || googleData.profilePicture || '',
         googleId: googleData.googleId,
         authProvider: 'google',
-        isVerified: googleData.emailVerified,
+        isVerified: (googleData as any).verified_email || googleData.emailVerified || false,
         isActive: true,
         memberSince: new Date(),
         lastLoginAt: new Date(),
@@ -1440,7 +1446,7 @@ export class AuthService {
       }
 
       // Unlink Google account
-      user.googleId = null;
+      user.googleId = undefined;
       user.authProvider = 'local';
       user.updatedAt = new Date();
 

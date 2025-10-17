@@ -12,6 +12,7 @@ import { logEnvironment, validateEnvironment } from './src/config/environment';
 
 // Import improved screens
 import WelcomeScreen from './src/screens/onBoarding/WelcomeScreen';
+import { OAuthCallbackScreen } from './src/screens/auth';
 
 import WelcomeHeroScreen from './src/screens/onBoarding/WelcomeHeroScreen';
 import PhoneVerificationScreen from './src/screens/onBoarding/PhoneVerificationScreen';
@@ -104,6 +105,8 @@ const linking = {
       BusinessReviews: 'business/:businessId/reviews',
       WriteReview: 'business/:businessId/review/write',
       BusinessAnalytics: 'business/:businessId/analytics',
+      // OAuth callback routes
+      OAuthCallback: 'oauth/callback',
     },
   },
 };
@@ -372,6 +375,12 @@ function AppContent() {
               name="Welcome" 
               component={WelcomeScreen}
               initialParams={{ onLoginSuccess: handleLoginSuccess, onSocialLoginSuccess: handleSocialLoginSuccess }}
+            />
+            
+            {/* OAuth Callback Screen */}
+            <Stack.Screen 
+              name="OAuthCallback" 
+              component={OAuthCallbackScreen}
             />
             
             <Stack.Screen name="Register" component={RegisterScreen} />

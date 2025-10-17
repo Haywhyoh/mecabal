@@ -10,6 +10,8 @@ import {
 } from 'react-native';
 import { COLORS, SPACING, TYPOGRAPHY } from '../../constants';
 import SocialButton from '../../components/SocialButton';
+import { GoogleSignInButton } from '../../components';
+import { useAuth } from '../../contexts/AuthContext';
 import { safeGoBack } from '../../utils/navigationUtils';
 import * as Haptics from 'expo-haptics';
 
@@ -19,6 +21,7 @@ export default function WelcomeScreen({ navigation, route }: any) {
   const initialMode = route.params?.mode || 'signup'; // 'signup' or 'login'
   
   const [mode, setMode] = useState(initialMode);
+  const { signInWithGoogle, isLoading } = useAuth();
   
   // Animation values
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -66,10 +69,24 @@ export default function WelcomeScreen({ navigation, route }: any) {
   };
 
   // Signup handlers
-  const handleGoogleSignUp = () => {
+  const handleGoogleSignUp = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     console.log('Google sign-up pressed');
-    navigation.navigate('PhoneVerification', { language: 'en', signupMethod: 'google', isSignup: true });
+    
+    try {
+      const success = await signInWithGoogle();
+      if (success) {
+        console.log('✅ Google sign-up successful');
+        if (onSocialLoginSuccess) {
+          onSocialLoginSuccess();
+        } else {
+          // Navigate to main app or next screen
+          navigation.navigate('MainApp');
+        }
+      }
+    } catch (error) {
+      console.error('❌ Google sign-up failed:', error);
+    }
   };
 
   const handleAppleSignUp = () => {
@@ -85,11 +102,23 @@ export default function WelcomeScreen({ navigation, route }: any) {
   };
 
   // Login handlers
-  const handleGoogleLogin = () => {
+  const handleGoogleLogin = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     console.log('Google login pressed');
-    if (onLoginSuccess) {
-      onLoginSuccess();
+    
+    try {
+      const success = await signInWithGoogle();
+      if (success) {
+        console.log('✅ Google login successful');
+        if (onLoginSuccess) {
+          onLoginSuccess();
+        } else {
+          // Navigate to main app or next screen
+          navigation.navigate('MainApp');
+        }
+      }
+    } catch (error) {
+      console.error('❌ Google login failed:', error);
     }
   };
 
@@ -135,16 +164,24 @@ export default function WelcomeScreen({ navigation, route }: any) {
           <View style={styles.socialButtons}>
             {isSignupMode ? (
               <>
+                <GoogleSignInButton 
+                  buttonText="Continue with Google"
+                  onSuccess={handleGoogleSignUp}
+                  size="large"
+                  variant="default"
+                  disabled={isLoading}
+                />
+                
+                <View style={styles.separator}>
+                  <View style={styles.separatorLine} />
+                  <Text style={styles.separatorText}>OR</Text>
+                  <View style={styles.separatorLine} />
+                </View>
+                
                 <SocialButton 
                   provider="apple" 
                   text="Continue with Apple" 
                   onPress={handleAppleSignUp}
-                  variant="welcome"
-                />
-                <SocialButton 
-                  provider="google" 
-                  text="Continue with Google" 
-                  onPress={handleGoogleSignUp}
                   variant="welcome"
                 />
                 <SocialButton 
@@ -162,12 +199,20 @@ export default function WelcomeScreen({ navigation, route }: any) {
               </>
             ) : (
               <>
-                <SocialButton 
-                  provider="google" 
-                  text="Sign in with Google" 
-                  onPress={handleGoogleLogin}
-                  variant="login"
+                <GoogleSignInButton 
+                  buttonText="Sign in with Google"
+                  onSuccess={handleGoogleLogin}
+                  size="large"
+                  variant="default"
+                  disabled={isLoading}
                 />
+                
+                <View style={styles.separator}>
+                  <View style={styles.separatorLine} />
+                  <Text style={styles.separatorText}>OR</Text>
+                  <View style={styles.separatorLine} />
+                </View>
+                
                 <SocialButton 
                   provider="email" 
                   text="Sign in with Email" 
@@ -237,7 +282,7 @@ const styles = StyleSheet.create({
   tagline: {
     fontSize: 34,
     fontWeight: '700',
-    color: COLORS.text,
+    color: COLORS.text.dark,
     lineHeight: 41,
   },
   authOptions: {
@@ -246,6 +291,22 @@ const styles = StyleSheet.create({
   socialButtons: {
     marginBottom: SPACING.lg,
   },
+  separator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: SPACING.md,
+  },
+  separatorLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.neutral.lightGray,
+  },
+  separatorText: {
+    marginHorizontal: SPACING.md,
+    fontSize: TYPOGRAPHY.fontSizes.sm,
+    color: COLORS.text.secondary,
+    fontWeight: '500',
+  },
   modeToggleSection: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -253,7 +314,7 @@ const styles = StyleSheet.create({
     marginTop: SPACING.md,
   },
   modePrompt: {
-    color: COLORS.textSecondary,
+    color: COLORS.text.secondary,
     fontSize: TYPOGRAPHY.fontSizes.sm,
     marginRight: SPACING.xs,
   },
@@ -273,12 +334,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   languageText: {
-    color: COLORS.textSecondary,
+    color: COLORS.text.secondary,
     fontSize: TYPOGRAPHY.fontSizes.sm,
     marginRight: SPACING.xs,
   },
   chevron: {
-    color: COLORS.textSecondary,
+    color: COLORS.text.secondary,
     fontSize: TYPOGRAPHY.fontSizes.xs,
   },
 });

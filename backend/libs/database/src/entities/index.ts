@@ -10,9 +10,12 @@ export { UserBookmark } from './user-bookmark.entity';
 export { UserDashboardStats } from './user-dashboard-stats.entity';
 
 // Location & Neighborhood Entities
-export { State } from './state.entity';
+export { State, LGAType } from './state.entity';
 export { LocalGovernmentArea } from './local-government-area.entity';
-export { Neighborhood } from './neighborhood.entity';
+export { Ward } from './ward.entity';
+export { Neighborhood, NeighborhoodType } from './neighborhood.entity';
+export { Landmark, LandmarkType, VerificationStatus as LandmarkVerificationStatus } from './landmark.entity';
+export { UserLocation, VerificationStatus as UserLocationVerificationStatus } from './user-location.entity';
 export { UserNeighborhood } from './user-neighborhood.entity';
 
 // Social Feed & Content Entities

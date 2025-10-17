@@ -114,7 +114,7 @@ export default function WelcomeHeroScreen({ navigation }: any) {
                 transform: [{ scale: logoScale }],
                 opacity: logoOpacity 
               }]}>
-                <Image source={require('../../../assets/mecabal.png')} style={styles.logo} />
+                {/* <Image source={require('../../../assets/mecabal.png')} style={styles.logo} /> */}
               </Animated.View>
               <Animated.Text style={[styles.heroTitle, { opacity: titleOpacity }]}>
                 Welcome to your neighborhood
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: COLORS.white,
     textAlign: 'center',
-    marginBottom: SPACING.sm,
+    marginBottom: SPACING.xl,
     lineHeight: 50,
   },
   heroSubtitle: {

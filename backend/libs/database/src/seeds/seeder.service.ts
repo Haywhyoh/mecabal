@@ -4,6 +4,9 @@ import { Repository } from 'typeorm';
 import { 
   State, 
   LocalGovernmentArea, 
+  Ward,
+  Neighborhood,
+  Landmark,
   PostCategory, 
   Achievement, 
   Badge, 
@@ -21,6 +24,7 @@ import {
   CULTURAL_BACKGROUNDS_SEED, 
   PROFESSIONAL_CATEGORIES_SEED 
 } from './cultural-data.seed';
+import { LocationSeeder } from './location.seed';
 // import { MessagingSeeder } from './messaging.seed';
 
 @Injectable()
@@ -32,6 +36,12 @@ export class SeederService {
     private stateRepository: Repository<State>,
     @InjectRepository(LocalGovernmentArea)
     private lgaRepository: Repository<LocalGovernmentArea>,
+    @InjectRepository(Ward)
+    private wardRepository: Repository<Ward>,
+    @InjectRepository(Neighborhood)
+    private neighborhoodRepository: Repository<Neighborhood>,
+    @InjectRepository(Landmark)
+    private landmarkRepository: Repository<Landmark>,
     @InjectRepository(PostCategory)
     private postCategoryRepository: Repository<PostCategory>,
     @InjectRepository(Achievement)
@@ -64,6 +74,9 @@ export class SeederService {
       await this.seedNigerianLanguages();
       await this.seedCulturalBackgrounds();
       await this.seedProfessionalCategories();
+      
+      // Seed new location system
+      await this.seedNewLocationSystem();
 
       this.logger.log('Database seeding completed successfully');
     } catch (error) {
@@ -313,5 +326,19 @@ export class SeederService {
 
     await this.professionalCategoryRepository.save(PROFESSIONAL_CATEGORIES_SEED);
     this.logger.log(`Seeded ${PROFESSIONAL_CATEGORIES_SEED.length} professional categories`);
+  }
+
+  private async seedNewLocationSystem(): Promise<void> {
+    this.logger.log('Seeding new location system...');
+
+    const locationSeeder = new LocationSeeder(
+      this.stateRepository,
+      this.lgaRepository,
+      this.wardRepository,
+      this.neighborhoodRepository,
+      this.landmarkRepository
+    );
+
+    await locationSeeder.seedAll();
   }
 }

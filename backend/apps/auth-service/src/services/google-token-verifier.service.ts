@@ -41,7 +41,7 @@ export class GoogleTokenVerifierService {
           this.configService.get<string>('GOOGLE_CLIENT_ID'),
           this.configService.get<string>('GOOGLE_IOS_CLIENT_ID'),
           this.configService.get<string>('GOOGLE_ANDROID_CLIENT_ID'),
-        ].filter(Boolean), // Remove undefined values
+        ].filter((id): id is string => Boolean(id)), // Remove undefined values
       });
 
       const payload = ticket.getPayload();
@@ -97,14 +97,14 @@ export class GoogleTokenVerifierService {
         sub: response.sub,
         email: response.email,
         email_verified: response.email_verified || false,
-        name: response.name,
-        given_name: response.given_name,
-        family_name: response.family_name,
-        picture: response.picture,
+        name: (response as any).name || '',
+        given_name: (response as any).given_name || '',
+        family_name: (response as any).family_name || '',
+        picture: (response as any).picture || '',
         aud: response.aud || '',
-        iss: response.iss || '',
-        iat: response.iat || 0,
-        exp: response.exp || 0,
+        iss: (response as any).iss || '',
+        iat: (response as any).iat || 0,
+        exp: (response as any).exp || 0,
       };
     } catch (error) {
       this.logger.error('Google access token verification failed:', error);

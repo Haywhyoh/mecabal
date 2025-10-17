@@ -16,6 +16,8 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../../constants';
 import { safeGoBack, contextAwareGoBack } from '../../utils/navigationUtils';
 import { MeCabalAuth } from '../../services';
+import { GoogleSignInButton } from '../../components';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function EmailLoginScreen({ navigation, route }: any) {
   const [email, setEmail] = useState('');
@@ -24,6 +26,8 @@ export default function EmailLoginScreen({ navigation, route }: any) {
   const onSocialLoginSuccess = route.params?.onSocialLoginSuccess;
   const onLoginSuccess = route.params?.onLoginSuccess;
   const isEmailValid = email.trim() && email.includes('@');
+  
+  const { signInWithGoogle, isLoading: authLoading } = useAuth();
 
   const handleSendOTP = async () => {
     if (!isEmailValid) {
@@ -60,11 +64,22 @@ export default function EmailLoginScreen({ navigation, route }: any) {
     }
   };
 
-  const handleGoogleLogin = () => {
+  const handleGoogleLogin = async () => {
     console.log('Google login pressed');
-    // For SSO login, authenticate and go to home if successful
-    if (onLoginSuccess) {
-      onLoginSuccess();
+    
+    try {
+      const success = await signInWithGoogle();
+      if (success) {
+        console.log('✅ Google login successful');
+        if (onLoginSuccess) {
+          onLoginSuccess();
+        } else {
+          // Navigate to main app or next screen
+          navigation.navigate('MainApp');
+        }
+      }
+    } catch (error) {
+      console.error('❌ Google login failed:', error);
     }
   };
 
@@ -140,6 +155,15 @@ export default function EmailLoginScreen({ navigation, route }: any) {
 
             {/* Social Login Options */}
             <View style={styles.socialSection}>
+              <GoogleSignInButton 
+                buttonText="Sign in with Google"
+                onSuccess={handleGoogleLogin}
+                size="large"
+                variant="default"
+                disabled={authLoading}
+                style={styles.googleButton}
+              />
+              
               <View style={styles.divider}>
                 <View style={styles.dividerLine} />
                 <Text style={styles.dividerText}>or continue with</Text>
@@ -147,12 +171,7 @@ export default function EmailLoginScreen({ navigation, route }: any) {
               </View>
 
               <View style={styles.socialButtons}>
-                <TouchableOpacity style={styles.socialButton} onPress={handleGoogleLogin}>
-                  <Icon name="google" size={20} color="#DB4437" style={styles.socialIcon} />
-                  <Text style={styles.socialButtonText}>Google</Text>
-                </TouchableOpacity>
-                
-                                <TouchableOpacity style={styles.socialButton} onPress={handleAppleLogin}>
+                <TouchableOpacity style={styles.socialButton} onPress={handleAppleLogin}>
                   <Icon name="apple" size={20} color="#000000" style={styles.socialIcon} />
                   <Text style={styles.socialButtonText}>Apple</Text>
                 </TouchableOpacity>
@@ -286,6 +305,9 @@ const styles = StyleSheet.create({
   },
   socialSection: {
     marginBottom: SPACING.xl,
+  },
+  googleButton: {
+    marginBottom: SPACING.md,
   },
   divider: {
     flexDirection: 'row',

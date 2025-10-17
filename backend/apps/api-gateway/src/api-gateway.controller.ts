@@ -55,10 +55,105 @@ export class ApiGatewayController {
     }
   }
 
+  // Google OAuth specific routes for better documentation
+  @Get('auth/google')
+  @ApiOperation({ 
+    summary: 'Initiate Google OAuth flow',
+    description: 'Redirects user to Google OAuth consent screen. After user consent, they will be redirected to /auth/google/callback'
+  })
+  @ApiResponse({ status: 302, description: 'Redirects to Google OAuth consent screen' })
+  async googleAuth(@Req() req: Request, @Res() res: Response) {
+    return this.proxyAuth(req, res);
+  }
+
+  @Get('auth/google/callback')
+  @ApiOperation({ 
+    summary: 'Handle Google OAuth callback',
+    description: 'Processes the OAuth callback from Google and redirects to frontend with tokens'
+  })
+  @ApiResponse({ status: 302, description: 'Redirects to frontend with access and refresh tokens' })
+  @ApiResponse({ status: 400, description: 'Google OAuth authentication failed' })
+  async googleAuthCallback(@Req() req: Request, @Res() res: Response) {
+    return this.proxyAuth(req, res);
+  }
+
+  @Post('auth/google/mobile')
+  @ApiOperation({ 
+    summary: 'Google OAuth for mobile apps',
+    description: 'Authenticates mobile app users using Google ID token. Returns JWT tokens for API access.'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Google authentication successful',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        message: { type: 'string' },
+        user: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            email: { type: 'string' },
+            firstName: { type: 'string' },
+            lastName: { type: 'string' },
+            profilePicture: { type: 'string' },
+            googleId: { type: 'string' },
+            authProvider: { type: 'string', enum: ['google'] },
+            isEmailVerified: { type: 'boolean' }
+          }
+        },
+        accessToken: { type: 'string' },
+        refreshToken: { type: 'string' },
+        isNewUser: { type: 'boolean' }
+      }
+    }
+  })
+  @ApiResponse({ status: 400, description: 'Invalid Google ID token' })
+  @ApiResponse({ status: 409, description: 'Account conflict - email already exists' })
+  async googleAuthMobile(@Req() req: Request, @Res() res: Response) {
+    return this.proxyAuth(req, res);
+  }
+
+  @Post('auth/google/link')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ 
+    summary: 'Link Google account to existing user',
+    description: 'Links a Google account to an existing user account. Requires authentication.'
+  })
+  @ApiResponse({ status: 200, description: 'Google account linked successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid Google ID token or account already linked' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async linkGoogleAccount(@Req() req: Request, @Res() res: Response) {
+    return this.proxyAuth(req, res);
+  }
+
+  @Post('auth/google/unlink')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ 
+    summary: 'Unlink Google account from user',
+    description: 'Unlinks Google account from user account. User must have another authentication method.'
+  })
+  @ApiResponse({ status: 200, description: 'Google account unlinked successfully' })
+  @ApiResponse({ status: 400, description: 'Cannot unlink last authentication method' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async unlinkGoogleAccount(@Req() req: Request, @Res() res: Response) {
+    return this.proxyAuth(req, res);
+  }
+
   // Dynamic routing for auth service - handles ALL /auth/* routes
   @All('auth/*path')
-  @ApiOperation({ summary: 'Proxy all auth requests to auth service' })
+  @ApiOperation({ 
+    summary: 'Proxy all auth requests to auth service',
+    description: 'Handles all authentication requests including Google OAuth, local auth, OTP verification, and user management'
+  })
   @ApiResponse({ status: 200, description: 'Request proxied to auth service' })
+  @ApiResponse({ status: 302, description: 'Google OAuth redirect (for /auth/google endpoint)' })
+  @ApiResponse({ status: 400, description: 'Invalid request or authentication failed' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 409, description: 'Account conflict (for Google OAuth)' })
   async proxyAuth(@Req() req: Request, @Res() res: Response) {
     try {
       // Extract the path after /auth

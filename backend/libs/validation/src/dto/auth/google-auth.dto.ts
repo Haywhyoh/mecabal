@@ -86,12 +86,14 @@ export class GoogleAuthResponseDto {
   user: {
     id: string;
     email: string;
+    name?: string;
     firstName?: string;
     lastName?: string;
     profilePicture?: string;
-    googleId: string;
+    googleId?: string;
     authProvider: 'google';
     isEmailVerified: boolean;
+    verified_email?: boolean;
   };
 
   @ApiProperty({
@@ -177,4 +179,31 @@ export class GoogleProfileDto {
   })
   @IsBoolean()
   email_verified: boolean;
+
+  // Additional fields that Google OAuth strategy provides
+  @ApiProperty({
+    description: 'User emails array from Google',
+    required: false,
+  })
+  @IsOptional()
+  emails?: Array<{ value: string; verified: boolean }>;
+
+  @ApiProperty({
+    description: 'User name object from Google',
+    required: false,
+  })
+  @IsOptional()
+  name?: {
+    givenName?: string;
+    familyName?: string;
+    given_name?: string;
+    family_name?: string;
+  };
+
+  @ApiProperty({
+    description: 'User photos array from Google',
+    required: false,
+  })
+  @IsOptional()
+  photos?: Array<{ value: string }>;
 }

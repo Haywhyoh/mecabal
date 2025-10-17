@@ -21,6 +21,7 @@
     "start:business": "nest start business-service --watch",
     "build:business": "nest build business-service",
     "seed:neighborhoods": "ts-node scripts/seed-neighborhoods.ts",
+    "script:generate-neighborhoods": "ts-node scripts/generate-neighborhoods.ts",
     "seed:event-categories": "ts-node seed-event-categories.ts",
     "seed:all": "ts-node scripts/run-seeder.ts",
     "seed:marketplace": "ts-node scripts/run-marketplace-seeder.ts",
@@ -48,6 +49,7 @@
   },
   "dependencies": {
     "@getbrevo/brevo": "^3.0.1",
+    "@googlemaps/google-maps-services-js": "^3.4.2",
     "@nestjs/axios": "^4.0.1",
     "@nestjs/cache-manager": "^3.0.1",
     "@nestjs/common": "^11.0.1",

@@ -39,12 +39,12 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       // Extract user information from Google profile
       const googleId = id;
       const email = emails?.[0]?.value;
-      const firstName = name?.givenName;
-      const lastName = name?.familyName;
+      const firstName = (name as any)?.givenName || (name as any)?.given_name || '';
+      const lastName = (name as any)?.familyName || (name as any)?.family_name || '';
       const profilePicture = photos?.[0]?.value;
 
       if (!email) {
-        return done(new Error('No email found in Google profile'), null);
+        return done(new Error('No email found in Google profile'), false);
       }
 
       // Return the profile data for the auth service to process
@@ -60,7 +60,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
         refreshToken,
       });
     } catch (error) {
-      return done(error, null);
+      return done(error, false);
     }
   }
 }
