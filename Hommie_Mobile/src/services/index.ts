@@ -19,6 +19,7 @@ export { MockOTPService } from './mockOTP';
 
 // Location services
 export { MeCabalLocation } from './location';
+export { locationApi } from './api/locationApi';
 
 // Payment services
 export { MeCabalPayments } from './payments';

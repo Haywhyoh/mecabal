@@ -169,3 +169,6 @@ export interface Notification {
   isRead: boolean;
   createdAt: Date;
 }
+
+// Re-export location types
+export * from './location.types';

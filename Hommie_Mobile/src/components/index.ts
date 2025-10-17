@@ -14,6 +14,9 @@ export { default as HelpPostCard } from './HelpPostCard';
 // UI Components
 export { default as SegmentedControl } from './SegmentedControl';
 
+// Location Components
+export * from './location';
+
 // Listing Components
 export { default as ListingCard } from './ListingCard';
 export { default as ListingFilter } from './ListingFilter';
