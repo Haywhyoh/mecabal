@@ -22,7 +22,9 @@ import {
   PostComment,
   State,
   LocalGovernmentArea,
+  Ward,
   Neighborhood,
+  Landmark,
   UserLanguage,
   UserPrivacySettings,
   NigerianState,
@@ -36,6 +38,7 @@ import { AuthService } from './services/auth.service';
 import { EmailOtpService } from './services/email-otp.service';
 import { PhoneOtpService } from './services/phone-otp.service';
 import { TokenService } from './services/token.service';
+import { GoogleTokenVerifierService } from './services/google-token-verifier.service';
 
 @Module({
   imports: [
@@ -73,7 +76,9 @@ import { TokenService } from './services/token.service';
           PostComment,
           State,
           LocalGovernmentArea,
+          Ward,
           Neighborhood,
+          Landmark,
           UserLanguage,
           UserPrivacySettings,
           NigerianState,
@@ -111,7 +116,7 @@ import { TokenService } from './services/token.service';
     ]),
   ],
   controllers: [AuthController],
-  providers: [AuthService, EmailOtpService, PhoneOtpService, TokenService],
-  exports: [AuthService, EmailOtpService, PhoneOtpService, TokenService],
+  providers: [AuthService, EmailOtpService, PhoneOtpService, TokenService, GoogleTokenVerifierService],
+  exports: [AuthService, EmailOtpService, PhoneOtpService, TokenService, GoogleTokenVerifierService],
 })
 export class AuthServiceModule {}

@@ -16,7 +16,7 @@ import EmailLoginScreen from '../screens/onBoarding/EmailLoginScreen';
 import EmailVerificationScreen from '../screens/onBoarding/EmailVerificationScreen';
 import LocationSetupScreen from '../screens/onBoarding/LocationSetupScreen';
 import RegisterScreen from '../screens/onBoarding/RegisterScreen';
-import LoginScreen from '../screens/onBoarding/LoginScreen';
+// import LoginScreen from '../screens/onBoarding/LoginScreen'; // File doesn't exist
 
 // Import main app screens (you'll need to create these)
 // import MainTabs from '../screens/MainTabs';
@@ -47,7 +47,7 @@ const OnboardingStack = () => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Welcome" component={WelcomeScreen} />
-      <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="Login" component={EmailLoginScreen} />
       <Stack.Screen name="PhoneVerification" component={PhoneVerificationScreen} />
       <Stack.Screen name="OTPVerification" component={OTPVerificationScreen} />
       <Stack.Screen name="EmailLogin" component={EmailLoginScreen} />

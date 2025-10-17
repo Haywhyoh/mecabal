@@ -82,6 +82,15 @@
         "tsConfigPath": "apps/events-service/tsconfig.app.json"
       }
     },
+    "location-service": {
+      "type": "application",
+      "root": "apps/location-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/location-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/location-service/tsconfig.app.json"
+      }
+    },
     "marketplace-service": {
       "type": "application",
       "root": "apps/marketplace-service",
