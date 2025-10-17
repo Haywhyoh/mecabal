@@ -35,6 +35,7 @@ import type { Listing } from './listing.entity';
 @Entity('users')
 @Index(['phoneNumber'], { unique: true })
 @Index(['email'], { unique: true })
+@Index(['email', 'authProvider'])
 export class User {
   @ApiProperty({ description: 'Unique identifier for the user' })
   @PrimaryGeneratedColumn('uuid')
@@ -55,8 +56,8 @@ export class User {
   email: string;
 
   @Exclude()
-  @Column({ name: 'password_hash' })
-  passwordHash: string;
+  @Column({ name: 'password_hash', nullable: true })
+  passwordHash?: string;
 
   @ApiProperty({ description: 'User first name', example: 'John' })
   @Column({ name: 'first_name' })
@@ -249,6 +250,27 @@ export class User {
   })
   @Column({ name: 'facebook_id', nullable: true, unique: true })
   facebookId?: string;
+
+  @ApiProperty({
+    description: 'Authentication provider used for login',
+    enum: ['local', 'google', 'facebook', 'apple'],
+    example: 'local',
+    required: false,
+  })
+  @Column({ 
+    name: 'auth_provider', 
+    type: 'enum', 
+    enum: ['local', 'google', 'facebook', 'apple'], 
+    default: 'local' 
+  })
+  authProvider: 'local' | 'google' | 'facebook' | 'apple';
+
+  @ApiProperty({
+    description: 'Whether email is verified (automatically true for OAuth)',
+    example: true,
+  })
+  @Column({ name: 'is_email_verified', default: false })
+  isEmailVerified: boolean;
 
   // Community Engagement
   @ApiProperty({

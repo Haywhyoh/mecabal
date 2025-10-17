@@ -14,6 +14,7 @@ import { EmailOtpService } from './email-otp.service';
 import { PhoneOtpService } from './phone-otp.service';
 import { TokenService } from './token.service';
 import { AuthResponseDto } from '../dto/auth-response.dto';
+import { GoogleProfileDto, GoogleAuthResponseDto } from '@app/validation';
 
 @Injectable()
 export class AuthService {
@@ -1151,5 +1152,322 @@ export class AuthService {
     },
   ) {
     return await this.tokenService.generateTokenPair(user, deviceInfo);
+  }
+
+  // Google OAuth Methods
+  async validateGoogleUser(googleProfile: {
+    googleId: string;
+    email: string;
+    firstName?: string;
+    lastName?: string;
+    profilePicture?: string;
+    emailVerified: boolean;
+  }): Promise<GoogleAuthResponseDto> {
+    try {
+      this.logger.log(`Validating Google user: ${googleProfile.email}`);
+
+      // Check if user exists with this email
+      const existingUser = await this.userRepository.findOne({
+        where: { email: googleProfile.email },
+      });
+
+      if (existingUser) {
+        // Check if user already has Google auth linked
+        if (existingUser.googleId === googleProfile.googleId) {
+          // User exists and Google ID matches - proceed with login
+          this.logger.log(`Google login for existing user: ${existingUser.id}`);
+          
+          // Update last login
+          existingUser.lastLoginAt = new Date();
+          await this.userRepository.save(existingUser);
+
+          // Generate tokens
+          const tokenPair = await this.tokenService.generateTokenPair(existingUser);
+
+          return {
+            user: {
+              id: existingUser.id,
+              email: existingUser.email,
+              firstName: existingUser.firstName,
+              lastName: existingUser.lastName,
+              profilePicture: existingUser.profilePicture,
+              googleId: existingUser.googleId,
+              authProvider: 'google' as const,
+              isEmailVerified: existingUser.isVerified,
+            },
+            accessToken: tokenPair.accessToken,
+            refreshToken: tokenPair.refreshToken,
+            isNewUser: false,
+          };
+        } else if (existingUser.googleId && existingUser.googleId !== googleProfile.googleId) {
+          // User exists but with different Google account
+          throw new ConflictException(
+            'An account with this email already exists with a different Google account. Please use the original Google account or contact support.',
+          );
+        } else {
+          // User exists with local auth - suggest linking accounts
+          throw new ConflictException(
+            'An account with this email already exists. Would you like to link your Google account?',
+          );
+        }
+      } else {
+        // Check if user exists with this Google ID but different email
+        const existingGoogleUser = await this.userRepository.findOne({
+          where: { googleId: googleProfile.googleId },
+        });
+
+        if (existingGoogleUser) {
+          // Update email if it changed
+          existingGoogleUser.email = googleProfile.email;
+          existingGoogleUser.firstName = googleProfile.firstName || existingGoogleUser.firstName;
+          existingGoogleUser.lastName = googleProfile.lastName || existingGoogleUser.lastName;
+          existingGoogleUser.profilePicture = googleProfile.profilePicture || existingGoogleUser.profilePicture;
+          existingGoogleUser.isVerified = googleProfile.emailVerified;
+          existingGoogleUser.lastLoginAt = new Date();
+
+          const savedUser = await this.userRepository.save(existingGoogleUser);
+
+          // Generate tokens
+          const tokenPair = await this.tokenService.generateTokenPair(savedUser);
+
+          return {
+            user: {
+              id: savedUser.id,
+              email: savedUser.email,
+              firstName: savedUser.firstName,
+              lastName: savedUser.lastName,
+              profilePicture: savedUser.profilePicture,
+              googleId: savedUser.googleId,
+              authProvider: 'google' as const,
+              isEmailVerified: savedUser.isVerified,
+            },
+            accessToken: tokenPair.accessToken,
+            refreshToken: tokenPair.refreshToken,
+            isNewUser: false,
+          };
+        }
+
+        // Create new user
+        this.logger.log(`Creating new Google user: ${googleProfile.email}`);
+        
+        const newUser = this.userRepository.create({
+          email: googleProfile.email,
+          firstName: googleProfile.firstName || '',
+          lastName: googleProfile.lastName || '',
+          profilePicture: googleProfile.profilePicture,
+          googleId: googleProfile.googleId,
+          authProvider: 'google',
+          isVerified: googleProfile.emailVerified,
+          isActive: true,
+          memberSince: new Date(),
+          lastLoginAt: new Date(),
+        });
+
+        const savedUser = await this.userRepository.save(newUser);
+
+        // Generate tokens
+        const tokenPair = await this.tokenService.generateTokenPair(savedUser);
+
+        this.logger.log(`New Google user created: ${savedUser.id}`);
+
+        return {
+          user: {
+            id: savedUser.id,
+            email: savedUser.email,
+            firstName: savedUser.firstName,
+            lastName: savedUser.lastName,
+            profilePicture: savedUser.profilePicture,
+            googleId: savedUser.googleId,
+            authProvider: 'google' as const,
+            isEmailVerified: savedUser.isVerified,
+          },
+          accessToken: tokenPair.accessToken,
+          refreshToken: tokenPair.refreshToken,
+          isNewUser: true,
+        };
+      }
+    } catch (error) {
+      this.logger.error('Google user validation error:', error);
+      throw error;
+    }
+  }
+
+  async findOrCreateGoogleUser(googleData: {
+    googleId: string;
+    email: string;
+    firstName?: string;
+    lastName?: string;
+    profilePicture?: string;
+    emailVerified: boolean;
+  }): Promise<{ user: User; isNewUser: boolean }> {
+    try {
+      // Check if user exists with Google ID
+      let user = await this.userRepository.findOne({
+        where: { googleId: googleData.googleId },
+      });
+
+      if (user) {
+        // Update user info if needed
+        user.email = googleData.email;
+        user.firstName = googleData.firstName || user.firstName;
+        user.lastName = googleData.lastName || user.lastName;
+        user.profilePicture = googleData.profilePicture || user.profilePicture;
+        user.isVerified = googleData.emailVerified;
+        user.lastLoginAt = new Date();
+
+        user = await this.userRepository.save(user);
+        return { user, isNewUser: false };
+      }
+
+      // Check if user exists with email but no Google ID
+      user = await this.userRepository.findOne({
+        where: { email: googleData.email },
+      });
+
+      if (user) {
+        // Link Google account to existing user
+        user.googleId = googleData.googleId;
+        user.authProvider = 'google';
+        user.profilePicture = googleData.profilePicture || user.profilePicture;
+        user.isVerified = googleData.emailVerified;
+        user.lastLoginAt = new Date();
+
+        user = await this.userRepository.save(user);
+        return { user, isNewUser: false };
+      }
+
+      // Create new user
+      const newUser = this.userRepository.create({
+        email: googleData.email,
+        firstName: googleData.firstName || '',
+        lastName: googleData.lastName || '',
+        profilePicture: googleData.profilePicture,
+        googleId: googleData.googleId,
+        authProvider: 'google',
+        isVerified: googleData.emailVerified,
+        isActive: true,
+        memberSince: new Date(),
+        lastLoginAt: new Date(),
+      });
+
+      user = await this.userRepository.save(newUser);
+      return { user, isNewUser: true };
+    } catch (error) {
+      this.logger.error('Find or create Google user error:', error);
+      throw error;
+    }
+  }
+
+  async linkGoogleAccount(userId: string, googleId: string): Promise<AuthResponseDto> {
+    try {
+      const user = await this.userRepository.findOne({ where: { id: userId } });
+
+      if (!user) {
+        return {
+          success: false,
+          error: 'User not found',
+        };
+      }
+
+      // Check if Google account is already linked to another user
+      const existingGoogleUser = await this.userRepository.findOne({
+        where: { googleId },
+      });
+
+      if (existingGoogleUser && existingGoogleUser.id !== userId) {
+        return {
+          success: false,
+          error: 'This Google account is already linked to another user',
+        };
+      }
+
+      // Link Google account
+      user.googleId = googleId;
+      user.authProvider = 'google';
+      user.updatedAt = new Date();
+
+      const savedUser = await this.userRepository.save(user);
+
+      this.logger.log(`Google account linked to user: ${userId}`);
+
+      return {
+        success: true,
+        message: 'Google account linked successfully',
+        user: {
+          id: savedUser.id,
+          email: savedUser.email,
+          firstName: savedUser.firstName,
+          lastName: savedUser.lastName,
+          phoneNumber: savedUser.phoneNumber,
+          phoneVerified: savedUser.phoneVerified,
+          isVerified: savedUser.isVerified,
+          verificationLevel: savedUser.getVerificationLevel(),
+        },
+      };
+    } catch (error) {
+      this.logger.error('Link Google account error:', error);
+      return {
+        success: false,
+        error: 'Failed to link Google account',
+      };
+    }
+  }
+
+  async unlinkGoogleAccount(userId: string): Promise<AuthResponseDto> {
+    try {
+      const user = await this.userRepository.findOne({ where: { id: userId } });
+
+      if (!user) {
+        return {
+          success: false,
+          error: 'User not found',
+        };
+      }
+
+      if (!user.googleId) {
+        return {
+          success: false,
+          error: 'No Google account linked to this user',
+        };
+      }
+
+      // Check if user has a password set (local auth)
+      if (!user.passwordHash) {
+        return {
+          success: false,
+          error: 'Cannot unlink Google account. Please set a password first.',
+        };
+      }
+
+      // Unlink Google account
+      user.googleId = null;
+      user.authProvider = 'local';
+      user.updatedAt = new Date();
+
+      await this.userRepository.save(user);
+
+      this.logger.log(`Google account unlinked from user: ${userId}`);
+
+      return {
+        success: true,
+        message: 'Google account unlinked successfully',
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          phoneNumber: user.phoneNumber,
+          phoneVerified: user.phoneVerified,
+          isVerified: user.isVerified,
+          verificationLevel: user.getVerificationLevel(),
+        },
+      };
+    } catch (error) {
+      this.logger.error('Unlink Google account error:', error);
+      return {
+        success: false,
+        error: 'Failed to unlink Google account',
+      };
+    }
   }
 }

@@ -1,0 +1,15 @@
+{
+  "name": "@app/validation",
+  "version": "0.0.1",
+  "description": "Validation library for MeCabal backend",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "dependencies": {
+    "class-validator": "^0.14.2",
+    "class-transformer": "^0.5.1",
+    "@nestjs/swagger": "^11.2.0"
+  },
+  "peerDependencies": {
+    "@nestjs/common": "^11.0.1"
+  }
+}

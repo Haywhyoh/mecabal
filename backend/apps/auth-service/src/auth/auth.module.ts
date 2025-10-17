@@ -4,6 +4,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule as SharedAuthModule } from '@app/auth';
 import { DatabaseModule } from '@app/database';
 import { AuthController } from './auth.controller';
+import { GoogleTokenVerifierService } from '../services/google-token-verifier.service';
 
 @Module({
   imports: [
@@ -37,5 +38,7 @@ import { AuthController } from './auth.controller';
     SharedAuthModule,
   ],
   controllers: [AuthController],
+  providers: [GoogleTokenVerifierService],
+  exports: [GoogleTokenVerifierService],
 })
 export class AuthServiceModule {}
