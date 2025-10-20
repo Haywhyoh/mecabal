@@ -126,9 +126,7 @@ export class AuthService {
           registerDto.firstName || existingUser.firstName;
         existingUser.lastName = registerDto.lastName || existingUser.lastName;
         existingUser.passwordHash = passwordHash;
-        existingUser.state = registerDto.state || existingUser.state;
-        existingUser.city = registerDto.city || existingUser.city;
-        existingUser.estate = registerDto.estate || existingUser.estate;
+        // Location fields are handled via UserLocation; legacy fields removed
         existingUser.preferredLanguage =
           registerDto.preferredLanguage ||
           existingUser.preferredLanguage ||
@@ -152,9 +150,6 @@ export class AuthService {
           firstName: registerDto.firstName,
           lastName: registerDto.lastName,
           passwordHash,
-          state: registerDto.state,
-          city: registerDto.city,
-          estate: registerDto.estate,
           preferredLanguage: registerDto.preferredLanguage || 'en',
           phoneVerified: false,
           isVerified: false,
@@ -265,9 +260,6 @@ export class AuthService {
         firstName: registerDto.firstName,
         lastName: registerDto.lastName,
         passwordHash,
-        state: registerDto.state,
-        city: registerDto.city,
-        estate: registerDto.estate,
         preferredLanguage: registerDto.preferredLanguage || 'en',
         isVerified: false,
         phoneVerified: false,
@@ -484,9 +476,7 @@ export class AuthService {
       if (updates.phone_number) user.phoneNumber = updates.phone_number;
       if (updates.first_name) user.firstName = updates.first_name;
       if (updates.last_name) user.lastName = updates.last_name;
-      if (updates.state) user.state = updates.state;
-      if (updates.city) user.city = updates.city;
-      if (updates.estate) user.estate = updates.estate;
+      // Legacy direct location fields removed; persisted via UserLocation service
 
       // Update verification status
       user.isVerified = user.phoneVerified || !!user.phoneNumber;
@@ -636,8 +626,7 @@ export class AuthService {
           userMetadata?.last_name || existingUser.lastName;
         existingUser.phoneNumber =
           userMetadata?.phone_number || existingUser.phoneNumber;
-        existingUser.state =
-          userMetadata?.state_of_origin || existingUser.state;
+        // state_of_origin now tracked via cultural profile; legacy field removed
         existingUser.preferredLanguage =
           userMetadata?.preferred_language ||
           existingUser.preferredLanguage ||
@@ -671,7 +660,6 @@ export class AuthService {
           lastName: userMetadata?.last_name || '',
           phoneNumber: userMetadata?.phone_number || null,
           passwordHash,
-          state: userMetadata?.state_of_origin || null,
           preferredLanguage: userMetadata?.preferred_language || 'en',
           phoneVerified: false,
           isVerified: false, // Will be set to true after phone verification + location setup
@@ -972,12 +960,7 @@ export class AuthService {
       // Update user fields
       if (updates.phone_number !== undefined)
         user.phoneNumber = updates.phone_number;
-      if (updates.state !== undefined) user.state = updates.state;
-      if (updates.city !== undefined) user.city = updates.city;
-      if (updates.estate !== undefined) user.estate = updates.estate;
-      if (updates.location !== undefined) user.location = updates.location;
-      if (updates.landmark !== undefined) user.landmark = updates.landmark;
-      if (updates.address !== undefined) user.address = updates.address;
+      // Legacy direct location fields removed; handled via UserLocation service
       if (updates.phoneVerified !== undefined)
         user.phoneVerified = updates.phoneVerified;
       if (updates.addressVerified !== undefined)
@@ -1010,11 +993,7 @@ export class AuthService {
           phoneVerified: savedUser.phoneVerified,
           isVerified: savedUser.isVerified,
           verificationLevel: savedUser.getVerificationLevel(),
-          state: savedUser.state,
-          city: savedUser.city,
-          estate: savedUser.estate,
-          location: savedUser.location,
-          address: savedUser.address,
+          // location fields omitted from response; handled via location service
           addressVerified: savedUser.addressVerified,
         },
       };
@@ -1049,11 +1028,7 @@ export class AuthService {
           phoneVerified: user.phoneVerified,
           isVerified: user.isVerified,
           verificationLevel: user.getVerificationLevel(),
-          state: user.state,
-          city: user.city,
-          estate: user.estate,
-          location: user.location,
-          address: user.address,
+          // location fields omitted from profile; handled via location service
           addressVerified: user.addressVerified,
           preferredLanguage: user.preferredLanguage,
           createdAt: user.createdAt,
@@ -1092,12 +1067,7 @@ export class AuthService {
       }
 
       // Update location fields
-      if (locationData.state) user.state = locationData.state;
-      if (locationData.city) user.city = locationData.city;
-      if (locationData.estate) user.estate = locationData.estate;
-      if (locationData.location) user.location = locationData.location;
-      if (locationData.landmark) user.landmark = locationData.landmark;
-      if (locationData.address) user.address = locationData.address;
+      // Persist detailed location via UserLocation; user scalar fields removed
       if (locationData.phoneNumber) user.phoneNumber = locationData.phoneNumber;
 
       // Mark as fully verified after location setup

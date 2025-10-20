@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Neighborhood, User, UserLocation } from '../../../libs/database/src/entities';
-import { GoogleMapsService } from '../../../libs/common/src/services/google-maps.service';
+import { Neighborhood, User, UserLocation } from '@app/database/entities';
+import { GoogleMapsService } from '@app/common/services/google-maps.service';
 
 export interface NeighborhoodRecommendation {
   neighborhood: Neighborhood;
@@ -84,10 +84,12 @@ export class NeighborhoodRecommendationService {
     // Generate recommendations with scoring
     const recommendations = await Promise.all(
       filteredNeighborhoods.map(async (neighborhood) => {
+        const center = this.getNeighborhoodCenter(neighborhood);
         const distance = this.calculateDistance(
           latitude,
           longitude,
-          this.getNeighborhoodCenter(neighborhood)
+          center.lat,
+          center.lng
         );
 
         const score = await this.calculateRecommendationScore(
@@ -274,7 +276,7 @@ export class NeighborhoodRecommendationService {
       .where('neighborhood.id != :neighborhoodId', { neighborhoodId })
       .andWhere('neighborhood.type = :type', { type: neighborhood.type })
       .andWhere('neighborhood.isGated = :isGated', { isGated: neighborhood.isGated })
-      .andWhere('ward.lgaId = :lgaId', { lgaId: neighborhood.ward.lgaId })
+      .andWhere('ward.lgaId = :lgaId', { lgaId: neighborhood.ward?.lgaId })
       .orderBy('neighborhood.name', 'ASC')
       .limit(limit)
       .getMany();
@@ -304,8 +306,8 @@ export class NeighborhoodRecommendationService {
     // If boundaries exist, calculate center
     if (neighborhood.boundaries?.coordinates?.[0]) {
       const coords = neighborhood.boundaries.coordinates[0];
-      const lngSum = coords.reduce((sum, coord) => sum + coord[0], 0);
-      const latSum = coords.reduce((sum, coord) => sum + coord[1], 0);
+      const lngSum = coords.reduce((sum: number, coord: number[]) => sum + coord[0], 0);
+      const latSum = coords.reduce((sum: number, coord: number[]) => sum + coord[1], 0);
       return {
         lat: latSum / coords.length,
         lng: lngSum / coords.length,

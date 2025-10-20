@@ -13,6 +13,7 @@ export { default as HelpPostCard } from './HelpPostCard';
 
 // UI Components
 export { default as SegmentedControl } from './SegmentedControl';
+export { default as OfflineIndicator } from './OfflineIndicator';
 
 // Location Components
 export * from './location';
@@ -27,12 +28,13 @@ export { default as ActivityTrackingComponent } from './ActivityTrackingComponen
 export { default as BadgeSystemComponent } from './BadgeSystemComponent';
 export { default as NeighborRatingSystem } from './NeighborRatingSystem';
 export { default as EventParticipationTracker } from './EventParticipationTracker';
-export { default as SafetyContributionTracker } from './SafetyContributionTracker';
-export { default as TrustedNeighborNetwork } from './TrustedNeighborNetwork';
-export { default as NeighborRecommendationSystem } from './NeighborRecommendationSystem';
+// Temporarily commented out to debug compactMode error
+// export { default as SafetyContributionTracker } from './SafetyContributionTracker';
+// export { default as TrustedNeighborNetwork } from './TrustedNeighborNetwork';
+// export { default as NeighborRecommendationSystem } from './NeighborRecommendationSystem';
 export { default as BackButton } from './BackButton';
-export { default as MutualConnectionsDisplay } from './MutualConnectionsDisplay';
-export { default as NeighborConnectionComponent } from './NeighborConnectionComponent';
+// export { default as MutualConnectionsDisplay } from './MutualConnectionsDisplay';
+// export { default as NeighborConnectionComponent } from './NeighborConnectionComponent';
 export { default as EventCard } from './EventCard';
 export { default as UserVerificationBadge } from './UserVerificationBadge';
 export { default as EmptyState } from './EmptyState';
@@ -48,9 +50,10 @@ export { default as AuthBackground } from './AuthBackground';
 // Connection components
 export { default as ConnectionStatusBadge } from './connection/ConnectionStatusBadge';
 export { default as TrustScoreDisplay } from './connection/TrustScoreDisplay';
-export { default as ConnectionActionButtons } from './connection/ConnectionActionButtons';
+// Temporarily commented out to debug compactMode error
+// export { default as ConnectionActionButtons } from './connection/ConnectionActionButtons';
 export { default as NetworkAnalysisModal } from './connection/NetworkAnalysisModal';
-export { default as NeighborConnectionCard } from './connection/NeighborConnectionCard';
+// export { default as NeighborConnectionCard } from './connection/NeighborConnectionCard';
 
 // Business Review Components
 export { ReviewCard } from './ReviewCard';

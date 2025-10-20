@@ -1,7 +1,7 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { StatesService } from '../services/states.service';
-import { State } from '../../../libs/database/src/entities';
+// Import not used directly; types come from service responses
 
 @ApiTags('States')
 @Controller('states')

@@ -899,21 +899,24 @@ export class MessagingService extends SimpleEventEmitter {
       id: backendConv.id,
       type: backendConv.type,
       title: backendConv.title,
-      participants: backendConv.participants.map(p => ({
-        id: p.userId,
-        name: p.user ? `${p.user.firstName} ${p.user.lastName}` : 'Unknown User',
-        avatar: p.user?.profilePictureUrl,
-        role: p.role,
-        isOnline: p.user?.isOnline || false,
-        lastSeen: p.user?.lastSeen,
-        joinedAt: p.joinedAt,
-        isVerified: true, // TODO: Get from user data
-        location: 'Lagos, Nigeria', // TODO: Get from user data
-      })),
+      participants: (backendConv.participants || []).map(p => {
+        const user = p?.user || {};
+        return {
+          id: p.userId,
+          name: user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : 'Unknown User',
+          avatar: user.profilePictureUrl || undefined,
+          role: p.role,
+          isOnline: Boolean(user.isOnline),
+          lastSeen: user.lastSeen || undefined,
+          joinedAt: p.joinedAt,
+          isVerified: true, // TODO: Get from user data
+          location: 'Lagos, Nigeria', // TODO: Get from user data
+        };
+      }),
       lastMessage: backendConv.lastMessage ? this.mapMessageFromBackend(backendConv.lastMessage) : undefined,
-      unreadCount: backendConv.unreadCount,
-      isArchived: backendConv.isArchived,
-      isPinned: backendConv.isPinned,
+      unreadCount: backendConv.unreadCount || 0,
+      isArchived: Boolean(backendConv.isArchived),
+      isPinned: Boolean(backendConv.isPinned),
       createdAt: backendConv.createdAt,
       updatedAt: backendConv.updatedAt,
       metadata: {
@@ -921,7 +924,7 @@ export class MessagingService extends SimpleEventEmitter {
         avatar: backendConv.avatar,
         communityId: backendConv.contextType === 'event' ? backendConv.contextId : undefined,
         eventId: backendConv.contextType === 'event' ? backendConv.contextId : undefined,
-        groupAdmin: backendConv.participants.filter(p => p.role === 'admin').map(p => p.userId),
+        groupAdmin: (backendConv.participants || []).filter(p => p.role === 'admin').map(p => p.userId),
       },
     };
   }
@@ -930,20 +933,21 @@ export class MessagingService extends SimpleEventEmitter {
    * Map backend message to local format
    */
   private mapMessageFromBackend(backendMsg: MessageResponseDto): Message {
+    const sender = backendMsg?.sender || {};
     return {
       id: backendMsg.id,
       conversationId: backendMsg.conversationId,
       senderId: backendMsg.senderId,
-      senderName: backendMsg.sender ? `${backendMsg.sender.firstName} ${backendMsg.sender.lastName}` : 'Unknown User',
-      senderAvatar: backendMsg.sender?.profilePictureUrl,
+      senderName: sender.firstName && sender.lastName ? `${sender.firstName} ${sender.lastName}` : 'Unknown User',
+      senderAvatar: sender.profilePictureUrl || undefined,
       content: backendMsg.content,
       timestamp: backendMsg.createdAt,
       type: backendMsg.type as any,
       status: 'delivered', // TODO: Get actual status from receipts
-      replyTo: backendMsg.replyToMessageId,
-      edited: backendMsg.isEdited,
-      editedAt: backendMsg.editedAt,
-      metadata: backendMsg.metadata,
+      replyTo: backendMsg.replyToMessageId || undefined,
+      edited: Boolean(backendMsg.isEdited),
+      editedAt: backendMsg.editedAt || undefined,
+      metadata: backendMsg.metadata || undefined,
     };
   }
 
@@ -1037,12 +1041,13 @@ export class MessagingService extends SimpleEventEmitter {
   private handleUserTyping(data: { conversationId: string; userId: string; isTyping: boolean; timestamp: Date; userInfo?: any }): void {
     const typingUsers = this.typingStatus.get(data.conversationId) || [];
     const existingIndex = typingUsers.findIndex(t => t.userId === data.userId);
-    
+
+    const userInfo = data?.userInfo || {};
     const typingStatus: TypingStatus = {
       conversationId: data.conversationId,
       userId: data.userId,
-      userName: data.userInfo ? `${data.userInfo.firstName} ${data.userInfo.lastName}` : 'Unknown User',
-      isTyping: data.isTyping,
+      userName: userInfo.firstName && userInfo.lastName ? `${userInfo.firstName} ${userInfo.lastName}` : 'Unknown User',
+      isTyping: Boolean(data.isTyping),
       timestamp: data.timestamp,
     };
 
@@ -1066,7 +1071,7 @@ export class MessagingService extends SimpleEventEmitter {
     for (const conversation of this.conversations.values()) {
       const participant = conversation.participants.find(p => p.id === data.userId);
       if (participant) {
-        participant.isOnline = data.isOnline;
+        participant.isOnline = Boolean(data.isOnline);
         participant.lastSeen = data.isOnline ? undefined : data.timestamp;
         this.emit('conversationUpdated', conversation);
       }

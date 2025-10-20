@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Landmark, LandmarkType, LandmarkVerificationStatus } from '../../../libs/database/src/entities';
+import { Landmark, LandmarkType, LandmarkVerificationStatus } from '@app/database/entities';
 import { CreateLandmarkDto, UpdateLandmarkDto, LandmarkSearchDto } from '../dto/landmark.dto';
 
 @Injectable()
@@ -110,19 +110,7 @@ export class LandmarksService {
     await this.landmarkRepository.remove(landmark);
   }
 
-  async verifyLandmark(
-    id: string,
-    approved: boolean,
-    reason?: string
-  ): Promise<void> {
-    const landmark = await this.getLandmarkById(id);
-    
-    landmark.verificationStatus = approved 
-      ? LandmarkVerificationStatus.VERIFIED 
-      : LandmarkVerificationStatus.REJECTED;
-
-    await this.landmarkRepository.save(landmark);
-  }
+  // removed earlier overloaded version; keep the simpler admin verification below
 
   async getLandmarksByType(type: LandmarkType): Promise<Landmark[]> {
     return this.landmarkRepository.find({
@@ -201,18 +189,7 @@ export class LandmarksService {
   /**
    * Create landmark (user-submitted)
    */
-  async createLandmark(dto: CreateLandmarkDto): Promise<Landmark> {
-    const landmark = this.landmarkRepository.create({
-      ...dto,
-      location: {
-        type: 'Point',
-        coordinates: [dto.location.longitude, dto.location.latitude],
-      },
-      verificationStatus: LandmarkVerificationStatus.PENDING,
-    });
-
-    return this.landmarkRepository.save(landmark);
-  }
+  // duplicate implementation removed; use the primary createLandmark method above
 
   /**
    * Get nearby landmarks for a neighborhood (simplified version)
@@ -237,15 +214,5 @@ export class LandmarksService {
   /**
    * Search landmarks by query and type
    */
-  async searchLandmarks(query: string, type?: string): Promise<Landmark[]> {
-    const searchDto: LandmarkSearchDto = {
-      query,
-      type,
-      limit: 20,
-      offset: 0,
-    };
-
-    const result = await this.searchLandmarks(searchDto);
-    return result.data;
-  }
+  // removed conflicting overload that recursively called itself
 }

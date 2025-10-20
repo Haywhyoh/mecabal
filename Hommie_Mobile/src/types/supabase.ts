@@ -9,12 +9,45 @@ export interface NigerianUser {
   firstName: string;
   lastName: string;
   profilePictureUrl?: string;
+  // Legacy location fields (deprecated but kept for backward compatibility)
   state?: string;
   city?: string;
   estate?: string;
   location?: string;
   landmark?: string;
   address?: string;
+  // New hierarchical location structure
+  locationData?: {
+    state: {
+      id: string;
+      name: string;
+      code: string;
+    };
+    lga: {
+      id: string;
+      name: string;
+      code: string;
+      type: 'LGA' | 'LCDA';
+    };
+    ward?: {
+      id: string;
+      name: string;
+      code: string;
+    };
+    neighborhood: {
+      id: string;
+      name: string;
+      type: 'AREA' | 'ESTATE' | 'COMMUNITY';
+      isGated: boolean;
+      requiresVerification: boolean;
+    };
+    cityTown?: string;
+    coordinates: {
+      latitude: number;
+      longitude: number;
+    };
+    verificationStatus: 'UNVERIFIED' | 'PENDING' | 'VERIFIED' | 'REJECTED';
+  };
   culturalBackground?: string;
   nativeLanguages?: string;
   bio?: string;

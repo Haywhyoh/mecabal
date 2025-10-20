@@ -43,14 +43,14 @@ export class NeighborhoodsController {
   })
   async getNeighborhoods(
     @Query('wardId') wardId?: string,
-    @Query('type') type?: 'AREA' | 'ESTATE' | 'COMMUNITY',
+    @Query('type') type?: string,
     @Query('isGated') isGated?: boolean,
     @Query('includeSubNeighborhoods') includeSubNeighborhoods?: boolean
   ) {
     if (wardId) {
       const neighborhoods = await this.neighborhoodsService.getNeighborhoodsByWard(
         wardId, 
-        { type, isGated, includeSubNeighborhoods }
+        { type: type as any, isGated, includeSubNeighborhoods }
       );
       return {
         success: true,

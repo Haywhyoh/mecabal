@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { MeCabalAuth } from '../services/auth';
-import { MeCabalGoogleAuth } from '../services/googleAuth';
+// import { MeCabalGoogleAuth } from '../services/googleAuth'; // Commented out for Expo Go
 import { UserProfileService } from '../services/userProfile';
 import { StorageService, type StoredUserData } from '../utils/storage';
 import type { NigerianUser } from '../types/supabase';
@@ -24,6 +24,10 @@ interface AuthContextType {
   refreshUser: () => Promise<void>;
   updateProfile: (updates: Partial<NigerianUser>) => Promise<boolean>;
   setUser: (user: NigerianUser | null) => void;
+  // Location management methods
+  updateUserLocation: (locationData: NigerianUser['locationData']) => Promise<boolean>;
+  getCurrentLocation: () => NigerianUser['locationData'] | null;
+  isLocationVerified: () => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -187,9 +191,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Google OAuth Methods
+  // Google OAuth Methods - Commented out for Expo Go
   const signInWithGoogle = async (): Promise<boolean> => {
-    try {
+    console.log('⚠️ Google Sign-In is disabled for Expo Go');
+    return false;
+    /* try {
       setIsLoading(true);
       console.log('🔐 Starting Google Sign-In...');
 
@@ -199,11 +205,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log('✅ Google Sign-In successful:', result.user.firstName, result.user.lastName);
         setUser(result.user);
         setAuthProvider('google');
-        
+
         // Store user data and auth provider
         await StorageService.setUserData(result.user as StoredUserData);
         await StorageService.setAuthProvider('google');
-        
+
         return true;
       }
 
@@ -214,11 +220,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return false;
     } finally {
       setIsLoading(false);
-    }
+    } */
   };
 
   const handleGoogleCallback = async (idToken: string): Promise<boolean> => {
-    try {
+    console.log('⚠️ Google callback is disabled for Expo Go');
+    return false;
+    /* try {
       setIsLoading(true);
       console.log('🔄 Handling Google callback with ID token...');
 
@@ -238,11 +246,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return false;
     } finally {
       setIsLoading(false);
-    }
+    } */
   };
 
   const linkGoogleAccount = async (): Promise<boolean> => {
-    try {
+    console.log('⚠️ Google account linking is disabled for Expo Go');
+    return false;
+    /* try {
       setIsLoading(true);
       console.log('🔗 Linking Google account...');
 
@@ -262,11 +272,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return false;
     } finally {
       setIsLoading(false);
-    }
+    } */
   };
 
   const unlinkGoogleAccount = async (): Promise<boolean> => {
-    try {
+    console.log('⚠️ Google account unlinking is disabled for Expo Go');
+    return false;
+    /* try {
       setIsLoading(true);
       console.log('🔓 Unlinking Google account...');
 
@@ -286,7 +298,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return false;
     } finally {
       setIsLoading(false);
-    }
+    } */
   };
 
   const register = async (userData: any): Promise<boolean> => {
@@ -319,16 +331,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = async (): Promise<void> => {
     try {
       // Sign out from Google if user was authenticated with Google
-      if (authProvider === 'google') {
+      /* if (authProvider === 'google') {
         await MeCabalGoogleAuth.signOutFromGoogle();
-      } else {
+      } else { */
         // Sign out from local auth
         await MeCabalAuth.signOut();
-      }
-      
+      /* } */
+
       // Clear all authentication data from storage
       await StorageService.clearAllAuthData();
-      
+
       setUser(null);
       setAuthProvider(null);
     } catch (error) {
@@ -452,6 +464,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(userData);
   };
 
+  // Location management methods
+  const updateUserLocation = async (locationData: NigerianUser['locationData']): Promise<boolean> => {
+    if (!user) return false;
+
+    try {
+      const updates: Partial<NigerianUser> = {
+        locationData,
+        // Update legacy fields for backward compatibility
+        state: locationData?.state.name,
+        city: locationData?.lga.name,
+        estate: locationData?.neighborhood.name,
+        address: locationData?.cityTown || `${locationData?.neighborhood.name}, ${locationData?.lga.name}, ${locationData?.state.name}`,
+        addressVerified: locationData?.verificationStatus === 'VERIFIED',
+      };
+
+      const success = await updateProfile(updates);
+      return success;
+    } catch (error) {
+      console.error('Location update error:', error);
+      return false;
+    }
+  };
+
+  const getCurrentLocation = (): NigerianUser['locationData'] | null => {
+    return user?.locationData || null;
+  };
+
+  const isLocationVerified = (): boolean => {
+    return user?.locationData?.verificationStatus === 'VERIFIED' || false;
+  };
+
   const value: AuthContextType = {
     user,
     isLoading,
@@ -468,6 +511,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     refreshUser,
     updateProfile,
     setUser: setUserDirectly,
+    // Location management methods
+    updateUserLocation,
+    getCurrentLocation,
+    isLocationVerified,
   };
 
   return (

@@ -128,3 +128,4 @@ export class UserLocation {
   @JoinColumn({ name: 'neighborhood_id' })
   neighborhood: Neighborhood;
 }
+

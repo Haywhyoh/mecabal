@@ -114,7 +114,7 @@ export default function PhoneVerificationScreen({ navigation, route }: any) {
       'Phone verification helps keep our community safe. You can still proceed, but some features may be limited.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Skip', onPress: () => navigation.navigate('LocationSetup', { language, phoneNumber: '', isSignup, userDetails, userId, existingUser }) }
+        { text: 'Skip', onPress: () => navigation.navigate('LocationSetup', { language, phoneNumber: '', isSignup: true, userDetails, userId, existingUser }) }
       ]
     );
   };

@@ -1,7 +1,7 @@
 import { Repository } from 'typeorm';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Landmark, LandmarkType, LandmarkVerificationStatus } from '../../../libs/database/src/entities';
+import { Landmark, LandmarkType, LandmarkVerificationStatus } from '@app/database/entities';
 
 export interface Point {
   type: 'Point';

@@ -1,14 +1,15 @@
 // MeCabal Google Authentication Service
 // Handles Google Sign-In integration for mobile apps
 // Supports both iOS and Android platforms
+// COMMENTED OUT FOR EXPO GO - Requires custom build
 
-import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+// import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
-import type { 
-  NigerianUser, 
-  ApiResponse, 
-  AuthResponse 
+import type {
+  NigerianUser,
+  ApiResponse,
+  AuthResponse
 } from '../types/supabase';
 
 // Backend API configuration
@@ -119,7 +120,10 @@ export class MeCabalGoogleAuth {
 
   // Configure Google Sign-In with platform-specific settings
   static async configure(): Promise<void> {
-    if (this.isConfigured) {
+    console.log('⚠️ Google Sign-In is disabled for Expo Go');
+    return;
+
+    /* if (this.isConfigured) {
       return;
     }
 
@@ -129,12 +133,12 @@ export class MeCabalGoogleAuth {
       await GoogleSignin.configure({
         // Use web client ID for both platforms
         webClientId: GOOGLE_WEB_CLIENT_ID,
-        
+
         // Platform-specific configurations
         ...(Platform.OS === 'ios' && {
           iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
         }),
-        
+
         // Android configuration
         ...(Platform.OS === 'android' && {
           // Android client ID will be read from google-services.json
@@ -142,19 +146,19 @@ export class MeCabalGoogleAuth {
 
         // OAuth scopes
         scopes: ['email', 'profile'],
-        
+
         // Offline access for refresh tokens
         offlineAccess: true,
-        
+
         // Hosted domain (optional - for G Suite accounts)
         hostedDomain: '', // Leave empty for all Google accounts
-        
+
         // Force code for refresh token
         forceCodeForRefreshToken: true,
-        
+
         // Account name (optional)
         accountName: '',
-        
+
         // Google One Tap (web only)
         googleSignIn: {
           scopes: ['email', 'profile'],
@@ -166,12 +170,18 @@ export class MeCabalGoogleAuth {
     } catch (error) {
       console.error('❌ Failed to configure Google Sign-In:', error);
       throw new Error('Failed to configure Google Sign-In. Please check your configuration.');
-    }
+    } */
   }
 
   // Sign in with Google
   static async signInWithGoogle(): Promise<AuthResponse> {
-    try {
+    console.log('⚠️ Google Sign-In is disabled for Expo Go');
+    return {
+      success: false,
+      error: 'Google Sign-In requires a custom build and is not available in Expo Go',
+    };
+
+    /* try {
       // Ensure Google Sign-In is configured
       await this.configure();
 
@@ -184,7 +194,7 @@ export class MeCabalGoogleAuth {
 
       // Sign in with Google
       const userInfo = await GoogleSignin.signIn();
-      
+
       console.log('✅ Google Sign-In successful:', {
         id: userInfo.user.id,
         email: userInfo.user.email,
@@ -231,7 +241,7 @@ export class MeCabalGoogleAuth {
         success: false,
         error: error.message || 'Google Sign-In failed. Please try again.',
       };
-    }
+    } */
   }
 
   // Handle Google callback with ID token
@@ -287,7 +297,11 @@ export class MeCabalGoogleAuth {
 
   // Sign out from Google
   static async signOutFromGoogle(): Promise<void> {
-    try {
+    console.log('⚠️ Google Sign-Out is disabled for Expo Go');
+    // Clear local tokens
+    await AsyncStorage.multiRemove(['auth_token', 'refresh_token']);
+
+    /* try {
       console.log('🚪 Signing out from Google...');
 
       // Sign out from Google
@@ -301,36 +315,48 @@ export class MeCabalGoogleAuth {
       console.error('❌ Google Sign-Out failed:', error);
       // Still clear local tokens even if Google sign-out fails
       await AsyncStorage.multiRemove(['auth_token', 'refresh_token']);
-    }
+    } */
   }
 
   // Check if user is signed in to Google
   static async isSignedIn(): Promise<boolean> {
-    try {
+    console.log('⚠️ Google sign-in check is disabled for Expo Go');
+    return false;
+
+    /* try {
       await this.configure();
       const isSignedIn = await GoogleSignin.isSignedIn();
       return isSignedIn;
     } catch (error) {
       console.error('Error checking Google sign-in status:', error);
       return false;
-    }
+    } */
   }
 
   // Get current Google user info
   static async getCurrentGoogleUser(): Promise<any | null> {
-    try {
+    console.log('⚠️ Get current Google user is disabled for Expo Go');
+    return null;
+
+    /* try {
       await this.configure();
       const userInfo = await GoogleSignin.getCurrentUser();
       return userInfo;
     } catch (error) {
       console.error('Error getting current Google user:', error);
       return null;
-    }
+    } */
   }
 
   // Link Google account to existing user
   static async linkGoogleAccount(): Promise<AuthResponse> {
-    try {
+    console.log('⚠️ Google account linking is disabled for Expo Go');
+    return {
+      success: false,
+      error: 'Google account linking requires a custom build and is not available in Expo Go',
+    };
+
+    /* try {
       // Ensure Google Sign-In is configured
       await this.configure();
 
@@ -343,7 +369,7 @@ export class MeCabalGoogleAuth {
 
       // Sign in with Google
       const userInfo = await GoogleSignin.signIn();
-      
+
       if (!userInfo.idToken) {
         throw new Error('No ID token received from Google');
       }
@@ -382,7 +408,7 @@ export class MeCabalGoogleAuth {
         success: false,
         error: error.message || 'Failed to link Google account',
       };
-    }
+    } */
   }
 
   // Unlink Google account from user
@@ -418,7 +444,11 @@ export class MeCabalGoogleAuth {
 
   // Revoke Google access (sign out and revoke tokens)
   static async revokeGoogleAccess(): Promise<void> {
-    try {
+    console.log('⚠️ Google access revocation is disabled for Expo Go');
+    // Clear local tokens
+    await AsyncStorage.multiRemove(['auth_token', 'refresh_token']);
+
+    /* try {
       console.log('🔄 Revoking Google access...');
 
       // Revoke access and sign out
@@ -433,7 +463,7 @@ export class MeCabalGoogleAuth {
       console.error('❌ Google access revocation failed:', error);
       // Still clear local tokens
       await AsyncStorage.multiRemove(['auth_token', 'refresh_token']);
-    }
+    } */
   }
 
   // Get Google Sign-In status for debugging
@@ -443,7 +473,15 @@ export class MeCabalGoogleAuth {
     hasPlayServices: boolean;
     currentUser: any | null;
   }> {
-    try {
+    console.log('⚠️ Google Sign-In status is disabled for Expo Go');
+    return {
+      isConfigured: false,
+      isSignedIn: false,
+      hasPlayServices: false,
+      currentUser: null,
+    };
+
+    /* try {
       const isConfigured = this.isConfigured;
       const isSignedIn = await this.isSignedIn();
       const hasPlayServices = await GoogleSignin.hasPlayServices();
@@ -463,19 +501,22 @@ export class MeCabalGoogleAuth {
         hasPlayServices: false,
         currentUser: null,
       };
-    }
+    } */
   }
 
   // Helper: Check if Google Sign-In is available on this device
   static async isGoogleSignInAvailable(): Promise<boolean> {
-    try {
+    console.log('⚠️ Google Sign-In availability check is disabled for Expo Go');
+    return false;
+
+    /* try {
       await this.configure();
       const hasPlayServices = await GoogleSignin.hasPlayServices();
       return hasPlayServices;
     } catch (error) {
       console.error('Google Sign-In not available:', error);
       return false;
-    }
+    } */
   }
 }
 

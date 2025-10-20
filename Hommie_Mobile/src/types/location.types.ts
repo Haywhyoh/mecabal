@@ -272,7 +272,7 @@ export interface LocationContextActions {
   setLoadingLocation: (loading: boolean) => void;
   setLocationError: (error: string | null) => void;
   getUserLocations: () => Promise<void>;
-  setPrimaryLocation: (location: UserLocation) => Promise<void>;
+  setLocationAsPrimary: (location: UserLocation) => Promise<void>;
   addUserLocation: (location: Omit<UserLocation, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   updateUserLocation: (locationId: string, updates: Partial<UserLocation>) => Promise<void>;
   deleteUserLocation: (locationId: string) => Promise<void>;
@@ -280,6 +280,16 @@ export interface LocationContextActions {
   getRecommendations: (latitude: number, longitude: number) => Promise<void>;
   saveUserLocation: (location: Omit<UserLocation, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   clearLocationSelection: () => void;
+  
+  // Offline support
+  syncOfflineData: () => Promise<void>;
+  getOfflineStatus: () => Promise<{
+    isOnline: boolean;
+    hasOfflineData: boolean;
+    queueLength: number;
+    lastSyncTime: Date | null;
+  }>;
+  clearOfflineCache: () => Promise<void>;
 }
 
 // ==================== COMPONENT PROPS TYPES ====================

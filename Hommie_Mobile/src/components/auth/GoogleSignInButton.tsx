@@ -14,7 +14,7 @@ import {
   AccessibilityInfo,
 } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
-import { MeCabalGoogleAuth } from '../../services/googleAuth';
+// import { MeCabalGoogleAuth } from '../../services/googleAuth'; // Commented out for Expo Go
 
 interface GoogleSignInButtonProps {
   onSuccess?: () => void;
@@ -53,7 +53,14 @@ const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
       return;
     }
 
-    try {
+    // Google Sign-In disabled for Expo Go
+    Alert.alert(
+      'Feature Not Available',
+      'Google Sign-In requires a custom build and is not available in Expo Go. Please use email or phone sign-in instead.',
+      [{ text: 'OK' }]
+    );
+
+    /* try {
       setIsSigningIn(true);
       onLoading?.(true);
 
@@ -77,9 +84,9 @@ const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
       }
     } catch (error: any) {
       console.error('❌ Google Sign-In error:', error);
-      
+
       let errorMessage = 'Google Sign-In failed. Please try again.';
-      
+
       if (error.message?.includes('cancelled')) {
         errorMessage = 'Sign-in was cancelled';
       } else if (error.message?.includes('network')) {
@@ -91,7 +98,7 @@ const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
       }
 
       onError?.(errorMessage);
-      
+
       // Show user-friendly error alert
       Alert.alert(
         'Sign-In Error',
@@ -101,7 +108,7 @@ const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
     } finally {
       setIsSigningIn(false);
       onLoading?.(false);
-    }
+    } */
   };
 
   const isButtonDisabled = disabled || isSigningIn || isLoading;

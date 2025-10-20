@@ -266,7 +266,7 @@ export class LandmarksController {
     @Param('id') id: string,
     @Body() body: { approved: boolean; reason?: string }
   ) {
-    await this.landmarksService.verifyLandmark(id, body.approved, body.reason);
+    await this.landmarksService.verifyLandmark(id);
     return {
       success: true,
       message: 'Landmark verification updated',

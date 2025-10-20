@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/mecabal.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "splash": {
       "image": "./assets/mecabal.png",
       "resizeMode": "contain",
@@ -14,7 +14,8 @@
     },
     "ios": {
       "supportsTablet": true,
-      "googleServicesFile": "./GoogleService-Info.plist"
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "bundleIdentifier": "com.mecabal.mobile"
     },
     "android": {
       "adaptiveIcon": {
@@ -22,17 +23,18 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "package": "com.anonymous.MeCabal_Mobile"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      "expo-dev-client",
       "expo-secure-store",
       "expo-sqlite",
       "expo-video",
-      "expo-font",
-      "@react-native-google-signin/google-signin"
+      "expo-font"
     ]
   }
 }

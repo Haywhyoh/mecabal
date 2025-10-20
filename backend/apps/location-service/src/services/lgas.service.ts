@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { LocalGovernmentArea, LgaType } from '../../../libs/database/src/entities';
+import { LocalGovernmentArea, LGAType } from '@app/database/entities';
 
 @Injectable()
 export class LgasService {
@@ -10,7 +10,7 @@ export class LgasService {
     private readonly lgaRepository: Repository<LocalGovernmentArea>,
   ) {}
 
-  async getLgasByState(stateId: string, type?: LgaType): Promise<LocalGovernmentArea[]> {
+  async getLgasByState(stateId: string, type?: LGAType): Promise<LocalGovernmentArea[]> {
     const query = this.lgaRepository
       .createQueryBuilder('lga')
       .leftJoinAndSelect('lga.state', 'state')
@@ -68,8 +68,8 @@ export class LgasService {
   async getLgaCountByState(stateId: string): Promise<{ total: number; lga: number; lcda: number }> {
     const [total, lga, lcda] = await Promise.all([
       this.lgaRepository.count({ where: { stateId } }),
-      this.lgaRepository.count({ where: { stateId, type: LgaType.LGA } }),
-      this.lgaRepository.count({ where: { stateId, type: LgaType.LCDA } }),
+      this.lgaRepository.count({ where: { stateId, type: LGAType.LGA } }),
+      this.lgaRepository.count({ where: { stateId, type: LGAType.LCDA } }),
     ]);
 
     return { total, lga, lcda };

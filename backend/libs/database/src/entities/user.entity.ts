@@ -28,7 +28,7 @@ import { NigerianLanguage } from './nigerian-language.entity';
 import { NigerianState } from './nigerian-state.entity';
 import { CulturalBackground } from './cultural-background.entity';
 import { ProfessionalCategory } from './professional-category.entity';
-import { UserLocation } from './user-location.entity';
+// import { UserLocation } from './user-location.entity'; // Removed to avoid circular import
 import type { UserBookmark } from './user-bookmark.entity';
 import type { UserDashboardStats } from './user-dashboard-stats.entity';
 import type { Listing } from './listing.entity';
@@ -304,12 +304,12 @@ export class User {
   professionalCategory?: ProfessionalCategory;
 
   // Location relationships
-  @OneToMany(() => UserLocation, (userLocation) => userLocation.user)
-  userLocations?: UserLocation[];
+  @OneToMany('UserLocation', 'user')
+  userLocations?: any[];
 
-  @OneToOne(() => UserLocation, { nullable: true })
+  @OneToOne('UserLocation', { nullable: true })
   @JoinColumn({ name: 'primary_location_id' })
-  primaryLocation?: UserLocation;
+  primaryLocation?: any;
 
   // Unidirectional relations - no inverse side to avoid circular dependencies
   // Relations are defined only in the child entities (UserBookmark, UserDashboardStats)

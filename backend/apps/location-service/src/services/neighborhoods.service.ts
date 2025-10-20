@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Neighborhood, NeighborhoodType } from '../../../libs/database/src/entities';
+import { Neighborhood, NeighborhoodType } from '@app/database/entities';
 import { CreateNeighborhoodDto, UpdateNeighborhoodDto, NeighborhoodSearchDto } from '../dto/neighborhood.dto';
-import { GoogleMapsService } from '../../../libs/common/src/services/google-maps.service';
+import { GoogleMapsService } from '@app/common/services/google-maps.service';
 
 @Injectable()
 export class NeighborhoodsService {

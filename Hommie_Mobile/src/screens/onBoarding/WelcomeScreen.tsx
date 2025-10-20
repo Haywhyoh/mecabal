@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { COLORS, SPACING, TYPOGRAPHY } from '../../constants';
 import SocialButton from '../../components/SocialButton';
-import { GoogleSignInButton } from '../../components';
+// import { GoogleSignInButton } from '../../components'; // Commented out for Expo Go
 import { useAuth } from '../../contexts/AuthContext';
 import { safeGoBack } from '../../utils/navigationUtils';
 import * as Haptics from 'expo-haptics';
@@ -164,58 +164,60 @@ export default function WelcomeScreen({ navigation, route }: any) {
           <View style={styles.socialButtons}>
             {isSignupMode ? (
               <>
-                <GoogleSignInButton 
+                {/* Google Sign-In commented out for Expo Go */}
+                {/* <GoogleSignInButton
                   buttonText="Continue with Google"
                   onSuccess={handleGoogleSignUp}
                   size="large"
                   variant="default"
                   disabled={isLoading}
                 />
-                
+
                 <View style={styles.separator}>
                   <View style={styles.separatorLine} />
                   <Text style={styles.separatorText}>OR</Text>
                   <View style={styles.separatorLine} />
-                </View>
-                
-                <SocialButton 
-                  provider="apple" 
-                  text="Continue with Apple" 
+                </View> */}
+
+                <SocialButton
+                  provider="apple"
+                  text="Continue with Apple"
                   onPress={handleAppleSignUp}
                   variant="welcome"
                 />
-                <SocialButton 
-                  provider="email" 
-                  text="Continue with Email" 
+                <SocialButton
+                  provider="email"
+                  text="Continue with Email"
                   onPress={handleEmailSignUp}
                   variant="welcome"
                 />
-                <SocialButton 
-                  provider="phone" 
-                  text="Continue with Phone" 
+                <SocialButton
+                  provider="phone"
+                  text="Continue with Phone"
                   onPress={handleJoinCommunity}
                   variant="welcome"
                 />
               </>
             ) : (
               <>
-                <GoogleSignInButton 
+                {/* Google Sign-In commented out for Expo Go */}
+                {/* <GoogleSignInButton
                   buttonText="Sign in with Google"
                   onSuccess={handleGoogleLogin}
                   size="large"
                   variant="default"
                   disabled={isLoading}
                 />
-                
+
                 <View style={styles.separator}>
                   <View style={styles.separatorLine} />
                   <Text style={styles.separatorText}>OR</Text>
                   <View style={styles.separatorLine} />
-                </View>
-                
-                <SocialButton 
-                  provider="email" 
-                  text="Sign in with Email" 
+                </View> */}
+
+                <SocialButton
+                  provider="email"
+                  text="Sign in with Email"
                   onPress={handleEmailLogin}
                   variant="login"
                 />

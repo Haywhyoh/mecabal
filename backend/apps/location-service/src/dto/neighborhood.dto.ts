@@ -1,6 +1,6 @@
 import { IsString, IsEnum, IsBoolean, IsOptional, IsUUID, IsNumber, IsObject, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import { NeighborhoodType } from '../../../libs/database/src/entities';
+import { NeighborhoodType } from '@app/database/entities';
 
 export class CreateNeighborhoodDto {
   @IsString()

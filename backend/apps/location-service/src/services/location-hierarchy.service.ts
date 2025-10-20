@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { State, LocalGovernmentArea, Ward, Neighborhood } from '../../../libs/database/src/entities';
+import { State, LocalGovernmentArea, Ward, Neighborhood } from '@app/database/entities';
 
 export interface LocationHierarchy {
   state: State;

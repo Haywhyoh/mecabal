@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Neighborhood, User } from '../../../libs/database/src/entities';
+import { Neighborhood, User } from '@app/database/entities';
 import { EstateVerificationDto } from '../dto/neighborhood.dto';
 
 export interface EstateVerificationRequest {
@@ -26,67 +26,13 @@ export class EstateManagementService {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  async createEstate(createDto: {
-    name: string;
-    wardId: string;
-    isGated: boolean;
-    requiresVerification: boolean;
-    adminUserId?: string;
-  }): Promise<Neighborhood> {
-    const estate = this.neighborhoodRepository.create({
-      ...createDto,
-      type: 'ESTATE' as any,
-    });
+  // use the detailed version defined later; remove early duplicate
 
-    return this.neighborhoodRepository.save(estate);
-  }
+  // use the detailed version defined later; remove early duplicate
 
-  async verifyEstateResident(
-    userId: string,
-    estateId: string,
-    verificationData: {
-      address: string;
-      moveInDate: string;
-      phone: string;
-      message?: string;
-    }
-  ): Promise<EstateVerificationRequest> {
-    // In a real implementation, this would create a verification request record
-    // For now, we'll simulate the process
-    const verificationRequest: EstateVerificationRequest = {
-      id: `req_${Date.now()}`,
-      userId,
-      estateId,
-      ...verificationData,
-      status: 'PENDING',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+  // use the detailed version defined later; remove early duplicate
 
-    // TODO: Save to database and notify estate admin
-    // await this.verificationRequestRepository.save(verificationRequest);
-    
-    return verificationRequest;
-  }
-
-  async assignEstateAdmin(estateId: string, userId: string): Promise<Neighborhood> {
-    const estate = await this.neighborhoodRepository.findOne({
-      where: { id: estateId },
-    });
-
-    if (!estate) {
-      throw new Error(`Estate with ID ${estateId} not found`);
-    }
-
-    estate.adminUserId = userId;
-    return this.neighborhoodRepository.save(estate);
-  }
-
-  async getEstateMembers(estateId: string): Promise<User[]> {
-    // In a real implementation, this would query a user-location relationship table
-    // For now, we'll return an empty array
-    return [];
-  }
+  // use the detailed version defined later; remove early duplicate
 
   async getEstateVerificationRequests(estateId: string): Promise<EstateVerificationRequest[]> {
     // In a real implementation, this would query the verification requests table

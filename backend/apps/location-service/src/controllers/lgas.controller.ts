@@ -1,6 +1,7 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { LgasService } from '../services/lgas.service';
+import { LGAType } from '@app/database/entities';
 
 @ApiTags('LGAs')
 @Controller('states/:stateId/lgas')
@@ -46,7 +47,8 @@ export class LgasController {
     @Param('stateId') stateId: string,
     @Query('type') type?: 'LGA' | 'LCDA'
   ) {
-    const lgas = await this.lgasService.getLgasByState(stateId, type);
+    const enumType: LGAType | undefined = type as unknown as LGAType | undefined;
+    const lgas = await this.lgasService.getLgasByState(stateId, enumType);
     return {
       success: true,
       data: lgas,

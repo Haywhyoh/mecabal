@@ -33,12 +33,23 @@ const MECABAL_GREEN_LIGHT = '#E8F5E8';
 
 interface LocationSetupScreenProps {
   navigation: any;
-  route: any;
+  route: {
+    params?: {
+      isSignup?: boolean;
+      userDetails?: any;
+      userId?: string;
+      existingUser?: any;
+      onSetupComplete?: () => void;
+    };
+  };
 }
 
 type SetupStep = 'welcome' | 'method-selection' | 'gps-picker' | 'manual-selector' | 'confirmation';
 
 export default function LocationSetupScreenNew({ navigation, route }: LocationSetupScreenProps) {
+  // Route params
+  const { isSignup = false, userDetails, userId, existingUser, onSetupComplete } = route.params || {};
+
   // Context
   const {
     selectedState,
@@ -108,6 +119,16 @@ export default function LocationSetupScreenNew({ navigation, route }: LocationSe
 
   // Handle skip with warning
   const handleSkip = () => {
+    // During registration, location is required
+    if (isSignup) {
+      Alert.alert(
+        'Location Required',
+        'Location is required to complete your registration. This helps us connect you with your neighborhood community.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     if (!showSkipWarning) {
       setShowSkipWarning(true);
       return;
@@ -123,7 +144,11 @@ export default function LocationSetupScreenNew({ navigation, route }: LocationSe
           style: 'destructive',
           onPress: () => {
             // Navigate to next onboarding step
-            navigation.navigate('NextOnboardingStep');
+            if (onSetupComplete) {
+              onSetupComplete();
+            } else {
+              navigation.navigate('ProfileSetupScreen');
+            }
           }
         },
       ]
@@ -155,8 +180,17 @@ export default function LocationSetupScreenNew({ navigation, route }: LocationSe
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
 
-      // Navigate to next onboarding step
-      navigation.navigate('NextOnboardingStep');
+      // Navigate to next step based on context
+      if (isSignup) {
+        // During registration, go to neighborhood recommendation
+        navigation.navigate('NeighborhoodRecommendation');
+      } else if (onSetupComplete) {
+        // If there's a completion callback, use it
+        onSetupComplete();
+      } else {
+        // Default to profile setup
+        navigation.navigate('ProfileSetupScreen');
+      }
     } catch (error) {
       console.error('Error saving location:', error);
       Alert.alert('Error', 'Failed to save your location. Please try again.');
@@ -213,14 +247,16 @@ export default function LocationSetupScreenNew({ navigation, route }: LocationSe
         <Ionicons name="arrow-forward" size={20} color="white" />
       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.skipButton}
-        onPress={handleSkip}
-        accessibilityLabel="Skip location setup"
-        accessibilityRole="button"
-      >
-        <Text style={styles.skipButtonText}>Skip for now</Text>
-      </TouchableOpacity>
+      {!isSignup && (
+        <TouchableOpacity
+          style={styles.skipButton}
+          onPress={handleSkip}
+          accessibilityLabel="Skip location setup"
+          accessibilityRole="button"
+        >
+          <Text style={styles.skipButtonText}>Skip for now</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 

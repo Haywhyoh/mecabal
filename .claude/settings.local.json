@@ -20,7 +20,8 @@
       "Bash(mkdir:*)",
       "Bash(if exist dist rmdir /s /q dist)",
       "Bash(cat:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(npx expo start:*)"
     ],
     "deny": [],
     "ask": []

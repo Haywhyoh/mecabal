@@ -1,7 +1,7 @@
 import { Repository } from 'typeorm';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { UserLocation, UserLocationVerificationStatus } from '../../../libs/database/src/entities';
+import { UserLocation, UserLocationVerificationStatus } from '@app/database';
 
 export interface Point {
   type: 'Point';

@@ -116,3 +116,4 @@ export class Landmark {
   @JoinColumn({ name: 'neighborhood_id' })
   neighborhood: Neighborhood;
 }
+

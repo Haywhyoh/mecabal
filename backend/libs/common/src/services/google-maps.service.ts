@@ -46,10 +46,10 @@ export interface NearbyPlace {
 export class GoogleMapsService {
   private readonly logger = new Logger(GoogleMapsService.name);
   private readonly client: Client;
-  private readonly apiKey: string;
+  private readonly apiKey: string | null;
 
   constructor(private configService: ConfigService) {
-    this.apiKey = this.configService.get<string>('GOOGLE_MAPS_API_KEY');
+    this.apiKey = this.configService.get<string>('GOOGLE_MAPS_API_KEY') ?? null;
     
     if (!this.apiKey) {
       this.logger.warn('GOOGLE_MAPS_API_KEY not found. Google Maps features will be disabled.');
@@ -72,7 +72,7 @@ export class GoogleMapsService {
         params: {
           latlng: { lat: latitude, lng: longitude },
           key: this.apiKey,
-          result_type: ['administrative_area_level_1', 'administrative_area_level_2', 'locality', 'political'],
+          // Narrowing by result_type can cause type friction across SDK versions; omit for compatibility
         },
       });
 
@@ -87,7 +87,7 @@ export class GoogleMapsService {
       // Extract location information
       const state = this.extractComponent(addressComponents, 'administrative_area_level_1');
       const lga = this.extractComponent(addressComponents, 'administrative_area_level_2');
-      const city = this.extractComponent(addressComponents, 'locality') || 
+      const city = this.extractComponent(addressComponents, 'locality') ||
                    this.extractComponent(addressComponents, 'sublocality_level_1') ||
                    this.extractComponent(addressComponents, 'sublocality');
 
@@ -130,23 +130,24 @@ export class GoogleMapsService {
       });
 
       const places: NearbyPlace[] = response.data.results
+        .filter(place => !!place.place_id && !!place.name && !!place.geometry?.location)
         .slice(0, limit)
         .map(place => ({
-          placeId: place.place_id,
-          name: place.name,
-          address: place.vicinity,
+          placeId: place.place_id as string,
+          name: place.name as string,
+          address: (place.vicinity as string) ?? '',
           coordinates: {
-            latitude: place.geometry.location.lat,
-            longitude: place.geometry.location.lng,
+            latitude: (place.geometry!.location.lat as number),
+            longitude: (place.geometry!.location.lng as number),
           },
           distance: this.calculateDistance(
             latitude,
             longitude,
-            place.geometry.location.lat,
-            place.geometry.location.lng
+            place.geometry!.location.lat as number,
+            place.geometry!.location.lng as number
           ),
-          types: place.types,
-          rating: place.rating,
+          types: (place.types ?? []).map(t => String(t)),
+          rating: place.rating as number | undefined,
         }));
 
       return places.sort((a, b) => a.distance - b.distance);
@@ -177,18 +178,18 @@ export class GoogleMapsService {
       const place = response.data.result;
 
       return {
-        placeId: place.place_id,
-        name: place.name,
-        address: place.formatted_address,
+        placeId: place.place_id as string,
+        name: place.name as string,
+        address: (place.formatted_address as string) ?? '',
         coordinates: {
-          latitude: place.geometry.location.lat,
-          longitude: place.geometry.location.lng,
+          latitude: place.geometry!.location.lat as number,
+          longitude: place.geometry!.location.lng as number,
         },
-        types: place.types,
-        rating: place.rating,
-        priceLevel: place.price_level,
-        phoneNumber: place.formatted_phone_number,
-        website: place.website,
+        types: (place.types ?? []).map(t => String(t)),
+        rating: place.rating as number | undefined,
+        priceLevel: place.price_level as number | undefined,
+        phoneNumber: place.formatted_phone_number as string | undefined,
+        website: place.website as string | undefined,
       };
     } catch (error) {
       this.logger.error('Error getting place details:', error);
@@ -220,23 +221,25 @@ export class GoogleMapsService {
         },
       });
 
-      const places: NearbyPlace[] = response.data.results.map(place => ({
-        placeId: place.place_id,
-        name: place.name,
-        address: place.formatted_address,
-        coordinates: {
-          latitude: place.geometry.location.lat,
-          longitude: place.geometry.location.lng,
-        },
-        distance: this.calculateDistance(
-          latitude,
-          longitude,
-          place.geometry.location.lat,
-          place.geometry.location.lng
-        ),
-        types: place.types,
-        rating: place.rating,
-      }));
+      const places: NearbyPlace[] = response.data.results
+        .filter(place => !!place.place_id && !!place.name && !!place.geometry?.location)
+        .map(place => ({
+          placeId: place.place_id as string,
+          name: place.name as string,
+          address: (place.formatted_address as string) ?? '',
+          coordinates: {
+            latitude: (place.geometry!.location.lat as number),
+            longitude: (place.geometry!.location.lng as number),
+          },
+          distance: this.calculateDistance(
+            latitude,
+            longitude,
+            place.geometry!.location.lat as number,
+            place.geometry!.location.lng as number
+          ),
+          types: (place.types ?? []).map(t => String(t)),
+          rating: place.rating as number | undefined,
+        }));
 
       return places.sort((a, b) => a.distance - b.distance);
     } catch (error) {
@@ -345,3 +348,4 @@ export class GoogleMapsService {
     };
   }
 }
+

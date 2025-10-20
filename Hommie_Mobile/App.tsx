@@ -8,6 +8,7 @@ import { Provider as PaperProvider } from 'react-native-paper';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { ProfileProvider } from './src/contexts/ProfileContext';
+import { LocationProvider } from './src/contexts/LocationContext';
 import { logEnvironment, validateEnvironment } from './src/config/environment';
 
 // Import improved screens
@@ -18,6 +19,9 @@ import WelcomeHeroScreen from './src/screens/onBoarding/WelcomeHeroScreen';
 import PhoneVerificationScreen from './src/screens/onBoarding/PhoneVerificationScreen';
 import OTPVerificationScreen from './src/screens/onBoarding/OTPVerificationScreen';
 import LocationSetupScreen from './src/screens/onBoarding/LocationSetupScreen';
+import LocationSetupScreenNew from './src/screens/onBoarding/LocationSetupScreenNew';
+import NeighborhoodRecommendationScreen from './src/screens/onBoarding/NeighborhoodRecommendationScreen';
+import EstateVerificationScreen from './src/screens/onBoarding/EstateVerificationScreen';
 import EmailRegistrationScreen from './src/screens/onBoarding/EmailRegistrationScreen';
 import EmailVerificationScreen from './src/screens/onBoarding/EmailVerificationScreen';
 import EmailLoginScreen from './src/screens/onBoarding/EmailLoginScreen';
@@ -358,11 +362,23 @@ function AppContent() {
               component={OTPVerificationScreen}
             />
             
-            {/* Location Setup with multiple options */}
+            {/* Location Setup with multiple options - NEW DESIGN */}
             <Stack.Screen 
               name="LocationSetup" 
-              component={LocationSetupScreen}
+              component={LocationSetupScreenNew}
               initialParams={{ onSetupComplete: handleLoginSuccess }}
+            />
+            
+            {/* Neighborhood Recommendation Screen */}
+            <Stack.Screen 
+              name="NeighborhoodRecommendation" 
+              component={NeighborhoodRecommendationScreen}
+            />
+            
+            {/* Estate Verification Screen */}
+            <Stack.Screen 
+              name="EstateVerification" 
+              component={EstateVerificationScreen}
             />
             
             {/* Map Picker Screen */}
@@ -391,12 +407,14 @@ function AppContent() {
   );
 }
 
-// Main App component with AuthProvider and ProfileProvider
+// Main App component with AuthProvider, ProfileProvider, and LocationProvider
 export default function App() {
   return (
     <AuthProvider>
       <ProfileProvider>
-        <AppContent />
+        <LocationProvider>
+          <AppContent />
+        </LocationProvider>
       </ProfileProvider>
     </AuthProvider>
   );

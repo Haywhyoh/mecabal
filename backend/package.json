@@ -17,6 +17,7 @@
     "start:social": "nest start social-service --watch",
     "start:messaging": "nest start messaging-service --watch",
     "start:marketplace": "nest start marketplace-service --watch",
+    "start:location": "nest start location-service --watch",
     "start:events": "nest start events-service --watch",
     "start:business": "nest start business-service --watch",
     "build:business": "nest build business-service",

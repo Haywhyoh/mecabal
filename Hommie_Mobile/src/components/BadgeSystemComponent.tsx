@@ -190,7 +190,14 @@ export default function BadgeSystemComponent({
       >
         <View style={[
           styles.badgeIcon,
-          { backgroundColor: isEarned ? badge.color + '20' : '#F5F5F5' },
+          { 
+            backgroundColor: isEarned ? badge.color + '20' : '#F5F5F5',
+            width: compactMode ? 32 : 48,
+            height: compactMode ? 32 : 48,
+            borderRadius: compactMode ? 16 : 24,
+            marginBottom: compactMode ? 0 : 8,
+            marginRight: compactMode ? 8 : 0,
+          },
           canClaim && styles.glowEffect
         ]}>
           <MaterialCommunityIcons 
@@ -600,14 +607,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF9E6',
   },
   badgeIcon: {
-    width: compactMode ? 32 : 48,
-    height: compactMode ? 32 : 48,
-    borderRadius: compactMode ? 16 : 24,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: compactMode ? 0 : 8,
-    marginRight: compactMode ? 8 : 0,
-    marginBottom: compactMode ? 8 : 8,
     position: 'relative',
   },
   glowEffect: {

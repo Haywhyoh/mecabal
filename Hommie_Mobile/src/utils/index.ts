@@ -172,8 +172,13 @@ export const formatFileSize = (bytes: number): string => {
 };
 
 // Check if device is online
-export const isOnline = (): boolean => {
-  return navigator.onLine !== false;
+// Note: This is a synchronous fallback. For full network detection, use networkStatus service
+// Renamed to avoid accidental global/bare references to `isOnline` in Hermes
+export const isDeviceOnlineFallback = (): boolean => {
+  // In React Native, we should use the networkStatus service instead
+  // This is just a fallback that always returns true
+  // Import and use networkStatus.isOnline() for actual network detection
+  return true;
 };
 
 // Sleep function for async operations

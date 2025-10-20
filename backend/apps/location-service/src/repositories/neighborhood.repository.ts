@@ -1,7 +1,7 @@
 import { Repository } from 'typeorm';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Neighborhood } from '../../../libs/database/src/entities';
+import { Neighborhood } from '@app/database/entities';
 
 export interface Polygon {
   type: 'Polygon';
@@ -231,11 +231,12 @@ export class NeighborhoodRepository extends Repository<Neighborhood> {
     this.applyFilters(query, filters);
 
     const results = await query.getRawAndEntities();
-    
-    return results.entities.map((entity, index) => ({
-      ...entity,
-      distance: parseFloat(results.raw[index].distance),
-    }));
+
+    return results.entities.map((entity, index) => {
+      const withDistance = entity as Neighborhood & { distance: number };
+      (withDistance as any).distance = parseFloat(results.raw[index].distance);
+      return withDistance;
+    });
   }
 
   /**

@@ -7,7 +7,7 @@ import {
   Ward, 
   Neighborhood, 
   Landmark 
-} from '../../libs/database/src/entities';
+} from '@app/database/entities';
 
 @Injectable()
 export class LocationServiceService {

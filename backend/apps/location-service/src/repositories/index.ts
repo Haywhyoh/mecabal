@@ -1,3 +1,3 @@
-export * from './neighborhood.repository';
-export * from './landmark.repository';
-export * from './user-location.repository';
+export { NeighborhoodRepository } from './neighborhood.repository';
+export { LandmarkRepository } from './landmark.repository';
+export { UserLocationRepository } from './user-location.repository';

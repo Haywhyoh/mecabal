@@ -61,3 +61,4 @@ export class Ward {
   @OneToMany(() => Neighborhood, (neighborhood) => neighborhood.ward)
   neighborhoods: Neighborhood[];
 }
+

@@ -5,6 +5,8 @@ import React, { createContext, useContext, useEffect, useState, ReactNode, useCa
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import { locationApi } from '../services/api/locationApi';
+import { offlineLocationApi } from '../services/api/offlineLocationApi';
+import { networkStatus } from '../utils/networkStatus';
 import {
   State,
   LGA,
@@ -198,7 +200,7 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) 
     }
   }, [persistState]);
 
-  const setPrimaryLocation = useCallback(async (location: UserLocation) => {
+  const setLocationAsPrimary = useCallback(async (location: UserLocation) => {
     try {
       setIsLoadingLocation(true);
       setLocationError(null);
@@ -395,6 +397,37 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) 
     ]);
   }, [persistState]);
 
+  // Offline support methods
+  const syncOfflineData = useCallback(async () => {
+    try {
+      await offlineLocationApi.syncOfflineData();
+      // Reload user locations after sync
+      await getUserLocations();
+    } catch (error) {
+      console.error('Error syncing offline data:', error);
+    }
+  }, [getUserLocations]);
+
+  const getOfflineStatus = useCallback(async () => {
+    const cacheInfo = await offlineLocationApi.getCacheInfo();
+    return {
+      isOnline: networkStatus.isOnline(),
+      hasOfflineData: cacheInfo.hasOfflineData,
+      queueLength: cacheInfo.queueLength,
+      lastSyncTime: cacheInfo.lastSyncTime,
+    };
+  }, []);
+
+  const clearOfflineCache = useCallback(async () => {
+    try {
+      await offlineLocationApi.clearCache();
+      // Reload data from API
+      await getUserLocations();
+    } catch (error) {
+      console.error('Error clearing offline cache:', error);
+    }
+  }, [getUserLocations]);
+
   // Context value
   const contextValue: LocationContextType = {
     // State
@@ -419,7 +452,7 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) 
     setLoadingLocation: handleSetLoadingLocation,
     setLocationError: handleSetLocationError,
     getUserLocations,
-    setPrimaryLocation,
+    setLocationAsPrimary,
     addUserLocation,
     updateUserLocation,
     deleteUserLocation,
@@ -427,6 +460,11 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) 
     getRecommendations,
     saveUserLocation,
     clearLocationSelection,
+    
+    // Offline support
+    syncOfflineData,
+    getOfflineStatus,
+    clearOfflineCache,
   };
 
   return (

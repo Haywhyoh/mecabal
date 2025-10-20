@@ -9,8 +9,9 @@ import {
   Landmark, 
   User,
   UserLocation
-} from '../../libs/database/src/entities';
-import { GoogleMapsService } from '../../libs/common/src/services/google-maps.service';
+} from '@app/database/entities';
+import { DatabaseModule } from '@app/database';
+import { GoogleMapsService } from '@app/common/services/google-maps.service';
 
 // Controllers
 import { LocationServiceController } from './location-service.controller';
@@ -40,6 +41,7 @@ import { UserLocationRepository } from './repositories/user-location.repository'
 
 @Module({
   imports: [
+    DatabaseModule,
     ConfigModule.forRoot({
       isGlobal: true,
     }),

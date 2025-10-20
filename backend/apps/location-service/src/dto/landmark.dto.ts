@@ -1,5 +1,5 @@
 import { IsString, IsEnum, IsUUID, IsOptional, IsNumber, IsObject, IsArray } from 'class-validator';
-import { LandmarkType, LandmarkVerificationStatus } from '../../../libs/database/src/entities';
+import { LandmarkType, LandmarkVerificationStatus } from '@app/database/entities';
 
 export class CreateLandmarkDto {
   @IsString()
