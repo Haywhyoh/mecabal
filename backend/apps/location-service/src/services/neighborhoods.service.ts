@@ -135,12 +135,9 @@ export class NeighborhoodsService {
     let neighborhoods: Neighborhood[] = [];
     try {
       console.log('Attempting PostGIS query for neighborhoods...');
+      // First try a simple query without complex joins to avoid type mismatches
       neighborhoods = await this.neighborhoodRepository
         .createQueryBuilder('neighborhood')
-        .leftJoinAndSelect('neighborhood.ward', 'ward')
-        .leftJoinAndSelect('ward.lga', 'lga')
-        .leftJoinAndSelect('lga.state', 'state')
-        .leftJoinAndSelect('neighborhood.landmarks', 'landmarks')
         .where(
           'ST_DWithin(neighborhood.boundaries, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), :radius)',
           { lng: longitude, lat: latitude, radius }
@@ -149,6 +146,19 @@ export class NeighborhoodsService {
         .limit(limit)
         .getMany();
       console.log('PostGIS query successful, found', neighborhoods.length, 'neighborhoods');
+      
+      // Now load relations separately to avoid type mismatch issues
+      if (neighborhoods.length > 0) {
+        const neighborhoodIds = neighborhoods.map(n => n.id);
+        neighborhoods = await this.neighborhoodRepository
+          .createQueryBuilder('neighborhood')
+          .leftJoinAndSelect('neighborhood.ward', 'ward')
+          .leftJoinAndSelect('ward.lga', 'lga')
+          .leftJoinAndSelect('lga.state', 'state')
+          .leftJoinAndSelect('neighborhood.landmarks', 'landmarks')
+          .where('neighborhood.id IN (:...ids)', { ids: neighborhoodIds })
+          .getMany();
+      }
     } catch (error) {
       console.warn('PostGIS query failed, falling back to basic neighborhood search:', error);
       // Fallback: get all neighborhoods without PostGIS spatial query
@@ -164,6 +174,7 @@ export class NeighborhoodsService {
         console.log('Fallback query successful, found', neighborhoods.length, 'neighborhoods');
       } catch (fallbackError) {
         console.error('Fallback query also failed:', fallbackError);
+        // Ultimate fallback: return empty array
         neighborhoods = [];
       }
     }
@@ -188,9 +199,9 @@ export class NeighborhoodsService {
 
     return {
       detectedLocation: detectedLocation || {
-        state: 'Lagos',
-        lga: 'Eti-Osa',
-        city: 'Lagos',
+        state: 'Unknown',
+        lga: 'Unknown',
+        city: 'Unknown',
       },
       recommendations: recommendations || [],
     };

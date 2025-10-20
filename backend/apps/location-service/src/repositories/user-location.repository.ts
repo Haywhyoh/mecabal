@@ -426,10 +426,16 @@ export class UserLocationRepository extends Repository<UserLocation> {
     }
 
     await this.userLocationRepo.update(locationId, updateData);
-    return this.userLocationRepo.findOne({
+    const updatedLocation = await this.userLocationRepo.findOne({
       where: { id: locationId },
       relations: ['state', 'lga', 'ward', 'neighborhood']
     });
+    
+    if (!updatedLocation) {
+      throw new Error('Location not found after update');
+    }
+    
+    return updatedLocation;
   }
 
   /**
@@ -470,10 +476,16 @@ export class UserLocationRepository extends Repository<UserLocation> {
     // Set this location as primary
     await this.userLocationRepo.update(locationId, { isPrimary: true });
 
-    return this.userLocationRepo.findOne({
+    const primaryLocation = await this.userLocationRepo.findOne({
       where: { id: locationId },
       relations: ['state', 'lga', 'ward', 'neighborhood']
     });
+    
+    if (!primaryLocation) {
+      throw new Error('Location not found after setting as primary');
+    }
+    
+    return primaryLocation;
   }
 
   /**
