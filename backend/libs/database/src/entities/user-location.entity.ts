@@ -129,3 +129,4 @@ export class UserLocation {
   neighborhood: Neighborhood;
 }
 
+

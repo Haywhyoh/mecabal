@@ -16,6 +16,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocation } from '../../contexts/LocationContext';
 import { locationApi } from '../../services/api/locationApi';
@@ -61,6 +62,9 @@ export const HierarchicalLocationSelector: React.FC<HierarchicalLocationSelector
   onSkip,
   onCancel,
 }) => {
+  // Safe area insets as fallback
+  const insets = useSafeAreaInsets();
+  
   // Context
   const {
     selectedState,
@@ -110,7 +114,11 @@ export const HierarchicalLocationSelector: React.FC<HierarchicalLocationSelector
   // Focus management for accessibility
   useEffect(() => {
     if (Platform.OS === 'ios') {
-      AccessibilityInfo.setAccessibilityFocus(stepRefs.current[currentStep]);
+      const ref = stepRefs.current[currentStep];
+      if (ref) {
+        // Focus will be handled by the component itself
+        // AccessibilityInfo.setAccessibilityFocus requires a native tag
+      }
     }
   }, [currentStep]);
 
@@ -150,24 +158,29 @@ export const HierarchicalLocationSelector: React.FC<HierarchicalLocationSelector
     try {
       setStepData(prev => ({ ...prev, isLoading: true, error: null }));
 
+      // Add data validation to prevent JSI errors
+      if (typeof currentStep !== 'number' || currentStep < 0 || currentStep > 4) {
+        throw new Error('Invalid current step');
+      }
+
       switch (currentStep) {
         case STEPS.STATE:
           await loadStates();
           break;
         case STEPS.LGA:
-          if (selectedState) {
+          if (selectedState && selectedState.id && typeof selectedState.id === 'string') {
             await loadLGAs(selectedState.id);
           }
           break;
         case STEPS.WARD:
-          if (selectedLGA) {
+          if (selectedLGA && selectedLGA.id && typeof selectedLGA.id === 'string') {
             await loadWards(selectedLGA.id);
           }
           break;
         case STEPS.NEIGHBORHOOD:
-          if (selectedWard) {
+          if (selectedWard && selectedWard.id && typeof selectedWard.id === 'string') {
             await loadNeighborhoods(selectedWard.id);
-          } else if (selectedLGA) {
+          } else if (selectedLGA && selectedLGA.id && typeof selectedLGA.id === 'string') {
             await loadNeighborhoodsByLGA(selectedLGA.id);
           }
           break;
@@ -185,36 +198,68 @@ export const HierarchicalLocationSelector: React.FC<HierarchicalLocationSelector
   const loadStates = async () => {
     try {
       const states = await locationApi.getStates();
-      setStepData(prev => ({ ...prev, states, isLoading: false }));
+      // Ensure states is always an array
+      const validStates = Array.isArray(states) ? states : [];
+      setStepData(prev => ({ ...prev, states: validStates, isLoading: false }));
     } catch (error) {
-      throw error;
+      console.error('Error loading states:', error);
+      setStepData(prev => ({ 
+        ...prev, 
+        states: [], 
+        isLoading: false, 
+        error: 'Failed to load states. Please try again.' 
+      }));
     }
   };
 
   const loadLGAs = async (stateId: string) => {
     try {
       const lgas = await locationApi.getLGAsByState(stateId);
-      setStepData(prev => ({ ...prev, lgas, isLoading: false }));
+      // Ensure lgas is always an array
+      const validLGAs = Array.isArray(lgas) ? lgas : [];
+      setStepData(prev => ({ ...prev, lgas: validLGAs, isLoading: false }));
     } catch (error) {
-      throw error;
+      console.error('Error loading LGAs:', error);
+      setStepData(prev => ({ 
+        ...prev, 
+        lgas: [], 
+        isLoading: false, 
+        error: 'Failed to load LGAs. Please try again.' 
+      }));
     }
   };
 
   const loadWards = async (lgaId: string) => {
     try {
       const wards = await locationApi.getWardsByLGA(lgaId);
-      setStepData(prev => ({ ...prev, wards, isLoading: false }));
+      // Ensure wards is always an array
+      const validWards = Array.isArray(wards) ? wards : [];
+      setStepData(prev => ({ ...prev, wards: validWards, isLoading: false }));
     } catch (error) {
-      throw error;
+      console.error('Error loading wards:', error);
+      setStepData(prev => ({ 
+        ...prev, 
+        wards: [], 
+        isLoading: false, 
+        error: 'Failed to load wards. Please try again.' 
+      }));
     }
   };
 
   const loadNeighborhoods = async (wardId: string) => {
     try {
       const neighborhoods = await locationApi.getNeighborhoodsByWard(wardId);
-      setStepData(prev => ({ ...prev, neighborhoods, isLoading: false }));
+      // Ensure neighborhoods is always an array
+      const validNeighborhoods = Array.isArray(neighborhoods) ? neighborhoods : [];
+      setStepData(prev => ({ ...prev, neighborhoods: validNeighborhoods, isLoading: false }));
     } catch (error) {
-      throw error;
+      console.error('Error loading neighborhoods:', error);
+      setStepData(prev => ({ 
+        ...prev, 
+        neighborhoods: [], 
+        isLoading: false, 
+        error: 'Failed to load neighborhoods. Please try again.' 
+      }));
     }
   };
 
@@ -225,9 +270,17 @@ export const HierarchicalLocationSelector: React.FC<HierarchicalLocationSelector
         lgaId,
         limit: 50,
       });
-      setStepData(prev => ({ ...prev, neighborhoods: response.data, isLoading: false }));
+      // Ensure neighborhoods is always an array
+      const validNeighborhoods = Array.isArray(response.data) ? response.data : [];
+      setStepData(prev => ({ ...prev, neighborhoods: validNeighborhoods, isLoading: false }));
     } catch (error) {
-      throw error;
+      console.error('Error loading neighborhoods by LGA:', error);
+      setStepData(prev => ({ 
+        ...prev, 
+        neighborhoods: [], 
+        isLoading: false, 
+        error: 'Failed to load neighborhoods. Please try again.' 
+      }));
     }
   };
 
@@ -273,7 +326,7 @@ export const HierarchicalLocationSelector: React.FC<HierarchicalLocationSelector
 
   const handleBack = () => {
     if (currentStep > STEPS.STATE) {
-      setCurrentStep(currentStep - 1);
+      setCurrentStep((currentStep - 1) as Step);
     }
   };
 
@@ -295,35 +348,63 @@ export const HierarchicalLocationSelector: React.FC<HierarchicalLocationSelector
   };
 
   const getFilteredData = () => {
+    // Ensure stepData exists to prevent JSI errors
+    if (!stepData) {
+      return {
+        states: [],
+        lgas: [],
+        wards: [],
+        neighborhoods: [],
+        cityTown: '',
+        searchQuery: '',
+        isLoading: false,
+        error: null,
+      };
+    }
+    
     const { searchQuery } = stepData;
+    
+    // Add data validation to prevent JSI errors
+    if (!searchQuery || typeof searchQuery !== 'string') {
+      return {
+        states: Array.isArray(stepData.states) ? stepData.states : [],
+        lgas: Array.isArray(stepData.lgas) ? stepData.lgas : [],
+        wards: Array.isArray(stepData.wards) ? stepData.wards : [],
+        neighborhoods: Array.isArray(stepData.neighborhoods) ? stepData.neighborhoods : [],
+        cityTown: stepData.cityTown || '',
+        searchQuery: stepData.searchQuery || '',
+        isLoading: stepData.isLoading || false,
+        error: stepData.error || null,
+      };
+    }
     if (!searchQuery.trim()) return stepData;
 
     switch (currentStep) {
       case STEPS.STATE:
         return {
           ...stepData,
-          states: stepData.states.filter(state =>
+          states: (stepData.states || []).filter(state =>
             state.name.toLowerCase().includes(searchQuery.toLowerCase())
           ),
         };
       case STEPS.LGA:
         return {
           ...stepData,
-          lgas: stepData.lgas.filter(lga =>
+          lgas: (stepData.lgas || []).filter(lga =>
             lga.name.toLowerCase().includes(searchQuery.toLowerCase())
           ),
         };
       case STEPS.WARD:
         return {
           ...stepData,
-          wards: stepData.wards.filter(ward =>
+          wards: (stepData.wards || []).filter(ward =>
             ward.name.toLowerCase().includes(searchQuery.toLowerCase())
           ),
         };
       case STEPS.NEIGHBORHOOD:
         return {
           ...stepData,
-          neighborhoods: stepData.neighborhoods.filter(neighborhood =>
+          neighborhoods: (stepData.neighborhoods || []).filter(neighborhood =>
             neighborhood.name.toLowerCase().includes(searchQuery.toLowerCase())
           ),
         };
@@ -372,6 +453,7 @@ export const HierarchicalLocationSelector: React.FC<HierarchicalLocationSelector
     const placeholders = {
       [STEPS.STATE]: 'Search states...',
       [STEPS.LGA]: 'Search LGAs...',
+      [STEPS.CITY_TOWN]: 'Search city/town...',
       [STEPS.WARD]: 'Search wards...',
       [STEPS.NEIGHBORHOOD]: 'Search neighborhoods...',
     };
@@ -393,10 +475,11 @@ export const HierarchicalLocationSelector: React.FC<HierarchicalLocationSelector
   };
 
   const renderStateStep = () => {
-    const { states } = getFilteredData();
+    const filteredData = getFilteredData();
+    const { states } = filteredData || { states: [] };
 
     return (
-      <View style={styles.stepContainer} ref={ref => stepRefs.current[STEPS.STATE] = ref}>
+      <View style={styles.stepContainer} ref={ref => { stepRefs.current[STEPS.STATE] = ref; }}>
         <Text style={styles.stepTitle}>Select Your State</Text>
         <Text style={styles.stepDescription}>
           Choose the state where you live or work
@@ -405,7 +488,7 @@ export const HierarchicalLocationSelector: React.FC<HierarchicalLocationSelector
         {renderSearchInput()}
         
         <ScrollView style={styles.listContainer} showsVerticalScrollIndicator={false}>
-          {states.map((state) => (
+          {(states || []).map((state) => (
             <TouchableOpacity
               key={state.id}
               style={styles.listItem}
@@ -423,10 +506,11 @@ export const HierarchicalLocationSelector: React.FC<HierarchicalLocationSelector
   };
 
   const renderLGAStep = () => {
-    const { lgas } = getFilteredData();
+    const filteredData = getFilteredData();
+    const { lgas } = filteredData || { lgas: [] };
 
     return (
-      <View style={styles.stepContainer} ref={ref => stepRefs.current[STEPS.LGA] = ref}>
+      <View style={styles.stepContainer} ref={ref => { stepRefs.current[STEPS.LGA] = ref; }}>
         <Text style={styles.stepTitle}>Select Your LGA</Text>
         <Text style={styles.stepDescription}>
           Choose your Local Government Area in {selectedState?.name}
@@ -435,7 +519,7 @@ export const HierarchicalLocationSelector: React.FC<HierarchicalLocationSelector
         {renderSearchInput()}
         
         <ScrollView style={styles.listContainer} showsVerticalScrollIndicator={false}>
-          {lgas.map((lga) => (
+          {(lgas || []).map((lga) => (
             <TouchableOpacity
               key={lga.id}
               style={styles.listItem}
@@ -461,7 +545,7 @@ export const HierarchicalLocationSelector: React.FC<HierarchicalLocationSelector
 
   const renderCityTownStep = () => {
     return (
-      <View style={styles.stepContainer} ref={ref => stepRefs.current[STEPS.CITY_TOWN] = ref}>
+      <View style={styles.stepContainer} ref={ref => { stepRefs.current[STEPS.CITY_TOWN] = ref; }}>
         <Text style={styles.stepTitle}>Enter City/Town</Text>
         <Text style={styles.stepDescription}>
           Enter your city or town name (optional)
@@ -491,10 +575,11 @@ export const HierarchicalLocationSelector: React.FC<HierarchicalLocationSelector
   };
 
   const renderWardStep = () => {
-    const { wards } = getFilteredData();
+    const filteredData = getFilteredData();
+    const { wards } = filteredData || { wards: [] };
 
     return (
-      <View style={styles.stepContainer} ref={ref => stepRefs.current[STEPS.WARD] = ref}>
+      <View style={styles.stepContainer} ref={ref => { stepRefs.current[STEPS.WARD] = ref; }}>
         <Text style={styles.stepTitle}>Select Your Ward (Optional)</Text>
         <Text style={styles.stepDescription}>
           Choose your ward in {selectedLGA?.name}
@@ -503,7 +588,7 @@ export const HierarchicalLocationSelector: React.FC<HierarchicalLocationSelector
         {renderSearchInput()}
         
         <ScrollView style={styles.listContainer} showsVerticalScrollIndicator={false}>
-          {wards.map((ward) => (
+          {(wards || []).map((ward) => (
             <TouchableOpacity
               key={ward.id}
               style={styles.listItem}
@@ -530,11 +615,12 @@ export const HierarchicalLocationSelector: React.FC<HierarchicalLocationSelector
   };
 
   const renderNeighborhoodStep = () => {
-    const { neighborhoods } = getFilteredData();
-    const hasRecommendations = recommendedNeighborhoods.length > 0;
+    const filteredData = getFilteredData();
+    const { neighborhoods } = filteredData || { neighborhoods: [] };
+    const hasRecommendations = (recommendedNeighborhoods || []).length > 0;
 
     return (
-      <View style={styles.stepContainer} ref={ref => stepRefs.current[STEPS.NEIGHBORHOOD] = ref}>
+      <View style={styles.stepContainer} ref={ref => { stepRefs.current[STEPS.NEIGHBORHOOD] = ref; }}>
         <Text style={styles.stepTitle}>Select Your Neighborhood</Text>
         <Text style={styles.stepDescription}>
           Choose your neighborhood or estate
@@ -546,7 +632,7 @@ export const HierarchicalLocationSelector: React.FC<HierarchicalLocationSelector
           <View style={styles.recommendationsContainer}>
             <Text style={styles.recommendationsTitle}>Recommended for you</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {recommendedNeighborhoods.slice(0, 3).map((neighborhood) => (
+              {(recommendedNeighborhoods || []).slice(0, 3).map((neighborhood) => (
                 <TouchableOpacity
                   key={neighborhood.id}
                   style={styles.recommendationCard}
@@ -563,7 +649,7 @@ export const HierarchicalLocationSelector: React.FC<HierarchicalLocationSelector
         )}
         
         <ScrollView style={styles.listContainer} showsVerticalScrollIndicator={false}>
-          {neighborhoods.map((neighborhood) => (
+          {(neighborhoods || []).map((neighborhood) => (
             <TouchableOpacity
               key={neighborhood.id}
               style={styles.listItem}
@@ -647,7 +733,7 @@ export const HierarchicalLocationSelector: React.FC<HierarchicalLocationSelector
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.headerButton}

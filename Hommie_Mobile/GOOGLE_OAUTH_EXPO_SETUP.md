@@ -102,3 +102,4 @@ EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=your_google_ios_client_id_here
 
 The development build approach is recommended for production apps, while the expoGoogleAuth approach is better for quick testing in Expo Go.
 
+

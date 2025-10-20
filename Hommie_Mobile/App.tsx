@@ -5,6 +5,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { StatusBar } from 'expo-status-bar';
 import { Provider as PaperProvider } from 'react-native-paper';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { ProfileProvider } from './src/contexts/ProfileContext';
@@ -410,12 +411,14 @@ function AppContent() {
 // Main App component with AuthProvider, ProfileProvider, and LocationProvider
 export default function App() {
   return (
-    <AuthProvider>
-      <ProfileProvider>
-        <LocationProvider>
-          <AppContent />
-        </LocationProvider>
-      </ProfileProvider>
-    </AuthProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <ProfileProvider>
+          <LocationProvider>
+            <AppContent />
+          </LocationProvider>
+        </ProfileProvider>
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }

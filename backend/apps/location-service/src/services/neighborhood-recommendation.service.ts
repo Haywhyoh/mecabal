@@ -46,17 +46,18 @@ export class NeighborhoodRecommendationService {
     const limit = 20;
 
     // Get nearby neighborhoods using PostGIS
+    // Use COALESCE to check both boundaries (Polygon) and center point (Point) for neighborhoods without boundaries
+    // Don't load landmarks to avoid potential integer/uuid type mismatch issues
     const neighborhoods = await this.neighborhoodRepository
       .createQueryBuilder('neighborhood')
       .leftJoinAndSelect('neighborhood.ward', 'ward')
       .leftJoinAndSelect('ward.lga', 'lga')
       .leftJoinAndSelect('lga.state', 'state')
-      .leftJoinAndSelect('neighborhood.landmarks', 'landmarks')
       .where(
-        'ST_DWithin(neighborhood.boundaries, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), :maxDistance)',
+        'ST_DWithin(COALESCE(neighborhood.boundaries, ST_SetSRID(ST_MakePoint(neighborhood.center_longitude, neighborhood.center_latitude), 4326)), ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), :maxDistance)',
         { lng: longitude, lat: latitude, maxDistance }
       )
-      .orderBy('ST_Distance(neighborhood.boundaries, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326))', 'ASC')
+      .orderBy('ST_Distance(COALESCE(neighborhood.boundaries, ST_SetSRID(ST_MakePoint(neighborhood.center_longitude, neighborhood.center_latitude), 4326)), ST_SetSRID(ST_MakePoint(:lng, :lat), 4326))', 'ASC')
       .limit(limit)
       .getMany();
 
@@ -112,7 +113,7 @@ export class NeighborhoodRecommendationService {
           distance,
           score,
           reasons,
-          landmarks: neighborhood.landmarks || [],
+          landmarks: [], // Landmarks not loaded to avoid type mismatch issues
           memberCount,
         };
       })
@@ -136,10 +137,10 @@ export class NeighborhoodRecommendationService {
       .leftJoinAndSelect('ward.lga', 'lga')
       .leftJoinAndSelect('lga.state', 'state')
       .where(
-        'ST_DWithin(neighborhood.boundaries, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), :radius)',
+        'ST_DWithin(COALESCE(neighborhood.boundaries, ST_SetSRID(ST_MakePoint(neighborhood.center_longitude, neighborhood.center_latitude), 4326)), ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), :radius)',
         { lng: longitude, lat: latitude, radius }
       )
-      .orderBy('ST_Distance(neighborhood.boundaries, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326))', 'ASC')
+      .orderBy('ST_Distance(COALESCE(neighborhood.boundaries, ST_SetSRID(ST_MakePoint(neighborhood.center_longitude, neighborhood.center_latitude), 4326)), ST_SetSRID(ST_MakePoint(:lng, :lat), 4326))', 'ASC')
       .getMany();
   }
 
@@ -303,6 +304,14 @@ export class NeighborhoodRecommendationService {
   }
 
   private getNeighborhoodCenter(neighborhood: Neighborhood): { lat: number; lng: number } {
+    // Prefer center coordinates if available
+    if (neighborhood.centerLatitude && neighborhood.centerLongitude) {
+      return {
+        lat: Number(neighborhood.centerLatitude),
+        lng: Number(neighborhood.centerLongitude),
+      };
+    }
+
     // If boundaries exist, calculate center
     if (neighborhood.boundaries?.coordinates?.[0]) {
       const coords = neighborhood.boundaries.coordinates[0];
@@ -331,10 +340,11 @@ export class NeighborhoodRecommendationService {
     const distanceScore = Math.max(0, 1 - (distance / maxDistance));
     score += distanceScore * 0.4;
 
-    // Landmark factor (more landmarks is better)
-    const landmarkCount = neighborhood.landmarks?.length || 0;
-    const landmarkScore = Math.min(1, landmarkCount / 10); // Normalize to 0-1
-    score += landmarkScore * 0.2;
+    // Landmark factor - skip for now as landmarks are not loaded to avoid type mismatch
+    // In the future, query landmarks separately if needed
+    // const landmarkCount = neighborhood.landmarks?.length || 0;
+    // const landmarkScore = Math.min(1, landmarkCount / 10); // Normalize to 0-1
+    // score += landmarkScore * 0.2;
 
     // Type factor (estates might be preferred)
     if (neighborhood.type === 'ESTATE') {
@@ -362,9 +372,10 @@ export class NeighborhoodRecommendationService {
       reasons.push('Close to your location');
     }
 
-    if (neighborhood.landmarks && neighborhood.landmarks.length > 0) {
-      reasons.push(`Has ${neighborhood.landmarks.length} nearby landmarks`);
-    }
+    // Skip landmark reason as landmarks are not loaded to avoid type mismatch
+    // if (neighborhood.landmarks && neighborhood.landmarks.length > 0) {
+    //   reasons.push(`Has ${neighborhood.landmarks.length} nearby landmarks`);
+    // }
 
     if (neighborhood.type === 'ESTATE') {
       reasons.push('Gated community with security');

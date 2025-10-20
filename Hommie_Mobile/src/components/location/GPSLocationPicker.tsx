@@ -226,7 +226,7 @@ export const GPSLocationPicker: React.FC<GPSLocationPickerProps> = ({
       });
 
       // Create markers for neighborhoods
-      const neighborhoodMarkers: MapMarker[] = response.recommendations.map((rec, index) => ({
+      const neighborhoodMarkers: MapMarker[] = (response.data?.recommendations || []).map((rec, index) => ({
         id: `neighborhood-${rec.neighborhood.id}`,
         coordinate: {
           latitude: rec.neighborhood.coordinates?.latitude || selectedCoordinate.latitude + (index * 0.001),
@@ -259,8 +259,8 @@ export const GPSLocationPicker: React.FC<GPSLocationPickerProps> = ({
         limit: 1,
       });
 
-      if (response.recommendations.length > 0) {
-        const nearestNeighborhood = response.recommendations[0].neighborhood;
+      if (response.data?.recommendations?.length > 0) {
+        const nearestNeighborhood = response.data.recommendations[0].neighborhood;
         const landmarks = await locationApi.getNearbyLandmarks(nearestNeighborhood.id);
         setLandmarks(landmarks);
 
@@ -489,7 +489,7 @@ export const GPSLocationPicker: React.FC<GPSLocationPickerProps> = ({
       animationType="slide"
       presentationStyle="pageSheet"
     >
-      <SafeAreaView style={styles.modalContainer}>
+      <SafeAreaView style={styles.modalContainer} edges={['top', 'left', 'right']}>
         <View style={styles.modalHeader}>
           <TouchableOpacity
             style={styles.modalButton}
@@ -533,7 +533,7 @@ export const GPSLocationPicker: React.FC<GPSLocationPickerProps> = ({
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.headerButton}

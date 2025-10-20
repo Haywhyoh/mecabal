@@ -336,3 +336,4 @@ class LocationPermissionsService {
 export const locationPermissions = LocationPermissionsService.getInstance();
 export default locationPermissions;
 
+

@@ -136,18 +136,20 @@ export class NeighborhoodsService {
     try {
       console.log('Attempting PostGIS query for neighborhoods...');
       // First try a simple query without complex joins to avoid type mismatches
+      // Use COALESCE to check both boundaries (Polygon) and center point (Point) for neighborhoods without boundaries
       neighborhoods = await this.neighborhoodRepository
         .createQueryBuilder('neighborhood')
         .where(
-          'ST_DWithin(neighborhood.boundaries, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), :radius)',
+          'ST_DWithin(COALESCE(neighborhood.boundaries, ST_SetSRID(ST_MakePoint(neighborhood.center_longitude, neighborhood.center_latitude), 4326)), ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), :radius)',
           { lng: longitude, lat: latitude, radius }
         )
-        .orderBy('ST_Distance(neighborhood.boundaries, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326))', 'ASC')
+        .orderBy('ST_Distance(COALESCE(neighborhood.boundaries, ST_SetSRID(ST_MakePoint(neighborhood.center_longitude, neighborhood.center_latitude), 4326)), ST_SetSRID(ST_MakePoint(:lng, :lat), 4326))', 'ASC')
         .limit(limit)
         .getMany();
       console.log('PostGIS query successful, found', neighborhoods.length, 'neighborhoods');
       
       // Now load relations separately to avoid type mismatch issues
+      // Don't load landmarks to avoid potential integer/uuid type mismatch with neighborhood_id
       if (neighborhoods.length > 0) {
         const neighborhoodIds = neighborhoods.map(n => n.id);
         neighborhoods = await this.neighborhoodRepository
@@ -155,20 +157,19 @@ export class NeighborhoodsService {
           .leftJoinAndSelect('neighborhood.ward', 'ward')
           .leftJoinAndSelect('ward.lga', 'lga')
           .leftJoinAndSelect('lga.state', 'state')
-          .leftJoinAndSelect('neighborhood.landmarks', 'landmarks')
           .where('neighborhood.id IN (:...ids)', { ids: neighborhoodIds })
           .getMany();
       }
     } catch (error) {
       console.warn('PostGIS query failed, falling back to basic neighborhood search:', error);
       // Fallback: get all neighborhoods without PostGIS spatial query
+      // Don't join landmarks to avoid potential type mismatch issues
       try {
         neighborhoods = await this.neighborhoodRepository
           .createQueryBuilder('neighborhood')
           .leftJoinAndSelect('neighborhood.ward', 'ward')
           .leftJoinAndSelect('ward.lga', 'lga')
           .leftJoinAndSelect('lga.state', 'state')
-          .leftJoinAndSelect('neighborhood.landmarks', 'landmarks')
           .limit(limit)
           .getMany();
         console.log('Fallback query successful, found', neighborhoods.length, 'neighborhoods');
@@ -181,18 +182,27 @@ export class NeighborhoodsService {
 
     // Calculate distances and prepare recommendations
     const recommendations = neighborhoods.map(neighborhood => {
-      // Calculate distance (simplified - in real implementation, use PostGIS)
+      // Calculate distance using center coordinates or boundaries
+      let targetLat = neighborhood.centerLatitude;
+      let targetLng = neighborhood.centerLongitude;
+
+      // Fallback to boundaries if center coordinates not available
+      if (!targetLat || !targetLng) {
+        targetLat = neighborhood.boundaries?.coordinates?.[0]?.[0]?.[1] || 0;
+        targetLng = neighborhood.boundaries?.coordinates?.[0]?.[0]?.[0] || 0;
+      }
+
       const distance = this.calculateDistance(
         latitude,
         longitude,
-        neighborhood.boundaries?.coordinates?.[0]?.[0]?.[1] || 0,
-        neighborhood.boundaries?.coordinates?.[0]?.[0]?.[0] || 0
+        targetLat,
+        targetLng
       );
 
       return {
         neighborhood,
         distance,
-        landmarks: neighborhood.landmarks || [],
+        landmarks: [], // Landmarks not loaded to avoid type mismatch issues
         memberCount: 0, // This would come from user count query
       };
     });
@@ -234,10 +244,10 @@ export class NeighborhoodsService {
       .leftJoinAndSelect('ward.lga', 'lga')
       .leftJoinAndSelect('lga.state', 'state')
       .where(
-        'ST_DWithin(neighborhood.boundaries, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), :radius)',
+        'ST_DWithin(COALESCE(neighborhood.boundaries, ST_SetSRID(ST_MakePoint(neighborhood.center_longitude, neighborhood.center_latitude), 4326)), ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), :radius)',
         { lng: longitude, lat: latitude, radius }
       )
-      .orderBy('ST_Distance(neighborhood.boundaries, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326))', 'ASC')
+      .orderBy('ST_Distance(COALESCE(neighborhood.boundaries, ST_SetSRID(ST_MakePoint(neighborhood.center_longitude, neighborhood.center_latitude), 4326)), ST_SetSRID(ST_MakePoint(:lng, :lat), 4326))', 'ASC')
       .getMany();
   }
 

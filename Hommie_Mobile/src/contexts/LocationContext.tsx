@@ -345,7 +345,7 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) 
         limit: 10,
       });
       
-      setRecommendedNeighborhoods(response.recommendations.map(rec => rec.neighborhood));
+      setRecommendedNeighborhoods(response.data?.recommendations?.map(rec => rec.neighborhood) || []);
       
     } catch (error) {
       console.error('Error getting recommendations:', error);
