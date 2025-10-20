@@ -21,6 +21,7 @@ import { WardsController } from './controllers/wards.controller';
 import { NeighborhoodsController } from './controllers/neighborhoods.controller';
 import { LandmarksController } from './controllers/landmarks.controller';
 import { VerificationController } from './controllers/verification.controller';
+import { UserLocationsController } from './controllers/user-locations.controller';
 
 // Services
 import { LocationServiceService } from './location-service.service';
@@ -63,6 +64,7 @@ import { UserLocationRepository } from './repositories/user-location.repository'
     NeighborhoodsController,
     LandmarksController,
     VerificationController,
+    UserLocationsController,
   ],
   providers: [
     LocationServiceService,

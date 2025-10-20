@@ -401,6 +401,82 @@ export class UserLocationRepository extends Repository<UserLocation> {
   }
 
   /**
+   * Create a new user location
+   */
+  async createUserLocation(locationData: Partial<UserLocation>): Promise<UserLocation> {
+    const userLocation = this.userLocationRepo.create(locationData);
+    return this.userLocationRepo.save(userLocation);
+  }
+
+  /**
+   * Update a user location
+   */
+  async updateUserLocation(
+    locationId: string,
+    updateData: Partial<UserLocation>,
+    userId: string
+  ): Promise<UserLocation> {
+    // First verify the location belongs to the user
+    const existingLocation = await this.userLocationRepo.findOne({
+      where: { id: locationId, userId }
+    });
+
+    if (!existingLocation) {
+      throw new Error('Location not found or does not belong to user');
+    }
+
+    await this.userLocationRepo.update(locationId, updateData);
+    return this.userLocationRepo.findOne({
+      where: { id: locationId },
+      relations: ['state', 'lga', 'ward', 'neighborhood']
+    });
+  }
+
+  /**
+   * Delete a user location
+   */
+  async deleteUserLocation(locationId: string, userId: string): Promise<void> {
+    // First verify the location belongs to the user
+    const existingLocation = await this.userLocationRepo.findOne({
+      where: { id: locationId, userId }
+    });
+
+    if (!existingLocation) {
+      throw new Error('Location not found or does not belong to user');
+    }
+
+    await this.userLocationRepo.delete(locationId);
+  }
+
+  /**
+   * Set a location as primary (and unset others)
+   */
+  async setPrimaryLocation(locationId: string, userId: string): Promise<UserLocation> {
+    // First verify the location belongs to the user
+    const existingLocation = await this.userLocationRepo.findOne({
+      where: { id: locationId, userId }
+    });
+
+    if (!existingLocation) {
+      throw new Error('Location not found or does not belong to user');
+    }
+
+    // Unset all other primary locations for this user
+    await this.userLocationRepo.update(
+      { userId, isPrimary: true },
+      { isPrimary: false }
+    );
+
+    // Set this location as primary
+    await this.userLocationRepo.update(locationId, { isPrimary: true });
+
+    return this.userLocationRepo.findOne({
+      where: { id: locationId },
+      relations: ['state', 'lga', 'ward', 'neighborhood']
+    });
+  }
+
+  /**
    * Apply common filters to queries
    */
   private applyFilters(query: any, filters?: UserLocationFilters): void {

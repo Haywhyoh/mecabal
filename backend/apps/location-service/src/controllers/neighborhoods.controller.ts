@@ -47,28 +47,39 @@ export class NeighborhoodsController {
     @Query('isGated') isGated?: boolean,
     @Query('includeSubNeighborhoods') includeSubNeighborhoods?: boolean
   ) {
-    if (wardId) {
-      const neighborhoods = await this.neighborhoodsService.getNeighborhoodsByWard(
-        wardId, 
-        { type: type as any, isGated, includeSubNeighborhoods }
-      );
+    try {
+      if (wardId) {
+        const neighborhoods = await this.neighborhoodsService.getNeighborhoodsByWard(
+          wardId, 
+          { type: type as any, isGated, includeSubNeighborhoods }
+        );
+        return {
+          success: true,
+          data: neighborhoods,
+          count: neighborhoods.length,
+          message: 'Neighborhoods retrieved successfully',
+          timestamp: new Date().toISOString()
+        };
+      }
+      
+      // If no wardId, return empty for now (search functionality would go here)
       return {
         success: true,
-        data: neighborhoods,
-        count: neighborhoods.length,
-        message: 'Neighborhoods retrieved successfully',
+        data: [],
+        count: 0,
+        message: 'No ward specified',
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Error fetching neighborhoods:', error);
+      return {
+        success: false,
+        data: [],
+        count: 0,
+        message: 'Failed to fetch neighborhoods',
         timestamp: new Date().toISOString()
       };
     }
-    
-    // If no wardId, return empty for now (search functionality would go here)
-    return {
-      success: true,
-      data: [],
-      count: 0,
-      message: 'No ward specified',
-      timestamp: new Date().toISOString()
-    };
   }
 
   @Get('search')
@@ -190,19 +201,36 @@ export class NeighborhoodsController {
     radius?: number;
     limit?: number;
   }) {
-    const recommendations = await this.neighborhoodsService.recommendNeighborhoods(
-      body.latitude,
-      body.longitude,
-      body.radius,
-      body.limit
-    );
-    
-    return {
-      success: true,
-      data: recommendations,
-      message: 'Recommendations generated successfully',
-      timestamp: new Date().toISOString()
-    };
+    try {
+      const recommendations = await this.neighborhoodsService.recommendNeighborhoods(
+        body.latitude,
+        body.longitude,
+        body.radius,
+        body.limit
+      );
+      
+      return {
+        success: true,
+        data: recommendations,
+        message: 'Recommendations generated successfully',
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Error generating neighborhood recommendations:', error);
+      return {
+        success: false,
+        data: {
+          detectedLocation: {
+            state: 'Unknown',
+            lga: 'Unknown',
+            city: 'Unknown',
+          },
+          recommendations: [],
+        },
+        message: 'Failed to generate recommendations',
+        timestamp: new Date().toISOString()
+      };
+    }
   }
 
   @Get(':id')

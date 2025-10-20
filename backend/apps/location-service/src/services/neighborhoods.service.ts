@@ -114,10 +114,13 @@ export class NeighborhoodsService {
       memberCount: number;
     }>;
   }> {
+    console.log('Starting neighborhood recommendations for:', { latitude, longitude, radius, limit });
+    
     // Get administrative area information (with fallback if Google Maps is not available)
     let detectedLocation = null;
     try {
       detectedLocation = await this.googleMapsService.getAdministrativeArea(latitude, longitude);
+      console.log('Google Maps detected location:', detectedLocation);
     } catch (error) {
       console.warn('Google Maps service unavailable, using fallback location detection:', error);
       // Fallback: return basic location info
@@ -131,6 +134,7 @@ export class NeighborhoodsService {
     // Find neighborhoods within radius using PostGIS
     let neighborhoods: Neighborhood[] = [];
     try {
+      console.log('Attempting PostGIS query for neighborhoods...');
       neighborhoods = await this.neighborhoodRepository
         .createQueryBuilder('neighborhood')
         .leftJoinAndSelect('neighborhood.ward', 'ward')
@@ -144,17 +148,24 @@ export class NeighborhoodsService {
         .orderBy('ST_Distance(neighborhood.boundaries, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326))', 'ASC')
         .limit(limit)
         .getMany();
+      console.log('PostGIS query successful, found', neighborhoods.length, 'neighborhoods');
     } catch (error) {
       console.warn('PostGIS query failed, falling back to basic neighborhood search:', error);
       // Fallback: get all neighborhoods without PostGIS spatial query
-      neighborhoods = await this.neighborhoodRepository
-        .createQueryBuilder('neighborhood')
-        .leftJoinAndSelect('neighborhood.ward', 'ward')
-        .leftJoinAndSelect('ward.lga', 'lga')
-        .leftJoinAndSelect('lga.state', 'state')
-        .leftJoinAndSelect('neighborhood.landmarks', 'landmarks')
-        .limit(limit)
-        .getMany();
+      try {
+        neighborhoods = await this.neighborhoodRepository
+          .createQueryBuilder('neighborhood')
+          .leftJoinAndSelect('neighborhood.ward', 'ward')
+          .leftJoinAndSelect('ward.lga', 'lga')
+          .leftJoinAndSelect('lga.state', 'state')
+          .leftJoinAndSelect('neighborhood.landmarks', 'landmarks')
+          .limit(limit)
+          .getMany();
+        console.log('Fallback query successful, found', neighborhoods.length, 'neighborhoods');
+      } catch (fallbackError) {
+        console.error('Fallback query also failed:', fallbackError);
+        neighborhoods = [];
+      }
     }
 
     // Calculate distances and prepare recommendations
