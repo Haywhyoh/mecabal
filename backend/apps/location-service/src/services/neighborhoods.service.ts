@@ -170,31 +170,40 @@ export class NeighborhoodsService {
     }
 
     // Calculate distances and prepare recommendations
-    const recommendations = neighborhoods.map(neighborhood => {
-      // Calculate distance using center coordinates or boundaries
-      let targetLat: number = neighborhood.centerLatitude ? Number(neighborhood.centerLatitude) : 0;
-      let targetLng: number = neighborhood.centerLongitude ? Number(neighborhood.centerLongitude) : 0;
+    const recommendations = neighborhoods
+      .map(neighborhood => {
+        // Calculate distance using center coordinates or boundaries
+        let targetLat: number = neighborhood.centerLatitude ? Number(neighborhood.centerLatitude) : 0;
+        let targetLng: number = neighborhood.centerLongitude ? Number(neighborhood.centerLongitude) : 0;
 
-      // Fallback to boundaries if center coordinates not available
-      if (targetLat === 0 || targetLng === 0) {
-        targetLat = neighborhood.boundaries?.coordinates?.[0]?.[0]?.[1] || 0;
-        targetLng = neighborhood.boundaries?.coordinates?.[0]?.[0]?.[0] || 0;
-      }
+        // Fallback to boundaries if center coordinates not available
+        if (targetLat === 0 || targetLng === 0) {
+          targetLat = neighborhood.boundaries?.coordinates?.[0]?.[0]?.[1] || 0;
+          targetLng = neighborhood.boundaries?.coordinates?.[0]?.[0]?.[0] || 0;
+        }
 
-      const distance = this.calculateDistance(
-        latitude,
-        longitude,
-        targetLat,
-        targetLng
-      );
+        const distance = this.calculateDistance(
+          latitude,
+          longitude,
+          targetLat,
+          targetLng
+        );
 
-      return {
-        neighborhood,
-        distance,
-        landmarks: [], // Landmarks not loaded to avoid type mismatch issues
-        memberCount: 0, // This would come from user count query
-      };
-    });
+        return {
+          neighborhood,
+          distance,
+          landmarks: [], // Landmarks not loaded to avoid type mismatch issues
+          memberCount: 0, // This would come from user count query
+        };
+      })
+      // Filter by radius - only return neighborhoods within the specified distance
+      .filter(rec => rec.distance <= radius)
+      // Sort by distance (closest first)
+      .sort((a, b) => a.distance - b.distance)
+      // Limit results
+      .slice(0, limit);
+
+    console.log(`Filtered to ${recommendations.length} neighborhoods within ${radius}m radius`);
 
     return {
       detectedLocation: detectedLocation || {

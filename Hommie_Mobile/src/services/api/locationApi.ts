@@ -38,8 +38,8 @@ class LocationApiService {
    */
   async getStates(): Promise<State[]> {
     try {
-      const response = await apiClient.get<State[]>(`${this.baseUrl}/states`);
-      return response;
+      const response = await apiClient.get<{ success: boolean; data: State[]; count: number }>(`${this.baseUrl}/states`);
+      return response.data || [];
     } catch (error) {
       throw this.handleError(error, 'Failed to fetch states');
     }
@@ -51,11 +51,11 @@ class LocationApiService {
   async getLGAsByState(stateId: string, type?: 'LGA' | 'LCDA'): Promise<LGA[]> {
     try {
       const params = type ? { type } : {};
-      const response = await apiClient.get<LGA[]>(
+      const response = await apiClient.get<{ success: boolean; data: LGA[]; count: number }>(
         `${this.baseUrl}/states/${stateId}/lgas`,
         { params }
       );
-      return response;
+      return response.data || [];
     } catch (error) {
       throw this.handleError(error, 'Failed to fetch LGAs');
     }
@@ -66,8 +66,8 @@ class LocationApiService {
    */
   async getWardsByLGA(lgaId: string): Promise<Ward[]> {
     try {
-      const response = await apiClient.get<Ward[]>(`${this.baseUrl}/lgas/${lgaId}/wards`);
-      return response;
+      const response = await apiClient.get<{ success: boolean; data: Ward[]; count: number }>(`${this.baseUrl}/lgas/${lgaId}/wards`);
+      return response.data || [];
     } catch (error) {
       throw this.handleError(error, 'Failed to fetch wards');
     }
@@ -78,10 +78,10 @@ class LocationApiService {
    */
   async getNeighborhoodsByWard(wardId: string): Promise<Neighborhood[]> {
     try {
-      const response = await apiClient.get<Neighborhood[]>(
+      const response = await apiClient.get<{ success: boolean; data: Neighborhood[]; count: number }>(
         `${this.baseUrl}/wards/${wardId}/neighborhoods`
       );
-      return response;
+      return response.data || [];
     } catch (error) {
       throw this.handleError(error, 'Failed to fetch neighborhoods');
     }
@@ -92,10 +92,10 @@ class LocationApiService {
    */
   async getNeighborhoodById(neighborhoodId: string): Promise<Neighborhood> {
     try {
-      const response = await apiClient.get<Neighborhood>(
+      const response = await apiClient.get<{ success: boolean; data: Neighborhood }>(
         `${this.baseUrl}/neighborhoods/${neighborhoodId}`
       );
-      return response;
+      return response.data;
     } catch (error) {
       throw this.handleError(error, 'Failed to fetch neighborhood');
     }
@@ -108,11 +108,11 @@ class LocationApiService {
    */
   async searchNeighborhoods(searchRequest: LocationSearchRequest): Promise<LocationSearchResponse<Neighborhood>> {
     try {
-      const response = await apiClient.get<LocationSearchResponse<Neighborhood>>(
+      const response = await apiClient.get<{ success: boolean; data: LocationSearchResponse<Neighborhood> }>(
         `${this.baseUrl}/neighborhoods/search`,
         { params: searchRequest }
       );
-      return response;
+      return response.data || { data: [], total: 0, page: 1, limit: 10, totalPages: 0 };
     } catch (error) {
       throw this.handleError(error, 'Failed to search neighborhoods');
     }
@@ -125,11 +125,12 @@ class LocationApiService {
     recommendationRequest: NeighborhoodRecommendationRequest
   ): Promise<NeighborhoodRecommendationResponse> {
     try {
-      const response = await apiClient.post<NeighborhoodRecommendationResponse>(
+      const response = await apiClient.post<{ success: boolean; data: NeighborhoodRecommendationResponse }>(
         `${this.baseUrl}/neighborhoods/recommend`,
         recommendationRequest
       );
-      return response;
+      console.log('📍 Raw recommendation response:', JSON.stringify(response, null, 2));
+      return response.data || { detectedLocation: null, recommendations: [] };
     } catch (error) {
       throw this.handleError(error, 'Failed to get neighborhood recommendations');
     }
@@ -140,11 +141,11 @@ class LocationApiService {
    */
   async reverseGeocode(request: ReverseGeocodeRequest): Promise<ReverseGeocodeResponse> {
     try {
-      const response = await apiClient.post<ReverseGeocodeResponse>(
+      const response = await apiClient.post<{ success: boolean; data: ReverseGeocodeResponse }>(
         `${this.baseUrl}/reverse-geocode`,
         request
       );
-      return response;
+      return response.data;
     } catch (error) {
       throw this.handleError(error, 'Failed to reverse geocode');
     }
@@ -157,10 +158,10 @@ class LocationApiService {
    */
   async getNearbyLandmarks(neighborhoodId: string): Promise<Landmark[]> {
     try {
-      const response = await apiClient.get<Landmark[]>(
+      const response = await apiClient.get<{ success: boolean; data: Landmark[]; count: number }>(
         `${this.baseUrl}/landmarks/nearby/${neighborhoodId}`
       );
-      return response;
+      return response.data || [];
     } catch (error) {
       throw this.handleError(error, 'Failed to fetch nearby landmarks');
     }
@@ -172,11 +173,11 @@ class LocationApiService {
   async searchLandmarks(query: string, type?: string): Promise<Landmark[]> {
     try {
       const params = { query, ...(type && { type }) };
-      const response = await apiClient.get<Landmark[]>(
+      const response = await apiClient.get<{ success: boolean; data: Landmark[]; count: number }>(
         `${this.baseUrl}/landmarks/search`,
         { params }
       );
-      return response;
+      return response.data || [];
     } catch (error) {
       throw this.handleError(error, 'Failed to search landmarks');
     }
@@ -187,11 +188,11 @@ class LocationApiService {
    */
   async createLandmark(landmark: Omit<Landmark, 'id' | 'createdAt' | 'updatedAt'>): Promise<Landmark> {
     try {
-      const response = await apiClient.post<Landmark>(
+      const response = await apiClient.post<{ success: boolean; data: Landmark }>(
         `${this.baseUrl}/landmarks`,
         landmark
       );
-      return response;
+      return response.data;
     } catch (error) {
       throw this.handleError(error, 'Failed to create landmark');
     }
@@ -204,8 +205,8 @@ class LocationApiService {
    */
   async getUserLocations(): Promise<UserLocation[]> {
     try {
-      const response = await apiClient.get<UserLocation[]>(`${this.baseUrl}/user/locations`);
-      return response;
+      const response = await apiClient.get<{ success: boolean; data: UserLocation[]; count: number }>(`${this.baseUrl}/user/locations`);
+      return response.data || [];
     } catch (error) {
       throw this.handleError(error, 'Failed to fetch user locations');
     }
@@ -216,8 +217,8 @@ class LocationApiService {
    */
   async getPrimaryLocation(): Promise<UserLocation | null> {
     try {
-      const response = await apiClient.get<UserLocation | null>(`${this.baseUrl}/user/locations/primary`);
-      return response;
+      const response = await apiClient.get<{ success: boolean; data: UserLocation | null }>(`${this.baseUrl}/user/locations/primary`);
+      return response.data || null;
     } catch (error) {
       throw this.handleError(error, 'Failed to fetch primary location');
     }
@@ -228,11 +229,11 @@ class LocationApiService {
    */
   async setPrimaryLocation(location: Omit<UserLocation, 'id' | 'userId' | 'createdAt' | 'updatedAt'>): Promise<UserLocation> {
     try {
-      const response = await apiClient.post<UserLocation>(
+      const response = await apiClient.post<{ success: boolean; data: UserLocation }>(
         `${this.baseUrl}/user/locations/primary`,
         location
       );
-      return response;
+      return response.data;
     } catch (error) {
       throw this.handleError(error, 'Failed to set primary location');
     }
@@ -243,11 +244,11 @@ class LocationApiService {
    */
   async addSecondaryLocation(location: Omit<UserLocation, 'id' | 'userId' | 'createdAt' | 'updatedAt'>): Promise<UserLocation> {
     try {
-      const response = await apiClient.post<UserLocation>(
+      const response = await apiClient.post<{ success: boolean; data: UserLocation }>(
         `${this.baseUrl}/user/locations`,
         { ...location, isPrimary: false }
       );
-      return response;
+      return response.data;
     } catch (error) {
       throw this.handleError(error, 'Failed to add secondary location');
     }
@@ -261,11 +262,11 @@ class LocationApiService {
     updates: Partial<Omit<UserLocation, 'id' | 'userId' | 'createdAt' | 'updatedAt'>>
   ): Promise<UserLocation> {
     try {
-      const response = await apiClient.put<UserLocation>(
+      const response = await apiClient.put<{ success: boolean; data: UserLocation }>(
         `${this.baseUrl}/user/locations/${locationId}`,
         updates
       );
-      return response;
+      return response.data;
     } catch (error) {
       throw this.handleError(error, 'Failed to update location');
     }
@@ -287,10 +288,10 @@ class LocationApiService {
    */
   async setLocationAsPrimary(locationId: string): Promise<UserLocation> {
     try {
-      const response = await apiClient.post<UserLocation>(
+      const response = await apiClient.post<{ success: boolean; data: UserLocation }>(
         `${this.baseUrl}/user/locations/${locationId}/set-primary`
       );
-      return response;
+      return response.data;
     } catch (error) {
       throw this.handleError(error, 'Failed to set location as primary');
     }
@@ -306,11 +307,11 @@ class LocationApiService {
     verification: PhotoVerificationRequest
   ): Promise<VerificationRequest> {
     try {
-      const response = await apiClient.post<VerificationRequest>(
+      const response = await apiClient.post<{ success: boolean; data: VerificationRequest }>(
         `${this.baseUrl}/verification/photo/${locationId}`,
         verification
       );
-      return response;
+      return response.data;
     } catch (error) {
       throw this.handleError(error, 'Failed to submit photo verification');
     }
@@ -324,11 +325,11 @@ class LocationApiService {
     verification: DocumentVerificationRequest
   ): Promise<VerificationRequest> {
     try {
-      const response = await apiClient.post<VerificationRequest>(
+      const response = await apiClient.post<{ success: boolean; data: VerificationRequest }>(
         `${this.baseUrl}/verification/document/${locationId}`,
         verification
       );
-      return response;
+      return response.data;
     } catch (error) {
       throw this.handleError(error, 'Failed to submit document verification');
     }
@@ -342,11 +343,11 @@ class LocationApiService {
     verification: SmsVerificationRequest
   ): Promise<VerificationRequest> {
     try {
-      const response = await apiClient.post<VerificationRequest>(
+      const response = await apiClient.post<{ success: boolean; data: VerificationRequest }>(
         `${this.baseUrl}/verification/sms/${locationId}`,
         verification
       );
-      return response;
+      return response.data;
     } catch (error) {
       throw this.handleError(error, 'Failed to submit SMS verification');
     }
@@ -360,11 +361,11 @@ class LocationApiService {
     verification: AdminVerificationRequest
   ): Promise<VerificationRequest> {
     try {
-      const response = await apiClient.post<VerificationRequest>(
+      const response = await apiClient.post<{ success: boolean; data: VerificationRequest }>(
         `${this.baseUrl}/verification/admin/${locationId}`,
         verification
       );
-      return response;
+      return response.data;
     } catch (error) {
       throw this.handleError(error, 'Failed to submit admin verification');
     }

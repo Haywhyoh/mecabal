@@ -381,30 +381,40 @@ export default function LocationSetupScreenNew({ navigation, route }: LocationSe
       case 'method-selection':
         return renderMethodSelectionStep();
       case 'gps-picker':
-        return (
-          <GPSLocationPicker
-            onLocationSelected={handleGPSLocationSelected}
-            initialCoordinates={currentCoordinates || undefined}
-            showMap={true}
-            allowManualInput={true}
-            onCancel={() => setCurrentStep('method-selection')}
-          />
-        );
       case 'manual-selector':
-        return (
-          <HierarchicalLocationSelector
-            onLocationSelected={handleManualLocationSelected}
-            showProgress={false}
-            allowSkip={false}
-            onCancel={() => setCurrentStep('method-selection')}
-          />
-        );
+        // These are rendered separately in full screen - see above
+        return null;
       case 'confirmation':
         return renderConfirmationStep();
       default:
         return renderWelcomeStep();
     }
   };
+
+  // Render GPS picker separately in full screen when active
+  if (currentStep === 'gps-picker') {
+    return (
+      <GPSLocationPicker
+        onLocationSelected={handleGPSLocationSelected}
+        initialCoordinates={currentCoordinates || undefined}
+        showMap={true}
+        allowManualInput={true}
+        onCancel={() => setCurrentStep('method-selection')}
+      />
+    );
+  }
+
+  // Render manual selector separately when active
+  if (currentStep === 'manual-selector') {
+    return (
+      <HierarchicalLocationSelector
+        onLocationSelected={handleManualLocationSelected}
+        showProgress={false}
+        allowSkip={false}
+        onCancel={() => setCurrentStep('method-selection')}
+      />
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>

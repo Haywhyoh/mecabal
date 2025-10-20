@@ -59,6 +59,9 @@ import {
   LinkGoogleAccountDto 
 } from '@app/validation';
 import { User } from '@app/database';
+import { State } from '@app/database/entities';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 @ApiTags('Authentication')
 @Controller('auth')

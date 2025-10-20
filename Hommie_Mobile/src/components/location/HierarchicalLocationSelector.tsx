@@ -197,17 +197,25 @@ export const HierarchicalLocationSelector: React.FC<HierarchicalLocationSelector
 
   const loadStates = async () => {
     try {
+      console.log('📍 Loading states from API...');
       const states = await locationApi.getStates();
+      console.log('📍 States loaded:', states?.length || 0, 'states');
+
       // Ensure states is always an array
       const validStates = Array.isArray(states) ? states : [];
       setStepData(prev => ({ ...prev, states: validStates, isLoading: false }));
+
+      if (validStates.length === 0) {
+        console.warn('⚠️ No states returned from API');
+      }
     } catch (error) {
-      console.error('Error loading states:', error);
-      setStepData(prev => ({ 
-        ...prev, 
-        states: [], 
-        isLoading: false, 
-        error: 'Failed to load states. Please try again.' 
+      console.error('❌ Error loading states:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
+      setStepData(prev => ({
+        ...prev,
+        states: [],
+        isLoading: false,
+        error: `Failed to load states: ${error instanceof Error ? error.message : 'Unknown error'}`
       }));
     }
   };

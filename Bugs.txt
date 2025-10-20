@@ -7,4 +7,9 @@ WHen there is an error with the token, the backend returns 200 and moves to the 
 }
 3.despite fasle the app moves to the next screen and did not render the correct error
 
-4. No way to handle incomplete registration for users
+4. No way to handle incomplete registration for users. since after they cveriy number but they did no setup location,
+they can still login and then errors everywhere because they did nto setup neighbor hood~
+the can also not register with the same details cos it already exists
+
+5. I need to ab;e to check if an email already exist before sending code. 
+not that i'd now send the code, the email now exists. 

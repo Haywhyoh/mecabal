@@ -25,7 +25,7 @@ import { Neighborhood } from './neighborhood.entity';
 import { UserLanguage } from './user-language.entity';
 import { UserPrivacySettings } from './user-privacy-settings.entity';
 import { NigerianLanguage } from './nigerian-language.entity';
-import { NigerianState } from './nigerian-state.entity';
+import { State } from './state.entity';
 import { CulturalBackground } from './cultural-background.entity';
 import { ProfessionalCategory } from './professional-category.entity';
 // import { UserLocation } from './user-location.entity'; // Removed to avoid circular import
@@ -291,9 +291,9 @@ export class User {
   privacySettings?: UserPrivacySettings;
 
   // Cultural Profile Relations
-  @ManyToOne(() => NigerianState, { nullable: true })
+  @ManyToOne(() => State, { nullable: true })
   @JoinColumn({ name: 'state_of_origin_id' })
-  stateOfOrigin?: NigerianState;
+  stateOfOrigin?: State;
 
   @ManyToOne(() => CulturalBackground, { nullable: true })
   @JoinColumn({ name: 'cultural_background_id' })

@@ -91,6 +91,7 @@ export const GPSLocationPicker: React.FC<GPSLocationPickerProps> = ({
 
   // Initialize component
   useEffect(() => {
+    console.log('📍 GPSLocationPicker: Component mounted');
     initializeComponent();
   }, []);
 
@@ -104,11 +105,15 @@ export const GPSLocationPicker: React.FC<GPSLocationPickerProps> = ({
 
   const initializeComponent = async () => {
     try {
+      console.log('📍 GPSLocationPicker: Initializing component...');
+      console.log('📍 Initial coordinates:', initialCoordinates);
+
       // Check location permissions
       await checkLocationPermissions();
-      
+
       // If we have initial coordinates, use them
       if (initialCoordinates) {
+        console.log('📍 Using initial coordinates');
         setSelectedCoordinate(initialCoordinates);
         setRegion({
           ...initialCoordinates,
@@ -116,18 +121,23 @@ export const GPSLocationPicker: React.FC<GPSLocationPickerProps> = ({
           longitudeDelta: 0.01,
         });
       } else if (permissionStatus.granted) {
+        console.log('📍 Permission granted, getting current location');
         // Try to get current location
         await getCurrentLocationFromGPS();
+      } else {
+        console.log('📍 No initial coordinates and permission not granted');
       }
     } catch (error) {
-      console.error('Error initializing GPS location picker:', error);
+      console.error('❌ Error initializing GPS location picker:', error);
     }
   };
 
   const checkLocationPermissions = async () => {
     try {
+      console.log('📍 Checking location permissions...');
       const { status, canAskAgain } = await Location.getForegroundPermissionsAsync();
-      
+      console.log('📍 Permission status:', status, 'canAskAgain:', canAskAgain);
+
       setPermissionStatus({
         granted: status === 'granted',
         canAskAgain,
@@ -135,6 +145,7 @@ export const GPSLocationPicker: React.FC<GPSLocationPickerProps> = ({
       });
 
       if (status === 'denied' && !canAskAgain) {
+        console.log('⚠️ Location permission permanently denied');
         Alert.alert(
           'Location Permission Required',
           'Location access is required to show your current location and nearby neighborhoods. Please enable location access in your device settings.',
@@ -145,7 +156,7 @@ export const GPSLocationPicker: React.FC<GPSLocationPickerProps> = ({
         );
       }
     } catch (error) {
-      console.error('Error checking location permissions:', error);
+      console.error('❌ Error checking location permissions:', error);
     }
   };
 
@@ -213,11 +224,18 @@ export const GPSLocationPicker: React.FC<GPSLocationPickerProps> = ({
   };
 
   const loadRecommendations = async () => {
-    if (!selectedCoordinate) return;
+    console.log('📍 GPSLocationPicker.loadRecommendations called');
+    console.log('📍 selectedCoordinate:', selectedCoordinate);
+
+    if (!selectedCoordinate) {
+      console.log('📍 No selected coordinate, skipping recommendations');
+      return;
+    }
 
     try {
       setIsLoadingRecommendations(true);
-      
+      console.log('📍 GPSLocationPicker: Loading neighborhood recommendations...');
+
       const response = await locationApi.recommendNeighborhoods({
         latitude: selectedCoordinate.latitude,
         longitude: selectedCoordinate.longitude,
@@ -225,23 +243,30 @@ export const GPSLocationPicker: React.FC<GPSLocationPickerProps> = ({
         limit: 10,
       });
 
+      console.log('📍 GPSLocationPicker: Recommendations loaded:', response.recommendations?.length || 0);
+      console.log('📍 GPSLocationPicker: Full response:', JSON.stringify(response, null, 2));
+
       // Create markers for neighborhoods
-      const neighborhoodMarkers: MapMarker[] = (response.data?.recommendations || []).map((rec, index) => ({
+      const neighborhoodMarkers: MapMarker[] = (response.recommendations || []).map((rec, index) => ({
         id: `neighborhood-${rec.neighborhood.id}`,
         coordinate: {
-          latitude: rec.neighborhood.coordinates?.latitude || selectedCoordinate.latitude + (index * 0.001),
-          longitude: rec.neighborhood.coordinates?.longitude || selectedCoordinate.longitude + (index * 0.001),
+          latitude: rec.neighborhood.centerLatitude ? parseFloat(rec.neighborhood.centerLatitude) : selectedCoordinate.latitude + (index * 0.001),
+          longitude: rec.neighborhood.centerLongitude ? parseFloat(rec.neighborhood.centerLongitude) : selectedCoordinate.longitude + (index * 0.001),
         },
         title: rec.neighborhood.name,
         type: 'neighborhood',
         data: rec.neighborhood,
       }));
 
+      console.log('📍 GPSLocationPicker: Created markers:', neighborhoodMarkers.length);
       setMarkers(neighborhoodMarkers);
+      console.log('📍 GPSLocationPicker: Clearing loading state');
     } catch (error) {
-      console.error('Error loading recommendations:', error);
+      console.error('❌ GPSLocationPicker: Error loading recommendations:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
     } finally {
       setIsLoadingRecommendations(false);
+      console.log('📍 GPSLocationPicker: Loading state cleared');
     }
   };
 
@@ -259,8 +284,8 @@ export const GPSLocationPicker: React.FC<GPSLocationPickerProps> = ({
         limit: 1,
       });
 
-      if (response.data?.recommendations?.length > 0) {
-        const nearestNeighborhood = response.data.recommendations[0].neighborhood;
+      if (response.recommendations?.length > 0) {
+        const nearestNeighborhood = response.recommendations[0].neighborhood;
         const landmarks = await locationApi.getNearbyLandmarks(nearestNeighborhood.id);
         setLandmarks(landmarks);
 
@@ -377,20 +402,27 @@ export const GPSLocationPicker: React.FC<GPSLocationPickerProps> = ({
     </View>
   );
 
-  const renderMap = () => (
-    <View style={styles.mapContainer}>
-      <MapView
-        ref={mapRef}
-        style={styles.map}
-        provider={PROVIDER_GOOGLE}
-        region={region}
-        onPress={handleMapPress}
-        showsUserLocation={permissionStatus.granted}
-        showsMyLocationButton={false}
-        showsCompass={true}
-        showsScale={true}
-        mapType="standard"
-      >
+  const renderMap = () => {
+    console.log('📍 Rendering map with region:', region);
+    console.log('📍 Permission granted:', permissionStatus.granted);
+    console.log('📍 Selected coordinate:', selectedCoordinate);
+
+    return (
+      <View style={styles.mapContainer}>
+        <MapView
+          ref={mapRef}
+          style={styles.map}
+          provider={PROVIDER_GOOGLE}
+          region={region}
+          onPress={handleMapPress}
+          showsUserLocation={permissionStatus.granted}
+          showsMyLocationButton={false}
+          showsCompass={true}
+          showsScale={true}
+          mapType="standard"
+          onMapReady={() => console.log('📍 Map is ready')}
+          onError={(error) => console.error('❌ Map error:', error)}
+        >
         {/* User location marker */}
         {selectedCoordinate && (
           <Marker
@@ -442,10 +474,17 @@ export const GPSLocationPicker: React.FC<GPSLocationPickerProps> = ({
         </TouchableOpacity>
       </View>
     </View>
-  );
+    );
+  };
 
   const renderRecommendations = () => {
+    console.log('📍 renderRecommendations called');
+    console.log('📍 isLoadingRecommendations:', isLoadingRecommendations);
+    console.log('📍 markers length:', markers.length);
+    console.log('📍 markers:', markers);
+
     if (isLoadingRecommendations) {
+      console.log('📍 Showing loading indicator');
       return (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color="#007AFF" />
@@ -454,30 +493,40 @@ export const GPSLocationPicker: React.FC<GPSLocationPickerProps> = ({
       );
     }
 
-    if (recommendedNeighborhoods.length === 0) return null;
+    // Use markers instead of recommendedNeighborhoods from context
+    const neighborhoodMarkers = markers.filter(m => m.type === 'neighborhood');
+    console.log('📍 neighborhoodMarkers:', neighborhoodMarkers.length);
+
+    if (neighborhoodMarkers.length === 0) {
+      console.log('📍 No neighborhoods to show');
+      return null;
+    }
 
     return (
       <View style={styles.recommendationsContainer}>
         <Text style={styles.recommendationsTitle}>Nearby Neighborhoods</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {recommendedNeighborhoods.slice(0, 5).map((neighborhood) => (
-            <TouchableOpacity
-              key={neighborhood.id}
-              style={[
-                styles.recommendationCard,
-                selectedNeighborhood?.id === neighborhood.id && styles.selectedRecommendationCard,
-              ]}
-              onPress={() => setSelectedNeighborhood(neighborhood)}
-              accessibilityLabel={`Select ${neighborhood.name} neighborhood`}
-              accessibilityRole="button"
-            >
-              <Text style={styles.recommendationName}>{neighborhood.name}</Text>
-              <Text style={styles.recommendationType}>{neighborhood.type}</Text>
-              {neighborhood.isGated && (
-                <Ionicons name="lock-closed" size={12} color="#FF3B30" />
-              )}
-            </TouchableOpacity>
-          ))}
+          {neighborhoodMarkers.slice(0, 5).map((marker) => {
+            const neighborhood = marker.data as Neighborhood;
+            return (
+              <TouchableOpacity
+                key={marker.id}
+                style={[
+                  styles.recommendationCard,
+                  selectedNeighborhood?.id === neighborhood.id && styles.selectedRecommendationCard,
+                ]}
+                onPress={() => setSelectedNeighborhood(neighborhood)}
+                accessibilityLabel={`Select ${neighborhood.name} neighborhood`}
+                accessibilityRole="button"
+              >
+                <Text style={styles.recommendationName}>{neighborhood.name}</Text>
+                <Text style={styles.recommendationType}>{neighborhood.type}</Text>
+                {neighborhood.isGated && (
+                  <Ionicons name="lock-closed" size={12} color="#FF3B30" />
+                )}
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
       </View>
     );
@@ -528,10 +577,7 @@ export const GPSLocationPicker: React.FC<GPSLocationPickerProps> = ({
     </Modal>
   );
 
-  if (!permissionStatus.granted && !showManualInput) {
-    return renderPermissionDeniedUI();
-  }
-
+  // Always show the full UI with header and controls
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
@@ -543,9 +589,9 @@ export const GPSLocationPicker: React.FC<GPSLocationPickerProps> = ({
         >
           <Ionicons name="close" size={24} color="#007AFF" />
         </TouchableOpacity>
-        
+
         <Text style={styles.headerTitle}>Select Location</Text>
-        
+
         <TouchableOpacity
           style={styles.headerButton}
           onPress={handleLocationSelect}
@@ -559,8 +605,16 @@ export const GPSLocationPicker: React.FC<GPSLocationPickerProps> = ({
         </TouchableOpacity>
       </View>
 
-      {showMap && renderMap()}
-      {renderRecommendations()}
+      {/* Show permission UI if not granted, otherwise show map */}
+      {!permissionStatus.granted && !showManualInput ? (
+        renderPermissionDeniedUI()
+      ) : (
+        <>
+          {showMap && renderMap()}
+          {renderRecommendations()}
+        </>
+      )}
+
       {renderManualInputModal()}
     </SafeAreaView>
   );

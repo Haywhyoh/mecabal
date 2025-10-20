@@ -337,18 +337,23 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) 
     try {
       setIsLoadingLocation(true);
       setLocationError(null);
-      
+
+      console.log('📍 LocationContext: Getting recommendations for:', { latitude, longitude });
+
       const response = await locationApi.recommendNeighborhoods({
         latitude,
         longitude,
         radius: 5000, // 5km radius
         limit: 10,
       });
-      
-      setRecommendedNeighborhoods(response.data?.recommendations?.map(rec => rec.neighborhood) || []);
-      
+
+      console.log('📍 LocationContext: Recommendation response:', response);
+      console.log('📍 LocationContext: Recommendations count:', response.recommendations?.length || 0);
+
+      setRecommendedNeighborhoods(response.recommendations?.map(rec => rec.neighborhood) || []);
+
     } catch (error) {
-      console.error('Error getting recommendations:', error);
+      console.error('❌ LocationContext: Error getting recommendations:', error);
       setLocationError('Failed to get neighborhood recommendations');
     } finally {
       setIsLoadingLocation(false);
