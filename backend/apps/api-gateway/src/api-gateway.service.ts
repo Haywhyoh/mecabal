@@ -785,7 +785,9 @@ export class ApiGatewayService {
     user?: any,
   ) {
     try {
-      const url = `${this.locationServiceUrl}${path}`;
+      // Remove /location prefix from path when proxying to location service
+      const cleanPath = path.replace(/^\/location/, '');
+      const url = `${this.locationServiceUrl}${cleanPath}`;
 
       console.log('🌐 API Gateway - Proxying to location service:');
       console.log('  - URL:', url);

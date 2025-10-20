@@ -1,0 +1,10 @@
+WHen there is an error with the token, the backend returns 200 and moves to the next phase
+2. The phone number already exists error:
+{
+    "success": false,
+    "error": "Phone number is already registered to another account. Please use a different number.",
+    "method": "phone"
+}
+3.despite fasle the app moves to the next screen and did not render the correct error
+
+4. No way to handle incomplete registration for users
