@@ -148,28 +148,17 @@ export class NeighborhoodsService {
         .getMany();
       console.log('PostGIS query successful, found', neighborhoods.length, 'neighborhoods');
       
-      // Now load relations separately to avoid type mismatch issues
-      // Don't load landmarks to avoid potential integer/uuid type mismatch with neighborhood_id
-      if (neighborhoods.length > 0) {
-        const neighborhoodIds = neighborhoods.map(n => n.id);
-        neighborhoods = await this.neighborhoodRepository
-          .createQueryBuilder('neighborhood')
-          .leftJoinAndSelect('neighborhood.ward', 'ward')
-          .leftJoinAndSelect('ward.lga', 'lga')
-          .leftJoinAndSelect('lga.state', 'state')
-          .where('neighborhood.id IN (:...ids)', { ids: neighborhoodIds })
-          .getMany();
-      }
+      // Skip loading relations due to database schema type mismatches (integer vs uuid in lga_id, ward_id)
+      // The neighborhoods array already has the basic data needed for recommendations
+      console.log('Skipping relation loading due to known database schema type mismatches');
     } catch (error) {
       console.warn('PostGIS query failed, falling back to basic neighborhood search:', error);
       // Fallback: get all neighborhoods without PostGIS spatial query
       // Don't join landmarks to avoid potential type mismatch issues
       try {
+        // Don't load relations due to database schema type mismatches
         neighborhoods = await this.neighborhoodRepository
           .createQueryBuilder('neighborhood')
-          .leftJoinAndSelect('neighborhood.ward', 'ward')
-          .leftJoinAndSelect('ward.lga', 'lga')
-          .leftJoinAndSelect('lga.state', 'state')
           .limit(limit)
           .getMany();
         console.log('Fallback query successful, found', neighborhoods.length, 'neighborhoods');
@@ -183,11 +172,11 @@ export class NeighborhoodsService {
     // Calculate distances and prepare recommendations
     const recommendations = neighborhoods.map(neighborhood => {
       // Calculate distance using center coordinates or boundaries
-      let targetLat = neighborhood.centerLatitude;
-      let targetLng = neighborhood.centerLongitude;
+      let targetLat: number = neighborhood.centerLatitude ? Number(neighborhood.centerLatitude) : 0;
+      let targetLng: number = neighborhood.centerLongitude ? Number(neighborhood.centerLongitude) : 0;
 
       // Fallback to boundaries if center coordinates not available
-      if (!targetLat || !targetLng) {
+      if (targetLat === 0 || targetLng === 0) {
         targetLat = neighborhood.boundaries?.coordinates?.[0]?.[0]?.[1] || 0;
         targetLng = neighborhood.boundaries?.coordinates?.[0]?.[0]?.[0] || 0;
       }
