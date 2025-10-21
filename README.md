@@ -1,5 +1,4 @@
 # MeCabal - Nigerian Community Platform
-*"NextDoor for Nigeria" - Connecting Neighborhoods, Estates, and Compounds*
 
 ## 🇳🇬 About MeCabal
 
