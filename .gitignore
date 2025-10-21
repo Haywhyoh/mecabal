@@ -307,3 +307,5 @@ nul
 apps/nul
 backend/nul
 backend/apps/nul
+
+.env.production
