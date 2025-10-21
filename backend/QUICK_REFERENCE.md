@@ -90,6 +90,8 @@ docker-compose -f docker-compose.production.yml ps
 docker-compose -f docker-compose.production.yml up -d
 
 # Stop
+
+
 docker-compose -f docker-compose.production.yml down
 
 # Logs (all)
