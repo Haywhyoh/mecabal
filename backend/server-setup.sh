@@ -60,6 +60,13 @@ sudo apt-get install -y \
 
 # Install Docker
 print_status "Installing Docker..."
+
+# Remove old Docker repository if it exists
+if [ -f /etc/apt/sources.list.d/docker.list ]; then
+    print_status "Removing old Docker repository..."
+    sudo rm -f /etc/apt/sources.list.d/docker.list
+fi
+
 sudo apt-get update
 sudo apt-get install -y docker.io docker-compose
 
@@ -223,66 +230,9 @@ chmod +x /opt/mecabal/monitor.sh
 # Add monitoring to crontab (every 5 minutes)
 (crontab -l 2>/dev/null; echo "*/5 * * * * /opt/mecabal/monitor.sh") | crontab -
 
-# Initialize database container and create database
-print_status "Initializing database..."
-
-# Check if .env file exists
-if [ ! -f /opt/mecabal/.env ]; then
-    print_warning "No .env file found. Creating from env.example..."
-    if [ -f env.example ]; then
-        cp env.example /opt/mecabal/.env
-        print_warning "Please update /opt/mecabal/.env with production values"
-    else
-        print_error ".env file not found. Database initialization will be skipped."
-        print_warning "You need to create /opt/mecabal/.env manually before first deployment"
-    fi
-fi
-
-# If .env exists, initialize database
-if [ -f /opt/mecabal/.env ]; then
-    print_status "Loading environment variables..."
-    export $(cat /opt/mecabal/.env | grep -E "^DATABASE_|^POSTGRES_" | grep -v '^#' | xargs)
-
-    print_status "Starting PostgreSQL container..."
-    cd /opt/mecabal
-
-    # Start only PostgreSQL first
-    docker-compose -f docker-compose.production.yml up -d postgres
-
-    print_status "Waiting for PostgreSQL to be ready..."
-    for i in {1..30}; do
-        if docker-compose -f docker-compose.production.yml exec -T postgres pg_isready -U ${DATABASE_USERNAME:-mecabal_user} > /dev/null 2>&1; then
-            print_success "PostgreSQL is ready!"
-            break
-        fi
-        echo "Waiting for PostgreSQL... ($i/30)"
-        sleep 2
-    done
-
-    # Check if database exists, create if it doesn't
-    print_status "Checking if database exists..."
-    DB_EXISTS=$(docker-compose -f docker-compose.production.yml exec -T postgres psql -U ${DATABASE_USERNAME:-mecabal_user} -lqt | cut -d \| -f 1 | grep -w ${DATABASE_NAME:-mecabal_production} | wc -l)
-
-    if [ $DB_EXISTS -eq 0 ]; then
-        print_status "Creating database ${DATABASE_NAME:-mecabal_production}..."
-        docker-compose -f docker-compose.production.yml exec -T postgres psql -U ${DATABASE_USERNAME:-mecabal_user} -c "CREATE DATABASE ${DATABASE_NAME:-mecabal_production};"
-        print_success "Database created successfully!"
-    else
-        print_success "Database ${DATABASE_NAME:-mecabal_production} already exists"
-    fi
-
-    # Enable PostGIS extension
-    print_status "Enabling PostGIS extension..."
-    docker-compose -f docker-compose.production.yml exec -T postgres psql -U ${DATABASE_USERNAME:-mecabal_user} -d ${DATABASE_NAME:-mecabal_production} -c "CREATE EXTENSION IF NOT EXISTS postgis;"
-    docker-compose -f docker-compose.production.yml exec -T postgres psql -U ${DATABASE_USERNAME:-mecabal_user} -d ${DATABASE_NAME:-mecabal_production} -c "CREATE EXTENSION IF NOT EXISTS postgis_topology;"
-    print_success "PostGIS extension enabled!"
-
-    # Stop PostgreSQL for now (will be started by deployment)
-    print_status "Stopping PostgreSQL container..."
-    docker-compose -f docker-compose.production.yml down
-
-    print_success "Database initialization completed!"
-fi
+# Database initialization will be handled during first deployment
+print_warning "Database will be initialized during first deployment."
+print_warning "Make sure to set up the .env file in /opt/mecabal/ before deploying."
 
 # Create environment files
 print_status "Creating environment file templates..."
@@ -362,24 +312,23 @@ print_success "Server setup completed successfully!"
 echo
 echo "=== Next Steps ==="
 echo "1. Log out and log back in to apply Docker group changes"
-echo "2. IMPORTANT: Update /opt/mecabal/.env with production values"
-echo "3. Set up SSL certificates in /opt/mecabal/ssl/"
-echo "4. Configure GitHub Actions secrets for deployment"
-echo "5. Test the deployment with: sudo systemctl start mecabal-backend"
+echo "2. Configure GitHub Actions secrets for deployment"
+echo "3. Push to GitHub to trigger deployment"
+echo "4. After first deployment, verify with: curl http://localhost:3000/health"
 echo
 echo "=== GitHub Secrets Required ==="
-echo "PRODUCTION_HOST=your-production-server-ip"
-echo "PRODUCTION_USERNAME=your-username"
-echo "PRODUCTION_SSH_KEY=your-private-ssh-key"
+echo "PRODUCTION_HOST=$(hostname -I | awk '{print $1}')"
+echo "PRODUCTION_USERNAME=$USER"
+echo "PRODUCTION_SSH_KEY=<your-private-ssh-key>"
 echo "PRODUCTION_PORT=22"
 echo "PRODUCTION_PROJECT_PATH=/opt/mecabal"
-echo "PRODUCTION_ENV=base64-encoded-.env-file"
+echo "PRODUCTION_ENV=<base64-encoded-.env-file>"
 echo
 echo "To create PRODUCTION_ENV secret:"
-echo "1. Update /opt/mecabal/.env with all production values"
-echo "2. Run: cat /opt/mecabal/.env | base64 -w 0"
+echo "1. Create a .env file with all production values (use env.example as template)"
+echo "2. Run: cat .env | base64 -w 0"
 echo "3. Copy the output and add to GitHub Secrets as PRODUCTION_ENV"
 echo
 print_success "Setup script completed!"
 echo
-print_warning "Database has been initialized. Next deployment will run migrations automatically."
+print_warning "The deployment pipeline will clone the repo to /opt/mecabal and initialize the database."
