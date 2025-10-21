@@ -7,9 +7,9 @@ services:
     container_name: mecabal-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DATABASE_NAME}
-      POSTGRES_USER: ${DATABASE_USERNAME}
-      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB: ${DATABASE_NAME:-mecabal_production}
+      POSTGRES_USER: ${DATABASE_USERNAME:-mecabal_user}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-changeme}
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -19,7 +19,7 @@ services:
     networks:
       - mecabal-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USERNAME} -d ${DATABASE_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USERNAME:-mecabal_user}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -29,7 +29,12 @@ services:
     image: redis:7-alpine
     container_name: mecabal-redis
     restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    command: >
+      sh -c "if [ -n \"${REDIS_PASSWORD}\" ]; then
+        redis-server --appendonly yes --requirepass \"${REDIS_PASSWORD}\";
+      else
+        redis-server --appendonly yes;
+      fi"
     volumes:
       - redis_data:/data
     ports:
@@ -37,7 +42,7 @@ services:
     networks:
       - mecabal-network
     healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 3s
       retries: 5
