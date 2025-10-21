@@ -58,50 +58,14 @@ sudo apt-get install -y \
     ufw \
     fail2ban
 
-# Detect OS
-if [ -f /etc/os-release ]; then
-    . /etc/os-release
-    OS=$ID
-    VERSION_CODENAME=$VERSION_CODENAME
-else
-    print_error "Cannot detect OS. /etc/os-release not found."
-    exit 1
-fi
-
-print_status "Detected OS: $OS $VERSION_CODENAME"
-
 # Install Docker
 print_status "Installing Docker..."
-
-# Remove old Docker repository if it exists
-sudo rm -f /etc/apt/sources.list.d/docker.list
-
-if [ "$OS" = "debian" ]; then
-    # Debian installation
-    curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-elif [ "$OS" = "ubuntu" ]; then
-    # Ubuntu installation
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-else
-    print_error "Unsupported OS: $OS. This script supports Debian and Ubuntu only."
-    exit 1
-fi
-
 sudo apt-get update
-sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo apt-get install -y docker.io docker-compose
 
 # Add user to docker group
 sudo usermod -aG docker $USER
 print_warning "You need to log out and log back in for Docker group changes to take effect"
-
-# Install Docker Compose (if not already installed)
-if ! command -v docker-compose &> /dev/null; then
-    print_status "Installing Docker Compose..."
-    sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-    sudo chmod +x /usr/local/bin/docker-compose
-fi
 
 # Start and enable Docker
 sudo systemctl start docker
