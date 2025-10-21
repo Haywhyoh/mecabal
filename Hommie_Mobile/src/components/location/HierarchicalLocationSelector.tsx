@@ -156,6 +156,7 @@ export const HierarchicalLocationSelector: React.FC<HierarchicalLocationSelector
 
   const loadInitialData = async () => {
     try {
+      console.log('📍 HierarchicalLocationSelector: loadInitialData called for step:', currentStep);
       setStepData(prev => ({ ...prev, isLoading: true, error: null }));
 
       // Add data validation to prevent JSI errors
@@ -165,11 +166,15 @@ export const HierarchicalLocationSelector: React.FC<HierarchicalLocationSelector
 
       switch (currentStep) {
         case STEPS.STATE:
+          console.log('📍 HierarchicalLocationSelector: Loading states...');
           await loadStates();
           break;
         case STEPS.LGA:
+          console.log('📍 HierarchicalLocationSelector: Loading LGAs for selectedState:', selectedState);
           if (selectedState && selectedState.id && typeof selectedState.id === 'string') {
             await loadLGAs(selectedState.id);
+          } else {
+            console.log('📍 HierarchicalLocationSelector: No valid selectedState for LGA loading');
           }
           break;
         case STEPS.WARD:
@@ -222,7 +227,9 @@ export const HierarchicalLocationSelector: React.FC<HierarchicalLocationSelector
 
   const loadLGAs = async (stateId: string) => {
     try {
+      console.log('📍 HierarchicalLocationSelector: Loading LGAs for stateId:', stateId);
       const lgas = await locationApi.getLGAsByState(stateId);
+      console.log('📍 HierarchicalLocationSelector: LGAs received:', lgas?.length || 0, 'LGAs');
       // Ensure lgas is always an array
       const validLGAs = Array.isArray(lgas) ? lgas : [];
       setStepData(prev => ({ ...prev, lgas: validLGAs, isLoading: false }));
@@ -293,8 +300,11 @@ export const HierarchicalLocationSelector: React.FC<HierarchicalLocationSelector
   };
 
   const handleStateSelect = (state: State) => {
+    console.log('📍 HierarchicalLocationSelector: State selected:', state);
+    console.log('📍 HierarchicalLocationSelector: Setting selectedState and changing step to LGA');
     setSelectedState(state);
     setCurrentStep(STEPS.LGA);
+    console.log('📍 HierarchicalLocationSelector: Step changed to:', STEPS.LGA);
   };
 
   const handleLGASelect = (lga: LGA) => {
@@ -317,6 +327,7 @@ export const HierarchicalLocationSelector: React.FC<HierarchicalLocationSelector
         lga: selectedLGA,
         ward: selectedWard || undefined,
         neighborhood,
+        coordinates: currentCoordinates || undefined,
       });
     }
   };

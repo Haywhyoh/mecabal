@@ -152,3 +152,4 @@ jest.mock('react-native', () => {
 jest.setTimeout(10000);
 
 
+

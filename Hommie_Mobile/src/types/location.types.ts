@@ -300,6 +300,7 @@ export interface HierarchicalLocationSelectorProps {
     lga: LGA;
     ward?: Ward;
     neighborhood: Neighborhood;
+    coordinates?: LocationCoordinates;
   }) => void;
   initialLocation?: {
     state?: State;

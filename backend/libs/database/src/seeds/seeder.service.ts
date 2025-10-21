@@ -18,13 +18,13 @@ import {
 } from '../entities';
 import { ACHIEVEMENT_SEEDS, BADGE_SEEDS } from './gamification.seed';
 import { businessCategoriesData } from './business-categories.seed';
-import { 
-  NIGERIAN_STATES_SEED, 
-  NIGERIAN_LANGUAGES_SEED, 
-  CULTURAL_BACKGROUNDS_SEED, 
-  PROFESSIONAL_CATEGORIES_SEED 
+import {
+  NIGERIAN_STATES_SEED,
+  NIGERIAN_LANGUAGES_SEED,
+  CULTURAL_BACKGROUNDS_SEED,
+  PROFESSIONAL_CATEGORIES_SEED
 } from './cultural-data.seed';
-import { LocationSeeder } from './location.seed';
+import { LocationSeeder, NIGERIAN_STATES_DATA } from './location.seed';
 // import { MessagingSeeder } from './messaging.seed';
 
 @Injectable()
@@ -86,56 +86,59 @@ export class SeederService {
   }
 
   private async seedStates(): Promise<void> {
-    this.logger.log('Seeding Nigerian states...');
+    this.logger.log('Seeding Nigerian states with complete data...');
 
     const existingStates = await this.stateRepository.count();
     if (existingStates > 0) {
-      this.logger.log('States already exist, skipping...');
+      this.logger.log('States already exist, updating with additional data if needed...');
+
+      // Update existing states with new data
+      for (const stateData of NIGERIAN_STATES_DATA) {
+        const existingState = await this.stateRepository.findOne({
+          where: { code: stateData.code }
+        });
+
+        if (existingState) {
+          let updated = false;
+          if (!existingState.region && stateData.region) {
+            existingState.region = stateData.region;
+            updated = true;
+          }
+          if (!existingState.capital && stateData.capital) {
+            existingState.capital = stateData.capital;
+            updated = true;
+          }
+          if (!existingState.population && stateData.population) {
+            existingState.population = stateData.population;
+            updated = true;
+          }
+          if (!existingState.areaSqKm && stateData.areaSqKm) {
+            existingState.areaSqKm = stateData.areaSqKm;
+            updated = true;
+          }
+
+          if (updated) {
+            await this.stateRepository.save(existingState);
+            this.logger.log(`Updated state: ${stateData.name} with additional data`);
+          }
+        }
+      }
       return;
     }
 
-    const nigerianStates = [
-      { name: 'Abia', code: 'AB' },
-      { name: 'Adamawa', code: 'AD' },
-      { name: 'Akwa Ibom', code: 'AK' },
-      { name: 'Anambra', code: 'AN' },
-      { name: 'Bauchi', code: 'BA' },
-      { name: 'Bayelsa', code: 'BY' },
-      { name: 'Benue', code: 'BE' },
-      { name: 'Borno', code: 'BO' },
-      { name: 'Cross River', code: 'CR' },
-      { name: 'Delta', code: 'DE' },
-      { name: 'Ebonyi', code: 'EB' },
-      { name: 'Edo', code: 'ED' },
-      { name: 'Ekiti', code: 'EK' },
-      { name: 'Enugu', code: 'EN' },
-      { name: 'FCT', code: 'FC' },
-      { name: 'Gombe', code: 'GO' },
-      { name: 'Imo', code: 'IM' },
-      { name: 'Jigawa', code: 'JI' },
-      { name: 'Kaduna', code: 'KD' },
-      { name: 'Kano', code: 'KN' },
-      { name: 'Katsina', code: 'KT' },
-      { name: 'Kebbi', code: 'KE' },
-      { name: 'Kogi', code: 'KO' },
-      { name: 'Kwara', code: 'KW' },
-      { name: 'Lagos', code: 'LA' },
-      { name: 'Nasarawa', code: 'NA' },
-      { name: 'Niger', code: 'NI' },
-      { name: 'Ogun', code: 'OG' },
-      { name: 'Ondo', code: 'ON' },
-      { name: 'Osun', code: 'OS' },
-      { name: 'Oyo', code: 'OY' },
-      { name: 'Plateau', code: 'PL' },
-      { name: 'Rivers', code: 'RI' },
-      { name: 'Sokoto', code: 'SO' },
-      { name: 'Taraba', code: 'TA' },
-      { name: 'Yobe', code: 'YO' },
-      { name: 'Zamfara', code: 'ZA' },
-    ];
+    // Create new states with complete data
+    const nigerianStates = NIGERIAN_STATES_DATA.map(stateData => ({
+      name: stateData.name,
+      code: stateData.code,
+      country: 'Nigeria',
+      region: stateData.region,
+      capital: stateData.capital,
+      population: stateData.population,
+      areaSqKm: stateData.areaSqKm,
+    }));
 
     await this.stateRepository.save(nigerianStates);
-    this.logger.log(`Seeded ${nigerianStates.length} Nigerian states`);
+    this.logger.log(`Seeded ${nigerianStates.length} Nigerian states with complete data`);
   }
 
   private async seedLgas(): Promise<void> {

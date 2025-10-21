@@ -198,18 +198,50 @@ export class LocationSeeder {
 
   async seedStates(): Promise<void> {
     this.logger.log('Seeding Nigerian states...');
-    
+
     for (const stateData of NIGERIAN_STATES_DATA) {
       const existingState = await this.stateRepository.findOne({
         where: { code: stateData.code }
       });
 
       if (!existingState) {
-        const state = this.stateRepository.create(stateData);
+        const state = this.stateRepository.create({
+          name: stateData.name,
+          code: stateData.code,
+          country: 'Nigeria',
+          region: stateData.region,
+          capital: stateData.capital,
+          population: stateData.population,
+          areaSqKm: stateData.areaSqKm,
+        });
         await this.stateRepository.save(state);
-        this.logger.log(`Created state: ${stateData.name}`);
+        this.logger.log(`Created state: ${stateData.name} - ${stateData.capital} (${stateData.region})`);
       } else {
-        this.logger.log(`State already exists: ${stateData.name}`);
+        // Update existing state with new data if fields are missing
+        let updated = false;
+        if (!existingState.region && stateData.region) {
+          existingState.region = stateData.region;
+          updated = true;
+        }
+        if (!existingState.capital && stateData.capital) {
+          existingState.capital = stateData.capital;
+          updated = true;
+        }
+        if (!existingState.population && stateData.population) {
+          existingState.population = stateData.population;
+          updated = true;
+        }
+        if (!existingState.areaSqKm && stateData.areaSqKm) {
+          existingState.areaSqKm = stateData.areaSqKm;
+          updated = true;
+        }
+
+        if (updated) {
+          await this.stateRepository.save(existingState);
+          this.logger.log(`Updated state: ${stateData.name} with additional data`);
+        } else {
+          this.logger.log(`State already exists: ${stateData.name}`);
+        }
       }
     }
   }

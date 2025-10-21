@@ -39,8 +39,10 @@ class LocationApiService {
   async getStates(): Promise<State[]> {
     try {
       const response = await apiClient.get<{ success: boolean; data: State[]; count: number }>(`${this.baseUrl}/states`);
+      console.log('📍 Raw states response:', JSON.stringify(response, null, 2));
       return response.data || [];
     } catch (error) {
+      console.error('📍 States API error:', error);
       throw this.handleError(error, 'Failed to fetch states');
     }
   }
@@ -50,13 +52,17 @@ class LocationApiService {
    */
   async getLGAsByState(stateId: string, type?: 'LGA' | 'LCDA'): Promise<LGA[]> {
     try {
+      console.log('📍 Loading LGAs for stateId:', stateId);
       const params = type ? { type } : {};
       const response = await apiClient.get<{ success: boolean; data: LGA[]; count: number }>(
         `${this.baseUrl}/states/${stateId}/lgas`,
         { params }
       );
+      console.log('📍 Raw LGAs response:', JSON.stringify(response, null, 2));
+      console.log('📍 LGAs loaded:', response.data?.length || 0, 'LGAs');
       return response.data || [];
     } catch (error) {
+      console.error('📍 LGAs API error:', error);
       throw this.handleError(error, 'Failed to fetch LGAs');
     }
   }
