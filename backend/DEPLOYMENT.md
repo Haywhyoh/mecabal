@@ -1,278 +1,739 @@
 # MeCabal Backend Deployment Guide
 
-This guide will help you deploy the MeCabal backend infrastructure with automatic Docker installation support.
+Complete guide for deploying the MeCabal backend with all 10 microservices using GitHub Actions CI/CD.
+
+## Table of Contents
+
+- [Architecture Overview](#architecture-overview)
+- [Quick Start](#quick-start)
+- [Server Setup](#server-setup)
+- [GitHub CI/CD Setup](#github-cicd-setup)
+- [Manual Deployment](#manual-deployment)
+- [Environment Configuration](#environment-configuration)
+- [Monitoring & Maintenance](#monitoring--maintenance)
+- [Troubleshooting](#troubleshooting)
+
+## Architecture Overview
+
+### Microservices (All 10 Services)
+
+| Service | Port | Description |
+|---------|------|-------------|
+| API Gateway | 3000 | Main entry point, routes requests to services |
+| Auth Service | 3001 | Authentication, JWT, OTP verification |
+| User Service | 3002 | User profiles and management |
+| Social Service | 3003 | Community feed, posts, interactions |
+| Messaging Service | 3004 | Real-time messaging, WebSocket |
+| Marketplace Service | 3005 | Local commerce, listings |
+| Events Service | 3006 | Community events management |
+| Notification Service | 3007 | Push notifications, alerts |
+| Location Service | 3008 | Nigerian locations, GPS, neighborhoods |
+| Business Service | 3009 | Business profiles and services |
+
+### Infrastructure Services
+
+- **PostgreSQL with PostGIS** - Database with geographic extensions
+- **Redis** - Caching and session management
+- **RabbitMQ** - Message queue for async operations
+- **MinIO** - S3-compatible object storage
+- **Nginx** - Reverse proxy and load balancer
 
 ## Quick Start
 
-### Step 1: First Time Setup (After Cloning)
+### For Automated Deployment (Recommended)
+
+1. **Set up your Ubuntu server:**
+   ```bash
+   chmod +x server-setup.sh
+   ./server-setup.sh
+   ```
+
+2. **Configure GitHub Secrets** (see [GITHUB_SECRETS_SETUP.md](GITHUB_SECRETS_SETUP.md))
+
+3. **Push to trigger deployment:**
+   ```bash
+   # Deploy to staging
+   git push origin develop
+
+   # Deploy to production
+   git push origin main
+   ```
+
+### For Manual Deployment
+
+1. **Clone and setup:**
+   ```bash
+   git clone https://github.com/yourusername/mecabal.git
+   cd mecabal/backend
+   chmod +x deployment-helper.sh
+   ```
+
+2. **Configure environment:**
+   ```bash
+   cp env.example .env
+   nano .env  # Edit with your values
+   ```
+
+3. **Deploy:**
+   ```bash
+   ./deployment-helper.sh start
+   ```
+
+## Server Setup
+
+### Automated Server Setup (Ubuntu)
+
+Run the server setup script on your fresh Ubuntu server:
+
 ```bash
-# Make scripts executable and setup environment
-chmod +x setup.sh
-./setup.sh
+# 1. SSH into your server
+ssh ubuntu@your.server.ip
+
+# 2. Clone the repository
+git clone https://github.com/yourusername/mecabal.git
+cd mecabal/backend
+
+# 3. Run the setup script
+chmod +x server-setup.sh
+./server-setup.sh
+
+# 4. Log out and back in for Docker permissions
+exit
+ssh ubuntu@your.server.ip
 ```
 
-Or run the all-in-one setup command:
-```bash
-chmod +x setup.sh && ./setup.sh
-```
+### What the Server Setup Script Does
 
-### Step 2: Deploy Backend
+1. **System Updates**
+   - Updates all system packages
+   - Installs essential build tools
 
-#### For Linux/macOS Users:
-```bash
-./deploy.sh
-```
+2. **Docker Installation**
+   - Installs Docker Engine and Docker Compose
+   - Adds user to docker group
+   - Configures Docker to start on boot
 
-#### For Windows Users:
-```cmd
-deploy.bat
-```
+3. **Node.js Installation**
+   - Installs Node.js 22.x
+   - Installs npm package manager
 
-## Alternative: Manual Permission Fix
+4. **Security Configuration**
+   - Configures UFW firewall
+   - Sets up fail2ban
+   - Opens required ports (80, 443, 3000-3009)
 
-If you get "Permission denied" when running scripts after cloning:
-
-```bash
-# Fix permissions for all scripts
-chmod +x setup.sh deploy.sh
-
-# Then run setup
-./setup.sh
-```
-
-## What the Deployment Script Does
-
-1. **Checks System Requirements**
-   - Detects your operating system
-   - Checks if Docker is installed
-   - Offers to install Docker automatically if missing
-
-2. **Docker Installation Support**
-   - **Ubuntu/Debian**: Installs via official Docker repository
-   - **CentOS/RHEL/Fedora**: Installs via yum package manager
-   - **Arch Linux**: Installs via pacman
-   - **macOS**: Installs Docker Desktop via Homebrew
-   - **Windows**: Guides you to install Docker Desktop manually
-
-3. **Environment Setup**
-   - Creates `.env` file from `.env.example` if missing
-   - Creates necessary directories (logs, ssl, data)
+5. **Directory Structure**
+   - Creates `/opt/mecabal` directory
+   - Sets up logs, ssl, data, backups directories
    - Sets proper permissions
 
-4. **Application Build**
-   - Installs Node.js dependencies
-   - Builds the NestJS application
+6. **Monitoring & Automation**
+   - Creates systemd service for auto-start
+   - Sets up log rotation
+   - Configures automated backups (daily at 2 AM)
+   - Creates monitoring script (runs every 5 minutes)
 
-5. **Infrastructure Deployment**
-   - Starts PostgreSQL with PostGIS extension
-   - Starts Redis for caching
-   - Starts RabbitMQ for messaging
-   - Starts MinIO for file storage
-   - Deploys all microservices with Nginx reverse proxy
+## GitHub CI/CD Setup
 
-6. **Health Checks**
-   - Verifies database connectivity
-   - Tests API endpoints
-   - Shows container status
+### Overview
 
-## Prerequisites
+The CI/CD pipeline automatically:
+- ✅ Runs tests on every push
+- ✅ Builds Docker images
+- ✅ Deploys to staging on `develop` branch
+- ✅ Deploys to production on `main` branch
+- ✅ Runs database migrations
+- ✅ Health checks all 10 services
+- ✅ Automatic rollback on failure
 
-The script will install Docker for you, but you need:
+### Setup Steps
 
-- **Linux**: `curl`, `sudo` access
-- **macOS**: Homebrew (script will check and guide you)
-- **Windows**: Administrator privileges (for Docker Desktop)
-- **All platforms**: Node.js 18+ and npm
+1. **Configure GitHub Secrets**
 
-## Manual Docker Installation
+   Follow the detailed guide: [GITHUB_SECRETS_SETUP.md](GITHUB_SECRETS_SETUP.md)
 
-If you prefer to install Docker manually:
+   Required secrets:
+   - `PRODUCTION_HOST` - Server IP or domain
+   - `PRODUCTION_USERNAME` - SSH username
+   - `PRODUCTION_SSH_KEY` - Private SSH key
+   - `PRODUCTION_PROJECT_PATH` - Deployment directory
+   - `PRODUCTION_ENV` - Base64 encoded .env file
 
-### Ubuntu/Debian:
+2. **Deployment Workflow**
+
+   ```
+   Push to GitHub
+        ↓
+   Run Tests (lint, unit, e2e)
+        ↓
+   Build Docker Images
+        ↓
+   Push to GitHub Container Registry
+        ↓
+   Deploy to Server (staging/production)
+        ↓
+   Run Database Migrations
+        ↓
+   Health Check All Services
+        ↓
+   Rollback if Failed ❌ / Success ✅
+   ```
+
+3. **Triggering Deployments**
+
+   **Automatic:**
+   ```bash
+   # Deploy to staging
+   git checkout develop
+   git push origin develop
+
+   # Deploy to production
+   git checkout main
+   git push origin main
+   ```
+
+   **Manual:**
+   - Go to GitHub Actions tab
+   - Select "Deploy MeCabal Backend"
+   - Click "Run workflow"
+   - Choose environment (staging/production)
+
+### CI/CD Features
+
+#### Automated Testing
+- ESLint code quality checks
+- Unit tests with Jest
+- E2E tests for critical flows
+
+#### Database Migration Strategy
+- Automatic backup before migration
+- Migration runs in isolated container
+- Rollback on migration failure
+
+#### Health Checks
+All 10 services must pass health checks:
 ```bash
-curl -fsSL https://get.docker.com -o get-docker.sh
-sudo sh get-docker.sh
-sudo usermod -aG docker $USER
+✓ API Gateway (3000)
+✓ Auth Service (3001)
+✓ User Service (3002)
+✓ Social Service (3003)
+✓ Messaging Service (3004)
+✓ Marketplace Service (3005)
+✓ Events Service (3006)
+✓ Notification Service (3007)
+✓ Location Service (3008)
+✓ Business Service (3009)
 ```
 
-### macOS:
+#### Rollback Mechanism
+If any health check fails:
+1. Stop new containers
+2. Restore previous git commit
+3. Restore database from backup
+4. Restart old containers
+
+## Manual Deployment
+
+### Using Deployment Helper Script
+
+The `deployment-helper.sh` script provides easy management:
+
 ```bash
-brew install --cask docker
+# Make executable
+chmod +x deployment-helper.sh
+
+# Start all services
+./deployment-helper.sh start
+
+# Check health
+./deployment-helper.sh health
+
+# View logs
+./deployment-helper.sh logs auth-service
+
+# Create backup
+./deployment-helper.sh backup
+
+# See all commands
+./deployment-helper.sh help
 ```
 
-### Windows:
-Download and install Docker Desktop from: https://docs.docker.com/desktop/install/windows-install/
+### Available Commands
+
+| Command | Description |
+|---------|-------------|
+| `start` | Start all services |
+| `stop` | Stop all services |
+| `restart` | Restart all services |
+| `status` | Show service status |
+| `logs [service]` | View logs |
+| `health` | Check all services health |
+| `backup` | Create database backup |
+| `restore <file>` | Restore from backup |
+| `migrate` | Run migrations |
+| `update` | Pull latest code & deploy |
+| `rollback` | Rollback to previous version |
+
+### Manual Deployment Steps
+
+1. **SSH into server:**
+   ```bash
+   ssh ubuntu@your.server.ip
+   cd /opt/mecabal/backend  # or your path
+   ```
+
+2. **Pull latest code:**
+   ```bash
+   git pull origin main
+   ```
+
+3. **Build and deploy:**
+   ```bash
+   docker-compose -f docker-compose.production.yml build
+   docker-compose -f docker-compose.production.yml up -d
+   ```
+
+4. **Check health:**
+   ```bash
+   ./deployment-helper.sh health
+   ```
 
 ## Environment Configuration
 
-Before running the deployment script, configure your environment variables:
+### Required Environment Variables
 
-1. Copy `.env.example` to `.env`:
+1. **Copy example file:**
    ```bash
-   cp .env.example .env
+   cp env.example .env
    ```
 
-2. Edit `.env` with your actual values:
+2. **Edit critical variables:**
    ```bash
-   # Required for email OTP
-   BREVO_API_KEY=your_brevo_api_key_here
-   BREVO_SMTP_USER=your_brevo_smtp_username
-   BREVO_FROM_EMAIL=noreply@mecabal.com
-
-   # Required for SMS OTP  
-   SMARTSMS_API_TOKEN=your_smartsms_api_token_here
-
-   # Required for WhatsApp OTP
-   MESSAGE_CENTRAL_AUTH_TOKEN=your_message_central_auth_token
-   MESSAGE_CENTRAL_CUSTOMER_ID=your_customer_id_here
-
-   # JWT secrets (generate strong random strings)
-   JWT_ACCESS_SECRET=your_jwt_access_secret_key_here
-   JWT_REFRESH_SECRET=your_jwt_refresh_secret_key_here
+   nano .env
    ```
+
+   **Must change (security-critical):**
+   ```env
+   DATABASE_PASSWORD=use_strong_random_password_here
+   JWT_ACCESS_SECRET=use_random_string_min_32_chars
+   JWT_REFRESH_SECRET=use_different_random_string_min_32_chars
+   REDIS_PASSWORD=use_strong_random_password_here
+   ```
+
+   **Must configure (service credentials):**
+   ```env
+   # Email service (Brevo)
+   BREVO_API_KEY=your_actual_brevo_api_key
+   EMAIL_HOST_USER=your_brevo_smtp_username
+   EMAIL_HOST_PASSWORD=your_brevo_smtp_password
+
+   # Google OAuth
+   GOOGLE_CLIENT_ID=your_google_client_id
+   GOOGLE_CLIENT_SECRET=your_google_client_secret
+   ```
+
+3. **Generate secure secrets:**
+   ```bash
+   # Generate random secrets
+   openssl rand -base64 32  # For JWT_ACCESS_SECRET
+   openssl rand -base64 32  # For JWT_REFRESH_SECRET
+   openssl rand -base64 24  # For DATABASE_PASSWORD
+   ```
+
+### Environment Files for Different Environments
+
+- `.env` - Local development (not committed)
+- `.env.staging` - Staging environment (base64 encoded in GitHub Secrets)
+- `.env.production` - Production environment (base64 encoded in GitHub Secrets)
+
+See [GITHUB_SECRETS_SETUP.md](GITHUB_SECRETS_SETUP.md) for encoding instructions.
 
 ## Services and Ports
 
 After deployment, these services will be available:
 
-| Service | Port | URL |
-|---------|------|-----|
-| API Gateway | 3000 | http://localhost:3000 |
-| Auth Service | 3001 | http://localhost:3001 |
-| User Service | 3002 | http://localhost:3002 |
-| Social Service | 3003 | http://localhost:3003 |
-| Messaging Service | 3004 | http://localhost:3004 |
-| Marketplace Service | 3005 | http://localhost:3005 |
-| Events Service | 3006 | http://localhost:3006 |
-| Notification Service | 3007 | http://localhost:3007 |
-| PostgreSQL | 5432 | localhost:5432 |
-| Redis | 6379 | localhost:6379 |
-| MinIO | 9000 | http://localhost:9000 |
-| RabbitMQ Management | 15672 | http://localhost:15672 |
+| Service | Port | Internal URL | Health Check |
+|---------|------|--------------|--------------|
+| API Gateway | 3000 | http://localhost:3000 | `/health` |
+| Auth Service | 3001 | http://localhost:3001 | `/health` |
+| User Service | 3002 | http://localhost:3002 | `/health` |
+| Social Service | 3003 | http://localhost:3003 | `/health` |
+| Messaging Service | 3004 | http://localhost:3004 | `/health` |
+| Marketplace Service | 3005 | http://localhost:3005 | `/health` |
+| Events Service | 3006 | http://localhost:3006 | `/health` |
+| Notification Service | 3007 | http://localhost:3007 | `/health` |
+| Location Service | 3008 | http://localhost:3008 | `/health` |
+| Business Service | 3009 | http://localhost:3009 | `/health` |
+| PostgreSQL | 5432 | localhost:5432 | - |
+| Redis | 6379 | localhost:6379 | - |
+| MinIO | 9000/9001 | http://localhost:9000 | Console: 9001 |
+| RabbitMQ | 5672/15672 | http://localhost:15672 | Management UI |
 
-## Testing the Deployment
+## Monitoring & Maintenance
 
-1. **Health Check**:
-   ```bash
-   curl http://localhost:3000/health
-   ```
+### Health Checks
 
-2. **Auth Service**:
-   ```bash
-   curl http://localhost:3001/auth/health
-   ```
+**Check all services at once:**
+```bash
+./deployment-helper.sh health
+```
 
-3. **Send Email OTP**:
-   ```bash
-   curl -X POST http://localhost:3001/auth/email/send-otp \
-     -H "Content-Type: application/json" \
-     -d '{"email":"test@example.com","purpose":"registration"}'
-   ```
+**Check individual service:**
+```bash
+curl http://localhost:3000/health  # API Gateway
+curl http://localhost:3001/health  # Auth Service
+# ... etc for all services
+```
+
+### Viewing Logs
+
+**All services:**
+```bash
+./deployment-helper.sh logs
+```
+
+**Specific service:**
+```bash
+./deployment-helper.sh logs auth-service
+./deployment-helper.sh logs location-service
+```
+
+**Docker Compose:**
+```bash
+docker-compose -f docker-compose.production.yml logs -f --tail=100
+```
+
+### Database Backups
+
+**Manual backup:**
+```bash
+./deployment-helper.sh backup
+```
+
+**Automated backups:**
+- Configured by server-setup.sh
+- Runs daily at 2 AM
+- Keeps last 7 backups
+- Location: `/opt/mecabal/backups/`
+
+**Restore from backup:**
+```bash
+./deployment-helper.sh restore backups/backup_20250101_020000.sql
+```
+
+### Resource Monitoring
+
+**Check resource usage:**
+```bash
+./deployment-helper.sh stats
+```
+
+**Monitor disk space:**
+```bash
+df -h /opt/mecabal
+```
+
+**Monitor memory:**
+```bash
+free -h
+```
+
+### Updating Services
+
+**Automated via CI/CD:**
+- Push to `main` or `develop` branch
+- GitHub Actions handles the rest
+
+**Manual update:**
+```bash
+./deployment-helper.sh update
+```
+
+This will:
+1. Create database backup
+2. Pull latest code
+3. Pull new Docker images
+4. Run migrations
+5. Restart services
+6. Check health
 
 ## SSL Certificate Setup (Production)
 
-For production deployment with `api.mecabal.com`:
+### Using Let's Encrypt (Recommended)
 
-### Option 1: Let's Encrypt (Automatic)
-The script will offer to generate SSL certificates automatically using Let's Encrypt.
+1. **Point your domain to server:**
+   ```
+   A record: api.mecabal.com → your.server.ip
+   ```
 
-### Option 2: Manual Certificate
-Place your SSL certificates in the `ssl/` directory:
-- `ssl/api.mecabal.com.pem` (certificate)
-- `ssl/api.mecabal.com.key` (private key)
+2. **Generate certificate:**
+   ```bash
+   sudo certbot certonly --standalone -d api.mecabal.com --email admin@mecabal.com --agree-tos
+   ```
 
-## Common Commands
+3. **Copy to project:**
+   ```bash
+   sudo cp /etc/letsencrypt/live/api.mecabal.com/fullchain.pem ~/mecabal/backend/ssl/api.mecabal.com.pem
+   sudo cp /etc/letsencrypt/live/api.mecabal.com/privkey.pem ~/mecabal/backend/ssl/api.mecabal.com.key
+   sudo chown $USER:$USER ~/mecabal/backend/ssl/*
+   ```
 
-### Start Services
+4. **Setup auto-renewal:**
+   ```bash
+   sudo crontab -e
+   # Add this line:
+   0 3 * * * certbot renew --quiet --deploy-hook "docker-compose -f ~/mecabal/backend/docker-compose.production.yml restart nginx"
+   ```
+
+### Using Custom Certificate
+
+Place your certificates in the `ssl/` directory:
 ```bash
-# Linux/macOS
-docker-compose -f docker-compose.production.yml up -d
-
-# Windows
-docker-compose -f docker-compose.production.yml up -d
-```
-
-### Stop Services
-```bash
-docker-compose -f docker-compose.production.yml down
-```
-
-### View Logs
-```bash
-# All services
-docker-compose -f docker-compose.production.yml logs -f
-
-# Specific service
-docker-compose -f docker-compose.production.yml logs -f auth-service
-```
-
-### Restart Services
-```bash
-docker-compose -f docker-compose.production.yml restart
-```
-
-### Update Services
-```bash
-./deploy.sh  # Re-run deployment script
+backend/ssl/
+├── api.mecabal.com.pem  # Full chain certificate
+└── api.mecabal.com.key  # Private key
 ```
 
 ## Troubleshooting
 
-### Docker Not Starting (Linux)
+### Common Issues and Solutions
+
+#### Services Not Starting
+
+**Problem:** Containers fail to start
+
+**Solutions:**
 ```bash
-sudo systemctl start docker
-sudo systemctl enable docker
+# Check logs for specific service
+docker-compose -f docker-compose.production.yml logs auth-service
+
+# Check all container status
+docker-compose -f docker-compose.production.yml ps
+
+# Rebuild and restart
+./deployment-helper.sh rebuild
 ```
 
-### Permission Denied (Linux)
+#### Health Checks Failing
+
+**Problem:** Services show as unhealthy
+
+**Solutions:**
 ```bash
-sudo usermod -aG docker $USER
-newgrp docker  # Or logout and login again
+# Check if service is actually running
+docker ps | grep auth-service
+
+# Check service logs for errors
+./deployment-helper.sh logs auth-service
+
+# Verify environment variables
+./deployment-helper.sh env-check
+
+# Restart unhealthy service
+docker-compose -f docker-compose.production.yml restart auth-service
 ```
 
-### Docker Desktop Not Running (Windows/macOS)
-1. Start Docker Desktop application
-2. Wait for it to show "Docker Desktop is running" 
-3. Re-run the deployment script
+#### Database Connection Failed
 
-### Database Connection Issues
+**Problem:** Services can't connect to PostgreSQL
+
+**Solutions:**
 ```bash
-# Check if PostgreSQL container is running
+# Check if PostgreSQL is running
 docker ps | grep postgres
 
 # Check PostgreSQL logs
 docker-compose -f docker-compose.production.yml logs postgres
+
+# Verify DATABASE_* variables in .env
+grep DATABASE .env
+
+# Test database connection
+docker-compose -f docker-compose.production.yml exec postgres psql -U mecabal_user -d mecabal_production
 ```
 
-### Port Already in Use
+#### Port Already in Use
+
+**Problem:** Ports 3000-3009 are already occupied
+
+**Solutions:**
 ```bash
-# Find what's using the port
-lsof -i :3000  # Linux/macOS
-netstat -ano | findstr :3000  # Windows
+# Find what's using the port (Linux/macOS)
+sudo lsof -i :3000
 
-# Stop conflicting services
-docker-compose -f docker-compose.production.yml down
+# Kill the process
+sudo kill -9 <PID>
+
+# Or stop all services and restart
+./deployment-helper.sh stop
+./deployment-helper.sh start
 ```
 
-## Production Considerations
+#### GitHub Actions Deployment Failed
 
-1. **Security**: Change all default passwords in `.env`
-2. **SSL**: Set up proper SSL certificates
-3. **Monitoring**: Consider adding monitoring tools
-4. **Backups**: Set up automated database backups
-5. **Updates**: Plan for regular security updates
-6. **Scaling**: Consider load balancing for high traffic
+**Problem:** CI/CD pipeline fails
 
-## Support
+**Solutions:**
+1. Check GitHub Actions logs for specific error
+2. Verify all GitHub Secrets are correctly set
+3. Ensure SSH key has proper permissions on server
+4. Test SSH connection manually:
+   ```bash
+   ssh -i ~/.ssh/mecabal_deploy ubuntu@your.server.ip
+   ```
 
-If you encounter issues:
+#### Migration Failed
 
-1. Check the logs: `docker-compose logs -f`
-2. Verify environment variables in `.env`
-3. Ensure all external services (Brevo, SmartSMS) are configured
-4. Check firewall settings for port access
+**Problem:** Database migrations fail during deployment
 
-For deployment-specific issues, check:
-- Docker installation and status
-- Available disk space and memory
-- Network connectivity for external services
+**Solutions:**
+```bash
+# Check migration logs
+docker-compose -f docker-compose.production.yml logs api-gateway
+
+# Try running migrations manually
+docker-compose -f docker-compose.production.yml run --rm api-gateway npm run migration:run
+
+# Revert last migration if needed
+./deployment-helper.sh migrate:revert
+
+# Check TypeORM configuration
+cat ormconfig.ts
+```
+
+#### Out of Disk Space
+
+**Problem:** Server running out of storage
+
+**Solutions:**
+```bash
+# Check disk usage
+df -h
+
+# Clean up old Docker images
+./deployment-helper.sh clean
+
+# Remove old backups (keeps last 7)
+ls -t ~/mecabal/backend/backups/*.sql | tail -n +8 | xargs rm
+
+# Clean up old logs
+docker system prune -a
+```
+
+#### Memory Issues
+
+**Problem:** Services crashing due to low memory
+
+**Solutions:**
+```bash
+# Check memory usage
+free -h
+
+# Check which service is using most memory
+./deployment-helper.sh stats
+
+# Restart heavy services
+docker-compose -f docker-compose.production.yml restart messaging-service
+
+# Consider upgrading server RAM or adding swap
+```
+
+## Production Checklist
+
+Before going to production, ensure:
+
+### Security
+- [ ] All default passwords changed in `.env`
+- [ ] JWT secrets are strong (min 32 characters)
+- [ ] SSL certificate is installed and valid
+- [ ] Firewall is configured (only necessary ports open)
+- [ ] fail2ban is active
+- [ ] Database backups are automated
+- [ ] Secrets are not committed to git
+
+### Performance
+- [ ] Server has adequate resources (min 4GB RAM recommended)
+- [ ] Redis is configured for caching
+- [ ] Database indexes are optimized
+- [ ] Rate limiting is configured
+- [ ] Compression is enabled (gzip)
+
+### Monitoring
+- [ ] Health checks are passing for all 10 services
+- [ ] Log rotation is configured
+- [ ] Automated backups are running
+- [ ] Monitoring script is active
+- [ ] Disk space alerts are set up
+
+### Functionality
+- [ ] All environment variables are set correctly
+- [ ] Email service (Brevo) is working
+- [ ] Google OAuth is configured
+- [ ] File uploads work (MinIO)
+- [ ] WebSocket connections work
+- [ ] Database migrations succeed
+
+### CI/CD
+- [ ] GitHub Secrets are configured
+- [ ] SSH access to server works
+- [ ] Automated deployment to staging works
+- [ ] Rollback mechanism is tested
+- [ ] Production deployment requires approval
+
+## Getting Help
+
+### Documentation
+- [GitHub Secrets Setup](GITHUB_SECRETS_SETUP.md) - CI/CD configuration
+- [Backend Architecture](Backend_Architecture_Overview.md) - System design
+- [API Documentation](API_Documentation.md) - API endpoints
+- [Database Schema](Database_Schema.md) - Database structure
+
+### Logs to Check
+```bash
+# Application logs
+./deployment-helper.sh logs [service-name]
+
+# System logs
+journalctl -u mecabal-backend
+
+# Docker logs
+docker-compose -f docker-compose.production.yml logs
+```
+
+### Support Contacts
+- Open an issue on GitHub repository
+- Check existing issues for similar problems
+- Review GitHub Actions workflow runs
+- SSH into server and check service status
+
+### Emergency Rollback
+
+If deployment is completely broken:
+
+```bash
+# Option 1: Use deployment helper
+./deployment-helper.sh rollback
+
+# Option 2: Manual rollback
+cd ~/mecabal/backend
+git reset --hard <previous-commit-sha>
+docker-compose -f docker-compose.production.yml down
+docker-compose -f docker-compose.production.yml up -d
+
+# Option 3: Restore from backup
+./deployment-helper.sh restore backups/backup_<timestamp>.sql
+```
+
+## Additional Resources
+
+- **NestJS Documentation:** https://docs.nestjs.com
+- **Docker Documentation:** https://docs.docker.com
+- **PostgreSQL Documentation:** https://www.postgresql.org/docs
+- **GitHub Actions Documentation:** https://docs.github.com/actions
+- **Ubuntu Server Guide:** https://ubuntu.com/server/docs
+
+---
+
+**Last Updated:** 2025-01-21
+**Version:** 1.0.0
+**Maintainer:** MeCabal Team

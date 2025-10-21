@@ -110,11 +110,11 @@ jobs:
     needs: build
     if: github.ref == 'refs/heads/develop' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
     environment: staging
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-    
+
     - name: Deploy to staging server
       uses: appleboy/ssh-action@v1.0.3
       with:
@@ -125,29 +125,48 @@ jobs:
         script: |
           # Navigate to project directory
           cd ${{ secrets.STAGING_PROJECT_PATH }}
-          
+
+          # Create backup tag for rollback
+          docker-compose -f docker-compose.production.yml exec -T postgres pg_dump -U $DATABASE_USERNAME $DATABASE_NAME > backup_staging_$(date +%Y%m%d_%H%M%S).sql || echo "Backup skipped (first deployment)"
+
           # Pull latest code
           git pull origin develop
-          
-          # Update environment variables
-          cp .env.staging .env
-          
-          # Pull latest Docker image
-          docker pull ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          
-          # Stop existing containers
-          docker-compose -f docker-compose.production.yml down
-          
+
+          # Update environment variables from secrets
+          echo "${{ secrets.STAGING_ENV }}" | base64 -d > .env
+
+          # Pull latest Docker images
+          docker-compose -f docker-compose.production.yml pull
+
+          # Stop existing containers gracefully
+          docker-compose -f docker-compose.production.yml down --timeout 30
+
+          # Run database migrations
+          docker-compose -f docker-compose.production.yml run --rm api-gateway npm run migration:run || echo "Migration skipped or failed"
+
           # Start new containers
           docker-compose -f docker-compose.production.yml up -d
-          
+
           # Wait for services to be healthy
-          sleep 30
-          
-          # Run health checks
+          echo "Waiting for services to start..."
+          sleep 45
+
+          # Run comprehensive health checks for all 10 services
+          echo "Running health checks..."
           curl -f http://localhost:3000/health || exit 1
-          curl -f http://localhost:3001/auth/health || exit 1
-          
+          curl -f http://localhost:3001/health || exit 1
+          curl -f http://localhost:3002/health || exit 1
+          curl -f http://localhost:3003/health || exit 1
+          curl -f http://localhost:3004/health || exit 1
+          curl -f http://localhost:3005/health || exit 1
+          curl -f http://localhost:3006/health || exit 1
+          curl -f http://localhost:3007/health || exit 1
+          curl -f http://localhost:3008/health || exit 1
+          curl -f http://localhost:3009/health || exit 1
+
+          # Clean up old images
+          docker image prune -f
+
           echo "Staging deployment completed successfully!"
 
   deploy-production:
@@ -156,12 +175,13 @@ jobs:
     needs: build
     if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
     environment: production
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-    
+
     - name: Deploy to production server
+      id: deploy
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.PRODUCTION_HOST }}
@@ -171,42 +191,80 @@ jobs:
         script: |
           # Navigate to project directory
           cd ${{ secrets.PRODUCTION_PROJECT_PATH }}
-          
-          # Create backup of current deployment
-          docker-compose -f docker-compose.production.yml exec -T postgres pg_dump -U $DATABASE_USERNAME $DATABASE_NAME > backup_$(date +%Y%m%d_%H%M%S).sql
-          
+
+          # Store current commit for potential rollback
+          PREVIOUS_COMMIT=$(git rev-parse HEAD)
+          echo "Previous commit: $PREVIOUS_COMMIT"
+
+          # Create timestamped backup of current deployment
+          BACKUP_FILE="backup_production_$(date +%Y%m%d_%H%M%S).sql"
+          echo "Creating database backup: $BACKUP_FILE"
+          docker-compose -f docker-compose.production.yml exec -T postgres pg_dump -U $DATABASE_USERNAME $DATABASE_NAME > $BACKUP_FILE
+
+          # Keep only last 7 backups
+          ls -t backup_production_*.sql | tail -n +8 | xargs -r rm
+
           # Pull latest code
           git pull origin main
-          
-          # Update environment variables
-          cp .env.production .env
-          
-          # Pull latest Docker image
-          docker pull ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          
+          CURRENT_COMMIT=$(git rev-parse HEAD)
+          echo "New commit: $CURRENT_COMMIT"
+
+          # Update environment variables from secrets
+          echo "${{ secrets.PRODUCTION_ENV }}" | base64 -d > .env
+
+          # Pull latest Docker images
+          docker-compose -f docker-compose.production.yml pull
+
           # Stop existing containers gracefully
+          echo "Stopping services gracefully..."
           docker-compose -f docker-compose.production.yml down --timeout 30
-          
+
+          # Run database migrations
+          echo "Running database migrations..."
+          docker-compose -f docker-compose.production.yml run --rm api-gateway npm run migration:run || {
+            echo "Migration failed! Rolling back..."
+            git reset --hard $PREVIOUS_COMMIT
+            docker-compose -f docker-compose.production.yml up -d
+            exit 1
+          }
+
           # Start new containers
+          echo "Starting new containers..."
           docker-compose -f docker-compose.production.yml up -d
-          
+
           # Wait for services to be healthy
+          echo "Waiting for services to start..."
           sleep 60
-          
-          # Run comprehensive health checks
-          curl -f http://localhost:3000/health || exit 1
-          curl -f http://localhost:3001/auth/health || exit 1
-          curl -f http://localhost:3002/health || exit 1
-          curl -f http://localhost:3003/health || exit 1
-          curl -f http://localhost:3004/health || exit 1
-          curl -f http://localhost:3005/health || exit 1
-          curl -f http://localhost:3006/health || exit 1
-          curl -f http://localhost:3007/health || exit 1
-          
-          # Run database migrations if needed
-          # docker-compose -f docker-compose.production.yml exec -T api-gateway npm run migration:run
-          
+
+          # Run comprehensive health checks for all 10 services
+          echo "Running health checks..."
+          HEALTH_CHECK_FAILED=0
+
+          for PORT in 3000 3001 3002 3003 3004 3005 3006 3007 3008 3009; do
+            if ! curl -f http://localhost:$PORT/health; then
+              echo "Health check failed for service on port $PORT"
+              HEALTH_CHECK_FAILED=1
+            else
+              echo "Service on port $PORT is healthy"
+            fi
+          done
+
+          if [ $HEALTH_CHECK_FAILED -eq 1 ]; then
+            echo "Health checks failed! Rolling back deployment..."
+            docker-compose -f docker-compose.production.yml down --timeout 30
+            git reset --hard $PREVIOUS_COMMIT
+            docker-compose -f docker-compose.production.yml up -d
+            echo "Rollback completed. Restoring database from $BACKUP_FILE"
+            docker-compose -f docker-compose.production.yml exec -T postgres psql -U $DATABASE_USERNAME -d $DATABASE_NAME < $BACKUP_FILE
+            exit 1
+          fi
+
+          # Clean up old images to save space
+          docker image prune -f
+
           echo "Production deployment completed successfully!"
+          echo "Deployed commit: $CURRENT_COMMIT"
+          echo "Backup available at: $BACKUP_FILE"
 
   notify:
     name: Notify Deployment Status

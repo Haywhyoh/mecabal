@@ -86,7 +86,7 @@ sudo ufw --force enable
 sudo ufw allow ssh
 sudo ufw allow 80
 sudo ufw allow 443
-sudo ufw allow 3000:3007/tcp  # Backend services
+sudo ufw allow 3000:3009/tcp  # Backend services (all 10 microservices)
 sudo ufw allow 5432/tcp       # PostgreSQL
 sudo ufw allow 6379/tcp       # Redis
 sudo ufw allow 9000:9001/tcp  # MinIO
@@ -253,6 +253,8 @@ This server is configured to run the MeCabal backend services.
 - Marketplace Service: Port 3005
 - Events Service: Port 3006
 - Notification Service: Port 3007
+- Location Service: Port 3008
+- Business Service: Port 3009
 
 ## Management Commands
 

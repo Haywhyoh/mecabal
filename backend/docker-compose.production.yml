@@ -137,6 +137,11 @@ services:
         condition: service_healthy
     networks:
       - mecabal-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # User Service
   user-service:
@@ -161,6 +166,11 @@ services:
         condition: service_healthy
     networks:
       - mecabal-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # Social Service
   social-service:
@@ -185,6 +195,11 @@ services:
         condition: service_healthy
     networks:
       - mecabal-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # Messaging Service
   messaging-service:
@@ -212,6 +227,11 @@ services:
         condition: service_healthy
     networks:
       - mecabal-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # Marketplace Service
   marketplace-service:
@@ -236,6 +256,11 @@ services:
         condition: service_healthy
     networks:
       - mecabal-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3005/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # Events Service
   events-service:
@@ -260,6 +285,11 @@ services:
         condition: service_healthy
     networks:
       - mecabal-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3006/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # Notification Service
   notification-service:
@@ -287,6 +317,69 @@ services:
         condition: service_healthy
     networks:
       - mecabal-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3007/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Location Service
+  location-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    container_name: mecabal-location-service
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3008
+      - DATABASE_HOST=postgres
+      - REDIS_HOST=redis
+    command: ["node", "dist/apps/location-service/main.js"]
+    ports:
+      - "3008:3008"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - mecabal-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3008/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Business Service
+  business-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    container_name: mecabal-business-service
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3009
+      - DATABASE_HOST=postgres
+      - REDIS_HOST=redis
+    command: ["node", "dist/apps/business-service/main.js"]
+    ports:
+      - "3009:3009"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - mecabal-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3009/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # Nginx (Reverse Proxy)
   nginx:
@@ -308,6 +401,8 @@ services:
       - marketplace-service
       - events-service
       - notification-service
+      - location-service
+      - business-service
     networks:
       - mecabal-network
 
