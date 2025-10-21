@@ -91,15 +91,16 @@ export class Landmark {
   @Column({ name: 'created_by', nullable: true })
   createdBy?: string;
 
-  @ApiProperty({ 
-    description: 'Verification status', 
+  @ApiProperty({
+    description: 'Verification status',
     enum: VerificationStatus,
-    example: VerificationStatus.PENDING 
+    example: VerificationStatus.PENDING
   })
-  @Column({ 
-    type: 'enum', 
-    enum: VerificationStatus, 
-    default: VerificationStatus.PENDING 
+  @Column({
+    name: 'verification_status',
+    type: 'enum',
+    enum: VerificationStatus,
+    default: VerificationStatus.PENDING
   })
   verificationStatus: VerificationStatus;
 

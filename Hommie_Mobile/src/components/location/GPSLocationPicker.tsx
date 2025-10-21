@@ -360,17 +360,38 @@ export const GPSLocationPicker: React.FC<GPSLocationPickerProps> = ({
   };
 
   const handleLocationSelect = () => {
+    console.log('📍 handleLocationSelect called');
+    console.log('📍 selectedNeighborhood:', selectedNeighborhood);
+    console.log('📍 selectedCoordinate:', selectedCoordinate);
+    console.log('📍 markers:', markers);
+
     if (selectedNeighborhood && selectedCoordinate) {
+      console.log('📍 Calling onLocationSelected with neighborhood');
       onLocationSelected({
         coordinates: selectedCoordinate,
         neighborhood: selectedNeighborhood,
         address: manualAddress || undefined,
       });
     } else if (selectedCoordinate) {
-      onLocationSelected({
-        coordinates: selectedCoordinate,
-        address: manualAddress || undefined,
-      });
+      // If there's a neighborhood in markers but not selected, auto-select it
+      const neighborhoodMarkers = markers.filter(m => m.type === 'neighborhood');
+      if (neighborhoodMarkers.length > 0 && !selectedNeighborhood) {
+        console.log('📍 Auto-selecting first neighborhood from markers');
+        const firstNeighborhood = neighborhoodMarkers[0].data as Neighborhood;
+        onLocationSelected({
+          coordinates: selectedCoordinate,
+          neighborhood: firstNeighborhood,
+          address: manualAddress || undefined,
+        });
+      } else {
+        console.log('📍 Calling onLocationSelected with coordinates only');
+        onLocationSelected({
+          coordinates: selectedCoordinate,
+          address: manualAddress || undefined,
+        });
+      }
+    } else {
+      console.log('⚠️ No selected coordinate, cannot proceed');
     }
   };
 
