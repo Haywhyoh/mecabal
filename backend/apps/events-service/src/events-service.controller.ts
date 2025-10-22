@@ -112,6 +112,16 @@ export class EventsServiceController {
     return this.eventsService.getFeaturedEvents(limit);
   }
 
+  @Get('health')
+  @ApiOperation({ summary: 'Health check endpoint' })
+  @ApiResponse({ status: 200, description: 'Service is healthy' })
+  async healthCheck(): Promise<{ status: string; timestamp: string }> {
+    return {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+    };
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get event by ID' })
   @ApiResponse({

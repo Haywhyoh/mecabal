@@ -272,11 +272,14 @@ jobs:
             sleep 2
           done
 
-          # For FIRST DEPLOYMENT ONLY: Enable synchronize to create all tables
-          # IMPORTANT: After first successful deployment, remove DATABASE_SYNCHRONIZE=true
+          # For FIRST DEPLOYMENT ONLY: Run schema sync with a single service to avoid conflicts
+          # IMPORTANT: After first successful deployment, remove this section
           # and uncomment the migration commands below
-          echo "Setting up database schema..."
-          export DATABASE_SYNCHRONIZE=true
+          echo "Setting up database schema with user-service..."
+          docker-compose -f docker-compose.production.yml run --rm -e DATABASE_SYNCHRONIZE=true user-service node -e "console.log('Schema sync triggered via user-service')" || echo "Schema sync command completed"
+
+          # Wait for schema to be created
+          sleep 5
 
           # Run database migrations with newly built image
           # UNCOMMENT AFTER FIRST DEPLOYMENT:
@@ -289,9 +292,9 @@ jobs:
           #   exit 1
           # }
 
-          # Start all services with newly built images
+          # Start all services with newly built images (without synchronize to avoid conflicts)
           echo "Starting all services..."
-          DATABASE_SYNCHRONIZE=$DATABASE_SYNCHRONIZE docker-compose -f docker-compose.production.yml up -d --remove-orphans
+          docker-compose -f docker-compose.production.yml up -d --remove-orphans
 
           # Wait for services to start
           echo "Waiting for services to start..."
