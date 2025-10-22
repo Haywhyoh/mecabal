@@ -21,7 +21,8 @@
       "Bash(if exist dist rmdir /s /q dist)",
       "Bash(cat:*)",
       "Bash(curl:*)",
-      "Bash(npx expo start:*)"
+      "Bash(npx expo start:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []
