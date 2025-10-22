@@ -186,6 +186,7 @@ export class UserProfileService {
   }> {
     const user = await this.userRepository.findOne({
       where: { id: userId },
+      relations: ['primaryLocation', 'primaryLocation.state', 'primaryLocation.neighborhood'],
     });
 
     if (!user) {
@@ -200,8 +201,8 @@ export class UserProfileService {
       phoneVerified: user.phoneVerified,
       bio: user.bio,
       occupation: user.occupation,
-      state: user.state,
-      city: user.city,
+      state: user.primaryLocation?.state?.name,
+      city: user.primaryLocation?.cityTown,
       profilePictureUrl: user.profilePictureUrl,
     };
 

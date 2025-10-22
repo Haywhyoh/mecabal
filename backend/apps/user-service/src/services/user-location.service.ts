@@ -1,7 +1,8 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User, UserLocation, VerificationStatus } from '@app/database';
+import { User, UserLocation } from '@app/database';
+import { VerificationStatus } from '@app/database/entities/user-location.entity';
 import { CreateUserLocationDto, UpdateUserLocationDto } from '../dto/user-location.dto';
 
 @Injectable()
@@ -168,7 +169,7 @@ export class UserLocationService {
     // If deleting primary location, update user's primary location ID
     if (userLocation.isPrimary) {
       await this.userRepository.update(userId, {
-        primaryLocationId: null,
+        primaryLocationId: undefined,
       });
     }
 
@@ -325,7 +326,7 @@ export class UserLocationService {
   async findNearbyUsers(
     userId: string,
     radius: number = 5000 // 5km default
-  ): Promise<Array<User & { distance: number }>> {
+  ): Promise<Array<any & { distance: number }>> {
     const userLocation = await this.getPrimaryLocation(userId);
     
     if (!userLocation || !userLocation.coordinates) {

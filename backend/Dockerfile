@@ -16,7 +16,16 @@ COPY . .
 COPY --from=deps /app/node_modules ./node_modules
 
 # Build all applications and libraries
-RUN npm run build
+RUN npx nest build api-gateway && \
+    npx nest build auth-service && \
+    npx nest build user-service && \
+    npx nest build social-service && \
+    npx nest build messaging-service && \
+    npx nest build marketplace-service && \
+    npx nest build events-service && \
+    npx nest build notification-service && \
+    npx nest build location-service && \
+    npx nest build business-service
 
 # Stage 4: Runner
 FROM node:22-alpine AS runner
