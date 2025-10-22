@@ -212,8 +212,8 @@ jobs:
           echo "Creating database backup: $BACKUP_FILE"
 
           # Load environment variables for backup
-          if [ -f .env ]; then
-            export $(cat .env | grep -E "^DATABASE_" | xargs)
+          if [ -f .env.production ]; then
+            export $(cat .env.production | grep -E "^DATABASE_[A-Z_]+=" | xargs)
           fi
 
           # Create backup (skip if database doesn't exist yet)
@@ -228,17 +228,17 @@ jobs:
           echo "New commit: $CURRENT_COMMIT"
 
           # Update environment variables from secrets
-          echo "${{ secrets.PRODUCTION_ENV }}" | base64 -d > .env
+          echo "${{ secrets.PRODUCTION_ENV }}" | base64 -d > .env.production
 
-          # Verify .env was created
-          if [ ! -f .env ] || [ ! -s .env ]; then
-            echo "ERROR: .env file was not created or is empty!"
+          # Verify .env.production was created
+          if [ ! -f .env.production ] || [ ! -s .env.production ]; then
+            echo "ERROR: .env.production file was not created or is empty!"
             echo "Please check PRODUCTION_ENV secret is set correctly"
             exit 1
           fi
 
-          # Load environment variables
-          export $(cat .env | grep -v '^#' | xargs)
+          # Load only database environment variables for pg_dump (safely)
+          export $(cat .env.production | grep -E "^DATABASE_[A-Z_]+=" | xargs)
           echo "✓ Environment variables loaded"
 
           # Pull latest Docker images

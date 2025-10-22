@@ -96,6 +96,8 @@ services:
       target: runner
     container_name: mecabal-api-gateway
     restart: unless-stopped
+    env_file:
+      - .env.production
     environment:
       - NODE_ENV=production
       - PORT=3000
@@ -125,6 +127,8 @@ services:
       target: runner
     container_name: mecabal-auth-service
     restart: unless-stopped
+    env_file:
+      - .env.production
     environment:
       - NODE_ENV=production
       - PORT=3001
@@ -154,6 +158,8 @@ services:
       target: runner
     container_name: mecabal-user-service
     restart: unless-stopped
+    env_file:
+      - .env.production
     environment:
       - NODE_ENV=production
       - PORT=3002
@@ -183,6 +189,8 @@ services:
       target: runner
     container_name: mecabal-social-service
     restart: unless-stopped
+    env_file:
+      - .env.production
     environment:
       - NODE_ENV=production
       - PORT=3003
@@ -212,6 +220,8 @@ services:
       target: runner
     container_name: mecabal-messaging-service
     restart: unless-stopped
+    env_file:
+      - .env.production
     environment:
       - NODE_ENV=production
       - PORT=3004
@@ -244,6 +254,8 @@ services:
       target: runner
     container_name: mecabal-marketplace-service
     restart: unless-stopped
+    env_file:
+      - .env.production
     environment:
       - NODE_ENV=production
       - PORT=3005
@@ -273,6 +285,8 @@ services:
       target: runner
     container_name: mecabal-events-service
     restart: unless-stopped
+    env_file:
+      - .env.production
     environment:
       - NODE_ENV=production
       - PORT=3006
@@ -302,6 +316,8 @@ services:
       target: runner
     container_name: mecabal-notification-service
     restart: unless-stopped
+    env_file:
+      - .env.production
     environment:
       - NODE_ENV=production
       - PORT=3007
@@ -334,6 +350,8 @@ services:
       target: runner
     container_name: mecabal-location-service
     restart: unless-stopped
+    env_file:
+      - .env.production
     environment:
       - NODE_ENV=production
       - PORT=3008
@@ -363,6 +381,8 @@ services:
       target: runner
     container_name: mecabal-business-service
     restart: unless-stopped
+    env_file:
+      - .env.production
     environment:
       - NODE_ENV=production
       - PORT=3009
