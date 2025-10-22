@@ -45,11 +45,12 @@ COPY --from=builder /app/package-lock.json ./package-lock.json
 
 # Copy TypeORM configuration and migrations for database operations
 COPY --from=builder /app/ormconfig.ts ./ormconfig.ts
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
 COPY --from=builder /app/libs/database/src/migrations ./libs/database/src/migrations
 COPY --from=builder /app/libs/database/src/entities ./libs/database/src/entities
 
 # Install production dependencies and dev dependencies needed for migrations
-RUN npm ci --production && npm install typeorm ts-node dotenv
+RUN npm ci --production && npm install typeorm ts-node tsconfig-paths dotenv @types/node typescript
 
 # Change ownership
 RUN chown -R nestjs:nodejs /app

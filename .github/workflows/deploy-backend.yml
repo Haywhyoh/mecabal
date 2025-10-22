@@ -241,14 +241,15 @@ jobs:
           export $(cat .env.production | grep -E "^DATABASE_[A-Z_]+=" | xargs)
           echo "✓ Environment variables loaded"
 
-          # Pull latest Docker images
-          docker-compose -f docker-compose.production.yml pull
-
           # Stop existing containers gracefully
           echo "Stopping services gracefully..."
           docker-compose -f docker-compose.production.yml down --timeout 30
 
-          # Ensure infrastructure is ready before migrations
+          # Build new images with latest code changes (BEFORE migrations)
+          echo "Building Docker images with latest changes..."
+          docker-compose -f docker-compose.production.yml build
+
+          # Start infrastructure services
           echo "Starting infrastructure services..."
           docker-compose -f docker-compose.production.yml up -d postgres redis rabbitmq minio
 
@@ -263,18 +264,18 @@ jobs:
             sleep 2
           done
 
-          # Run database migrations
+          # Run database migrations with newly built image
           echo "Running database migrations..."
           docker-compose -f docker-compose.production.yml run --rm api-gateway npm run migration:run || {
             echo "Migration failed! Rolling back..."
             git reset --hard $PREVIOUS_COMMIT
+            docker-compose -f docker-compose.production.yml build
             docker-compose -f docker-compose.production.yml up -d
             exit 1
           }
 
-          # Build and start all services
-          echo "Building and starting all services..."
-          docker-compose -f docker-compose.production.yml build
+          # Start all services with newly built images
+          echo "Starting all services..."
           docker-compose -f docker-compose.production.yml up -d --remove-orphans
 
           # Wait for services to start

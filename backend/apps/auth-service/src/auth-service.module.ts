@@ -88,12 +88,9 @@ import { GoogleTokenVerifierService } from './services/google-token-verifier.ser
         ],
         synchronize: false, // Disabled to prevent automatic schema changes
         logging: configService.get('NODE_ENV') === 'development',
-        ssl:
-          configService.get('NODE_ENV') === 'production'
-            ? {
-                rejectUnauthorized: false,
-              }
-            : false,
+        ssl: configService.get('DATABASE_SSL') === 'true' ? {
+          rejectUnauthorized: false,
+        } : false,
       }),
       inject: [ConfigService],
     }),
