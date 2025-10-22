@@ -76,9 +76,9 @@ import { TypingIndicator } from '../../../apps/messaging-service/src/entities/ty
         type: 'postgres',
         host: configService.get('DATABASE_HOST', 'localhost'),
         port: configService.get('DATABASE_PORT', 5432),
-        username: configService.get('DATABASE_USERNAME', 'MeCabal_user'),
-        password: configService.get('DATABASE_PASSWORD', 'MeCabal_password'),
-        database: configService.get('DATABASE_NAME', 'MeCabal_dev'),
+        username: configService.get('DATABASE_USERNAME', 'mecabal'),
+        password: configService.get('DATABASE_PASSWORD', 'mecabal_password'),
+        database: configService.get('DATABASE_NAME', 'mecabal_prod'),
         entities: [
           User,
           UserSession,
