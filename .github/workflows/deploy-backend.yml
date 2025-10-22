@@ -245,6 +245,14 @@ jobs:
           echo "Stopping services gracefully..."
           docker-compose -f docker-compose.production.yml down --timeout 30
 
+          # FOR FIRST DEPLOYMENT: Remove PostgreSQL volume to recreate with correct credentials
+          # This fixes the mecabal_user -> mecabal username mismatch
+          echo "Checking if PostgreSQL needs credential reset..."
+          if docker volume ls | grep -q backend_postgres_data; then
+            echo "Removing old PostgreSQL volume to recreate with correct credentials..."
+            docker volume rm backend_postgres_data || echo "Volume in use or doesn't exist"
+          fi
+
           # Build new images with latest code changes (BEFORE migrations)
           echo "Building Docker images with latest changes..."
           docker-compose -f docker-compose.production.yml build
