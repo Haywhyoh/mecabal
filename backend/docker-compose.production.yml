@@ -103,6 +103,7 @@ services:
       - PORT=3000
       - DATABASE_HOST=postgres
       - REDIS_HOST=redis
+      - DATABASE_SYNCHRONIZE=${DATABASE_SYNCHRONIZE:-false}
     command: ["node", "dist/apps/api-gateway/main.js"]
     ports:
       - "3000:3000"
@@ -134,6 +135,7 @@ services:
       - PORT=3001
       - DATABASE_HOST=postgres
       - REDIS_HOST=redis
+      - DATABASE_SYNCHRONIZE=${DATABASE_SYNCHRONIZE:-false}
     command: ["node", "dist/apps/auth-service/main.js"]
     ports:
       - "3001:3001"
@@ -165,6 +167,7 @@ services:
       - PORT=3002
       - DATABASE_HOST=postgres
       - REDIS_HOST=redis
+      - DATABASE_SYNCHRONIZE=${DATABASE_SYNCHRONIZE:-false}
     command: ["node", "dist/apps/user-service/main.js"]
     ports:
       - "3002:3002"
@@ -196,6 +199,7 @@ services:
       - PORT=3003
       - DATABASE_HOST=postgres
       - REDIS_HOST=redis
+      - DATABASE_SYNCHRONIZE=${DATABASE_SYNCHRONIZE:-false}
     command: ["node", "dist/apps/social-service/main.js"]
     ports:
       - "3003:3003"
@@ -228,6 +232,7 @@ services:
       - DATABASE_HOST=postgres
       - REDIS_HOST=redis
       - RABBITMQ_HOST=rabbitmq
+      - DATABASE_SYNCHRONIZE=${DATABASE_SYNCHRONIZE:-false}
     command: ["node", "dist/apps/messaging-service/main.js"]
     ports:
       - "3004:3004"
@@ -261,6 +266,7 @@ services:
       - PORT=3005
       - DATABASE_HOST=postgres
       - REDIS_HOST=redis
+      - DATABASE_SYNCHRONIZE=${DATABASE_SYNCHRONIZE:-false}
     command: ["node", "dist/apps/marketplace-service/main.js"]
     ports:
       - "3005:3005"
@@ -292,6 +298,7 @@ services:
       - PORT=3006
       - DATABASE_HOST=postgres
       - REDIS_HOST=redis
+      - DATABASE_SYNCHRONIZE=${DATABASE_SYNCHRONIZE:-false}
     command: ["node", "dist/apps/events-service/main.js"]
     ports:
       - "3006:3006"
@@ -324,6 +331,7 @@ services:
       - DATABASE_HOST=postgres
       - REDIS_HOST=redis
       - RABBITMQ_HOST=rabbitmq
+      - DATABASE_SYNCHRONIZE=${DATABASE_SYNCHRONIZE:-false}
     command: ["node", "dist/apps/notification-service/main.js"]
     ports:
       - "3007:3007"
@@ -357,6 +365,7 @@ services:
       - PORT=3008
       - DATABASE_HOST=postgres
       - REDIS_HOST=redis
+      - DATABASE_SYNCHRONIZE=${DATABASE_SYNCHRONIZE:-false}
     command: ["node", "dist/apps/location-service/main.js"]
     ports:
       - "3008:3008"
@@ -388,6 +397,7 @@ services:
       - PORT=3009
       - DATABASE_HOST=postgres
       - REDIS_HOST=redis
+      - DATABASE_SYNCHRONIZE=${DATABASE_SYNCHRONIZE:-false}
     command: ["node", "dist/apps/business-service/main.js"]
     ports:
       - "3009:3009"

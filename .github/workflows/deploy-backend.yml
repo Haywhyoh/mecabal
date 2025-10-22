@@ -264,19 +264,26 @@ jobs:
             sleep 2
           done
 
+          # For FIRST DEPLOYMENT ONLY: Enable synchronize to create all tables
+          # IMPORTANT: After first successful deployment, remove DATABASE_SYNCHRONIZE=true
+          # and uncomment the migration commands below
+          echo "Setting up database schema..."
+          export DATABASE_SYNCHRONIZE=true
+
           # Run database migrations with newly built image
-          echo "Running database migrations..."
-          docker-compose -f docker-compose.production.yml run --rm api-gateway npm run migration:run || {
-            echo "Migration failed! Rolling back..."
-            git reset --hard $PREVIOUS_COMMIT
-            docker-compose -f docker-compose.production.yml build
-            docker-compose -f docker-compose.production.yml up -d
-            exit 1
-          }
+          # UNCOMMENT AFTER FIRST DEPLOYMENT:
+          # echo "Running database migrations..."
+          # docker-compose -f docker-compose.production.yml run --rm -e DATABASE_SYNCHRONIZE=false api-gateway npm run migration:run || {
+          #   echo "Migration failed! Rolling back..."
+          #   git reset --hard $PREVIOUS_COMMIT
+          #   docker-compose -f docker-compose.production.yml build
+          #   docker-compose -f docker-compose.production.yml up -d
+          #   exit 1
+          # }
 
           # Start all services with newly built images
           echo "Starting all services..."
-          docker-compose -f docker-compose.production.yml up -d --remove-orphans
+          DATABASE_SYNCHRONIZE=$DATABASE_SYNCHRONIZE docker-compose -f docker-compose.production.yml up -d --remove-orphans
 
           # Wait for services to start
           echo "Waiting for services to start..."
