@@ -75,12 +75,6 @@ export class PostsService {
         }
       }
 
-      // Reject job category
-      if (createPostDto.helpCategory === 'job') {
-        throw new BadRequestException(
-          'Job category is no longer supported. Use "task" instead.',
-        );
-      }
     }
 
     // Create the post

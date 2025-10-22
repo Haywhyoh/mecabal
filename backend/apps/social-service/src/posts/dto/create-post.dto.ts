@@ -137,7 +137,7 @@ export class CreatePostDto {
   @ApiPropertyOptional({
     description: 'Help category (required if postType is help)',
     enum: HelpCategory,
-    example: HelpCategory.JOB,
+    example: HelpCategory.TASK,
   })
   @IsOptional()
   @IsEnum(HelpCategory)
