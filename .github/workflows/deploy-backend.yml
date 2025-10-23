@@ -275,11 +275,27 @@ jobs:
           # For FIRST DEPLOYMENT ONLY: Run schema sync with a single service to avoid conflicts
           # IMPORTANT: After first successful deployment, remove this section
           # and uncomment the migration commands below
-          echo "Setting up database schema with user-service..."
-          docker-compose -f docker-compose.production.yml run --rm -e DATABASE_SYNCHRONIZE=true user-service node -e "console.log('Schema sync triggered via user-service')" || echo "Schema sync command completed"
+          echo "Setting up database schema..."
 
-          # Wait for schema to be created
-          sleep 5
+          # Start ONLY user-service with synchronize enabled to create schema
+          DATABASE_SYNCHRONIZE=true docker-compose -f docker-compose.production.yml up -d user-service
+
+          # Wait for schema creation to complete
+          echo "Waiting for schema synchronization..."
+          sleep 15
+
+          # Check if user-service is healthy
+          for i in {1..10}; do
+            if curl -f -s http://localhost:3002/health > /dev/null 2>&1; then
+              echo "✓ User service started and schema created"
+              break
+            fi
+            echo "   Waiting for user service... ($i/10)"
+            sleep 3
+          done
+
+          # Stop user-service (we'll restart all services together next)
+          docker-compose -f docker-compose.production.yml stop user-service
 
           # Run database migrations with newly built image
           # UNCOMMENT AFTER FIRST DEPLOYMENT:

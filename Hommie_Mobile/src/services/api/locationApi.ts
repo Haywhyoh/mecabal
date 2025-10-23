@@ -72,9 +72,13 @@ class LocationApiService {
    */
   async getWardsByLGA(lgaId: string): Promise<Ward[]> {
     try {
+      console.log('📍 Loading wards for lgaId:', lgaId);
       const response = await apiClient.get<{ success: boolean; data: Ward[]; count: number }>(`${this.baseUrl}/lgas/${lgaId}/wards`);
+      console.log('📍 Raw wards response:', JSON.stringify(response, null, 2));
+      console.log('📍 Wards loaded:', response.data?.length || 0, 'wards');
       return response.data || [];
     } catch (error) {
+      console.error('📍 Wards API error:', error);
       throw this.handleError(error, 'Failed to fetch wards');
     }
   }

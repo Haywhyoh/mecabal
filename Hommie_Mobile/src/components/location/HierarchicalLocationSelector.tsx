@@ -111,6 +111,14 @@ export const HierarchicalLocationSelector: React.FC<HierarchicalLocationSelector
     loadInitialData();
   }, [currentStep]);
 
+  // Auto-skip ward step if no wards are available
+  useEffect(() => {
+    if (currentStep === STEPS.WARD && !stepData.isLoading && stepData.wards.length === 0) {
+      console.log('📍 No wards available for this LGA, automatically proceeding to neighborhoods');
+      setCurrentStep(STEPS.NEIGHBORHOOD);
+    }
+  }, [currentStep, stepData.isLoading, stepData.wards]);
+
   // Focus management for accessibility
   useEffect(() => {
     if (Platform.OS === 'ios') {
@@ -171,22 +179,32 @@ export const HierarchicalLocationSelector: React.FC<HierarchicalLocationSelector
           break;
         case STEPS.LGA:
           console.log('📍 HierarchicalLocationSelector: Loading LGAs for selectedState:', selectedState);
-          if (selectedState && selectedState.id && typeof selectedState.id === 'string') {
-            await loadLGAs(selectedState.id);
+          if (selectedState && selectedState.id && (typeof selectedState.id === 'string' || typeof selectedState.id === 'number')) {
+            await loadLGAs(String(selectedState.id));
           } else {
             console.log('📍 HierarchicalLocationSelector: No valid selectedState for LGA loading');
+            setStepData(prev => ({ ...prev, isLoading: false }));
           }
           break;
+        case STEPS.CITY_TOWN:
+          // City/Town step doesn't require loading data from API
+          console.log('📍 HierarchicalLocationSelector: City/Town step - no data loading required');
+          setStepData(prev => ({ ...prev, isLoading: false }));
+          break;
         case STEPS.WARD:
-          if (selectedLGA && selectedLGA.id && typeof selectedLGA.id === 'string') {
-            await loadWards(selectedLGA.id);
+          if (selectedLGA && selectedLGA.id && (typeof selectedLGA.id === 'string' || typeof selectedLGA.id === 'number')) {
+            await loadWards(String(selectedLGA.id));
+          } else {
+            setStepData(prev => ({ ...prev, isLoading: false }));
           }
           break;
         case STEPS.NEIGHBORHOOD:
-          if (selectedWard && selectedWard.id && typeof selectedWard.id === 'string') {
-            await loadNeighborhoods(selectedWard.id);
-          } else if (selectedLGA && selectedLGA.id && typeof selectedLGA.id === 'string') {
-            await loadNeighborhoodsByLGA(selectedLGA.id);
+          if (selectedWard && selectedWard.id && (typeof selectedWard.id === 'string' || typeof selectedWard.id === 'number')) {
+            await loadNeighborhoods(String(selectedWard.id));
+          } else if (selectedLGA && selectedLGA.id && (typeof selectedLGA.id === 'string' || typeof selectedLGA.id === 'number')) {
+            await loadNeighborhoodsByLGA(String(selectedLGA.id));
+          } else {
+            setStepData(prev => ({ ...prev, isLoading: false }));
           }
           break;
       }
