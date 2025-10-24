@@ -1,6 +1,6 @@
 import { DataSource } from 'typeorm';
 import { config } from 'dotenv';
-import { EventCategory } from './libs/database/src/entities/event-category.entity';
+import { EventCategory } from '../libs/database/src/entities/event-category.entity';
 
 // Load environment variables
 config();
