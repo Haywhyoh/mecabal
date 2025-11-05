@@ -386,10 +386,15 @@ export class PhoneOtpService {
       // Update user phone verification status if this is registration
       if (purpose === 'registration' && user) {
         user.phoneVerified = true;
-        // For mobile registration flow, user should be considered verified after phone verification
-        // This allows them to proceed to location setup and complete registration
-        user.isVerified = true;
+        // DO NOT set isVerified = true here - wait until location setup is complete
+        // Location setup is the final step that marks user as fully verified
+        // This ensures users complete the full onboarding flow
+        // User can proceed to location setup but is not fully verified yet
+        user.isVerified = false; // Keep false until location is set
         await this.userRepository.save(user);
+        this.logger.log(
+          `Phone verified for user ${user.id}, but registration not complete until location setup`,
+        );
       }
 
       this.logger.log(`📞 Phone OTP verified successfully for ${phoneNumber}`);
