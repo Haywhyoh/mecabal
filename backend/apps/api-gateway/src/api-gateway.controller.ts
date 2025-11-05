@@ -36,6 +36,40 @@ export class ApiGatewayController {
     return this.apiGatewayService.getHello();
   }
 
+  @Get('api')
+  @ApiOperation({ summary: 'API information endpoint' })
+  @ApiResponse({ status: 200, description: 'API information' })
+  getApiInfo(@Res() res: Response) {
+    return res.status(HttpStatus.OK).json({
+      message: 'MeCabal API Gateway',
+      version: '1.0',
+      status: 'running',
+      documentation: '/api/docs',
+      health: '/health',
+      endpoints: {
+        auth: '/auth',
+        users: '/users',
+        social: '/posts',
+        marketplace: '/listings',
+        events: '/events',
+        messaging: '/messaging',
+        business: '/business',
+        location: '/location',
+      },
+    });
+  }
+
+  @Get('health')
+  @ApiOperation({ summary: 'Health check endpoint' })
+  @ApiResponse({ status: 200, description: 'Service is healthy' })
+  getHealth(@Res() res: Response) {
+    return res.status(HttpStatus.OK).json({
+      status: 'ok',
+      service: 'MeCabal API Gateway',
+      timestamp: new Date().toISOString(),
+    });
+  }
+
   @Get('test')
   @ApiOperation({ summary: 'Test social service connection' })
   @ApiResponse({ status: 200, description: 'Social service test successful' })
