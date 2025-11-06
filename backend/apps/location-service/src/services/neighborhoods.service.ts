@@ -267,65 +267,70 @@ export class NeighborhoodsService {
       neighborhoodData.description = createDto.description;
     }
 
-    // Handle boundaries - TypeORM with PostGIS needs GeoJSON as string
-    if (boundaries) {
-      // Convert GeoJSON object to string for PostGIS
-      const geoJsonString = JSON.stringify(boundaries);
-      
-      // Build columns and values arrays dynamically
-      const columns = ['name', 'type', 'lga_id', 'center_latitude', 'center_longitude', 
-                      'radius_meters', 'is_gated', 'requires_verification', 'created_by'];
-      const placeholders: string[] = [];
-      const params: any[] = [
-        neighborhoodData.name,
-        neighborhoodData.type,
-        neighborhoodData.lgaId,
-        neighborhoodData.centerLatitude,
-        neighborhoodData.centerLongitude,
-        neighborhoodData.radiusMeters,
-        neighborhoodData.isGated,
-        neighborhoodData.requiresVerification,
-        neighborhoodData.createdBy,
-      ];
-      
-      let paramIndex = 10;
-      if (createDto.wardId) {
-        columns.push('ward_id');
-        placeholders.push(`$${paramIndex}`);
-        params.push(createDto.wardId);
-        paramIndex++;
-      }
-      if (createDto.parentNeighborhoodId) {
-        columns.push('parent_neighborhood_id');
-        placeholders.push(`$${paramIndex}`);
-        params.push(createDto.parentNeighborhoodId);
-        paramIndex++;
-      }
-      if (createDto.adminUserId) {
-        columns.push('admin_user_id');
-        placeholders.push(`$${paramIndex}`);
-        params.push(createDto.adminUserId);
-        paramIndex++;
-      }
-      if (createDto.description) {
-        columns.push('description');
-        placeholders.push(`$${paramIndex}`);
-        params.push(createDto.description);
-        paramIndex++;
-      }
-      
-      columns.push('boundaries');
-      placeholders.push(`ST_GeomFromGeoJSON($${paramIndex})`);
-      params.push(geoJsonString);
-      
-      const insertQuery = `
-        INSERT INTO neighborhoods (${columns.join(', ')})
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, ${placeholders.join(', ')})
-        RETURNING id
-      `;
-      
-      try {
-        const result = await this.neighborhoodRepository.query(insertQuery, params);
+    try {
+      // Use raw query for PostGIS geometry insertion
+      if (boundaries) {
+        const geoJsonString = JSON.stringify(boundaries);
+        
+        // Build the query with all required fields
+        const queryParts: string[] = [];
+        const values: any[] = [];
+        let paramIndex = 1;
+        
+        queryParts.push('name'); values.push(neighborhoodData.name); paramIndex++;
+        queryParts.push('type'); values.push(neighborhoodData.type); paramIndex++;
+        queryParts.push('lga_id'); values.push(neighborhoodData.lgaId); paramIndex++;
+        queryParts.push('center_latitude'); values.push(neighborhoodData.centerLatitude); paramIndex++;
+        queryParts.push('center_longitude'); values.push(neighborhoodData.centerLongitude); paramIndex++;
+        queryParts.push('radius_meters'); values.push(neighborhoodData.radiusMeters); paramIndex++;
+        queryParts.push('is_gated'); values.push(neighborhoodData.isGated); paramIndex++;
+        queryParts.push('requires_verification'); values.push(neighborhoodData.requiresVerification); paramIndex++;
+        queryParts.push('created_by'); values.push(neighborhoodData.createdBy); paramIndex++;
+        
+        const placeholders: string[] = [];
+        for (let i = 1; i < paramIndex; i++) {
+          placeholders.push(`$${i}`);
+        }
+        
+        // Add optional fields
+        if (createDto.wardId) {
+          queryParts.push('ward_id');
+          placeholders.push(`$${paramIndex}`);
+          values.push(createDto.wardId);
+          paramIndex++;
+        }
+        if (createDto.parentNeighborhoodId) {
+          queryParts.push('parent_neighborhood_id');
+          placeholders.push(`$${paramIndex}`);
+          values.push(createDto.parentNeighborhoodId);
+          paramIndex++;
+        }
+        if (createDto.adminUserId) {
+          queryParts.push('admin_user_id');
+          placeholders.push(`$${paramIndex}`);
+          values.push(createDto.adminUserId);
+          paramIndex++;
+        }
+        if (createDto.description) {
+          queryParts.push('description');
+          placeholders.push(`$${paramIndex}`);
+          values.push(createDto.description);
+          paramIndex++;
+        }
+        
+        // Add boundaries with ST_GeomFromGeoJSON
+        queryParts.push('boundaries');
+        placeholders.push(`ST_GeomFromGeoJSON($${paramIndex}::json)`);
+        values.push(geoJsonString);
+        
+        const insertQuery = `
+          INSERT INTO neighborhoods (${queryParts.join(', ')})
+          VALUES (${placeholders.join(', ')})
+          RETURNING id
+        `;
+        
+        console.log('Executing query with', values.length, 'parameters');
+        const result = await this.neighborhoodRepository.query(insertQuery, values);
         const newId = result[0]?.id;
         
         if (!newId) {
@@ -336,26 +341,37 @@ export class NeighborhoodsService {
           where: { id: newId },
           relations: ['lga', 'ward', 'parentNeighborhood'],
         }) as Promise<Neighborhood>;
-      } catch (dbError: any) {
-        console.error('Database error creating neighborhood:', dbError);
-        console.error('Query:', insertQuery);
-        console.error('Params:', params);
+      } else {
+        // No boundaries, use normal TypeORM save
+        const neighborhood = this.neighborhoodRepository.create(neighborhoodData);
+        const savedNeighborhood = await this.neighborhoodRepository.save(neighborhood);
         
-        // Provide more helpful error messages
-        if (dbError.code === '23505') { // Unique constraint violation
-          throw new Error(`A neighborhood with this name already exists in this LGA`);
-        } else if (dbError.code === '23503') { // Foreign key violation
-          throw new Error(`Invalid reference: ${dbError.detail || 'Referenced record does not exist'}`);
-        } else if (dbError.message?.includes('ST_GeomFromGeoJSON')) {
-          throw new Error(`Invalid boundaries format: ${dbError.message}`);
-        } else {
-          throw new Error(`Database error: ${dbError.message || 'Unknown database error'}`);
-        }
+        return this.neighborhoodRepository.findOne({
+          where: { id: savedNeighborhood.id },
+          relations: ['lga', 'ward', 'parentNeighborhood'],
+        }) as Promise<Neighborhood>;
       }
-    } else {
-      // No boundaries, use normal save
-      const neighborhood = this.neighborhoodRepository.create(neighborhoodData);
-      return this.neighborhoodRepository.save(neighborhood);
+    } catch (dbError: any) {
+      console.error('Database error creating neighborhood:', dbError);
+      console.error('Error type:', typeof dbError);
+      console.error('Error code:', dbError?.code);
+      console.error('Error detail:', dbError?.detail);
+      console.error('Error message:', dbError?.message);
+      console.error('Error stack:', dbError?.stack);
+      console.error('Neighborhood data:', neighborhoodData);
+      
+      // Provide more helpful error messages
+      if (dbError?.code === '23505') { // Unique constraint violation
+        throw new Error(`A neighborhood with this name already exists in this LGA`);
+      } else if (dbError?.code === '23503') { // Foreign key violation
+        const detail = dbError?.detail || 'Referenced record does not exist';
+        throw new Error(`Invalid reference: ${detail}. Please check that the LGA ID exists.`);
+      } else if (dbError?.message?.includes('geometry') || dbError?.message?.includes('ST_GeomFromGeoJSON')) {
+        throw new Error(`Invalid boundaries format: ${dbError.message}`);
+      } else {
+        const errorMsg = dbError?.message || dbError?.toString() || 'Unknown database error';
+        throw new Error(`Database error: ${errorMsg}`);
+      }
     }
   }
 

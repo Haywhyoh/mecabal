@@ -293,22 +293,38 @@ export class NeighborhoodsController {
         message: 'Neighborhood created successfully',
         timestamp: new Date().toISOString()
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating neighborhood:', error);
+      console.error('Error type:', typeof error);
+      console.error('Error keys:', Object.keys(error || {}));
+      console.error('Error message:', error?.message);
+      console.error('Error stack:', error?.stack);
       
       // Return detailed error information
       if (error instanceof HttpException) {
         throw error;
       }
       
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      const errorDetails = error instanceof Error && 'stack' in error ? error.stack : undefined;
+      // Extract error message from various possible sources
+      let errorMessage = 'Unknown error';
+      if (error?.message) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error?.error) {
+        errorMessage = error.error;
+      } else if (error?.detail) {
+        errorMessage = error.detail;
+      }
+      
+      const errorDetails = error?.stack || error?.details || undefined;
       
       throw new BadRequestException({
         success: false,
         error: errorMessage,
         details: errorDetails,
         message: 'Failed to create neighborhood',
+        originalError: error?.toString ? error.toString() : String(error),
         timestamp: new Date().toISOString()
       });
     }

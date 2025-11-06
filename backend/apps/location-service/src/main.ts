@@ -21,12 +21,12 @@ async function bootstrap() {
       transformOptions: {
         enableImplicitConversion: true,
       },
-      exceptionFactory: (errors) => {
-        const formattedErrors = errors.map((error) => ({
-          property: error.property,
-          value: error.value,
-          constraints: error.constraints,
-          children: error.children,
+      exceptionFactory: (validationErrors) => {
+        const formattedErrors = validationErrors.map((err) => ({
+          property: err.property,
+          value: err.value,
+          constraints: err.constraints,
+          children: err.children,
         }));
         return new BadRequestException({
           success: false,
