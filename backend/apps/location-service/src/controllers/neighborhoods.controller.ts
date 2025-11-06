@@ -293,38 +293,57 @@ export class NeighborhoodsController {
         message: 'Neighborhood created successfully',
         timestamp: new Date().toISOString()
       };
-    } catch (error: any) {
-      console.error('Error creating neighborhood:', error);
-      console.error('Error type:', typeof error);
-      console.error('Error keys:', Object.keys(error || {}));
-      console.error('Error message:', error?.message);
-      console.error('Error stack:', error?.stack);
-      
+    } catch (err: any) {
+      console.error('=== Error creating neighborhood ===');
+      console.error('Error type:', typeof err);
+      console.error('Error constructor:', err?.constructor?.name);
+      console.error('Error message:', err?.message);
+      console.error('Error stack:', err?.stack);
+      console.error('Error keys:', Object.keys(err || {}));
+      console.error('Full error object:', JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
+      console.error('DTO received:', JSON.stringify(createNeighborhoodDto, null, 2));
+
       // Return detailed error information
-      if (error instanceof HttpException) {
-        throw error;
+      if (err instanceof HttpException) {
+        throw err;
       }
-      
+
       // Extract error message from various possible sources
-      let errorMessage = 'Unknown error';
-      if (error?.message) {
-        errorMessage = error.message;
-      } else if (typeof error === 'string') {
-        errorMessage = error;
-      } else if (error?.error) {
-        errorMessage = error.error;
-      } else if (error?.detail) {
-        errorMessage = error.detail;
+      let errorMsg = 'Unknown error occurred';
+      let errorDetails: any = undefined;
+
+      if (err?.message) {
+        errorMsg = err.message;
+      } else if (typeof err === 'string') {
+        errorMsg = err;
+      } else if (err && typeof err === 'object') {
+        // Safely check for error property
+        const errObj = err as Record<string, any>;
+        if ('detail' in errObj && errObj.detail) {
+          errorMsg = errObj.detail;
+          errorDetails = { databaseDetail: errObj.detail };
+        } else if ('error' in errObj && errObj.error) {
+          errorMsg = String(errObj.error);
+        }
       }
-      
-      const errorDetails = error?.stack || error?.details || undefined;
-      
+
+      // Include more context in error details
+      errorDetails = errorDetails || {
+        stackTrace: err?.stack,
+        errorType: err?.constructor?.name || typeof err,
+        receivedData: {
+          name: createNeighborhoodDto.name,
+          type: createNeighborhoodDto.type,
+          lgaId: createNeighborhoodDto.lgaId,
+          hasBoundaries: !!createNeighborhoodDto.boundaries
+        }
+      };
+
       throw new BadRequestException({
         success: false,
-        error: errorMessage,
-        details: errorDetails,
+        errorMessage: errorMsg,
+        errorDetails: errorDetails,
         message: 'Failed to create neighborhood',
-        originalError: error?.toString ? error.toString() : String(error),
         timestamp: new Date().toISOString()
       });
     }
