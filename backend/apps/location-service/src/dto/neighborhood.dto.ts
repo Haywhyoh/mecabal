@@ -10,7 +10,11 @@ export class CreateNeighborhoodDto {
   type: NeighborhoodType;
 
   @IsUUID()
-  wardId: string;
+  lgaId: string;
+
+  @IsOptional()
+  @IsUUID()
+  wardId?: string;
 
   @IsOptional()
   @IsUUID()
@@ -19,6 +23,18 @@ export class CreateNeighborhoodDto {
   @IsOptional()
   @IsObject()
   boundaries?: any; // GeoJSON polygon
+
+  @IsOptional()
+  @IsNumber()
+  centerLatitude?: number;
+
+  @IsOptional()
+  @IsNumber()
+  centerLongitude?: number;
+
+  @IsOptional()
+  @IsNumber()
+  radiusMeters?: number;
 
   @IsOptional()
   @IsBoolean()
@@ -31,6 +47,9 @@ export class CreateNeighborhoodDto {
   @IsOptional()
   @IsUUID()
   adminUserId?: string;
+
+  @IsUUID()
+  createdBy: string;
 }
 
 export class UpdateNeighborhoodDto {

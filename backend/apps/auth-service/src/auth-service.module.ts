@@ -111,6 +111,7 @@ import { GoogleTokenVerifierService } from './services/google-token-verifier.ser
       UserSession,
       Role,
       State,
+      UserLocation,
     ]),
   ],
   controllers: [AuthController],

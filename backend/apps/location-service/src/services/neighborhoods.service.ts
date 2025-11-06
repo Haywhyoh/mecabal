@@ -216,7 +216,13 @@ export class NeighborhoodsService {
   }
 
   async createNeighborhood(createDto: CreateNeighborhoodDto): Promise<Neighborhood> {
-    const neighborhood = this.neighborhoodRepository.create(createDto);
+    const neighborhood = this.neighborhoodRepository.create({
+      ...createDto,
+      centerLatitude: createDto.centerLatitude,
+      centerLongitude: createDto.centerLongitude,
+      radiusMeters: createDto.radiusMeters || 1000,
+      createdBy: createDto.createdBy,
+    });
     return this.neighborhoodRepository.save(neighborhood);
   }
 

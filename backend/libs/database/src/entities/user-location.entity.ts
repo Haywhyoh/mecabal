@@ -53,9 +53,9 @@ export class UserLocation {
   @Column({ name: 'ward_id', nullable: true })
   wardId?: string;
 
-  @ApiProperty({ description: 'Neighborhood ID' })
-  @Column({ name: 'neighborhood_id' })
-  neighborhoodId: string;
+  @ApiProperty({ description: 'Neighborhood ID', required: false })
+  @Column({ name: 'neighborhood_id', nullable: true })
+  neighborhoodId?: string;
 
   @ApiProperty({ 
     description: 'City or town name',

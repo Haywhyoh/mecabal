@@ -16,9 +16,10 @@ export class CreateUserLocationDto {
   @IsUUID()
   wardId?: string;
 
-  @ApiProperty({ description: 'Neighborhood ID' })
+  @ApiProperty({ description: 'Neighborhood ID', required: false })
+  @IsOptional()
   @IsUUID()
-  neighborhoodId: string;
+  neighborhoodId?: string;
 
   @ApiProperty({ description: 'City or town name', required: false })
   @IsOptional()

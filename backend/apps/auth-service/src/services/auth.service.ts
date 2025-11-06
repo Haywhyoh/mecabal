@@ -9,6 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User } from '@app/database/entities/user.entity';
+import { UserLocation } from '@app/database/entities/user-location.entity';
 import { RegisterUserDto, LoginUserDto } from '../dto/register-user.dto';
 import { EmailOtpService } from './email-otp.service';
 import { PhoneOtpService } from './phone-otp.service';
@@ -23,6 +24,8 @@ export class AuthService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(UserLocation)
+    private userLocationRepository: Repository<UserLocation>,
     private emailOtpService: EmailOtpService,
     private phoneOtpService: PhoneOtpService,
     private tokenService: TokenService,
@@ -1090,12 +1093,13 @@ export class AuthService {
   async completeRegistrationWithLocation(
     userId: string,
     locationData: {
-      state?: string;
-      city?: string;
-      estate?: string;
-      location?: string;
-      landmark?: string;
+      stateId?: string;
+      lgaId?: string;
+      neighborhoodId?: string;
+      cityTown?: string;
       address?: string;
+      latitude?: number;
+      longitude?: number;
       phoneNumber?: string;
     },
   ): Promise<AuthResponseDto> {
@@ -1109,23 +1113,59 @@ export class AuthService {
         };
       }
 
-      // Update location fields
-      // Persist detailed location via UserLocation; user scalar fields removed
+      // Create UserLocation record if location data is provided
+      if (locationData.stateId && locationData.lgaId) {
+        // Unset any existing primary locations
+        await this.userLocationRepository.update(
+          { userId, isPrimary: true },
+          { isPrimary: false }
+        );
+
+        // Create coordinates object if latitude and longitude provided
+        let coordinates;
+        if (locationData.latitude && locationData.longitude) {
+          coordinates = {
+            type: 'Point',
+            coordinates: [locationData.longitude, locationData.latitude]
+          };
+        }
+
+        // Create new primary location
+        const userLocation = this.userLocationRepository.create({
+          userId,
+          stateId: locationData.stateId,
+          lgaId: locationData.lgaId,
+          neighborhoodId: locationData.neighborhoodId,
+          cityTown: locationData.cityTown,
+          address: locationData.address,
+          coordinates,
+          isPrimary: true,
+        });
+
+        const savedLocation = await this.userLocationRepository.save(userLocation);
+
+        // Update user's primary location ID
+        user.primaryLocationId = savedLocation.id;
+
+        this.logger.log(
+          `📍 Created UserLocation for user ${userId}: ${locationData.cityTown || 'No city'}, ${locationData.stateId}`,
+        );
+      }
+
+      // Update phone number if provided
       if (locationData.phoneNumber) {
         user.phoneNumber = locationData.phoneNumber;
       }
 
       // Mark as fully verified after location setup
-      // This is the final step - all verifications complete
       user.addressVerified = true;
-      user.isVerified = true; // Final verification status
-      
+      user.isVerified = true;
+
       // Ensure phone is verified if it wasn't already
       if (user.phoneNumber && !user.phoneVerified) {
         this.logger.warn(
           `User ${userId} completing registration without phone verification. This should not happen in normal flow.`,
         );
-        // Don't set phoneVerified = true automatically - it should be set during phone verification step
       }
 
       // Set member since date

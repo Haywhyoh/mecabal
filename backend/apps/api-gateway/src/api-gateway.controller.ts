@@ -1544,6 +1544,42 @@ export class ApiGatewayController {
     }
   }
 
+  // Create Neighborhood - Requires authentication
+  @Post('location/neighborhoods/create')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Create new neighborhood' })
+  @ApiResponse({ status: 201, description: 'Neighborhood created successfully' })
+  async createNeighborhood(@Req() req: Request, @Res() res: Response) {
+    try {
+      const user = req.user as { id: string; email: string };
+      const body = { ...req.body, createdBy: user.id };
+
+      console.log(
+        '🏘️  API Gateway - Creating neighborhood:',
+        'User:', user.email,
+        'Neighborhood:', req.body.name
+      );
+
+      const result: unknown =
+        await this.apiGatewayService.proxyToLocationService(
+          '/neighborhoods',
+          'POST',
+          body,
+          req.headers as Record<string, string | string[] | undefined>,
+          req.user,
+        );
+
+      res.status(HttpStatus.CREATED).json(result);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error creating neighborhood:', errorMessage);
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: errorMessage });
+    }
+  }
+
   // Catch-all route for location service
   @All('location/*path')
   @ApiOperation({ summary: 'Proxy all location service requests' })

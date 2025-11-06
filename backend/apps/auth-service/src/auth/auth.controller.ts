@@ -677,6 +677,60 @@ export class AuthController {
     }
   }
 
+  @Post('google/web')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Google OAuth for web apps using ID token' })
+  @ApiResponse({
+    status: 200,
+    description: 'Google authentication successful',
+    type: GoogleAuthResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid Google ID token',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Account conflict - email already exists',
+  })
+  async googleAuthWeb(@Body() dto: GoogleAuthMobileDto) {
+    try {
+      // Verify the Google ID token (web client ID is already included in audience)
+      const payload = await this.googleTokenVerifierService.verifyIdToken(dto.idToken);
+
+      // Process the Google user
+      const result = await this.authService.validateGoogleUser({
+        googleId: payload.sub,
+        email: payload.email,
+        firstName: payload.given_name,
+        lastName: payload.family_name,
+        profilePicture: payload.picture,
+        emailVerified: payload.email_verified,
+      });
+
+      return {
+        success: true,
+        message: result.isNewUser ? 'Account created successfully' : 'Login successful',
+        ...result,
+      };
+    } catch (error) {
+      if (error.message?.includes('already exists')) {
+        return {
+          success: false,
+          error: error.message,
+          code: 'ACCOUNT_EXISTS_WITH_EMAIL',
+          suggestedAction: 'link_account',
+        };
+      }
+
+      return {
+        success: false,
+        error: error.message || 'Google authentication failed',
+      };
+    }
+  }
+
   @Post('google/mobile')
   @Public()
   @HttpCode(HttpStatus.OK)
@@ -848,48 +902,32 @@ export class AuthController {
     @CurrentUser() user: User,
     @Body()
     locationData: {
-      state?: string;
-      city?: string;
-      estate?: string;
-      location?: string;
-      landmark?: string;
+      stateId?: string;
+      lgaId?: string;
+      neighborhoodId?: string;
+      cityTown?: string;
       address?: string;
       latitude?: number;
       longitude?: number;
       completeRegistration?: boolean;
     },
   ) {
-    // Format location string if coordinates provided
-    let locationString = locationData.location;
-    if (locationData.latitude && locationData.longitude) {
-      locationString = `POINT(${locationData.longitude} ${locationData.latitude})`;
-    }
-
     // If completing registration, use the complete registration method
     if (locationData.completeRegistration) {
       return this.authService.completeRegistrationWithLocation(user.id, {
-        state: locationData.state,
-        city: locationData.city,
-        estate: locationData.estate,
-        location: locationString,
-        landmark: locationData.landmark,
+        stateId: locationData.stateId,
+        lgaId: locationData.lgaId,
+        neighborhoodId: locationData.neighborhoodId,
+        cityTown: locationData.cityTown,
         address: locationData.address,
+        latitude: locationData.latitude,
+        longitude: locationData.longitude,
       });
     }
 
-    // Otherwise, just update the profile
-    const updateData = {
-      state: locationData.state,
-      city: locationData.city,
-      estate: locationData.estate,
-      location: locationString,
-      landmark: locationData.landmark,
-      address: locationData.address,
-      addressVerified: true, // Mark address as verified when location is set up
-      isVerified: true, // Mark user as fully verified after location setup
-    };
-
-    return this.authService.updateUserProfile(user.id, updateData);
+    // Otherwise, just update the profile (fallback for non-registration updates)
+    // This would need to be handled differently now that we use UserLocation
+    throw new Error('Non-registration location updates not yet implemented');
   }
 
   @Get('location/landmarks')
