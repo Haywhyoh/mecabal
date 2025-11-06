@@ -1,6 +1,6 @@
 import 'tsconfig-paths/register';
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, BadRequestException } from '@nestjs/common';
 import { LocationServiceModule } from './location-service.module';
 
 async function bootstrap() {
@@ -12,12 +12,30 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Global validation pipe
+  // Global validation pipe with detailed error messages
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+      exceptionFactory: (errors) => {
+        const formattedErrors = errors.map((error) => ({
+          property: error.property,
+          value: error.value,
+          constraints: error.constraints,
+          children: error.children,
+        }));
+        return new BadRequestException({
+          success: false,
+          error: 'Validation failed',
+          message: 'Please check your input data',
+          validationErrors: formattedErrors,
+          timestamp: new Date().toISOString(),
+        });
+      },
     }),
   );
 

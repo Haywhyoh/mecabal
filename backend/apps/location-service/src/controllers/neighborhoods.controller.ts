@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Param, Query, Body } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Query, Body, HttpException, HttpStatus, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBody } from '@nestjs/swagger';
 import { NeighborhoodsService } from '../services/neighborhoods.service';
 import { CreateNeighborhoodDto, UpdateNeighborhoodDto, NeighborhoodSearchDto } from '../dto/neighborhood.dto';
@@ -285,13 +285,33 @@ export class NeighborhoodsController {
     }
   })
   async createNeighborhood(@Body() createNeighborhoodDto: CreateNeighborhoodDto) {
-    const neighborhood = await this.neighborhoodsService.createNeighborhood(createNeighborhoodDto);
-    return {
-      success: true,
-      data: neighborhood,
-      message: 'Neighborhood created successfully',
-      timestamp: new Date().toISOString()
-    };
+    try {
+      const neighborhood = await this.neighborhoodsService.createNeighborhood(createNeighborhoodDto);
+      return {
+        success: true,
+        data: neighborhood,
+        message: 'Neighborhood created successfully',
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Error creating neighborhood:', error);
+      
+      // Return detailed error information
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorDetails = error instanceof Error && 'stack' in error ? error.stack : undefined;
+      
+      throw new BadRequestException({
+        success: false,
+        error: errorMessage,
+        details: errorDetails,
+        message: 'Failed to create neighborhood',
+        timestamp: new Date().toISOString()
+      });
+    }
   }
 
   @Put(':id')

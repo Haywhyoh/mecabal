@@ -9,7 +9,7 @@ export class CreateNeighborhoodDto {
   @IsEnum(NeighborhoodType)
   type: NeighborhoodType;
 
-  @IsUUID()
+  @IsString()
   lgaId: string;
 
   @IsOptional()

@@ -839,15 +839,54 @@ export class ApiGatewayService {
       console.error(`Error proxying to location service: ${errorMessage}`);
 
       if (error && typeof error === 'object' && 'response' in error) {
-        const response = (
-          error as { response: { status: number; statusText: string } }
-        ).response;
+        const axiosError = error as {
+          response?: {
+            status: number;
+            statusText: string;
+            data?: any;
+          };
+        };
+        const response = axiosError.response;
+        
+        // Log the full error response for debugging
+        if (response?.data) {
+          console.error('Location service error response:', JSON.stringify(response.data, null, 2));
+        }
         const status = response.status;
         const statusText = response.statusText;
+        
+        // Include full error details
+        let errorDetails: any = {
+          status,
+          statusText,
+          message: statusText,
+        };
+        
+        if (response?.data) {
+          if (typeof response.data === 'string') {
+            errorDetails.message = response.data;
+            errorDetails.raw = response.data;
+          } else if (response.data) {
+            // Include the full error response
+            errorDetails = {
+              ...errorDetails,
+              ...response.data,
+              message: response.data.message || response.data.error || statusText,
+            };
+          }
+        }
 
-        throw new Error(
-          `Location request failed with status code ${status}: ${statusText}`,
+        // Create a more detailed error message
+        const errorMessage = errorDetails.message || errorDetails.error || statusText;
+        const error = new Error(
+          `Location request failed with status code ${status}: ${errorMessage}`,
         );
+        
+        // Attach full error details to the error object
+        (error as any).response = errorDetails;
+        (error as any).status = status;
+        
+        throw error;
       }
 
       throw error;

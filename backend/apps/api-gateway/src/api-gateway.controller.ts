@@ -1574,9 +1574,23 @@ export class ApiGatewayController {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
       console.error('Error creating neighborhood:', errorMessage);
-      res
-        .status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .json({ error: errorMessage });
+      
+      // Check if error has detailed response from location service
+      const errorResponse = (error as any)?.response;
+      const errorStatus = (error as any)?.status || HttpStatus.INTERNAL_SERVER_ERROR;
+      
+      if (errorResponse) {
+        // Forward the detailed error response from location service
+        console.error('Detailed error from location service:', JSON.stringify(errorResponse, null, 2));
+        res.status(errorStatus).json(errorResponse);
+      } else {
+        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ 
+          success: false,
+          error: errorMessage,
+          message: 'Failed to create neighborhood',
+          timestamp: new Date().toISOString()
+        });
+      }
     }
   }
 

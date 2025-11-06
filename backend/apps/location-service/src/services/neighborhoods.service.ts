@@ -216,14 +216,147 @@ export class NeighborhoodsService {
   }
 
   async createNeighborhood(createDto: CreateNeighborhoodDto): Promise<Neighborhood> {
-    const neighborhood = this.neighborhoodRepository.create({
-      ...createDto,
+    // Prepare boundaries for PostGIS
+    let boundaries = createDto.boundaries;
+    if (boundaries) {
+      // Ensure boundaries is a valid GeoJSON Polygon
+      if (boundaries.type !== 'Polygon') {
+        throw new Error('Boundaries must be a GeoJSON Polygon');
+      }
+      if (!boundaries.coordinates || !Array.isArray(boundaries.coordinates)) {
+        throw new Error('Boundaries must have valid coordinates array');
+      }
+      // Ensure the polygon ring is closed (first and last points match)
+      const ring = boundaries.coordinates[0];
+      if (ring && ring.length > 0) {
+        const first = ring[0];
+        const last = ring[ring.length - 1];
+        if (first[0] !== last[0] || first[1] !== last[1]) {
+          // Close the polygon
+          boundaries = {
+            ...boundaries,
+            coordinates: [[...ring, [first[0], first[1]]]],
+          };
+        }
+      }
+    }
+
+    // Create neighborhood with boundaries as GeoJSON string for PostGIS
+    const neighborhoodData: any = {
+      name: createDto.name,
+      type: createDto.type,
+      lgaId: createDto.lgaId,
       centerLatitude: createDto.centerLatitude,
       centerLongitude: createDto.centerLongitude,
       radiusMeters: createDto.radiusMeters || 1000,
+      isGated: createDto.isGated || false,
+      requiresVerification: createDto.requiresVerification || false,
       createdBy: createDto.createdBy,
-    });
-    return this.neighborhoodRepository.save(neighborhood);
+    };
+
+    if (createDto.wardId) {
+      neighborhoodData.wardId = createDto.wardId;
+    }
+    if (createDto.parentNeighborhoodId) {
+      neighborhoodData.parentNeighborhoodId = createDto.parentNeighborhoodId;
+    }
+    if (createDto.adminUserId) {
+      neighborhoodData.adminUserId = createDto.adminUserId;
+    }
+    if (createDto.description) {
+      neighborhoodData.description = createDto.description;
+    }
+
+    // Handle boundaries - TypeORM with PostGIS needs GeoJSON as string
+    if (boundaries) {
+      // Convert GeoJSON object to string for PostGIS
+      const geoJsonString = JSON.stringify(boundaries);
+      
+      // Build columns and values arrays dynamically
+      const columns = ['name', 'type', 'lga_id', 'center_latitude', 'center_longitude', 
+                      'radius_meters', 'is_gated', 'requires_verification', 'created_by'];
+      const placeholders: string[] = [];
+      const params: any[] = [
+        neighborhoodData.name,
+        neighborhoodData.type,
+        neighborhoodData.lgaId,
+        neighborhoodData.centerLatitude,
+        neighborhoodData.centerLongitude,
+        neighborhoodData.radiusMeters,
+        neighborhoodData.isGated,
+        neighborhoodData.requiresVerification,
+        neighborhoodData.createdBy,
+      ];
+      
+      let paramIndex = 10;
+      if (createDto.wardId) {
+        columns.push('ward_id');
+        placeholders.push(`$${paramIndex}`);
+        params.push(createDto.wardId);
+        paramIndex++;
+      }
+      if (createDto.parentNeighborhoodId) {
+        columns.push('parent_neighborhood_id');
+        placeholders.push(`$${paramIndex}`);
+        params.push(createDto.parentNeighborhoodId);
+        paramIndex++;
+      }
+      if (createDto.adminUserId) {
+        columns.push('admin_user_id');
+        placeholders.push(`$${paramIndex}`);
+        params.push(createDto.adminUserId);
+        paramIndex++;
+      }
+      if (createDto.description) {
+        columns.push('description');
+        placeholders.push(`$${paramIndex}`);
+        params.push(createDto.description);
+        paramIndex++;
+      }
+      
+      columns.push('boundaries');
+      placeholders.push(`ST_GeomFromGeoJSON($${paramIndex})`);
+      params.push(geoJsonString);
+      
+      const insertQuery = `
+        INSERT INTO neighborhoods (${columns.join(', ')})
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, ${placeholders.join(', ')})
+        RETURNING id
+      `;
+      
+      try {
+        const result = await this.neighborhoodRepository.query(insertQuery, params);
+        const newId = result[0]?.id;
+        
+        if (!newId) {
+          throw new Error('Failed to create neighborhood - no ID returned from database');
+        }
+        
+        return this.neighborhoodRepository.findOne({
+          where: { id: newId },
+          relations: ['lga', 'ward', 'parentNeighborhood'],
+        }) as Promise<Neighborhood>;
+      } catch (dbError: any) {
+        console.error('Database error creating neighborhood:', dbError);
+        console.error('Query:', insertQuery);
+        console.error('Params:', params);
+        
+        // Provide more helpful error messages
+        if (dbError.code === '23505') { // Unique constraint violation
+          throw new Error(`A neighborhood with this name already exists in this LGA`);
+        } else if (dbError.code === '23503') { // Foreign key violation
+          throw new Error(`Invalid reference: ${dbError.detail || 'Referenced record does not exist'}`);
+        } else if (dbError.message?.includes('ST_GeomFromGeoJSON')) {
+          throw new Error(`Invalid boundaries format: ${dbError.message}`);
+        } else {
+          throw new Error(`Database error: ${dbError.message || 'Unknown database error'}`);
+        }
+      }
+    } else {
+      // No boundaries, use normal save
+      const neighborhood = this.neighborhoodRepository.create(neighborhoodData);
+      return this.neighborhoodRepository.save(neighborhood);
+    }
   }
 
   async updateNeighborhood(id: string, updateDto: UpdateNeighborhoodDto): Promise<Neighborhood> {
