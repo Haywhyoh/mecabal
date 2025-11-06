@@ -263,9 +263,6 @@ export class NeighborhoodsService {
     if (createDto.adminUserId) {
       neighborhoodData.adminUserId = createDto.adminUserId;
     }
-    if (createDto.description) {
-      neighborhoodData.description = createDto.description;
-    }
 
     try {
       // Use raw query for PostGIS geometry insertion
@@ -311,12 +308,6 @@ export class NeighborhoodsService {
           values.push(createDto.adminUserId);
           paramIndex++;
         }
-        if (createDto.description) {
-          queryParts.push('description');
-          placeholders.push(`$${paramIndex}`);
-          values.push(createDto.description);
-          paramIndex++;
-        }
         
         // Add boundaries with ST_GeomFromGeoJSON
         queryParts.push('boundaries');
@@ -345,36 +336,62 @@ export class NeighborhoodsService {
         // No boundaries, use normal TypeORM save
         const neighborhood = this.neighborhoodRepository.create(neighborhoodData);
         const savedNeighborhood = await this.neighborhoodRepository.save(neighborhood) as Neighborhood;
+<<<<<<< HEAD
         
         if (!savedNeighborhood?.id) {
           throw new Error('Failed to create neighborhood - no ID returned from save');
         }
         
+=======
+
+>>>>>>> claude/fix-neighborhood-creation-error-011CUs6KtN9HFWHTJcgex1q9
         return this.neighborhoodRepository.findOne({
           where: { id: savedNeighborhood.id },
           relations: ['lga', 'ward', 'parentNeighborhood'],
         }) as Promise<Neighborhood>;
       }
-    } catch (dbError: any) {
-      console.error('Database error creating neighborhood:', dbError);
-      console.error('Error type:', typeof dbError);
-      console.error('Error code:', dbError?.code);
-      console.error('Error detail:', dbError?.detail);
-      console.error('Error message:', dbError?.message);
-      console.error('Error stack:', dbError?.stack);
-      console.error('Neighborhood data:', neighborhoodData);
-      
-      // Provide more helpful error messages
-      if (dbError?.code === '23505') { // Unique constraint violation
-        throw new Error(`A neighborhood with this name already exists in this LGA`);
-      } else if (dbError?.code === '23503') { // Foreign key violation
-        const detail = dbError?.detail || 'Referenced record does not exist';
-        throw new Error(`Invalid reference: ${detail}. Please check that the LGA ID exists.`);
-      } else if (dbError?.message?.includes('geometry') || dbError?.message?.includes('ST_GeomFromGeoJSON')) {
-        throw new Error(`Invalid boundaries format: ${dbError.message}`);
+    } catch (dbErr: any) {
+      console.error('=== Database error creating neighborhood ===');
+      console.error('Error type:', typeof dbErr);
+      console.error('Error code:', dbErr?.code);
+      console.error('Error detail:', dbErr?.detail);
+      console.error('Error message:', dbErr?.message);
+      console.error('Error stack:', dbErr?.stack);
+      console.error('Error constraint:', dbErr?.constraint);
+      console.error('Error table:', dbErr?.table);
+      console.error('Error column:', dbErr?.column);
+      console.error('Neighborhood data being inserted:', JSON.stringify(neighborhoodData, null, 2));
+      console.error('Boundaries data:', boundaries ? JSON.stringify(boundaries, null, 2) : 'No boundaries provided');
+
+      // Provide detailed, helpful error messages based on error type
+      if (dbErr?.code === '23505') {
+        // Unique constraint violation
+        const constraintName = dbErr?.constraint || 'unknown constraint';
+        throw new Error(`A neighborhood with this name "${createDto.name}" already exists in this LGA (Constraint: ${constraintName})`);
+      } else if (dbErr?.code === '23503') {
+        // Foreign key violation
+        const detail = dbErr?.detail || 'Referenced record does not exist';
+        const constraint = dbErr?.constraint || 'unknown';
+        throw new Error(`Invalid reference in ${constraint}: ${detail}. Please verify that LGA ID "${createDto.lgaId}"${createDto.wardId ? ` and Ward ID "${createDto.wardId}"` : ''} exist in the database.`);
+      } else if (dbErr?.code === '22P02') {
+        // Invalid text representation (e.g., invalid UUID format)
+        throw new Error(`Invalid ID format provided. LGA ID must be a valid number. Received: "${createDto.lgaId}"`);
+      } else if (dbErr?.code === '42P01') {
+        // Undefined table
+        throw new Error(`Database table not found: ${dbErr?.message}. Please ensure migrations have been run.`);
+      } else if (dbErr?.message?.includes('geometry') || dbErr?.message?.includes('ST_GeomFromGeoJSON')) {
+        // PostGIS geometry errors
+        const geoErrorDetail = dbErr?.message || 'Invalid geometry format';
+        throw new Error(`Invalid boundaries format: ${geoErrorDetail}. Please ensure coordinates form a valid closed polygon with matching first and last points.`);
+      } else if (dbErr?.message?.includes('GeoJSON')) {
+        throw new Error(`GeoJSON parsing error: ${dbErr?.message}. Boundaries must be valid GeoJSON Polygon format.`);
+      } else if (dbErr?.code) {
+        // Other PostgreSQL errors with error codes
+        throw new Error(`Database error (Code ${dbErr.code}): ${dbErr?.message || dbErr?.detail || 'Unknown error'}. ${dbErr?.hint || ''}`);
       } else {
-        const errorMsg = dbError?.message || dbError?.toString() || 'Unknown database error';
-        throw new Error(`Database error: ${errorMsg}`);
+        // Generic errors
+        const errorMsg = dbErr?.message || (typeof dbErr === 'string' ? dbErr : 'Unknown database error');
+        throw new Error(`Failed to create neighborhood: ${errorMsg}`);
       }
     }
   }
