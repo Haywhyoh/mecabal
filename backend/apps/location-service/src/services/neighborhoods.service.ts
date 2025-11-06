@@ -263,9 +263,6 @@ export class NeighborhoodsService {
     if (createDto.adminUserId) {
       neighborhoodData.adminUserId = createDto.adminUserId;
     }
-    if (createDto.description) {
-      neighborhoodData.description = createDto.description;
-    }
 
     try {
       // Use raw query for PostGIS geometry insertion
@@ -311,12 +308,6 @@ export class NeighborhoodsService {
           values.push(createDto.adminUserId);
           paramIndex++;
         }
-        if (createDto.description) {
-          queryParts.push('description');
-          placeholders.push(`$${paramIndex}`);
-          values.push(createDto.description);
-          paramIndex++;
-        }
         
         // Add boundaries with ST_GeomFromGeoJSON
         queryParts.push('boundaries');
@@ -344,8 +335,8 @@ export class NeighborhoodsService {
       } else {
         // No boundaries, use normal TypeORM save
         const neighborhood = this.neighborhoodRepository.create(neighborhoodData);
-        const savedNeighborhood = await this.neighborhoodRepository.save(neighborhood);
-        
+        const savedNeighborhood = await this.neighborhoodRepository.save(neighborhood) as Neighborhood;
+
         return this.neighborhoodRepository.findOne({
           where: { id: savedNeighborhood.id },
           relations: ['lga', 'ward', 'parentNeighborhood'],
