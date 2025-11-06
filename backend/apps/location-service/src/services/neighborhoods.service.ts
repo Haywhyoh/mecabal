@@ -344,7 +344,11 @@ export class NeighborhoodsService {
       } else {
         // No boundaries, use normal TypeORM save
         const neighborhood = this.neighborhoodRepository.create(neighborhoodData);
-        const savedNeighborhood = await this.neighborhoodRepository.save(neighborhood);
+        const savedNeighborhood = await this.neighborhoodRepository.save(neighborhood) as Neighborhood;
+        
+        if (!savedNeighborhood?.id) {
+          throw new Error('Failed to create neighborhood - no ID returned from save');
+        }
         
         return this.neighborhoodRepository.findOne({
           where: { id: savedNeighborhood.id },

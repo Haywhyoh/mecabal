@@ -48,6 +48,10 @@ export class CreateNeighborhoodDto {
   @IsUUID()
   adminUserId?: string;
 
+  @IsOptional()
+  @IsString()
+  description?: string;
+
   @IsUUID()
   createdBy: string;
 }
