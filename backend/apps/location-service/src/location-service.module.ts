@@ -22,6 +22,7 @@ import { NeighborhoodsController } from './controllers/neighborhoods.controller'
 import { LandmarksController } from './controllers/landmarks.controller';
 import { VerificationController } from './controllers/verification.controller';
 import { UserLocationsController } from './controllers/user-locations.controller';
+import { GeocodingController } from './controllers/geocoding.controller';
 
 // Services
 import { LocationServiceService } from './location-service.service';
@@ -65,6 +66,7 @@ import { UserLocationRepository } from './repositories/user-location.repository'
     LandmarksController,
     VerificationController,
     UserLocationsController,
+    GeocodingController,
   ],
   providers: [
     LocationServiceService,

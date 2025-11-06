@@ -1545,7 +1545,7 @@ export class ApiGatewayController {
   }
 
   // Catch-all route for location service
-  @All('location/*')
+  @All('location/*path')
   @ApiOperation({ summary: 'Proxy all location service requests' })
   async proxyLocationService(@Req() req: Request, @Res() res: Response) {
     try {

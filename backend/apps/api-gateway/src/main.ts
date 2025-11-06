@@ -16,22 +16,21 @@ async function bootstrap() {
 
   // Enable CORS for API testing
   app.enableCors({
-    origin: [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://localhost:3002',
-      'http://localhost:8080',
-      'http://localhost:8081', // Expo development server
-      'http://localhost:19000', // Expo web
-      'http://localhost:19001', // Expo web
-      'http://localhost:19002', // Expo web
-      'exp://localhost:19000', // Expo development
-      'exp://localhost:19001', // Expo development
-      'exp://localhost:19002', // Expo development
-      'https://guided-gobbler-outgoing.ngrok-free.app', // Your ngrok domain
-      /^https:\/\/.*\.ngrok-free\.app$/, // Allow all ngrok domains
-    ],
+    origin: true, // Allow all origins in development
     credentials: true,
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Accept',
+      'Origin',
+      'X-Requested-With',
+      'ngrok-skip-browser-warning',
+      'User-Agent',
+    ],
+    exposedHeaders: ['Content-Range', 'X-Content-Range'],
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   });
 
   // Global validation pipe
