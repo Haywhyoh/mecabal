@@ -833,13 +833,13 @@ export class ApiGatewayService {
       }
 
       return response.data as unknown;
-    } catch (error) {
+    } catch (err) {
       const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
+        err instanceof Error ? err.message : 'Unknown error';
       console.error(`Error proxying to location service: ${errorMessage}`);
 
-      if (error && typeof error === 'object' && 'response' in error) {
-        const axiosError = error as {
+      if (err && typeof err === 'object' && 'response' in err) {
+        const axiosError = err as {
           response?: {
             status: number;
             statusText: string;
@@ -847,13 +847,13 @@ export class ApiGatewayService {
           };
         };
         const response = axiosError.response;
-        
+
         // Log the full error response for debugging
         if (response?.data) {
           console.error('Location service error response:', JSON.stringify(response.data, null, 2));
         }
-        const status = response.status;
-        const statusText = response.statusText;
+        const status = response?.status;
+        const statusText = response?.statusText;
         
         // Include full error details
         let errorDetails: any = {
@@ -889,7 +889,7 @@ export class ApiGatewayService {
         throw error;
       }
 
-      throw error;
+      throw err;
     }
   }
 }

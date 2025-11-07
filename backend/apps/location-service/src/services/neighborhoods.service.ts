@@ -335,10 +335,10 @@ export class NeighborhoodsService {
       } else {
         // No boundaries, use normal TypeORM save
         const neighborhood = this.neighborhoodRepository.create(neighborhoodData);
-        const savedNeighborhood = await this.neighborhoodRepository.save(neighborhood) as Neighborhood;
+        const savedNeighborhood = await this.neighborhoodRepository.save(neighborhood);
 
         return this.neighborhoodRepository.findOne({
-          where: { id: savedNeighborhood.id },
+          where: { id: Array.isArray(savedNeighborhood) ? savedNeighborhood[0].id : savedNeighborhood.id },
           relations: ['lga', 'ward', 'parentNeighborhood'],
         }) as Promise<Neighborhood>;
       }
