@@ -417,13 +417,32 @@ export class NeighborhoodsController {
     @Param('id') id: string,
     @Body() updateNeighborhoodDto: UpdateNeighborhoodDto
   ) {
-    const neighborhood = await this.neighborhoodsService.updateNeighborhood(id, updateNeighborhoodDto);
-    return {
-      success: true,
-      data: neighborhood,
-      message: 'Neighborhood updated successfully',
-      timestamp: new Date().toISOString()
-    };
+    try {
+      const neighborhood = await this.neighborhoodsService.updateNeighborhood(id, updateNeighborhoodDto);
+      return {
+        success: true,
+        data: neighborhood,
+        message: 'Neighborhood updated successfully',
+        timestamp: new Date().toISOString()
+      };
+    } catch (err: any) {
+      console.error('=== Error updating neighborhood ===');
+      console.error('Error message:', err?.message);
+      console.error('Error stack:', err?.stack);
+      console.error('DTO received:', JSON.stringify(updateNeighborhoodDto, null, 2));
+
+      if (err instanceof HttpException) {
+        throw err;
+      }
+
+      const errorMsg = err?.message || 'Failed to update neighborhood';
+      throw new BadRequestException({
+        success: false,
+        message: 'Please check your input data',
+        error: errorMsg,
+        timestamp: new Date().toISOString()
+      });
+    }
   }
 
   @Delete(':id')

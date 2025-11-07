@@ -67,6 +67,10 @@ export class UpdateNeighborhoodDto {
   type?: NeighborhoodType;
 
   @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
   @IsUUID()
   parentNeighborhoodId?: string;
 
