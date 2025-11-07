@@ -440,6 +440,8 @@ services:
       - business-service
     networks:
       - mecabal-network
+    # Note: web-app is in a separate docker-compose file but uses the same network
+    # Make sure web-app container is running and accessible via web-app:3015
 
     # Certbot (Let's Encrypt SSL Certificates)
   certbot:
