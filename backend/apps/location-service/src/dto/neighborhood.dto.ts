@@ -88,15 +88,16 @@ export class UpdateNeighborhoodDto {
 }
 
 export class NeighborhoodSearchDto {
+  @IsOptional()
   @IsString()
-  query: string;
+  query?: string;
 
   @IsOptional()
   @IsUUID()
   stateId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   lgaId?: string;
 
   @IsOptional()

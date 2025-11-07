@@ -70,18 +70,21 @@ export class NeighborhoodsService {
   }> {
     const query = this.neighborhoodRepository
       .createQueryBuilder('neighborhood')
-      .leftJoinAndSelect('neighborhood.ward', 'ward')
-      .leftJoinAndSelect('ward.lga', 'lga')
+      .leftJoinAndSelect('neighborhood.lga', 'lga')
       .leftJoinAndSelect('lga.state', 'state')
-      .where('LOWER(neighborhood.name) LIKE LOWER(:query)', { query: `%${searchDto.query}%` })
-      .orderBy('neighborhood.name', 'ASC');
+      .leftJoinAndSelect('neighborhood.ward', 'ward');
+
+    // Only add name filter if search query is provided
+    if (searchDto.query && searchDto.query.trim()) {
+      query.where('LOWER(neighborhood.name) LIKE LOWER(:query)', { query: `%${searchDto.query}%` });
+    }
 
     if (searchDto.stateId) {
-      query.andWhere('state.id = :stateId', { stateId: searchDto.stateId });
+      query.andWhere('lga.stateId = :stateId', { stateId: searchDto.stateId });
     }
 
     if (searchDto.lgaId) {
-      query.andWhere('lga.id = :lgaId', { lgaId: searchDto.lgaId });
+      query.andWhere('neighborhood.lgaId = :lgaId', { lgaId: searchDto.lgaId });
     }
 
     if (searchDto.type) {
@@ -91,6 +94,9 @@ export class NeighborhoodsService {
     if (searchDto.isGated !== undefined) {
       query.andWhere('neighborhood.isGated = :isGated', { isGated: searchDto.isGated });
     }
+
+    // Add ordering
+    query.orderBy('neighborhood.name', 'ASC');
 
     const [data, total] = await query
       .skip(searchDto.offset || 0)

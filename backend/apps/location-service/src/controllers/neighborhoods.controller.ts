@@ -9,13 +9,17 @@ export class NeighborhoodsController {
   constructor(private readonly neighborhoodsService: NeighborhoodsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get neighborhoods by ward ID or search' })
+  @ApiOperation({ summary: 'Get neighborhoods by ward ID, LGA ID, or other filters' })
   @ApiQuery({ name: 'wardId', required: false, description: 'Ward ID' })
+  @ApiQuery({ name: 'lgaId', required: false, description: 'LGA ID' })
+  @ApiQuery({ name: 'stateId', required: false, description: 'State ID' })
   @ApiQuery({ name: 'type', required: false, description: 'Neighborhood type', enum: ['AREA', 'ESTATE', 'COMMUNITY'] })
   @ApiQuery({ name: 'isGated', required: false, description: 'Filter by gated status' })
   @ApiQuery({ name: 'includeSubNeighborhoods', required: false, description: 'Include sub-neighborhoods' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiQuery({ name: 'limit', required: false, description: 'Limit results' })
+  @ApiQuery({ name: 'offset', required: false, description: 'Offset results' })
+  @ApiResponse({
+    status: 200,
     description: 'List of neighborhoods',
     schema: {
       type: 'object',
@@ -43,14 +47,19 @@ export class NeighborhoodsController {
   })
   async getNeighborhoods(
     @Query('wardId') wardId?: string,
+    @Query('lgaId') lgaId?: string,
+    @Query('stateId') stateId?: string,
     @Query('type') type?: string,
     @Query('isGated') isGated?: boolean,
-    @Query('includeSubNeighborhoods') includeSubNeighborhoods?: boolean
+    @Query('includeSubNeighborhoods') includeSubNeighborhoods?: boolean,
+    @Query('limit') limit?: number,
+    @Query('offset') offset?: number
   ) {
     try {
+      // If wardId is provided, use the specific ward method
       if (wardId) {
         const neighborhoods = await this.neighborhoodsService.getNeighborhoodsByWard(
-          wardId, 
+          wardId,
           { type: type as any, isGated, includeSubNeighborhoods }
         );
         return {
@@ -61,13 +70,34 @@ export class NeighborhoodsController {
           timestamp: new Date().toISOString()
         };
       }
-      
-      // If no wardId, return empty for now (search functionality would go here)
+
+      // If lgaId or stateId is provided, use search functionality
+      if (lgaId || stateId || type !== undefined || isGated !== undefined) {
+        const results = await this.neighborhoodsService.searchNeighborhoods({
+          query: '', // Empty query to get all
+          lgaId,
+          stateId,
+          type,
+          isGated,
+          limit: limit || 100,
+          offset: offset || 0
+        });
+        return {
+          success: true,
+          data: results.data,
+          count: results.data.length,
+          total: results.total,
+          message: 'Neighborhoods retrieved successfully',
+          timestamp: new Date().toISOString()
+        };
+      }
+
+      // If no filters, return empty
       return {
         success: true,
         data: [],
         count: 0,
-        message: 'No ward specified',
+        message: 'No filters specified. Please provide wardId, lgaId, or stateId.',
         timestamp: new Date().toISOString()
       };
     } catch (error) {
@@ -117,7 +147,8 @@ export class NeighborhoodsController {
     }
   })
   async searchNeighborhoods(
-    @Query('q') query: string,
+    @Query('q') q?: string,
+    @Query('query') query?: string,
     @Query('stateId') stateId?: string,
     @Query('lgaId') lgaId?: string,
     @Query('type') type?: string,
@@ -125,8 +156,11 @@ export class NeighborhoodsController {
     @Query('limit') limit?: number,
     @Query('offset') offset?: number
   ) {
+    // Accept both 'q' and 'query' parameter names for backwards compatibility
+    const searchQuery = q || query || '';
+
     const searchDto: NeighborhoodSearchDto = {
-      query,
+      query: searchQuery,
       stateId,
       lgaId,
       type,
