@@ -802,12 +802,28 @@ export class ApiGatewayService {
           : 'No user',
       );
 
-      const config = {
-        headers: {
-          'Content-Type': 'application/json',
-          ...headers,
-        },
-        timeout: 30000, // 30 seconds timeout
+      const baseHeaders: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        Pragma: 'no-cache',
+        Expires: '0',
+        // Forward the original Authorization header for JWT authentication
+        ...(headers && headers.authorization && {
+          'Authorization': Array.isArray(headers.authorization)
+            ? headers.authorization[0]
+            : headers.authorization,
+        }),
+        ...(user && {
+          'X-User-Id': (user as { id: string }).id,
+        }),
+      };
+
+      const config: Record<string, unknown> = {
+        headers: baseHeaders,
+        timeout: 30000,
+        maxRedirects: 5,
+        // Only apply transformRequest for non-string data to avoid double-stringification
+        ...(typeof data === 'string' ? {} : { transformRequest: [(data: unknown) => JSON.stringify(data)] }),
       };
 
       let response;

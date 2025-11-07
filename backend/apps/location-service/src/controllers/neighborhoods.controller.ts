@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Param, Query, Body, HttpException, HttpStatus, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Query, Body, HttpException, HttpStatus, BadRequestException, Request, Headers } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBody } from '@nestjs/swagger';
 import { NeighborhoodsService } from '../services/neighborhoods.service';
 import { CreateNeighborhoodDto, UpdateNeighborhoodDto, NeighborhoodSearchDto } from '../dto/neighborhood.dto';
@@ -272,8 +272,8 @@ export class NeighborhoodsController {
   @Post()
   @ApiOperation({ summary: 'Create new neighborhood' })
   @ApiBody({ type: CreateNeighborhoodDto })
-  @ApiResponse({ 
-    status: 201, 
+  @ApiResponse({
+    status: 201,
     description: 'Neighborhood created successfully',
     schema: {
       type: 'object',
@@ -284,8 +284,22 @@ export class NeighborhoodsController {
       }
     }
   })
-  async createNeighborhood(@Body() createNeighborhoodDto: CreateNeighborhoodDto) {
+  async createNeighborhood(
+    @Body() createNeighborhoodDto: CreateNeighborhoodDto,
+    @Headers('x-user-id') userId?: string,
+    @Request() req?: any
+  ) {
     try {
+      // Extract user ID from multiple sources:
+      // 1. X-User-Id header (set by API Gateway)
+      // 2. JWT token (if auth middleware is enabled)
+      const authenticatedUserId = userId || req?.user?.id || req?.user?.userId;
+
+      // Set createdBy from authenticated user if not provided
+      if (!createNeighborhoodDto.createdBy && authenticatedUserId) {
+        createNeighborhoodDto.createdBy = authenticatedUserId;
+      }
+
       const neighborhood = await this.neighborhoodsService.createNeighborhood(createNeighborhoodDto);
       return {
         success: true,

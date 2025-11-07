@@ -52,8 +52,9 @@ export class CreateNeighborhoodDto {
   @IsString()
   description?: string;
 
+  @IsOptional()
   @IsUUID()
-  createdBy: string;
+  createdBy?: string;
 }
 
 export class UpdateNeighborhoodDto {

@@ -251,8 +251,12 @@ export class NeighborhoodsService {
       radiusMeters: createDto.radiusMeters || 1000,
       isGated: createDto.isGated || false,
       requiresVerification: createDto.requiresVerification || false,
-      createdBy: createDto.createdBy,
     };
+
+    // Only include createdBy if it's provided
+    if (createDto.createdBy) {
+      neighborhoodData.createdBy = createDto.createdBy;
+    }
 
     if (createDto.wardId) {
       neighborhoodData.wardId = createDto.wardId;
@@ -282,7 +286,12 @@ export class NeighborhoodsService {
         queryParts.push('radius_meters'); values.push(neighborhoodData.radiusMeters); paramIndex++;
         queryParts.push('is_gated'); values.push(neighborhoodData.isGated); paramIndex++;
         queryParts.push('requires_verification'); values.push(neighborhoodData.requiresVerification); paramIndex++;
-        queryParts.push('created_by'); values.push(neighborhoodData.createdBy); paramIndex++;
+
+        if (neighborhoodData.createdBy) {
+          queryParts.push('created_by');
+          values.push(neighborhoodData.createdBy);
+          paramIndex++;
+        }
         
         const placeholders: string[] = [];
         for (let i = 1; i < paramIndex; i++) {
