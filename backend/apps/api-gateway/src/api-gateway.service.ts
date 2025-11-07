@@ -834,9 +834,9 @@ export class ApiGatewayService {
 
       return response.data as unknown;
     } catch (err) {
-      const errorMessage =
+      const errMsg =
         err instanceof Error ? err.message : 'Unknown error';
-      console.error(`Error proxying to location service: ${errorMessage}`);
+      console.error(`Error proxying to location service: ${errMsg}`);
 
       if (err && typeof err === 'object' && 'response' in err) {
         const axiosError = err as {
@@ -852,16 +852,20 @@ export class ApiGatewayService {
         if (response?.data) {
           console.error('Location service error response:', JSON.stringify(response.data, null, 2));
         }
-        const status = response?.status;
-        const statusText = response?.statusText;
-        
+
+        if (!response) {
+          throw new Error(`Location service request failed: ${errMsg}`);
+        }
+
+        const status = response.status;
+        const statusText = response.statusText;
         // Include full error details
         let errorDetails: any = {
           status,
           statusText,
           message: statusText,
         };
-        
+
         if (response?.data) {
           if (typeof response.data === 'string') {
             errorDetails.message = response.data;
@@ -877,16 +881,16 @@ export class ApiGatewayService {
         }
 
         // Create a more detailed error message
-        const errorMessage = errorDetails.message || errorDetails.error || statusText;
-        const error = new Error(
-          `Location request failed with status code ${status}: ${errorMessage}`,
+        const finalErrorMsg = errorDetails.message || errorDetails.error || statusText;
+        const finalError = new Error(
+          `Location request failed with status code ${status}: ${finalErrorMsg}`,
         );
-        
+
         // Attach full error details to the error object
-        (error as any).response = errorDetails;
-        (error as any).status = status;
-        
-        throw error;
+        (finalError as any).response = errorDetails;
+        (finalError as any).status = status;
+
+        throw finalError;
       }
 
       throw err;
