@@ -335,16 +335,13 @@ export class NeighborhoodsService {
       } else {
         // No boundaries, use normal TypeORM save
         const neighborhood = this.neighborhoodRepository.create(neighborhoodData);
-        const savedNeighborhood = await this.neighborhoodRepository.save(neighborhood) as Neighborhood;
-<<<<<<< HEAD
+        const saved = await this.neighborhoodRepository.save(neighborhood);
+        const savedNeighborhood = (Array.isArray(saved) ? saved[0] : saved) as Neighborhood;
         
         if (!savedNeighborhood?.id) {
           throw new Error('Failed to create neighborhood - no ID returned from save');
         }
         
-=======
-
->>>>>>> claude/fix-neighborhood-creation-error-011CUs6KtN9HFWHTJcgex1q9
         return this.neighborhoodRepository.findOne({
           where: { id: savedNeighborhood.id },
           relations: ['lga', 'ward', 'parentNeighborhood'],

@@ -833,13 +833,13 @@ export class ApiGatewayService {
       }
 
       return response.data as unknown;
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-      console.error(`Error proxying to location service: ${errorMessage}`);
+    } catch (err) {
+      const errMsg =
+        err instanceof Error ? err.message : 'Unknown error';
+      console.error(`Error proxying to location service: ${errMsg}`);
 
-      if (error && typeof error === 'object' && 'response' in error) {
-        const axiosError = error as {
+      if (err && typeof err === 'object' && 'response' in err) {
+        const axiosError = err as {
           response?: {
             status: number;
             statusText: string;
@@ -847,21 +847,25 @@ export class ApiGatewayService {
           };
         };
         const response = axiosError.response;
-        
+
         // Log the full error response for debugging
         if (response?.data) {
           console.error('Location service error response:', JSON.stringify(response.data, null, 2));
         }
+
+        if (!response) {
+          throw new Error(`Location service request failed: ${errMsg}`);
+        }
+
         const status = response.status;
         const statusText = response.statusText;
-        
         // Include full error details
         let errorDetails: any = {
           status,
           statusText,
           message: statusText,
         };
-        
+
         if (response?.data) {
           if (typeof response.data === 'string') {
             errorDetails.message = response.data;
@@ -877,19 +881,19 @@ export class ApiGatewayService {
         }
 
         // Create a more detailed error message
-        const errorMessage = errorDetails.message || errorDetails.error || statusText;
-        const error = new Error(
-          `Location request failed with status code ${status}: ${errorMessage}`,
+        const finalErrorMsg = errorDetails.message || errorDetails.error || statusText;
+        const finalError = new Error(
+          `Location request failed with status code ${status}: ${finalErrorMsg}`,
         );
-        
+
         // Attach full error details to the error object
-        (error as any).response = errorDetails;
-        (error as any).status = status;
-        
-        throw error;
+        (finalError as any).response = errorDetails;
+        (finalError as any).status = status;
+
+        throw finalError;
       }
 
-      throw error;
+      throw err;
     }
   }
 }
