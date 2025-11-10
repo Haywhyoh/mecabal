@@ -986,6 +986,9 @@ export const SAMPLE_LANDMARKS_DATA = [
   { name: 'Lekki Conservation Centre', type: 'PARK', neighborhoodName: 'Lekki', lgaName: 'Eti-Osa' },
 ];
 
+// System user ID for seed data (placeholder UUID for system-created records)
+const SYSTEM_USER_ID = '00000000-0000-0000-0000-000000000000';
+
 @Injectable()
 export class LocationSeeder {
   private readonly logger = new Logger(LocationSeeder.name);
@@ -1165,6 +1168,7 @@ export class LocationSeeder {
           type: neighborhoodData.type as any,
           lgaId: lga.id,
           wardId: ward.id,
+          createdBy: SYSTEM_USER_ID,
           isGated: neighborhoodData.isGated || false,
           requiresVerification: neighborhoodData.requiresVerification || false
         });
