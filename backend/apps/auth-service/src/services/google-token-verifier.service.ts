@@ -31,19 +31,33 @@ export class GoogleTokenVerifierService {
   }
 
   async verifyIdToken(idToken: string): Promise<GoogleTokenPayload> {
+    // Collect all possible client IDs (outside try block for error handling)
+    const clientIds = [
+      this.configService.get<string>('GOOGLE_CLIENT_ID'), // Server-side client ID
+      this.configService.get<string>('GOOGLE_WEB_CLIENT_ID'), // Web client ID (for frontend)
+      this.configService.get<string>('GOOGLE_IOS_CLIENT_ID'),
+      this.configService.get<string>('GOOGLE_ANDROID_CLIENT_ID'),
+    ].filter((id): id is string => Boolean(id)); // Remove undefined values
+
     try {
       this.logger.log('Verifying Google ID token');
+
+      // Log the client IDs being checked (without exposing full values)
+      this.logger.log(`Checking token against ${clientIds.length} client ID(s)`);
+      clientIds.forEach((id, index) => {
+        const masked = id.length > 20 ? `${id.substring(0, 10)}...${id.substring(id.length - 10)}` : id;
+        this.logger.debug(`Client ID ${index + 1}: ${masked}`);
+      });
+
+      if (clientIds.length === 0) {
+        throw new UnauthorizedException('No Google client IDs configured');
+      }
 
       // Verify the token
       // Include all possible client IDs: web, iOS, Android, and server-side
       const ticket = await this.client.verifyIdToken({
         idToken,
-        audience: [
-          this.configService.get<string>('GOOGLE_CLIENT_ID'), // Server-side client ID
-          this.configService.get<string>('GOOGLE_WEB_CLIENT_ID'), // Web client ID (for frontend)
-          this.configService.get<string>('GOOGLE_IOS_CLIENT_ID'),
-          this.configService.get<string>('GOOGLE_ANDROID_CLIENT_ID'),
-        ].filter((id): id is string => Boolean(id)), // Remove undefined values
+        audience: clientIds,
       });
 
       const payload = ticket.getPayload();
@@ -74,8 +88,29 @@ export class GoogleTokenVerifierService {
     } catch (error) {
       this.logger.error('Google token verification failed:', error);
       
+      // Try to decode the token to see what audience it has (without verifying)
+      try {
+        const parts = idToken.split('.');
+        if (parts.length === 3) {
+          const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+          const tokenAudience = payload.aud;
+          this.logger.error(`Token audience: ${tokenAudience}`);
+          this.logger.error(`Expected audiences: ${clientIds.join(', ')}`);
+        }
+      } catch (decodeError) {
+        // Ignore decode errors
+      }
+      
       if (error instanceof UnauthorizedException) {
         throw error;
+      }
+      
+      // Check if it's an audience mismatch error
+      if (error.message?.includes('Wrong recipient') || error.message?.includes('audience')) {
+        throw new UnauthorizedException(
+          `Invalid Google ID token: Token audience does not match any configured client IDs. ` +
+          `Please ensure GOOGLE_WEB_CLIENT_ID is set correctly in the backend environment.`
+        );
       }
       
       throw new UnauthorizedException('Invalid Google ID token');
