@@ -35,10 +35,12 @@ export class GoogleTokenVerifierService {
       this.logger.log('Verifying Google ID token');
 
       // Verify the token
+      // Include all possible client IDs: web, iOS, Android, and server-side
       const ticket = await this.client.verifyIdToken({
         idToken,
         audience: [
-          this.configService.get<string>('GOOGLE_CLIENT_ID'),
+          this.configService.get<string>('GOOGLE_CLIENT_ID'), // Server-side client ID
+          this.configService.get<string>('GOOGLE_WEB_CLIENT_ID'), // Web client ID (for frontend)
           this.configService.get<string>('GOOGLE_IOS_CLIENT_ID'),
           this.configService.get<string>('GOOGLE_ANDROID_CLIENT_ID'),
         ].filter((id): id is string => Boolean(id)), // Remove undefined values
