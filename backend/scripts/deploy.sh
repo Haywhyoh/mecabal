@@ -427,9 +427,10 @@ build_application() {
 # Build the application
 build_application
 
-# Stop any running containers
-print_status "Stopping any running containers..."
+# Stop any running containers (PRESERVE VOLUMES - don't use --volumes flag)
+print_status "Stopping any running containers (preserving data volumes)..."
 $COMPOSE_COMMAND -f docker-compose.production.yml down 2>/dev/null || true
+# Note: We use 'down' without --volumes to preserve database and other persistent data
 
 # Pull latest images
 print_status "Pulling latest base images..."
