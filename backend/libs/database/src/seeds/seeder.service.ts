@@ -159,31 +159,35 @@ export class SeederService {
       return;
     }
 
-    const lagosLgas = [
-      'Agege',
-      'Ajeromi-Ifelodun',
-      'Alimosho',
-      'Amuwo-Odofin',
-      'Apapa',
-      'Badagry',
-      'Epe',
-      'Eti-Osa',
-      'Ibeju-Lekki',
-      'Ifako-Ijaiye',
-      'Ikeja',
-      'Ikorodu',
-      'Kosofe',
-      'Lagos Island',
-      'Lagos Mainland',
-      'Mushin',
-      'Ojo',
-      'Oshodi-Isolo',
-      'Shomolu',
-      'Surulere',
-    ].map((name) => ({ name, stateId: lagosState.id }));
+    const lagosLgasData = [
+      { name: 'Agege', code: 'AGE' },
+      { name: 'Ajeromi-Ifelodun', code: 'AJI' },
+      { name: 'Alimosho', code: 'ALI' },
+      { name: 'Amuwo-Odofin', code: 'AMU' },
+      { name: 'Apapa', code: 'APA' },
+      { name: 'Badagry', code: 'BAD' },
+      { name: 'Epe', code: 'EPE' },
+      { name: 'Eti-Osa', code: 'ETI' },
+      { name: 'Ibeju-Lekki', code: 'IBE' },
+      { name: 'Ifako-Ijaiye', code: 'IFA' },
+      { name: 'Ikeja', code: 'IKE' },
+      { name: 'Ikorodu', code: 'IKO' },
+      { name: 'Kosofe', code: 'KOS' },
+      { name: 'Lagos Island', code: 'LIS' },
+      { name: 'Lagos Mainland', code: 'LMA' },
+      { name: 'Mushin', code: 'MUS' },
+      { name: 'Ojo', code: 'OJO' },
+      { name: 'Oshodi-Isolo', code: 'OSH' },
+      { name: 'Shomolu', code: 'SHO' },
+      { name: 'Surulere', code: 'SUR' },
+    ].map((lga) => ({ 
+      name: lga.name, 
+      code: lga.code,
+      stateId: lagosState.id 
+    }));
 
-    await this.lgaRepository.save(lagosLgas);
-    this.logger.log(`Seeded ${lagosLgas.length} Lagos LGAs`);
+    await this.lgaRepository.save(lagosLgasData);
+    this.logger.log(`Seeded ${lagosLgasData.length} Lagos LGAs`);
   }
 
   private async seedPostCategories(): Promise<void> {
