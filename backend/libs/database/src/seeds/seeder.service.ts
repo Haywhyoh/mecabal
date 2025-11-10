@@ -14,7 +14,8 @@ import {
   NigerianState,
   NigerianLanguage,
   CulturalBackground,
-  ProfessionalCategory
+  ProfessionalCategory,
+  User
 } from '../entities';
 import { ACHIEVEMENT_SEEDS, BADGE_SEEDS } from './gamification.seed';
 import { businessCategoriesData } from './business-categories.seed';
@@ -58,6 +59,8 @@ export class SeederService {
     private culturalBackgroundRepository: Repository<CulturalBackground>,
     @InjectRepository(ProfessionalCategory)
     private professionalCategoryRepository: Repository<ProfessionalCategory>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
   ) {}
 
   async seedAll(): Promise<void> {
@@ -288,14 +291,27 @@ export class SeederService {
   private async seedNigerianStates(): Promise<void> {
     this.logger.log('Seeding Nigerian states...');
 
-    // Clear existing data and re-seed
-    await this.nigerianStateRepository.clear();
-    this.logger.log('Cleared existing Nigerian states data');
+    // Upsert data instead of clearing (to avoid foreign key constraint issues)
+    let createdCount = 0;
+    let updatedCount = 0;
 
-    for (const state of NIGERIAN_STATES_SEED) {
-      await this.nigerianStateRepository.save(state);
+    for (const stateData of NIGERIAN_STATES_SEED) {
+      const existingState = await this.nigerianStateRepository.findOne({
+        where: { name: stateData.name }
+      });
+
+      if (existingState) {
+        // Update existing state
+        Object.assign(existingState, stateData);
+        await this.nigerianStateRepository.save(existingState);
+        updatedCount++;
+      } else {
+        // Insert new state
+        await this.nigerianStateRepository.save(stateData);
+        createdCount++;
+      }
     }
-    this.logger.log(`Seeded ${NIGERIAN_STATES_SEED.length} Nigerian states`);
+    this.logger.log(`Seeded ${NIGERIAN_STATES_SEED.length} Nigerian states (${createdCount} created, ${updatedCount} updated)`);
   }
 
   private async seedNigerianLanguages(): Promise<void> {
@@ -343,7 +359,8 @@ export class SeederService {
       this.lgaRepository,
       this.wardRepository,
       this.neighborhoodRepository,
-      this.landmarkRepository
+      this.landmarkRepository,
+      this.userRepository
     );
 
     await locationSeeder.seedAll();

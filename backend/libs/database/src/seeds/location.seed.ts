@@ -1025,18 +1025,26 @@ export class LocationSeeder {
     }
 
     // Create system user if it doesn't exist
+    // Note: Adding a dummy password hash to satisfy chk_auth_method_exists constraint
+    // This is a system user that won't be used for authentication
     const newSystemUser = this.userRepository.create({
       email: 'system@mecabal.com',
       firstName: 'System',
       lastName: 'User',
+      passwordHash: '$2b$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', // Dummy bcrypt hash to satisfy chk_auth_method_exists constraint
       isVerified: true,
       isActive: true,
-      phoneNumber: null, // System user doesn't need phone
+      // phoneNumber is optional, so we omit it
     });
 
     const savedUser = await this.userRepository.save(newSystemUser);
     this.systemUserId = savedUser.id;
     this.logger.log('Created system user for seed data');
+    
+    if (!this.systemUserId) {
+      throw new Error('Failed to create system user');
+    }
+    
     return this.systemUserId;
   }
 
@@ -1044,12 +1052,62 @@ export class LocationSeeder {
     this.logger.log('Seeding Nigerian states...');
 
     for (const stateData of NIGERIAN_STATES_DATA) {
-      const existingState = await this.stateRepository.findOne({
+      // Try to find by code first
+      let existingState = await this.stateRepository.findOne({
         where: { code: stateData.code }
       });
 
+      // If not found by code, try by name
       if (!existingState) {
-        const state = this.stateRepository.create({
+        existingState = await this.stateRepository.findOne({
+          where: { name: stateData.name }
+        });
+      }
+
+      if (!existingState) {
+        // Try to create new state, but handle duplicate key errors
+        try {
+          const state = this.stateRepository.create({
+            name: stateData.name,
+            code: stateData.code,
+            country: 'Nigeria',
+            region: stateData.region,
+            capital: stateData.capital,
+            population: stateData.population,
+            areaSqKm: stateData.areaSqKm,
+          });
+          await this.stateRepository.save(state);
+          this.logger.log(`Created state: ${stateData.name} - ${stateData.capital} (${stateData.region})`);
+        } catch (error: any) {
+          // If duplicate key error, try to find and update
+          if (error.code === '23505' || error.code === '23503') {
+            this.logger.warn(`Duplicate key error for state ${stateData.name}, attempting to find and update...`);
+            const foundState = await this.stateRepository.findOne({
+              where: [
+                { code: stateData.code },
+                { name: stateData.name }
+              ]
+            });
+            if (foundState) {
+              Object.assign(foundState, {
+                name: stateData.name,
+                code: stateData.code,
+                country: 'Nigeria',
+                region: stateData.region,
+                capital: stateData.capital,
+                population: stateData.population,
+                areaSqKm: stateData.areaSqKm,
+              });
+              await this.stateRepository.save(foundState);
+              this.logger.log(`Updated state: ${stateData.name} after duplicate key error`);
+            }
+          } else {
+            throw error;
+          }
+        }
+      } else {
+        // Update existing state with latest data
+        Object.assign(existingState, {
           name: stateData.name,
           code: stateData.code,
           country: 'Nigeria',
@@ -1058,34 +1116,8 @@ export class LocationSeeder {
           population: stateData.population,
           areaSqKm: stateData.areaSqKm,
         });
-        await this.stateRepository.save(state);
-        this.logger.log(`Created state: ${stateData.name} - ${stateData.capital} (${stateData.region})`);
-      } else {
-        // Update existing state with new data if fields are missing
-        let updated = false;
-        if (!existingState.region && stateData.region) {
-          existingState.region = stateData.region;
-          updated = true;
-        }
-        if (!existingState.capital && stateData.capital) {
-          existingState.capital = stateData.capital;
-          updated = true;
-        }
-        if (!existingState.population && stateData.population) {
-          existingState.population = stateData.population;
-          updated = true;
-        }
-        if (!existingState.areaSqKm && stateData.areaSqKm) {
-          existingState.areaSqKm = stateData.areaSqKm;
-          updated = true;
-        }
-
-        if (updated) {
-          await this.stateRepository.save(existingState);
-          this.logger.log(`Updated state: ${stateData.name} with additional data`);
-        } else {
-          this.logger.log(`State already exists: ${stateData.name}`);
-        }
+        await this.stateRepository.save(existingState);
+        this.logger.log(`Updated state: ${stateData.name} - ${stateData.capital} (${stateData.region})`);
       }
     }
   }
@@ -1200,12 +1232,21 @@ export class LocationSeeder {
       });
 
       if (!existingNeighborhood) {
+        // Default coordinates for Lagos neighborhoods
+        // Using approximate Lagos center coordinates (can be updated with actual coordinates later)
+        const defaultLatitude = 6.5244; // Lagos approximate latitude
+        const defaultLongitude = 3.3792; // Lagos approximate longitude
+        const defaultRadius = 1000; // 1km radius in meters
+
         const neighborhood = this.neighborhoodRepository.create({
           name: neighborhoodData.name,
           type: neighborhoodData.type as any,
           lgaId: lga.id,
           wardId: ward.id,
           createdBy: systemUserId,
+          centerLatitude: defaultLatitude,
+          centerLongitude: defaultLongitude,
+          radiusMeters: defaultRadius,
           isGated: neighborhoodData.isGated || false,
           requiresVerification: neighborhoodData.requiresVerification || false
         });
