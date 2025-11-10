@@ -15,7 +15,8 @@ import {
   NigerianState,
   NigerianLanguage,
   CulturalBackground,
-  ProfessionalCategory
+  ProfessionalCategory,
+  User
 } from '../entities';
 
 @Module({
@@ -53,6 +54,7 @@ import {
       NigerianLanguage,
       CulturalBackground,
       ProfessionalCategory,
+      User,
     ]),
   ],
   providers: [SeederService],

@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { State, LocalGovernmentArea, Ward, Neighborhood, Landmark, LandmarkVerificationStatus } from '../entities';
+import { State, LocalGovernmentArea, Ward, Neighborhood, Landmark, LandmarkVerificationStatus, User } from '../entities';
 
 // Nigerian States Data - Enhanced with region, capital, population, and area
 export const NIGERIAN_STATES_DATA = [
@@ -986,12 +986,10 @@ export const SAMPLE_LANDMARKS_DATA = [
   { name: 'Lekki Conservation Centre', type: 'PARK', neighborhoodName: 'Lekki', lgaName: 'Eti-Osa' },
 ];
 
-// System user ID for seed data (placeholder UUID for system-created records)
-const SYSTEM_USER_ID = '00000000-0000-0000-0000-000000000000';
-
 @Injectable()
 export class LocationSeeder {
   private readonly logger = new Logger(LocationSeeder.name);
+  private systemUserId: string | null = null;
 
   constructor(
     @InjectRepository(State)
@@ -1004,7 +1002,43 @@ export class LocationSeeder {
     private neighborhoodRepository: Repository<Neighborhood>,
     @InjectRepository(Landmark)
     private landmarkRepository: Repository<Landmark>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
   ) {}
+
+  /**
+   * Get or create a system user for seed data
+   */
+  private async getOrCreateSystemUser(): Promise<string> {
+    if (this.systemUserId) {
+      return this.systemUserId;
+    }
+
+    // Try to find existing system user
+    const systemUser = await this.userRepository.findOne({
+      where: { email: 'system@mecabal.com' }
+    });
+
+    if (systemUser) {
+      this.systemUserId = systemUser.id;
+      return this.systemUserId;
+    }
+
+    // Create system user if it doesn't exist
+    const newSystemUser = this.userRepository.create({
+      email: 'system@mecabal.com',
+      firstName: 'System',
+      lastName: 'User',
+      isVerified: true,
+      isActive: true,
+      phoneNumber: null, // System user doesn't need phone
+    });
+
+    const savedUser = await this.userRepository.save(newSystemUser);
+    this.systemUserId = savedUser.id;
+    this.logger.log('Created system user for seed data');
+    return this.systemUserId;
+  }
 
   async seedStates(): Promise<void> {
     this.logger.log('Seeding Nigerian states...');
@@ -1133,6 +1167,9 @@ export class LocationSeeder {
   async seedNeighborhoods(): Promise<void> {
     this.logger.log('Seeding neighborhoods...');
     
+    // Ensure system user exists
+    const systemUserId = await this.getOrCreateSystemUser();
+    
     for (const neighborhoodData of NEIGHBORHOODS_DATA) {
       const lga = await this.lgaRepository.findOne({
         where: { name: neighborhoodData.lgaName }
@@ -1168,7 +1205,7 @@ export class LocationSeeder {
           type: neighborhoodData.type as any,
           lgaId: lga.id,
           wardId: ward.id,
-          createdBy: SYSTEM_USER_ID,
+          createdBy: systemUserId,
           isGated: neighborhoodData.isGated || false,
           requiresVerification: neighborhoodData.requiresVerification || false
         });
