@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { OtpVerification } from '@app/database/entities/otp-verification.entity';
 import { User } from '@app/database/entities/user.entity';
+import { TermiiService } from './termii.service';
 
 interface NigerianCarrier {
   name: string;
@@ -85,6 +86,7 @@ export class PhoneOtpService {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private configService: ConfigService,
+    private termiiService: TermiiService,
   ) {}
 
   async sendPhoneOTP(
@@ -222,8 +224,8 @@ export class PhoneOtpService {
         otpResult = await this.sendWhatsAppOTP(phoneNumber);
         otpMethod = 'WhatsApp';
       } else {
-        this.logger.log('Using hardcoded SMS OTP for testing');
-        otpResult = '2398'; // Hardcoded OTP for testing
+        this.logger.log('Sending SMS OTP via Termii');
+        otpResult = await this.sendTermiiSMSOTP(phoneNumber);
         otpMethod = 'SMS';
       }
 
@@ -341,20 +343,22 @@ export class PhoneOtpService {
         };
       }
 
-      // Verify OTP based on method used
+      // Verify OTP based on method used - determine provider by verification ID format
       let verifyResult: { success: boolean; error?: string };
 
-      // Check if this is a Message Central verification ID (WhatsApp) or SMS OTP
-      if (otpRecord.otpCode.length > 6) {
-        // WhatsApp OTP: verify with Message Central using verification ID
-        const verificationId = otpRecord.otpCode;
-        verifyResult = await this.verifyMessageCentralOTP(
-          verificationId,
-          otpCode,
-          phoneNumber,
-        );
+      // Termii IDs are UUIDs (contains dashes) or short codes (<=6 chars)
+      const isTermiiId = otpRecord.otpCode.includes('-') || otpRecord.otpCode.length <= 6;
+      // Message Central IDs are long numeric strings without dashes
+      const isMessageCentralId = otpRecord.otpCode.length > 6 && !otpRecord.otpCode.includes('-');
+
+      if (isTermiiId) {
+        // Termii verification (SMS or WhatsApp)
+        verifyResult = await this.verifyTermiiOTP(otpRecord.otpCode, otpCode);
+      } else if (isMessageCentralId) {
+        // Message Central WhatsApp verification
+        verifyResult = await this.verifyMessageCentralOTP(otpRecord.otpCode, otpCode, phoneNumber);
       } else {
-        // SMS OTP: verify against stored OTP code
+        // Fallback: simple OTP code comparison
         verifyResult = this.verifyOTPCode(otpRecord.otpCode, otpCode);
       }
 
@@ -415,6 +419,65 @@ export class PhoneOtpService {
         verified: false,
         error: 'Verification failed',
       };
+    }
+  }
+
+  private async sendTermiiSMSOTP(phoneNumber: string): Promise<string | false> {
+    try {
+      if (!this.termiiService.isConfigured()) {
+        this.logger.warn('Termii not configured, using hardcoded OTP');
+        return '2398';
+      }
+
+      const result = await this.termiiService.sendToken(phoneNumber, 'dnd', 4, '< 1234 >', 'Your MeCabal verification code is < 1234 >. Valid for 5 minutes.', 5);
+
+      const verificationId = result.pinId || result.pin_id;
+      if (result && verificationId) {
+        this.logger.log(`Termii SMS sent: ${verificationId}`);
+        return verificationId;
+      }
+      return false;
+    } catch (error) {
+      this.logger.error('Termii SMS error:', error);
+      return false;
+    }
+  }
+
+  private async sendTermiiWhatsAppOTP(phoneNumber: string): Promise<string | false> {
+    try {
+      if (!this.termiiService.isConfigured()) {
+        return false;
+      }
+
+      const result = await this.termiiService.sendWhatsAppToken(phoneNumber, 4, '< 1234 >', 'Your MeCabal verification code is < 1234 >. Valid for 5 minutes.', 5);
+
+      const verificationId = result.message_id || result.message_id_str;
+      if (result && verificationId) {
+        this.logger.log(`Termii WhatsApp sent: ${verificationId}`);
+        return verificationId;
+      }
+      return false;
+    } catch (error) {
+      this.logger.error('Termii WhatsApp error:', error);
+      return false;
+    }
+  }
+
+  private async verifyTermiiOTP(verificationId: string, otpCode: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      if (!this.termiiService.isConfigured()) {
+        return this.verifyOTPCode(verificationId, otpCode);
+      }
+
+      const result = await this.termiiService.verifyToken(verificationId, otpCode);
+
+      if (result.verified) {
+        return { success: true };
+      }
+      return { success: false, error: 'Invalid OTP' };
+    } catch (error) {
+      this.logger.error('Termii verify error:', error);
+      return { success: false, error: 'Verification error' };
     }
   }
 
