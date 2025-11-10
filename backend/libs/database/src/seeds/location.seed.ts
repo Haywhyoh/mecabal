@@ -1163,6 +1163,7 @@ export class LocationSeeder {
         const neighborhood = this.neighborhoodRepository.create({
           name: neighborhoodData.name,
           type: neighborhoodData.type as any,
+          lgaId: lga.id,
           wardId: ward.id,
           isGated: neighborhoodData.isGated || false,
           requiresVerification: neighborhoodData.requiresVerification || false
