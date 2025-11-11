@@ -22,7 +22,7 @@ async function bootstrap() {
 
     // Seed sample wards (optional, only for Lagos)
     console.log('🗺️  Seeding sample wards...');
-    await locationSeeder.seedSampleWards();
+    await locationSeeder.seedWards();
     console.log('✅ Sample wards seeded successfully\n');
 
     // Seed neighborhoods
@@ -32,7 +32,7 @@ async function bootstrap() {
 
     // Seed landmarks (optional)
     console.log('📌 Seeding landmarks...');
-    await locationSeeder.seedSampleLandmarks();
+    await locationSeeder.seedLandmarks();
     console.log('✅ Landmarks seeded successfully\n');
 
     console.log('🎉 Location data seeding completed successfully!');
