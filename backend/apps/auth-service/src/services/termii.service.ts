@@ -194,7 +194,7 @@ export class TermiiService {
     }
   }
 
-  async sendSMS(phoneNumber: string, message: string, channel: 'generic' | 'dnd' = 'dnd'): Promise<TermiiSMSResponse> {
+  async sendSMS(phoneNumber: string, message: string, channel: 'generic' | 'dnd' | 'whatsapp' = 'dnd'): Promise<TermiiSMSResponse> {
     try {
       const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber.substring(1) : phoneNumber;
 

@@ -245,7 +245,7 @@ export default function NeighborhoodRecommendationScreen({ navigation, route }: 
   };
 
   const handleSearchDifferentArea = () => {
-    navigation.navigate('LocationSetupScreen');
+    navigation.navigate('LocationSetup');
   };
 
   const handleFilterChange = (key: keyof FilterOptions, value: any) => {

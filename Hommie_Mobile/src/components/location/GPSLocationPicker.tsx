@@ -198,14 +198,16 @@ export const GPSLocationPicker: React.FC<GPSLocationPickerProps> = ({
         longitudeDelta: 0.01,
       });
 
-      // Center map on current location
-      if (mapRef.current) {
-        mapRef.current.animateToRegion({
-          ...coordinates,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        });
-      }
+      // Center map on current location with delay to ensure map is ready
+      setTimeout(() => {
+        if (mapRef.current) {
+          mapRef.current.animateToRegion({
+            ...coordinates,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          }, 1000);
+        }
+      }, 100);
 
       // Haptic feedback
       if (Platform.OS === 'ios') {
@@ -630,10 +632,12 @@ export const GPSLocationPicker: React.FC<GPSLocationPickerProps> = ({
       {!permissionStatus.granted && !showManualInput ? (
         renderPermissionDeniedUI()
       ) : (
-        <>
-          {showMap && renderMap()}
+        <View style={{flex: 1}}>
+          <View style={{flex: 0.6}}>
+            {showMap && renderMap()}
+          </View>
           {renderRecommendations()}
-        </>
+        </View>
       )}
 
       {renderManualInputModal()}
@@ -677,8 +681,9 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
   },
   mapContainer: {
-    flex: 1,
     position: 'relative',
+    width: '100%',
+    height: '100%',
   },
   map: {
     flex: 1,

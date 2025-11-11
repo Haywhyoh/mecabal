@@ -1,0 +1,13 @@
+Key fixes needed for GPSLocationPicker:
+
+1. Map centering on user location (line 194-208):
+   - Change to use initialRegion prop instead of region
+   - Add animateToRegion with setTimeout for better reliability
+
+2. Layout improvement (line 629-637):
+   - Change flex layout so map takes 60% and recommendations take 40%
+   - Make recommendations more prominent with better sizing
+
+3. handleLocationSelect improvement (line 362-396):
+   - Better handling of navigation callback
+   - Auto-select first neighborhood if user doesn't manually select one
