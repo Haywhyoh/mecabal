@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SeederService } from './seeder.service';
+import { LocationSeeder } from './location.seed';
 import {
   State,
   LocalGovernmentArea,
@@ -57,7 +58,7 @@ import {
       User,
     ]),
   ],
-  providers: [SeederService],
-  exports: [SeederService],
+  providers: [SeederService, LocationSeeder],
+  exports: [SeederService, LocationSeeder],
 })
 export class SeederModule {}
