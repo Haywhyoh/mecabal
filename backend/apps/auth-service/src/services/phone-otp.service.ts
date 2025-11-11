@@ -515,8 +515,15 @@ export class PhoneOtpService {
         return verificationId;
       }
       return false;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error('Termii SMS error:', error);
+      
+      // In development/staging, fall back to hardcoded OTP for any Termii error
+      if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'staging') {
+        this.logger.warn(`Termii failed, using dev fallback OTP for ${phoneNumber}`);
+        return '2398';
+      }
+      
       return false;
     }
   }

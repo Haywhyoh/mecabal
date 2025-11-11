@@ -46,9 +46,9 @@ export class UserLocation {
   @Column({ name: 'lga_id' })
   lgaId: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Ward ID',
-    required: false 
+    required: false
   })
   @Column({ name: 'ward_id', nullable: true })
   wardId?: string;
@@ -93,8 +93,9 @@ export class UserLocation {
     example: VerificationStatus.UNVERIFIED 
   })
   @Column({ 
-    type: 'enum', 
-    enum: VerificationStatus, 
+    name: 'verification_status',
+    type: 'varchar', 
+    length: 20,
     default: VerificationStatus.UNVERIFIED 
   })
   verificationStatus: VerificationStatus;

@@ -57,6 +57,10 @@ export default function NeighborhoodRecommendationScreen({ navigation, route }: 
     isLoadingLocation,
     locationError,
     getRecommendations,
+    saveUserLocation,
+    selectedState,
+    selectedLGA,
+    selectedWard,
   } = useLocation();
 
   // Local state
@@ -205,17 +209,38 @@ export default function NeighborhoodRecommendationScreen({ navigation, route }: 
     }
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!selectedNeighborhood) return;
 
-    // Navigate to estate verification if it's a gated estate
-    if (selectedNeighborhood.isGated && selectedNeighborhood.requiresVerification) {
-      navigation.navigate('EstateVerificationScreen', {
-        neighborhood: selectedNeighborhood,
-      });
-    } else {
-      // Navigate to next onboarding step
-      navigation.navigate('ProfileSetupScreen');
+    try {
+      // Save the selected neighborhood to user profile
+      if (selectedState && selectedLGA) {
+        await saveUserLocation({
+          stateId: selectedState.id,
+          lgaId: selectedLGA.id,
+          wardId: selectedWard?.id,
+          neighborhoodId: selectedNeighborhood.id,
+          coordinates: currentCoordinates || {
+            latitude: selectedNeighborhood.coordinates?.latitude || 0,
+            longitude: selectedNeighborhood.coordinates?.longitude || 0,
+          },
+          isPrimary: true,
+          verificationStatus: 'UNVERIFIED' as any,
+        });
+      }
+
+      // Navigate to estate verification if it's a gated estate
+      if (selectedNeighborhood.isGated && selectedNeighborhood.requiresVerification) {
+        navigation.navigate('EstateVerificationScreen', {
+          neighborhood: selectedNeighborhood,
+        });
+      } else {
+        // Navigate to next onboarding step
+        navigation.navigate('ProfileSetupScreen');
+      }
+    } catch (error) {
+      console.error('Error saving neighborhood:', error);
+      Alert.alert('Error', 'Failed to save your neighborhood. Please try again.');
     }
   };
 
@@ -571,7 +596,6 @@ export default function NeighborhoodRecommendationScreen({ navigation, route }: 
   return (
     <SafeAreaView style={styles.container}>
       {renderMap()}
-      {renderRecommendations()}
       {renderContinueButton()}
       {renderFilters()}
       {renderVerificationInfo()}
@@ -585,7 +609,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F2F2F7',
   },
   mapContainer: {
-    height: screenHeight * 0.4,
+    flex: 1,
     position: 'relative',
   },
   map: {

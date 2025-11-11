@@ -40,15 +40,15 @@ export class Neighborhood {
   @Column({ length: 200 })
   name: string;
 
-  @ApiProperty({ 
-    description: 'Neighborhood type', 
+  @ApiProperty({
+    description: 'Neighborhood type',
     enum: NeighborhoodType,
-    example: NeighborhoodType.AREA 
+    example: NeighborhoodType.AREA
   })
-  @Column({ 
-    type: 'enum', 
-    enum: NeighborhoodType, 
-    default: NeighborhoodType.AREA 
+  @Column({
+    type: 'enum',
+    enum: NeighborhoodType,
+    default: NeighborhoodType.AREA
   })
   type: NeighborhoodType;
 
@@ -56,16 +56,16 @@ export class Neighborhood {
   @Column({ name: 'lga_id' })
   lgaId: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Ward ID this neighborhood belongs to',
-    required: false 
+    required: false
   })
   @Column({ name: 'ward_id', nullable: true })
   wardId?: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Parent neighborhood ID for sub-neighborhoods',
-    required: false 
+    required: false
   })
   @Column({ name: 'parent_neighborhood_id', nullable: true })
   parentNeighborhoodId?: string;

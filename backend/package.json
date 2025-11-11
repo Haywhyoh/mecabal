@@ -22,6 +22,7 @@
     "start:business": "nest start business-service --watch",
     "build:business": "nest build business-service",
     "seed:neighborhoods": "ts-node scripts/seed-neighborhoods.ts",
+    "seed:location": "ts-node -r tsconfig-paths/register scripts/seed-location.ts",
     "script:generate-neighborhoods": "ts-node scripts/generate-neighborhoods.ts",
     "seed:event-categories": "ts-node seed-event-categories.ts",
     "seed:all": "ts-node scripts/run-seeder.ts",

@@ -236,14 +236,25 @@ class LocationApiService {
 
   /**
    * Set user's primary location
+   * Creates a new location and sets it as primary
    */
   async setPrimaryLocation(location: Omit<UserLocation, 'id' | 'userId' | 'createdAt' | 'updatedAt'>): Promise<UserLocation> {
     try {
+      // First, create the location with isPrimary: true
       const response = await apiClient.post<{ success: boolean; data: UserLocation }>(
-        `${this.baseUrl}/user/locations/primary`,
-        location
+        `${this.baseUrl}/user/locations`,
+        { ...location, isPrimary: true }
       );
-      return response.data;
+      
+      const createdLocation = response.data;
+      
+      // If the backend doesn't automatically set it as primary, use the set-primary endpoint
+      // This is a fallback in case the backend requires a separate call
+      if (createdLocation && !createdLocation.isPrimary) {
+        return await this.setLocationAsPrimary(createdLocation.id);
+      }
+      
+      return createdLocation;
     } catch (error) {
       throw this.handleError(error, 'Failed to set primary location');
     }
@@ -531,12 +542,40 @@ class LocationApiService {
     if (error.response) {
       // Server responded with error status
       const status = error.response.status;
-      const message = error.response.data?.message || defaultMessage;
+      let message = error.response.data?.message || error.response.data?.error || defaultMessage;
+      let details = error.response.data;
+
+      // Check if response is HTML (like a 404 page from Next.js)
+      const contentType = error.response.headers?.['content-type'] || '';
+      const responseData = error.response.data;
+      
+      if (typeof responseData === 'string' && responseData.includes('<!DOCTYPE html>')) {
+        // HTML response - likely a 404 page or wrong endpoint
+        message = status === 404 
+          ? 'Location endpoint not found. The API endpoint may not be available.'
+          : `Server returned HTML instead of JSON (status ${status}). The endpoint may not exist.`;
+        details = { 
+          error: message,
+          status,
+          note: 'Received HTML response instead of JSON. Check API endpoint configuration.'
+        };
+      } else if (typeof responseData === 'object' && responseData?.error) {
+        // Extract nested error messages
+        const errorMessage = responseData.error;
+        if (typeof errorMessage === 'string' && errorMessage.includes('Cannot')) {
+          // Handle "Cannot POST /endpoint" type errors
+          message = `API endpoint not available: ${errorMessage}`;
+        } else {
+          message = errorMessage;
+        }
+      }
 
       return {
         code: this.getErrorCodeFromStatus(status),
         message,
-        details: error.response.data
+        details: typeof details === 'string' && details.length > 1000 
+          ? { error: 'Response too large', truncated: true }
+          : details
       };
     } else if (error.request) {
       // Network error

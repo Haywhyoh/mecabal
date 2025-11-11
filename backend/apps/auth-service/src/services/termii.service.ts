@@ -83,8 +83,20 @@ export class TermiiService {
 
       return response.data;
     } catch (error: any) {
-      this.logger.error('Failed to send OTP:', error.response?.data || error.message);
-      throw new Error('Failed to send OTP');
+      const errorData = error.response?.data || {};
+      const errorMessage = errorData.message || errorData.error || error.message || 'Unknown error';
+      
+      this.logger.error('Failed to send OTP:', {
+        status: error.response?.status,
+        error: errorMessage,
+        data: errorData,
+      });
+      
+      // Preserve the original error message for better debugging
+      const errorToThrow = new Error(`Failed to send OTP: ${errorMessage}`);
+      (errorToThrow as any).response = error.response;
+      (errorToThrow as any).originalError = error;
+      throw errorToThrow;
     }
   }
 

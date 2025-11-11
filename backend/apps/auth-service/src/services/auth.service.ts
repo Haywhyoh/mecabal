@@ -1115,6 +1115,10 @@ export class AuthService {
 
       // Create UserLocation record if location data is provided
       if (locationData.stateId && locationData.lgaId) {
+        this.logger.log(
+          `Creating UserLocation for user ${userId} with stateId: ${locationData.stateId}, lgaId: ${locationData.lgaId}, neighborhoodId: ${locationData.neighborhoodId}`,
+        );
+
         // Unset any existing primary locations
         await this.userLocationRepository.update(
           { userId, isPrimary: true },
@@ -1142,14 +1146,30 @@ export class AuthService {
           isPrimary: true,
         });
 
-        const savedLocation = await this.userLocationRepository.save(userLocation);
+        try {
+          const savedLocation = await this.userLocationRepository.save(userLocation);
 
-        // Update user's primary location ID
-        user.primaryLocationId = savedLocation.id;
+          // Update user's primary location ID
+          user.primaryLocationId = savedLocation.id;
 
-        this.logger.log(
-          `📍 Created UserLocation for user ${userId}: ${locationData.cityTown || 'No city'}, ${locationData.stateId}`,
-        );
+          this.logger.log(
+            `📍 Created UserLocation for user ${userId}: ${locationData.cityTown || 'No city'}, ${locationData.stateId}`,
+          );
+        } catch (locationError: any) {
+          this.logger.error('Failed to save UserLocation:', {
+            error: locationError?.message,
+            code: locationError?.code,
+            constraint: locationError?.constraint,
+            detail: locationError?.detail,
+            stateId: locationData.stateId,
+            lgaId: locationData.lgaId,
+            neighborhoodId: locationData.neighborhoodId,
+          });
+          throw new Error(
+            `Failed to save location: ${locationError?.message || locationError?.detail || 'Unknown error'}. ` +
+            `Please verify that state ID "${locationData.stateId}" and LGA ID "${locationData.lgaId}" exist in the database.`
+          );
+        }
       }
 
       // Update phone number if provided
@@ -1187,9 +1207,17 @@ export class AuthService {
       return this.tokenService.generateUserResponse(savedUser, tokenPair);
     } catch (error) {
       this.logger.error('Complete registration with location error:', error);
+      this.logger.error('Error details:', {
+        message: error?.message,
+        stack: error?.stack,
+        name: error?.name,
+        code: error?.code,
+        constraint: error?.constraint,
+        detail: error?.detail,
+      });
       return {
         success: false,
-        error: 'Failed to complete registration',
+        error: error?.message || 'Failed to complete registration',
       };
     }
   }
