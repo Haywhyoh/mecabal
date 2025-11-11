@@ -102,8 +102,8 @@ echo -e "${BLUE}Step 5: Verifying migration...${NC}"
 echo "Checking if states table now uses UUID..."
 
 docker-compose -f docker-compose.production.yml exec -T postgres psql \
-    -U ${DATABASE_USERNAME:-mecabal_prod} \
-    -d ${DATABASE_NAME:-mecabal_db} \
+    -U ${DB_USER} \
+    -d ${DB_NAME} \
     -c "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'states' AND column_name = 'id';" || {
     echo -e "${RED}Failed to verify migration${NC}"
     exit 1
@@ -145,5 +145,5 @@ echo "  2. Verify location APIs return UUID strings"
 echo "  3. Monitor logs for any errors: docker-compose -f docker-compose.production.yml logs -f"
 echo ""
 echo -e "${BLUE}To rollback (if needed):${NC}"
-echo "  docker-compose -f docker-compose.production.yml exec -T postgres psql -U \${DATABASE_USERNAME} -d \${DATABASE_NAME} < ./backups/${BACKUP_FILE}"
+echo "  docker-compose -f docker-compose.production.yml exec -T postgres psql -U ${DB_USER} -d ${DB_NAME} < ./backups/${BACKUP_FILE}"
 echo ""
