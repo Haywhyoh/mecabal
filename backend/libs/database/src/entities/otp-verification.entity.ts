@@ -30,7 +30,7 @@ export class OtpVerification {
   @Column({ name: 'contact_value' })
   contactValue: string;
 
-  @Column({ name: 'otp_code', length: 6 })
+  @Column({ name: 'otp_code', length: 100 })
   otpCode: string;
 
   @ApiProperty({

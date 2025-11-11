@@ -47,6 +47,7 @@
     "migration:run": "npm run typeorm -- migration:run -d ormconfig.ts",
     "migration:revert": "npm run typeorm -- migration:revert -d ormconfig.ts",
     "schema:sync": "npm run typeorm -- schema:sync -d ormconfig.ts",
+    "db:reset": "ts-node -r tsconfig-paths/register scripts/reset-db.ts",
     "db:seed": "ts-node -r tsconfig-paths/register libs/database/src/seeds/seeder.ts"
   },
   "dependencies": {

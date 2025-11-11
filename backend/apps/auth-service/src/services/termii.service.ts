@@ -10,6 +10,7 @@ interface TermiiSendTokenResponse {
   pin_id: string;
   message_id_str: string;
   status: string;
+  pin?: string; // The actual OTP code if returned by Termii
 }
 
 interface TermiiWhatsAppTokenResponse {
@@ -80,6 +81,7 @@ export class TermiiService {
 
       const verificationId = response.data.pinId || response.data.pin_id;
       this.logger.log(`OTP sent to ${formattedPhone} via ${channel}. ID: ${verificationId}, Status: ${response.data.smsStatus}`);
+      this.logger.log('Full Termii response:', JSON.stringify(response.data));
 
       return response.data;
     } catch (error: any) {
@@ -139,31 +141,64 @@ export class TermiiService {
 
   async verifyToken(pinId: string, pin: string): Promise<TermiiVerifyTokenResponse> {
     try {
-      const response = await axios.post<TermiiVerifyTokenResponse>(
-        `${this.baseUrl}/sms/otp/verify`,
-        {
-          api_key: this.apiKey,
-          pin_id: pinId,
-          pin,
-        },
-      );
+      this.logger.log(`Verifying OTP with pin_id: ${pinId}`);
 
-      const verified = response.data.verified === true || response.data.verified === 'True';
+      // Termii's actual API implementation doesn't accept api_key in body for verify endpoint
+      // despite what the documentation says. Try multiple approaches.
+
+      // Approach 1: Body only (no api_key)
+      let response = await fetch(`${this.baseUrl}/sms/otp/verify`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          pin_id: pinId,
+          pin: pin,
+        }),
+      });
+
+      // If that fails with 401, try with api_key in header
+      if (response.status === 401) {
+        this.logger.log('Retry with api_key in X-API-KEY header');
+        response = await fetch(`${this.baseUrl}/sms/otp/verify`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-KEY': this.apiKey,
+          },
+          body: JSON.stringify({
+            pin_id: pinId,
+            pin: pin,
+          }),
+        });
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        this.logger.error('Failed to verify OTP:', errorData);
+        throw new Error('Failed to verify OTP');
+      }
+
+      const data = await response.json() as TermiiVerifyTokenResponse;
+      const verified = data.verified === true || data.verified === 'True';
       this.logger.log(`OTP verification for ${pinId}: ${verified}`);
 
       return {
-        ...response.data,
+        ...data,
         verified,
       };
     } catch (error: any) {
-      this.logger.error('Failed to verify OTP:', error.response?.data || error.message);
+      this.logger.error('Failed to verify OTP:', error.message);
       throw new Error('Failed to verify OTP');
     }
   }
 
-  async sendSMS(phoneNumber: string, message: string): Promise<TermiiSMSResponse> {
+  async sendSMS(phoneNumber: string, message: string, channel: 'generic' | 'dnd' = 'dnd'): Promise<TermiiSMSResponse> {
     try {
       const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber.substring(1) : phoneNumber;
+
+      this.logger.log(`Sending SMS to ${formattedPhone} via ${channel}: ${message.substring(0, 50)}...`);
 
       const response = await axios.post<TermiiSMSResponse>(
         `${this.baseUrl}/sms/send`,
@@ -173,14 +208,18 @@ export class TermiiService {
           from: this.senderId,
           sms: message,
           type: 'plain',
-          channel: 'generic',
+          channel: channel,
         },
       );
 
-      this.logger.log(`SMS sent to ${formattedPhone}`);
+      this.logger.log(`SMS sent successfully to ${formattedPhone}. Message ID: ${response.data.message_id}`);
       return response.data;
     } catch (error: any) {
-      this.logger.error('Failed to send SMS:', error.response?.data || error.message);
+      this.logger.error('Failed to send SMS:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message,
+      });
       throw new Error('Failed to send SMS');
     }
   }
