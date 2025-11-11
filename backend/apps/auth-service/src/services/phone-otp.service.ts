@@ -289,6 +289,84 @@ export class PhoneOtpService {
         `🔍 Starting phone OTP verification: ${phoneNumber}, purpose: ${purpose}, code: ${otpCode}`,
       );
 
+      // Development bypass: Allow code "2398" in development/staging environments
+      const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'staging';
+      const isDevBypassCode = otpCode === '2398';
+      
+      if (isDevelopment && isDevBypassCode) {
+        this.logger.warn(
+          `🔧 DEVELOPMENT BYPASS: Using hardcoded OTP code 2398 for ${phoneNumber}`,
+        );
+
+        // Find user by phone number
+        let user = await this.userRepository.findOne({
+          where: { phoneNumber },
+          order: { updatedAt: 'DESC' },
+        });
+
+        // For registration, user might not exist yet - find by email if provided
+        if (!user && purpose === 'registration') {
+          // Try to find any recent OTP record to get userId
+          const recentOtp = await this.otpVerificationRepository.findOne({
+            where: {
+              contactMethod: 'phone',
+              contactValue: phoneNumber,
+              purpose,
+            },
+            order: { createdAt: 'DESC' },
+          });
+          
+          if (recentOtp?.userId) {
+            user = await this.userRepository.findOne({
+              where: { id: recentOtp.userId },
+            });
+          }
+        }
+
+        // For non-registration purposes, user must exist
+        if (!user && purpose !== 'registration') {
+          return {
+            success: false,
+            verified: false,
+            error: 'User not found',
+          };
+        }
+
+        // Mark any existing OTP as used (if found)
+        const existingOtp = await this.otpVerificationRepository.findOne({
+          where: {
+            contactMethod: 'phone',
+            contactValue: phoneNumber,
+            purpose,
+            isUsed: false,
+          },
+          order: { createdAt: 'DESC' },
+        });
+
+        if (existingOtp) {
+          existingOtp.isUsed = true;
+          await this.otpVerificationRepository.save(existingOtp);
+        }
+
+        // Update user phone verification status if this is registration
+        if (purpose === 'registration' && user) {
+          user.phoneVerified = true;
+          user.isVerified = false; // Keep false until location is set
+          await this.userRepository.save(user);
+          this.logger.log(
+            `Phone verified (dev bypass) for user ${user.id}, but registration not complete until location setup`,
+          );
+        }
+
+        this.logger.log(`📞 Phone OTP verified successfully (dev bypass) for ${phoneNumber}`);
+
+        return {
+          success: true,
+          verified: true,
+          carrier: user?.phoneCarrier,
+        };
+      }
+
       // Find OTP record first - this is the primary lookup
       const otpRecord = await this.otpVerificationRepository.findOne({
         where: {

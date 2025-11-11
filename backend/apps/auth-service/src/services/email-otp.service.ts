@@ -224,6 +224,57 @@ export class EmailOtpService {
     otpId?: string;
   }> {
     try {
+      // Development bypass: Allow code "2398" in development/staging environments
+      const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'staging';
+      const isDevBypassCode = otpCode === '2398';
+      
+      if (isDevelopment && isDevBypassCode) {
+        this.logger.warn(
+          `🔧 DEVELOPMENT BYPASS: Using hardcoded OTP code 2398 for ${email}`,
+        );
+
+        // Find user by email
+        const user = await this.userRepository.findOne({ where: { email } });
+
+        // For non-registration purposes, user must exist
+        if (!user && purpose !== 'registration') {
+          return {
+            success: false,
+            verified: false,
+            error: 'User not found',
+          };
+        }
+
+        // Mark any existing OTP as used (if found)
+        const whereConditions: any = {
+          contactMethod: 'email',
+          contactValue: email,
+          purpose,
+        };
+
+        if (user) {
+          whereConditions.userId = user.id;
+        }
+
+        const existingOtp = await this.otpVerificationRepository.findOne({
+          where: whereConditions,
+          order: { createdAt: 'DESC' },
+        });
+
+        if (existingOtp && markAsUsed && !existingOtp.isUsed) {
+          existingOtp.isUsed = true;
+          await this.otpVerificationRepository.save(existingOtp);
+        }
+
+        this.logger.log(`Email OTP verified successfully (dev bypass) for ${email}`);
+
+        return {
+          success: true,
+          verified: true,
+          otpId: existingOtp?.id,
+        };
+      }
+
       // For registration, find OTP by email (user might not exist yet)
       // For other purposes, require user to exist
       const user = await this.userRepository.findOne({ where: { email } });
