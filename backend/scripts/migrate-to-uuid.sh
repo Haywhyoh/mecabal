@@ -45,20 +45,31 @@ fi
 # Step 2: Create a backup
 echo ""
 echo -e "${BLUE}Step 2: Creating database backup...${NC}"
+
+# Create backups directory if it doesn't exist
+mkdir -p ./backups
+
 BACKUP_FILE="backup_before_uuid_migration_$(date +%Y%m%d_%H%M%S).sql"
 echo -e "${YELLOW}Backup file: ${BACKUP_FILE}${NC}"
 
+# Load environment variables from .env.production
+if [ -f ".env.production" ]; then
+    export $(grep -v '^#' .env.production | xargs)
+fi
+
+# Use correct database credentials
+DB_USER=${DATABASE_USERNAME:-mecabal}
+DB_NAME=${DATABASE_NAME:-mecabal_prod}
+
 docker-compose -f docker-compose.production.yml exec -T postgres pg_dump \
-    -U ${DATABASE_USERNAME:-mecabal_prod} \
-    -d ${DATABASE_NAME:-mecabal_db} \
-    > "./backups/${BACKUP_FILE}" || {
-    echo -e "${RED}Failed to create backup. Creating backups directory...${NC}"
-    mkdir -p ./backups
-    docker-compose -f docker-compose.production.yml exec -T postgres pg_dump \
-        -U ${DATABASE_USERNAME:-mecabal_prod} \
-        -d ${DATABASE_NAME:-mecabal_db} \
-        > "./backups/${BACKUP_FILE}"
-}
+    -U ${DB_USER} \
+    -d ${DB_NAME} \
+    > "./backups/${BACKUP_FILE}"
+
+if [ $? -ne 0 ]; then
+    echo -e "${RED}Failed to create backup${NC}"
+    exit 1
+fi
 
 echo -e "${GREEN}✓ Backup created successfully at ./backups/${BACKUP_FILE}${NC}"
 
