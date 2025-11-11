@@ -141,7 +141,7 @@ import { TypingIndicator } from '../../../apps/messaging-service/src/entities/ty
           MessageReceipt,
           TypingIndicator,
         ],
-        synchronize: configService.get('DATABASE_SYNCHRONIZE') === 'true' || false, // Use env variable for initial deployment
+        synchronize: configService.get('DATABASE_SYNCHRONIZE') === 'true', // Use env variable for initial deployment
         logging: configService.get('NODE_ENV') === 'development',
         ssl: configService.get('DATABASE_SSL') === 'true' ? {
           rejectUnauthorized: false,

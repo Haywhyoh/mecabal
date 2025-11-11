@@ -366,7 +366,7 @@ services:
       - LOCATION_SERVICE_PORT=3008
       - DATABASE_HOST=postgres
       - REDIS_HOST=redis
-      - DATABASE_SYNCHRONIZE=true
+      - DATABASE_SYNCHRONIZE=false
     command: ["node", "dist/apps/location-service/main.js"]
     ports:
       - "3008:3008"

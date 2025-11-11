@@ -13,7 +13,7 @@ export default new DataSource({
   database: process.env.DATABASE_NAME || 'MeCabal_dev',
   entities: ['libs/database/src/entities/*.entity{.ts,.js}'],
   migrations: ['libs/database/src/migrations/*{.ts,.js}'],
-  synchronize: true,
+  synchronize: false,
   logging: process.env.NODE_ENV === 'development',
   ssl: process.env.DATABASE_SSL === 'true' ? {
     rejectUnauthorized: false
