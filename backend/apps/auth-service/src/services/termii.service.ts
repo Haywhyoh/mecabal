@@ -159,7 +159,7 @@ export class TermiiService {
       });
 
       // If that fails with 401, try with api_key in header
-      if (response.status === 401) {
+      if (response.status === 401 && this.apiKey) {
         this.logger.log('Retry with api_key in X-API-KEY header');
         response = await fetch(`${this.baseUrl}/sms/otp/verify`, {
           method: 'POST',
