@@ -6,6 +6,8 @@ import { GoogleProfileDto, GoogleAuthResponseDto } from '@app/validation';
 
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
+  private isConfigured: boolean;
+
   constructor(
     private configService: ConfigService,
   ) {
@@ -16,6 +18,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     // Only initialize if all required config is present
     // This allows the strategy to be conditionally registered
     if (clientId && clientSecret && callbackURL) {
+      this.isConfigured = true;
       super({
         clientID: clientId,
         clientSecret: clientSecret,
@@ -25,6 +28,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     } else {
       // Provide dummy values to prevent PassportStrategy from throwing
       // The strategy won't be used if config is missing
+      this.isConfigured = false;
       super({
         clientID: 'dummy',
         clientSecret: 'dummy',
@@ -40,6 +44,16 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     profile: GoogleProfileDto,
     done: VerifyCallback,
   ): Promise<any> {
+    // Prevent use of strategy if not properly configured
+    if (!this.isConfigured) {
+      return done(
+        new Error(
+          'Google OAuth is not configured. Please set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_CALLBACK_URL environment variables.',
+        ),
+        false,
+      );
+    }
+
     try {
       const { id, emails, name, photos } = profile;
 
