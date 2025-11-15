@@ -17,24 +17,25 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
 
     // Only initialize if all required config is present
     // This allows the strategy to be conditionally registered
+    // Must call super() before accessing 'this'
     if (clientId && clientSecret && callbackURL) {
-      this.isConfigured = true;
       super({
         clientID: clientId,
         clientSecret: clientSecret,
         callbackURL: callbackURL,
         scope: ['email', 'profile'],
       });
+      this.isConfigured = true;
     } else {
       // Provide dummy values to prevent PassportStrategy from throwing
       // The strategy won't be used if config is missing
-      this.isConfigured = false;
       super({
         clientID: 'dummy',
         clientSecret: 'dummy',
         callbackURL: 'http://localhost/dummy',
         scope: ['email', 'profile'],
       });
+      this.isConfigured = false;
     }
   }
 
