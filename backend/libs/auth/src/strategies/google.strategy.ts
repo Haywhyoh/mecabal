@@ -8,16 +8,14 @@ import { GoogleProfileDto, GoogleAuthResponseDto } from '@app/validation';
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   private isConfigured: boolean;
 
-  constructor(
-    private configService: ConfigService,
-  ) {
+  constructor(configService: ConfigService) {
+    // Get config values BEFORE calling super
     const clientId = configService.get<string>('GOOGLE_CLIENT_ID');
     const clientSecret = configService.get<string>('GOOGLE_CLIENT_SECRET');
     const callbackURL = configService.get<string>('GOOGLE_CALLBACK_URL');
 
-    // Only initialize if all required config is present
-    // This allows the strategy to be conditionally registered
     // Must call super() before accessing 'this'
+    // Only initialize if all required config is present
     if (clientId && clientSecret && callbackURL) {
       super({
         clientID: clientId,
@@ -25,7 +23,6 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
         callbackURL: callbackURL,
         scope: ['email', 'profile'],
       });
-      this.isConfigured = true;
     } else {
       // Provide dummy values to prevent PassportStrategy from throwing
       // The strategy won't be used if config is missing
@@ -35,8 +32,10 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
         callbackURL: 'http://localhost/dummy',
         scope: ['email', 'profile'],
       });
-      this.isConfigured = false;
     }
+    
+    // Now we can access 'this' after super() has been called
+    this.isConfigured = !!(clientId && clientSecret && callbackURL);
   }
 
   async validate(
