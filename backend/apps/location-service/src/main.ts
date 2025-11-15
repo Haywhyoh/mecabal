@@ -6,11 +6,14 @@ import { LocationServiceModule } from './location-service.module';
 async function bootstrap() {
   const app = await NestFactory.create(LocationServiceModule);
 
-  // Enable CORS
-  app.enableCors({
-    origin: true, // Allow all origins in development
-    credentials: true,
-  });
+  // CORS is handled by nginx reverse proxy in production
+  // Only enable CORS in development when running standalone
+  if (process.env.NODE_ENV !== 'production') {
+    app.enableCors({
+      origin: true, // Allow all origins in development
+      credentials: true,
+    });
+  }
 
   // Global validation pipe with detailed error messages
   app.useGlobalPipes(
