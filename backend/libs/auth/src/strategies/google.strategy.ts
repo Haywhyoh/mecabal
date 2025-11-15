@@ -13,18 +13,25 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     const clientSecret = configService.get<string>('GOOGLE_CLIENT_SECRET');
     const callbackURL = configService.get<string>('GOOGLE_CALLBACK_URL');
 
-    if (!clientId || !clientSecret || !callbackURL) {
-      throw new Error(
-        'Google OAuth configuration is incomplete. Please set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_CALLBACK_URL environment variables.',
-      );
+    // Only initialize if all required config is present
+    // This allows the strategy to be conditionally registered
+    if (clientId && clientSecret && callbackURL) {
+      super({
+        clientID: clientId,
+        clientSecret: clientSecret,
+        callbackURL: callbackURL,
+        scope: ['email', 'profile'],
+      });
+    } else {
+      // Provide dummy values to prevent PassportStrategy from throwing
+      // The strategy won't be used if config is missing
+      super({
+        clientID: 'dummy',
+        clientSecret: 'dummy',
+        callbackURL: 'http://localhost/dummy',
+        scope: ['email', 'profile'],
+      });
     }
-
-    super({
-      clientID: clientId,
-      clientSecret: clientSecret,
-      callbackURL: callbackURL,
-      scope: ['email', 'profile'],
-    });
   }
 
   async validate(
