@@ -313,22 +313,12 @@ jobs:
             sleep 2
           done
 
-          # Check if database has tables (detect first deployment)
-          TABLE_COUNT=$(docker-compose -f docker-compose.production.yml exec -T postgres psql -U ${DATABASE_USERNAME:-mecabal} -d ${DATABASE_NAME:-mecabal_prod} -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | xargs || echo "0")
-
-          if [ "$TABLE_COUNT" = "0" ]; then
-            echo "First deployment detected - setting up database schema..."
-            # Start ONLY user-service with synchronize enabled to create schema
-            DATABASE_SYNCHRONIZE=true docker-compose -f docker-compose.production.yml up -d user-service
-            sleep 20
-            docker-compose -f docker-compose.production.yml stop user-service
-          else
-            echo "Existing database detected - running migrations..."
-            docker-compose -f docker-compose.production.yml run --rm -e DATABASE_SYNCHRONIZE=false auth-service npm run migration:run || {
-              echo "Migration failed! Check logs for details"
-              # Don't exit on migration failure - allow deployment to continue
-            }
-          fi
+          # Run database migrations (for existing deployments only)
+          echo "Running database migrations..."
+          docker-compose -f docker-compose.production.yml run --rm -e DATABASE_SYNCHRONIZE=false auth-service npm run migration:run || {
+            echo "Migration failed! Check logs for details"
+            # Don't exit on migration failure - allow deployment to continue
+          }
 
           # Start all services with newly built images (without synchronize to avoid conflicts)
           echo "Starting all services..."
