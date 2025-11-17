@@ -252,14 +252,14 @@ jobs:
       id: deploy
       uses: appleboy/ssh-action@v1.0.3
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_PAT: ${{ secrets.GH_PAT }}
         GH_ACTOR: ${{ github.actor }}
       with:
         host: ${{ secrets.PRODUCTION_HOST }}
         username: ${{ secrets.PRODUCTION_USERNAME }}
         key: ${{ secrets.PRODUCTION_SSH_KEY }}
         port: ${{ secrets.PRODUCTION_PORT || 22 }}
-        envs: GITHUB_TOKEN,GH_ACTOR
+        envs: GH_PAT,GH_ACTOR
         script: |
           # Navigate to project directory
           cd ${{ secrets.PRODUCTION_PROJECT_PATH }}
@@ -306,8 +306,9 @@ jobs:
           mkdir -p ~/.docker
 
           # Login to GitHub Container Registry and persist credentials
+          # Using GH_PAT (Personal Access Token) for better persistence
           # This stores credentials in ~/.docker/config.json for future use (including manual docker-compose commands)
-          echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GH_ACTOR" --password-stdin
+          echo "$GH_PAT" | docker login ghcr.io -u "$GH_ACTOR" --password-stdin
           
           # Verify login was successful
           if [ $? -eq 0 ]; then
