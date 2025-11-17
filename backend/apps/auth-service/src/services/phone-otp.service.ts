@@ -105,14 +105,8 @@ export class PhoneOtpService {
     deliveryMethod?: string;
   }> {
     try {
-      // Detect Nigerian carrier
+      // Optional: Detect Nigerian carrier (no longer required for validation)
       const carrierInfo = this.detectNigerianCarrier(phoneNumber);
-      if (!carrierInfo) {
-        return {
-          success: false,
-          error: 'Unsupported Nigerian carrier',
-        };
-      }
 
       // Find existing user (should exist from email verification step)
       let user = await this.userRepository.findOne({
@@ -177,7 +171,9 @@ export class PhoneOtpService {
 
             // Update phone number and carrier if no conflict
             user!.phoneNumber = phoneNumber;
-            user!.phoneCarrier = carrierInfo.name;
+            if (carrierInfo) {
+              user!.phoneCarrier = carrierInfo.name;
+            }
             await this.userRepository.save(user!);
             this.logger.log(
               `Updated user ${user!.id} with phone number ${phoneNumber}`,
@@ -257,14 +253,16 @@ export class PhoneOtpService {
       await this.otpVerificationRepository.save(otpVerification);
 
       this.logger.log(
-        `${otpMethod} OTP sent successfully to ${phoneNumber} via ${carrierInfo.name}`,
+        `${otpMethod} OTP sent successfully to ${phoneNumber}${carrierInfo ? ` via ${carrierInfo.name}` : ''}`,
       );
 
       return {
         success: true,
         message: `OTP sent successfully via ${otpMethod}`,
-        carrier: carrierInfo.name,
-        carrierColor: carrierInfo.color,
+        ...(carrierInfo && {
+          carrier: carrierInfo.name,
+          carrierColor: carrierInfo.color,
+        }),
         expiresAt,
         deliveryMethod: method,
         // Include OTP in development mode (only for SMS)
