@@ -6,15 +6,29 @@ import { LocationServiceModule } from './location-service.module';
 async function bootstrap() {
   const app = await NestFactory.create(LocationServiceModule);
 
-  // CORS is handled by nginx reverse proxy
-  // Disable CORS in the service to prevent duplicate headers
-  // If you need CORS for local development, set DISABLE_NGINX_CORS=true
-  if (process.env.DISABLE_NGINX_CORS === 'true') {
-    app.enableCors({
-      origin: true, // Allow all origins in development
-      credentials: true,
-    });
-  }
+  // Enable CORS for production and development
+  app.enableCors({
+    origin: [
+      // Production
+      'https://mecabal.com',
+      'https://www.mecabal.com',
+      'https://api.mecabal.com',
+      // Development
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://localhost:8080',
+      'http://localhost:8081',
+      'http://localhost:19000',
+      'http://localhost:19001',
+      'http://localhost:19002',
+      'exp://localhost:19000',
+      'exp://localhost:19001',
+      'exp://localhost:19002',
+    ],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'DNT', 'User-Agent', 'If-Modified-Since', 'Cache-Control', 'Range'],
+  });
 
   // Global validation pipe with detailed error messages
   app.useGlobalPipes(
