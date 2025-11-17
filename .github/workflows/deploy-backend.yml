@@ -264,24 +264,33 @@ jobs:
           # Keep only last 7 backups
           ls -t backup_production_*.sql | tail -n +8 | xargs -r rm
 
+          # Backup .env.production BEFORE git pull (in case git overwrites it)
+          if [ -f .env.production ]; then
+            cp .env.production .env.production.backup
+            echo "✓ Backed up existing .env.production"
+          fi
+
           # Pull latest code
           git pull origin main
           CURRENT_COMMIT=$(git rev-parse HEAD)
           echo "New commit: $CURRENT_COMMIT"
 
-          # Update environment variables from secrets (only if secret is set)
+          # Restore .env.production from backup or copy from home
           if [ -n "${{ secrets.PRODUCTION_ENV }}" ]; then
             echo "${{ secrets.PRODUCTION_ENV }}" | base64 -d > .env.production
             echo "✓ Environment variables updated from GitHub secrets"
           else
             echo "⚠ PRODUCTION_ENV secret not set - using existing .env.production file"
-            # Check if .env.production exists in current directory, if not copy from home
-            if [ ! -f .env.production ] && [ -f ~/.env.production ]; then
-              echo "📋 Copying .env.production from home directory"
+            # Restore from backup if it exists
+            if [ -f .env.production.backup ]; then
+              cp .env.production.backup .env.production
+              echo "✓ Restored .env.production from backup"
+            # Otherwise copy from home directory
+            elif [ -f ~/.env.production ]; then
               cp ~/.env.production .env.production
-            fi
-            if [ ! -f .env.production ]; then
-              echo "✗ ERROR: .env.production not found in ~/mecabal/backend or ~ directory"
+              echo "✓ Copied .env.production from home directory"
+            else
+              echo "✗ ERROR: No .env.production found (no backup, no ~/.env.production)"
               exit 1
             fi
           fi
