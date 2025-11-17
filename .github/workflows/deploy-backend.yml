@@ -110,7 +110,9 @@ jobs:
 
     - name: Build and push all service images
       run: |
-        REGISTRY=ghcr.io/${{ github.repository_owner }}/mecabal
+        # Force lowercase for Docker registry (required by Docker)
+        REGISTRY_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+        REGISTRY=ghcr.io/${REGISTRY_OWNER}/mecabal
         SHA_TAG=${{ steps.meta.outputs.sha_short }}
 
         # Build and push all 10 services
@@ -162,11 +164,15 @@ jobs:
 
     - name: Deploy to staging server
       uses: appleboy/ssh-action@v1.0.3
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_ACTOR: ${{ github.actor }}
       with:
         host: ${{ secrets.STAGING_HOST }}
         username: ${{ secrets.STAGING_USERNAME }}
         key: ${{ secrets.STAGING_SSH_KEY }}
         port: ${{ secrets.STAGING_PORT || 22 }}
+        envs: GITHUB_TOKEN,GH_ACTOR
         script: |
           # Navigate to project directory
           cd ${{ secrets.STAGING_PROJECT_PATH }}
@@ -179,6 +185,9 @@ jobs:
 
           # Update environment variables from secrets
           echo "${{ secrets.STAGING_ENV }}" | base64 -d > .env
+
+          # Login to GitHub Container Registry
+          echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GH_ACTOR" --password-stdin
 
           # Pull latest Docker images
           docker-compose -f docker-compose.production.yml pull
@@ -228,11 +237,15 @@ jobs:
     - name: Deploy to production server
       id: deploy
       uses: appleboy/ssh-action@v1.0.3
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_ACTOR: ${{ github.actor }}
       with:
         host: ${{ secrets.PRODUCTION_HOST }}
         username: ${{ secrets.PRODUCTION_USERNAME }}
         key: ${{ secrets.PRODUCTION_SSH_KEY }}
         port: ${{ secrets.PRODUCTION_PORT || 22 }}
+        envs: GITHUB_TOKEN,GH_ACTOR
         script: |
           # Navigate to project directory
           cd ${{ secrets.PRODUCTION_PROJECT_PATH }}
@@ -274,6 +287,9 @@ jobs:
           # Load only database environment variables for pg_dump (safely)
           export $(cat .env.production | grep -E "^DATABASE_[A-Z_]+=" | xargs)
           echo "✓ Environment variables loaded"
+
+          # Login to GitHub Container Registry (required for private images)
+          echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GH_ACTOR" --password-stdin
 
           # Stop existing containers gracefully
           echo "Stopping services gracefully..."
