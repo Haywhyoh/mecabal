@@ -34,7 +34,19 @@ async function bootstrap() {
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'DNT', 'User-Agent', 'If-Modified-Since', 'Cache-Control', 'Range'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'DNT',
+      'User-Agent',
+      'If-Modified-Since',
+      'Cache-Control',
+      'Range',
+      'ngrok-skip-browser-warning',  // For ngrok/tunneling
+      'Accept',
+      'Origin',
+    ],
   });
 
   // Global validation pipe
