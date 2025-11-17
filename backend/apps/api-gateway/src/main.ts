@@ -134,5 +134,6 @@ async function bootstrap() {
   console.log(`🚀 API Gateway running on: http://localhost:${port}`);
   console.log(`📚 Swagger UI available at: http://localhost:${port}/api/docs`);
   console.log(`🔌 WebSocket proxy configured for: ${messagingServiceUrl}`);
+  console.log(`✅ Environment: ${process.env.NODE_ENV}`);
 }
 void bootstrap();
