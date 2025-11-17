@@ -155,8 +155,17 @@ jobs:
           # Pull latest code
           git pull origin develop
 
-          # Update environment variables from secrets
-          echo "${{ secrets.STAGING_ENV }}" | base64 -d > .env
+          # Update environment variables from secrets (only if secret is set)
+          if [ -n "${{ secrets.STAGING_ENV }}" ]; then
+            echo "${{ secrets.STAGING_ENV }}" | base64 -d > .env
+            echo "✓ Environment variables updated from GitHub secrets"
+          else
+            echo "⚠ STAGING_ENV secret not set - using existing .env file"
+            if [ ! -f .env ]; then
+              echo "✗ ERROR: .env file does not exist and STAGING_ENV secret is not set"
+              exit 1
+            fi
+          fi
 
           # Ensure Docker config directory exists
           mkdir -p ~/.docker
@@ -260,8 +269,17 @@ jobs:
           CURRENT_COMMIT=$(git rev-parse HEAD)
           echo "New commit: $CURRENT_COMMIT"
 
-          # Update environment variables from secrets
-          echo "${{ secrets.PRODUCTION_ENV }}" | base64 -d > .env.production
+          # Update environment variables from secrets (only if secret is set)
+          if [ -n "${{ secrets.PRODUCTION_ENV }}" ]; then
+            echo "${{ secrets.PRODUCTION_ENV }}" | base64 -d > .env.production
+            echo "✓ Environment variables updated from GitHub secrets"
+          else
+            echo "⚠ PRODUCTION_ENV secret not set - using existing .env.production file"
+            if [ ! -f .env.production ]; then
+              echo "✗ ERROR: .env.production file does not exist and PRODUCTION_ENV secret is not set"
+              exit 1
+            fi
+          fi
 
           # Load only database environment variables for pg_dump (safely)
           export $(cat .env.production | grep -E "^DATABASE_[A-Z_]+=" | xargs)
