@@ -275,8 +275,13 @@ jobs:
             echo "✓ Environment variables updated from GitHub secrets"
           else
             echo "⚠ PRODUCTION_ENV secret not set - using existing .env.production file"
+            # Check if .env.production exists in current directory, if not copy from home
+            if [ ! -f .env.production ] && [ -f ~/.env.production ]; then
+              echo "📋 Copying .env.production from home directory"
+              cp ~/.env.production .env.production
+            fi
             if [ ! -f .env.production ]; then
-              echo "✗ ERROR: .env.production file does not exist and PRODUCTION_ENV secret is not set"
+              echo "✗ ERROR: .env.production not found in ~/mecabal/backend or ~ directory"
               exit 1
             fi
           fi
