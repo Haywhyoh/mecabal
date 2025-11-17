@@ -165,14 +165,14 @@ jobs:
     - name: Deploy to staging server
       uses: appleboy/ssh-action@v1.0.3
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_PAT: ${{ secrets.GH_PAT }}
         GH_ACTOR: ${{ github.actor }}
       with:
         host: ${{ secrets.STAGING_HOST }}
         username: ${{ secrets.STAGING_USERNAME }}
         key: ${{ secrets.STAGING_SSH_KEY }}
         port: ${{ secrets.STAGING_PORT || 22 }}
-        envs: GITHUB_TOKEN,GH_ACTOR
+        envs: GH_PAT,GH_ACTOR
         script: |
           # Navigate to project directory
           cd ${{ secrets.STAGING_PROJECT_PATH }}
@@ -186,8 +186,22 @@ jobs:
           # Update environment variables from secrets
           echo "${{ secrets.STAGING_ENV }}" | base64 -d > .env
 
-          # Login to GitHub Container Registry
-          echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GH_ACTOR" --password-stdin
+          # Ensure Docker config directory exists
+          mkdir -p ~/.docker
+
+          # Login to GitHub Container Registry and persist credentials
+          # Using GH_PAT (Personal Access Token) for better persistence
+          # This stores credentials in ~/.docker/config.json for future use
+          echo "$GH_PAT" | docker login ghcr.io -u "$GH_ACTOR" --password-stdin
+          
+          # Verify login was successful
+          if [ $? -eq 0 ]; then
+            echo "✓ Successfully authenticated with GitHub Container Registry"
+            echo "✓ Credentials saved to ~/.docker/config.json (persistent)"
+          else
+            echo "✗ Failed to authenticate with GitHub Container Registry"
+            exit 1
+          fi
 
           # Pull latest Docker images
           docker-compose -f docker-compose.production.yml pull
@@ -288,8 +302,22 @@ jobs:
           export $(cat .env.production | grep -E "^DATABASE_[A-Z_]+=" | xargs)
           echo "✓ Environment variables loaded"
 
-          # Login to GitHub Container Registry (required for private images)
+          # Ensure Docker config directory exists
+          mkdir -p ~/.docker
+
+          # Login to GitHub Container Registry and persist credentials
+          # This stores credentials in ~/.docker/config.json for future use (including manual docker-compose commands)
           echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GH_ACTOR" --password-stdin
+          
+          # Verify login was successful
+          if [ $? -eq 0 ]; then
+            echo "✓ Successfully authenticated with GitHub Container Registry"
+            echo "✓ Credentials saved to ~/.docker/config.json (persistent)"
+            echo "✓ Manual 'docker-compose up' commands will now work without re-authentication"
+          else
+            echo "✗ Failed to authenticate with GitHub Container Registry"
+            exit 1
+          fi
 
           # Stop existing containers gracefully
           echo "Stopping services gracefully..."
