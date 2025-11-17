@@ -48,6 +48,8 @@ COPY --from=builder /app/ormconfig.ts ./ormconfig.ts
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 COPY --from=builder /app/libs/database/src/migrations ./libs/database/src/migrations
 COPY --from=builder /app/libs/database/src/entities ./libs/database/src/entities
+COPY --from=builder /app/libs/database/src/seeds ./libs/database/src/seeds
+COPY --from=builder /app/scripts ./scripts
 
 # Install production dependencies and dev dependencies needed for migrations
 RUN npm ci --production && npm install typeorm ts-node tsconfig-paths dotenv @types/node typescript
