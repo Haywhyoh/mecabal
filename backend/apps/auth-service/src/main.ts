@@ -6,9 +6,14 @@ import { AuthServiceModule } from './auth-service.module';
 async function bootstrap() {
   const app = await NestFactory.create(AuthServiceModule);
 
-  // Enable CORS for API testing
+  // Enable CORS for production and development
   app.enableCors({
     origin: [
+      // Production
+      'https://mecabal.com',
+      'https://www.mecabal.com',
+      'https://api.mecabal.com',
+      // Local development
       'http://localhost:3000',
       'http://localhost:3001',
       'http://localhost:8080',
@@ -21,6 +26,8 @@ async function bootstrap() {
       'exp://localhost:19002', // Expo development
     ],
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   });
 
   // Global validation pipe
