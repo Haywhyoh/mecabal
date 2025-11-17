@@ -19,21 +19,31 @@ export class AddHelpAndListings20251007133042 implements MigrationInterface {
       ALTER TYPE post_type_enum ADD VALUE IF NOT EXISTS 'alert';
     `);
 
-    // 3. Add help metadata columns to posts
+    // 3. Add help metadata columns to posts (only if posts table exists)
     await queryRunner.query(`
-      ALTER TABLE posts
-      ADD COLUMN IF NOT EXISTS help_category VARCHAR(50),
-      ADD COLUMN IF NOT EXISTS urgency VARCHAR(20),
-      ADD COLUMN IF NOT EXISTS budget VARCHAR(100),
-      ADD COLUMN IF NOT EXISTS deadline TIMESTAMP;
+      DO $$
+      BEGIN
+        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'posts') THEN
+          ALTER TABLE posts
+          ADD COLUMN IF NOT EXISTS help_category VARCHAR(50),
+          ADD COLUMN IF NOT EXISTS urgency VARCHAR(20),
+          ADD COLUMN IF NOT EXISTS budget VARCHAR(100),
+          ADD COLUMN IF NOT EXISTS deadline TIMESTAMP;
+        END IF;
+      END $$;
     `);
 
-    // 4. Update posts table to use post_type_enum
+    // 4. Update posts table to use post_type_enum (only if posts table exists)
     await queryRunner.query(`
-      ALTER TABLE posts 
-      ALTER COLUMN post_type DROP DEFAULT,
-      ALTER COLUMN post_type TYPE post_type_enum USING post_type::post_type_enum,
-      ALTER COLUMN post_type SET DEFAULT 'general'::post_type_enum;
+      DO $$
+      BEGIN
+        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'posts') THEN
+          ALTER TABLE posts
+          ALTER COLUMN post_type DROP DEFAULT,
+          ALTER COLUMN post_type TYPE post_type_enum USING post_type::post_type_enum,
+          ALTER COLUMN post_type SET DEFAULT 'general'::post_type_enum;
+        END IF;
+      END $$;
     `);
 
     // 5. Create listing_categories table
@@ -113,7 +123,16 @@ export class AddHelpAndListings20251007133042 implements MigrationInterface {
       CREATE INDEX IF NOT EXISTS idx_listings_category ON listings(category_id);
       CREATE INDEX IF NOT EXISTS idx_listings_status ON listings(status);
       CREATE INDEX IF NOT EXISTS idx_listing_media_listing ON listing_media(listing_id);
-      CREATE INDEX IF NOT EXISTS idx_posts_type ON posts(post_type);
+    `);
+
+    // Create posts index only if posts table exists
+    await queryRunner.query(`
+      DO $$
+      BEGIN
+        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'posts') THEN
+          CREATE INDEX IF NOT EXISTS idx_posts_type ON posts(post_type);
+        END IF;
+      END $$;
     `);
     
     // Create location index only if location column exists

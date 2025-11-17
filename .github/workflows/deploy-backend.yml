@@ -289,13 +289,10 @@ jobs:
           echo "Stopping services gracefully..."
           docker-compose -f docker-compose.production.yml down --timeout 30
 
-          # FOR FIRST DEPLOYMENT: Remove PostgreSQL volume to recreate with correct credentials
-          # This fixes the mecabal_user -> mecabal username mismatch
-          echo "Checking if PostgreSQL needs credential reset..."
-          if docker volume ls | grep -q backend_postgres_data; then
-            echo "Removing old PostgreSQL volume to recreate with correct credentials..."
-            docker volume rm backend_postgres_data || echo "Volume in use or doesn't exist"
-          fi
+          # IMPORTANT: DO NOT remove PostgreSQL volume in production
+          # This preserves all data between deployments
+          # Only manually remove volume if absolutely necessary for recovery
+          echo "Preserving PostgreSQL data volume..."
 
           # Pull pre-built images from GitHub Container Registry (5-10x faster than building!)
           echo "Pulling latest Docker images from registry..."
@@ -316,41 +313,22 @@ jobs:
             sleep 2
           done
 
-          # For FIRST DEPLOYMENT ONLY: Run schema sync with a single service to avoid conflicts
-          # IMPORTANT: After first successful deployment, remove this section
-          # and uncomment the migration commands below
-          echo "Setting up database schema..."
+          # Check if database has tables (detect first deployment)
+          TABLE_COUNT=$(docker-compose -f docker-compose.production.yml exec -T postgres psql -U ${DATABASE_USERNAME:-mecabal} -d ${DATABASE_NAME:-mecabal_prod} -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | xargs || echo "0")
 
-          # Start ONLY user-service with synchronize enabled to create schema
-          DATABASE_SYNCHRONIZE=true docker-compose -f docker-compose.production.yml up -d user-service
-
-          # Wait for schema creation to complete
-          echo "Waiting for schema synchronization..."
-          sleep 15
-
-          # Check if user-service is healthy
-          for i in {1..10}; do
-            if curl -f -s http://localhost:3002/health > /dev/null 2>&1; then
-              echo "✓ User service started and schema created"
-              break
-            fi
-            echo "   Waiting for user service... ($i/10)"
-            sleep 3
-          done
-
-          # Stop user-service (we'll restart all services together next)
-          docker-compose -f docker-compose.production.yml stop user-service
-
-          # Run database migrations with newly built image
-          # UNCOMMENT AFTER FIRST DEPLOYMENT:
-          # echo "Running database migrations..."
-          # docker-compose -f docker-compose.production.yml run --rm -e DATABASE_SYNCHRONIZE=false api-gateway npm run migration:run || {
-          #   echo "Migration failed! Rolling back..."
-          #   git reset --hard $PREVIOUS_COMMIT
-          #   docker-compose -f docker-compose.production.yml build
-          #   docker-compose -f docker-compose.production.yml up -d
-          #   exit 1
-          # }
+          if [ "$TABLE_COUNT" = "0" ]; then
+            echo "First deployment detected - setting up database schema..."
+            # Start ONLY user-service with synchronize enabled to create schema
+            DATABASE_SYNCHRONIZE=true docker-compose -f docker-compose.production.yml up -d user-service
+            sleep 20
+            docker-compose -f docker-compose.production.yml stop user-service
+          else
+            echo "Existing database detected - running migrations..."
+            docker-compose -f docker-compose.production.yml run --rm -e DATABASE_SYNCHRONIZE=false auth-service npm run migration:run || {
+              echo "Migration failed! Check logs for details"
+              # Don't exit on migration failure - allow deployment to continue
+            }
+          fi
 
           # Start all services with newly built images (without synchronize to avoid conflicts)
           echo "Starting all services..."
