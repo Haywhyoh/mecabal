@@ -68,7 +68,7 @@ services:
       - .env.production
     environment:
       - NODE_ENV=production
-      - DATABASE_HOST=localhost
+      - DATABASE_HOST=host.docker.internal
       - REDIS_HOST=redis
       - DATABASE_SYNCHRONIZE=${DATABASE_SYNCHRONIZE:-false}
     ports:
