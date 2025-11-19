@@ -25,7 +25,7 @@
     "seed:location": "node -r ./scripts/setup-crypto.js -r ts-node/register -r tsconfig-paths/register scripts/seed-location.ts",
     "script:generate-neighborhoods": "ts-node scripts/generate-neighborhoods.ts",
     "seed:event-categories": "ts-node seed-event-categories.ts",
-    "seed:all": "ts-node scripts/run-seeder.ts",
+    "seed:all": "ts-node -r tsconfig-paths/register scripts/run-seeder.ts",
     "seed:marketplace": "ts-node scripts/run-marketplace-seeder.ts",
     "seed:categories": "ts-node scripts/marketplace-seeder.ts",
     "seed:sample-data": "ts-node scripts/sample-data-seeder.ts",
