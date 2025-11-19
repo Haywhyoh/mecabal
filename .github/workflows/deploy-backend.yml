@@ -108,20 +108,21 @@ jobs:
         echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
         echo "timestamp=$(date +%s)" >> $GITHUB_OUTPUT
 
-    - name: Build and push all service images
+    - name: Build and push optimized backend image
       run: |
         # Force lowercase for Docker registry (required by Docker)
         REGISTRY_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-        REGISTRY=ghcr.io/${REGISTRY_OWNER}/mecabal
+        REGISTRY=ghcr.io/${REGISTRY_OWNER}/mecabal-backend
         SHA_TAG=${{ steps.meta.outputs.sha_short }}
 
-        # Build and push all 10 services
-        for SERVICE in api-gateway auth-service user-service social-service messaging-service marketplace-service events-service notification-service location-service business-service; do
-          echo "Building and pushing $SERVICE..."
-          docker build -t $REGISTRY-$SERVICE:latest -t $REGISTRY-$SERVICE:$SHA_TAG -f Dockerfile --target runner .
-          docker push $REGISTRY-$SERVICE:latest
-          docker push $REGISTRY-$SERVICE:$SHA_TAG
-        done
+        # Build and push single optimized image with all services
+        echo "Building and pushing optimized backend image..."
+        docker build -t $REGISTRY:latest -t $REGISTRY:$SHA_TAG -f Dockerfile.optimized .
+        docker push $REGISTRY:latest
+        docker push $REGISTRY:$SHA_TAG
+
+        echo "✓ Image pushed successfully: $REGISTRY:latest"
+        echo "✓ Image tagged with: $SHA_TAG"
 
   deploy-staging:
     name: Deploy to Staging
@@ -148,6 +149,9 @@ jobs:
         script: |
           # Navigate to project directory
           cd ${{ secrets.STAGING_PROJECT_PATH }}
+
+          # Set Docker Compose timeout for slow/resource-constrained servers
+          export COMPOSE_HTTP_TIMEOUT=300
 
           # Create backup tag for rollback
           docker-compose -f docker-compose.production.yml exec -T postgres pg_dump -U $DATABASE_USERNAME $DATABASE_NAME > backup_staging_$(date +%Y%m%d_%H%M%S).sql || echo "Backup skipped (first deployment)"
@@ -234,21 +238,33 @@ jobs:
           echo "Waiting for services to start..."
           sleep 45
 
-          # Run comprehensive health checks for all 10 services
+          # Run comprehensive health checks for all 10 services (all running in one container now)
           echo "Running health checks..."
-          curl -f http://localhost:3000/health || exit 1
-          curl -f http://localhost:3001/health || exit 1
-          curl -f http://localhost:3002/health || exit 1
-          curl -f http://localhost:3003/health || exit 1
-          curl -f http://localhost:3004/health || exit 1
-          curl -f http://localhost:3005/health || exit 1
-          curl -f http://localhost:3006/health || exit 1
-          curl -f http://localhost:3007/health || exit 1
-          curl -f http://localhost:3008/health || exit 1
-          curl -f http://localhost:3009/health || exit 1
+          HEALTH_CHECK_FAILED=0
 
-          # Clean up old images
-          docker image prune -f
+          for PORT in 3000 3001 3002 3003 3004 3005 3006 3007 3008 3009; do
+            if curl -f -s http://localhost:$PORT/health > /dev/null 2>&1; then
+              echo "✓ Service on port $PORT is healthy"
+            else
+              echo "✗ Service on port $PORT failed"
+              HEALTH_CHECK_FAILED=1
+            fi
+          done
+
+          if [ $HEALTH_CHECK_FAILED -eq 1 ]; then
+            echo "Some services failed health checks - checking PM2 status..."
+            docker exec mecabal-backend npx pm2 status || true
+            docker logs mecabal-backend --tail 100 || true
+            exit 1
+          fi
+
+          echo "✓ All services are healthy!"
+
+          # Clean up old images and containers to save space and free memory
+          echo "Cleaning up Docker resources..."
+          docker container prune -f
+          docker image prune -a -f
+          docker volume prune -f
 
           echo "Staging deployment completed successfully!"
 
@@ -278,6 +294,9 @@ jobs:
         script: |
           # Navigate to project directory
           cd ${{ secrets.PRODUCTION_PROJECT_PATH }}
+
+          # Set Docker Compose timeout for slow/resource-constrained servers
+          export COMPOSE_HTTP_TIMEOUT=300
 
           # Store current commit for potential rollback
           PREVIOUS_COMMIT=$(git rev-parse HEAD)
@@ -499,8 +518,15 @@ jobs:
             echo "To view logs: docker-compose -f docker-compose.production.yml logs -f [service-name]"
           fi
 
-          # Clean up old images to save space
-          docker image prune -f
+          # Clean up old images and containers to save space and free memory
+          echo "Cleaning up Docker resources..."
+          docker container prune -f
+          docker image prune -a -f
+          docker volume prune -f
+
+          # Show final resource usage
+          echo "Docker resource usage after cleanup:"
+          docker system df
 
           echo "Production deployment completed successfully!"
           echo "Deployed commit: $CURRENT_COMMIT"

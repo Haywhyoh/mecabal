@@ -1,0 +1,168 @@
+services:
+  # Database
+  postgres:
+    image: postgis/postgis:15-3.3
+    container_name: mecabal-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME}
+      POSTGRES_USER: ${DATABASE_USERNAME}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql/init:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    networks:
+      - mecabal-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USERNAME:-mecabal}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: mecabal-redis
+    restart: always
+    command: >
+      sh -c "if [ -n \"${REDIS_PASSWORD}\" ]; then
+        redis-server --appendonly yes --requirepass \"${REDIS_PASSWORD}\" --maxmemory 256mb --maxmemory-policy allkeys-lru;
+      else
+        redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru;
+      fi"
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - mecabal-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+
+  # MinIO (S3-compatible object storage) - Optional
+  minio:
+    image: minio/minio:latest
+    container_name: mecabal-minio
+    restart: always
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      - mecabal-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+
+  # All Backend Services (Combined in one container using PM2)
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.optimized
+    image: mecabal-backend:latest
+    container_name: mecabal-backend
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    environment:
+      - NODE_ENV=production
+      - DATABASE_HOST=postgres
+      - REDIS_HOST=redis
+      - DATABASE_SYNCHRONIZE=${DATABASE_SYNCHRONIZE:-false}
+    ports:
+      - "3000:3000"  # API Gateway
+      - "3001:3001"  # Auth Service
+      - "3002:3002"  # User Service
+      - "3003:3003"  # Social Service
+      - "3004:3004"  # Messaging Service
+      - "3005:3005"  # Marketplace Service
+      - "3006:3006"  # Events Service
+      - "3007:3007"  # Notification Service
+      - "3008:3008"  # Location Service
+      - "3009:3009"  # Business Service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - mecabal-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 3G
+        reservations:
+          memory: 1G
+
+  # Nginx (Reverse Proxy)
+  nginx:
+    image: nginx:alpine
+    container_name: mecabal-nginx
+    restart: unless-stopped
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/ssl/certs:ro
+      - ./ssl:/etc/letsencrypt:ro
+      - ./ssl:/var/www/certbot:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - backend
+    networks:
+      - mecabal-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 64M
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  minio_data:
+    driver: local
+
+networks:
+  mecabal-network:
+    driver: bridge
