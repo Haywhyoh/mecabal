@@ -157,8 +157,19 @@ jobs:
 
           # Update environment variables from secrets (only if secret is set)
           if [ -n "${{ secrets.STAGING_ENV }}" ]; then
-            echo "${{ secrets.STAGING_ENV }}" | base64 -d > .env
-            echo "✓ Environment variables updated from GitHub secrets"
+            # Decode to temp file first to validate before overwriting
+            if echo "${{ secrets.STAGING_ENV }}" | base64 -d > .env.tmp 2>/dev/null && [ -s .env.tmp ]; then
+              mv .env.tmp .env
+              echo "✓ Environment variables updated from GitHub secrets"
+            else
+              rm -f .env.tmp
+              echo "✗ ERROR: Failed to decode STAGING_ENV secret (invalid base64)"
+              echo "⚠ Using existing .env file"
+              if [ ! -f .env ]; then
+                echo "✗ ERROR: .env file does not exist and STAGING_ENV secret decode failed"
+                exit 1
+              fi
+            fi
           else
             echo "⚠ STAGING_ENV secret not set - using existing .env file"
             if [ ! -f .env ]; then
@@ -173,19 +184,42 @@ jobs:
           # Login to GitHub Container Registry and persist credentials
           # Using GH_PAT (Personal Access Token) for better persistence
           # This stores credentials in ~/.docker/config.json for future use
-          echo "$GH_PAT" | docker login ghcr.io -u "$GH_ACTOR" --password-stdin
-          
-          # Verify login was successful
-          if [ $? -eq 0 ]; then
+          echo "Authenticating with GitHub Container Registry..."
+
+          # Add timeout to prevent hanging
+          if timeout 60 bash -c "echo '$GH_PAT' | docker login ghcr.io -u '$GH_ACTOR' --password-stdin"; then
             echo "✓ Successfully authenticated with GitHub Container Registry"
             echo "✓ Credentials saved to ~/.docker/config.json (persistent)"
           else
-            echo "✗ Failed to authenticate with GitHub Container Registry"
-            exit 1
+            LOGIN_EXIT_CODE=$?
+            if [ $LOGIN_EXIT_CODE -eq 124 ]; then
+              echo "✗ Docker login timed out after 60 seconds"
+            else
+              echo "✗ Failed to authenticate with GitHub Container Registry (exit code: $LOGIN_EXIT_CODE)"
+            fi
+
+            # Try to check if we're already logged in
+            if docker pull ghcr.io/haywhyoh/mecabal-api-gateway:latest >/dev/null 2>&1; then
+              echo "⚠ Login failed but credentials appear to be cached - continuing..."
+            else
+              echo "✗ Cannot proceed without valid credentials"
+              exit 1
+            fi
           fi
 
           # Pull latest Docker images
-          docker-compose -f docker-compose.production.yml pull
+          echo "Pulling latest Docker images from registry..."
+          if timeout 600 docker-compose -f docker-compose.production.yml pull; then
+            echo "✓ Successfully pulled all Docker images"
+          else
+            PULL_EXIT_CODE=$?
+            if [ $PULL_EXIT_CODE -eq 124 ]; then
+              echo "✗ Docker pull timed out after 10 minutes"
+            else
+              echo "⚠ Docker pull failed (exit code: $PULL_EXIT_CODE)"
+            fi
+            echo "Continuing with deployment using cached images..."
+          fi
 
           # Stop existing containers gracefully
           docker-compose -f docker-compose.production.yml down --timeout 30
@@ -277,8 +311,26 @@ jobs:
 
           # Restore .env.production from backup or copy from home
           if [ -n "${{ secrets.PRODUCTION_ENV }}" ]; then
-            echo "${{ secrets.PRODUCTION_ENV }}" | base64 -d > .env.production
-            echo "✓ Environment variables updated from GitHub secrets"
+            # Decode to temp file first to validate before overwriting
+            if echo "${{ secrets.PRODUCTION_ENV }}" | base64 -d > .env.production.tmp 2>/dev/null && [ -s .env.production.tmp ]; then
+              mv .env.production.tmp .env.production
+              echo "✓ Environment variables updated from GitHub secrets"
+            else
+              rm -f .env.production.tmp
+              echo "✗ ERROR: Failed to decode PRODUCTION_ENV secret (invalid base64)"
+              echo "Falling back to existing .env.production file..."
+              # Restore from backup if it exists
+              if [ -f .env.production.backup ]; then
+                cp .env.production.backup .env.production
+                echo "✓ Restored .env.production from backup"
+              elif [ -f ~/.env.production ]; then
+                cp ~/.env.production .env.production
+                echo "✓ Copied .env.production from home directory"
+              else
+                echo "✗ ERROR: No .env.production found (no backup, no ~/.env.production)"
+                exit 1
+              fi
+            fi
           else
             echo "⚠ PRODUCTION_ENV secret not set - using existing .env.production file"
             # Restore from backup if it exists
@@ -305,16 +357,28 @@ jobs:
           # Login to GitHub Container Registry and persist credentials
           # Using GH_PAT (Personal Access Token) for better persistence
           # This stores credentials in ~/.docker/config.json for future use (including manual docker-compose commands)
-          echo "$GH_PAT" | docker login ghcr.io -u "$GH_ACTOR" --password-stdin
-          
-          # Verify login was successful
-          if [ $? -eq 0 ]; then
+          echo "Authenticating with GitHub Container Registry..."
+
+          # Add timeout to prevent hanging
+          if timeout 60 bash -c "echo '$GH_PAT' | docker login ghcr.io -u '$GH_ACTOR' --password-stdin"; then
             echo "✓ Successfully authenticated with GitHub Container Registry"
             echo "✓ Credentials saved to ~/.docker/config.json (persistent)"
             echo "✓ Manual 'docker-compose up' commands will now work without re-authentication"
           else
-            echo "✗ Failed to authenticate with GitHub Container Registry"
-            exit 1
+            LOGIN_EXIT_CODE=$?
+            if [ $LOGIN_EXIT_CODE -eq 124 ]; then
+              echo "✗ Docker login timed out after 60 seconds"
+            else
+              echo "✗ Failed to authenticate with GitHub Container Registry (exit code: $LOGIN_EXIT_CODE)"
+            fi
+
+            # Try to check if we're already logged in
+            if docker pull ghcr.io/haywhyoh/mecabal-api-gateway:latest >/dev/null 2>&1; then
+              echo "⚠ Login failed but credentials appear to be cached - continuing..."
+            else
+              echo "✗ Cannot proceed without valid credentials"
+              exit 1
+            fi
           fi
 
           # Stop existing containers gracefully
@@ -328,7 +392,20 @@ jobs:
 
           # Pull pre-built images from GitHub Container Registry (5-10x faster than building!)
           echo "Pulling latest Docker images from registry..."
-          docker-compose -f docker-compose.production.yml pull
+
+          # Add timeout to prevent hanging on slow connections (10 minutes max)
+          if timeout 600 docker-compose -f docker-compose.production.yml pull; then
+            echo "✓ Successfully pulled all Docker images"
+          else
+            PULL_EXIT_CODE=$?
+            if [ $PULL_EXIT_CODE -eq 124 ]; then
+              echo "✗ Docker pull timed out after 10 minutes"
+              echo "This may indicate network issues or missing images"
+            else
+              echo "⚠ Docker pull failed (exit code: $PULL_EXIT_CODE)"
+            fi
+            echo "Continuing with deployment using cached images..."
+          fi
 
           # Start infrastructure services
           echo "Starting infrastructure services..."
