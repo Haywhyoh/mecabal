@@ -1,3 +1,6 @@
+import * as crypto from 'crypto';
+(global as any).crypto = crypto;
+
 import { NestFactory } from '@nestjs/core';
 import { UserServiceModule } from '../apps/user-service/src/user-service.module';
 import { SeederService } from '../libs/database/src/seeds/seeder.service';
