@@ -52,7 +52,21 @@ docker system prune -af --volumes 2>/dev/null || true
 echo -e "${GREEN}✓ Docker cleanup completed${NC}"
 echo ""
 
-echo -e "${YELLOW}Step 4: Backing up old compose file and using optimized version...${NC}"
+echo -e "${YELLOW}Step 4: Creating shared network...${NC}"
+# Create shared network if it doesn't exist
+if docker network inspect mecabal_network >/dev/null 2>&1; then
+  echo "✓ Network 'mecabal_network' already exists"
+else
+  docker network create \
+    --driver bridge \
+    --subnet 172.28.0.0/16 \
+    --gateway 172.28.0.1 \
+    mecabal_network
+  echo "✓ Network 'mecabal_network' created"
+fi
+echo ""
+
+echo -e "${YELLOW}Step 5: Backing up old compose file and using optimized version...${NC}"
 # Rename old compose file
 mv docker-compose.production.yml docker-compose.production.yml.old
 
@@ -61,7 +75,7 @@ cp docker-compose.optimized.yml docker-compose.production.yml
 echo -e "${GREEN}✓ Switched to optimized Docker Compose configuration${NC}"
 echo ""
 
-echo -e "${YELLOW}Step 5: Building optimized backend image...${NC}"
+echo -e "${YELLOW}Step 6: Building optimized backend image...${NC}"
 echo "This may take 5-10 minutes on first build..."
 docker build -f Dockerfile.optimized -t mecabal-backend:latest . || {
   echo -e "${RED}✗ Build failed! Restoring old configuration...${NC}"
@@ -71,27 +85,27 @@ docker build -f Dockerfile.optimized -t mecabal-backend:latest . || {
 echo -e "${GREEN}✓ Optimized image built successfully${NC}"
 echo ""
 
-echo -e "${YELLOW}Step 6: Starting infrastructure services...${NC}"
+echo -e "${YELLOW}Step 7: Starting infrastructure services...${NC}"
 docker-compose -f docker-compose.production.yml up -d postgres redis minio
 echo "Waiting for services to be healthy (30s)..."
 sleep 30
 echo -e "${GREEN}✓ Infrastructure services started${NC}"
 echo ""
 
-echo -e "${YELLOW}Step 7: Running database migrations...${NC}"
+echo -e "${YELLOW}Step 8: Running database migrations...${NC}"
 docker-compose -f docker-compose.production.yml run --rm -e DATABASE_SYNCHRONIZE=false backend npm run migration:run || {
   echo -e "${YELLOW}⚠ Migrations failed or not needed${NC}"
 }
 echo ""
 
-echo -e "${YELLOW}Step 8: Starting all services...${NC}"
+echo -e "${YELLOW}Step 9: Starting all services...${NC}"
 docker-compose -f docker-compose.production.yml up -d
 echo "Waiting for all services to start (60s)..."
 sleep 60
 echo -e "${GREEN}✓ All services started${NC}"
 echo ""
 
-echo -e "${YELLOW}Step 9: Running health checks...${NC}"
+echo -e "${YELLOW}Step 10: Running health checks...${NC}"
 HEALTH_FAILED=0
 
 for PORT in 3000 3001 3002 3003 3004 3005 3006 3007 3008 3009; do
@@ -104,7 +118,7 @@ for PORT in 3000 3001 3002 3003 3004 3005 3006 3007 3008 3009; do
 done
 
 echo ""
-echo -e "${YELLOW}Step 10: Checking container status...${NC}"
+echo -e "${YELLOW}Step 11: Checking container status...${NC}"
 docker-compose -f docker-compose.production.yml ps
 echo ""
 

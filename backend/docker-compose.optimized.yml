@@ -165,5 +165,5 @@ volumes:
 
 networks:
   mecabal-network:
+    external: true
     name: mecabal_network
-    driver: bridge
