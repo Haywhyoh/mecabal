@@ -17,10 +17,16 @@ services:
     networks:
       - mecabal-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USERNAME:-mecabal_prod}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USERNAME:-mecabal}"]
       interval: 10s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
 
   # Redis
   redis:
@@ -29,9 +35,9 @@ services:
     restart: always
     command: >
       sh -c "if [ -n \"${REDIS_PASSWORD}\" ]; then
-        redis-server --appendonly yes --requirepass \"${REDIS_PASSWORD}\";
+        redis-server --appendonly yes --requirepass \"${REDIS_PASSWORD}\" --maxmemory 256mb --maxmemory-policy allkeys-lru;
       else
-        redis-server --appendonly yes;
+        redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru;
       fi"
     volumes:
       - redis_data:/data
@@ -44,29 +50,14 @@ services:
       interval: 10s
       timeout: 3s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
 
-  # RabbitMQ
-  rabbitmq:
-    image: rabbitmq:3.12-management-alpine
-    container_name: mecabal-rabbitmq
-    restart: always
-    environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-admin}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-admin123}
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    networks:
-      - mecabal-network
-    healthcheck:
-      test: ["CMD", "rabbitmqctl", "status"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # MinIO (S3-compatible object storage)
+  # MinIO (S3-compatible object storage) - Optional
   minio:
     image: minio/minio:latest
     container_name: mecabal-minio
@@ -84,26 +75,42 @@ services:
       - mecabal-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
 
-  # API Gateway
-  api-gateway:
-    image: ghcr.io/haywhyoh/mecabal-api-gateway:latest
-    container_name: mecabal-api-gateway
+  # All Backend Services (Combined in one container using PM2)
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.optimized
+    image: mecabal-backend:latest
+    container_name: mecabal-backend
     restart: unless-stopped
     env_file:
       - .env.production
     environment:
       - NODE_ENV=production
-      - PORT=3000
       - DATABASE_HOST=postgres
       - REDIS_HOST=redis
       - DATABASE_SYNCHRONIZE=${DATABASE_SYNCHRONIZE:-false}
-    command: ["node", "dist/apps/api-gateway/main.js"]
     ports:
-      - "3000:3000"
+      - "3000:3000"  # API Gateway
+      - "3001:3001"  # Auth Service
+      - "3002:3002"  # User Service
+      - "3003:3003"  # Social Service
+      - "3004:3004"  # Messaging Service
+      - "3005:3005"  # Marketplace Service
+      - "3006:3006"  # Events Service
+      - "3007:3007"  # Notification Service
+      - "3008:3008"  # Location Service
+      - "3009:3009"  # Business Service
     depends_on:
       postgres:
         condition: service_healthy
@@ -116,274 +123,13 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-
-  # Auth Service
-  auth-service:
-    image: ghcr.io/haywhyoh/mecabal-auth-service:latest
-    container_name: mecabal-auth-service
-    restart: unless-stopped
-    env_file:
-      - .env.production
-    environment:
-      - NODE_ENV=production
-      - PORT=3001
-      - DATABASE_HOST=postgres
-      - REDIS_HOST=redis
-      - DATABASE_SYNCHRONIZE=${DATABASE_SYNCHRONIZE:-false}
-    command: ["node", "dist/apps/auth-service/main.js"]
-    ports:
-      - "3001:3001"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - mecabal-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # User Service
-  user-service:
-    image: ghcr.io/haywhyoh/mecabal-user-service:latest
-    container_name: mecabal-user-service
-    restart: unless-stopped
-    env_file:
-      - .env.production
-    environment:
-      - NODE_ENV=production
-      - PORT=3002
-      - DATABASE_HOST=postgres
-      - REDIS_HOST=redis
-      - DATABASE_SYNCHRONIZE=${DATABASE_SYNCHRONIZE:-false}
-    command: ["node", "dist/apps/user-service/main.js"]
-    ports:
-      - "3002:3002"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - mecabal-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Social Service
-  social-service:
-    image: ghcr.io/haywhyoh/mecabal-social-service:latest
-    container_name: mecabal-social-service
-    restart: unless-stopped
-    env_file:
-      - .env.production
-    environment:
-      - NODE_ENV=production
-      - PORT=3003
-      - DATABASE_HOST=postgres
-      - REDIS_HOST=redis
-      - DATABASE_SYNCHRONIZE=${DATABASE_SYNCHRONIZE:-false}
-    command: ["node", "dist/apps/social-service/main.js"]
-    ports:
-      - "3003:3003"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - mecabal-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3003/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Messaging Service
-  messaging-service:
-    image: ghcr.io/haywhyoh/mecabal-messaging-service:latest
-    container_name: mecabal-messaging-service
-    restart: unless-stopped
-    env_file:
-      - .env.production
-    environment:
-      - NODE_ENV=production
-      - PORT=3004
-      - DATABASE_HOST=postgres
-      - REDIS_HOST=redis
-      - RABBITMQ_HOST=rabbitmq
-      - DATABASE_SYNCHRONIZE=${DATABASE_SYNCHRONIZE:-false}
-    command: ["node", "dist/apps/messaging-service/main.js"]
-    ports:
-      - "3004:3004"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    networks:
-      - mecabal-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3004/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Marketplace Service
-  marketplace-service:
-    image: ghcr.io/haywhyoh/mecabal-marketplace-service:latest
-    container_name: mecabal-marketplace-service
-    restart: unless-stopped
-    env_file:
-      - .env.production
-    environment:
-      - NODE_ENV=production
-      - PORT=3005
-      - DATABASE_HOST=postgres
-      - REDIS_HOST=redis
-      - DATABASE_SYNCHRONIZE=${DATABASE_SYNCHRONIZE:-false}
-    command: ["node", "dist/apps/marketplace-service/main.js"]
-    ports:
-      - "3005:3005"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - mecabal-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3005/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Events Service
-  events-service:
-    image: ghcr.io/haywhyoh/mecabal-events-service:latest
-    container_name: mecabal-events-service
-    restart: unless-stopped
-    env_file:
-      - .env.production
-    environment:
-      - NODE_ENV=production
-      - PORT=3006
-      - DATABASE_HOST=postgres
-      - REDIS_HOST=redis
-      - DATABASE_SYNCHRONIZE=${DATABASE_SYNCHRONIZE:-false}
-    command: ["node", "dist/apps/events-service/main.js"]
-    ports:
-      - "3006:3006"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - mecabal-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3006/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Notification Service
-  notification-service:
-    image: ghcr.io/haywhyoh/mecabal-notification-service:latest
-    container_name: mecabal-notification-service
-    restart: unless-stopped
-    env_file:
-      - .env.production
-    environment:
-      - NODE_ENV=production
-      - PORT=3007
-      - DATABASE_HOST=postgres
-      - REDIS_HOST=redis
-      - RABBITMQ_HOST=rabbitmq
-      - DATABASE_SYNCHRONIZE=${DATABASE_SYNCHRONIZE:-false}
-    command: ["node", "dist/apps/notification-service/main.js"]
-    ports:
-      - "3007:3007"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    networks:
-      - mecabal-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3007/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Location Service
-  location-service:
-    image: ghcr.io/haywhyoh/mecabal-location-service:latest
-    container_name: mecabal-location-service
-    restart: unless-stopped
-    env_file:
-      - .env.production
-    environment:
-      - NODE_ENV=production
-      - PORT=3008
-      - LOCATION_SERVICE_PORT=3008
-      - DATABASE_HOST=postgres
-      - REDIS_HOST=redis
-      - DATABASE_SYNCHRONIZE=false
-    command: ["node", "dist/apps/location-service/main.js"]
-    ports:
-      - "3008:3008"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - mecabal-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3008/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Business Service
-  business-service:
-    image: ghcr.io/haywhyoh/mecabal-business-service:latest
-    container_name: mecabal-business-service
-    restart: unless-stopped
-    env_file:
-      - .env.production
-    environment:
-      - NODE_ENV=production
-      - PORT=3009
-      - DATABASE_HOST=postgres
-      - REDIS_HOST=redis
-      - DATABASE_SYNCHRONIZE=${DATABASE_SYNCHRONIZE:-false}
-    command: ["node", "dist/apps/business-service/main.js"]
-    ports:
-      - "3009:3009"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - mecabal-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3009/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 3G
+        reservations:
+          memory: 1G
 
   # Nginx (Reverse Proxy)
   nginx:
@@ -393,70 +139,31 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
       - ./ssl:/etc/ssl/certs:ro
-      - ./ssl:/etc/letsencrypt:ro  # Add this for Certbot
+      - ./ssl:/etc/letsencrypt:ro
       - ./ssl:/var/www/certbot:ro
     ports:
       - "80:80"
       - "443:443"
     depends_on:
-      - api-gateway
-      - auth-service
-      - user-service
-      - social-service
-      - messaging-service
-      - marketplace-service
-      - events-service
-      - notification-service
-      - location-service
-      - business-service
+      - backend
     networks:
       - mecabal-network
-    # Note: web-app is in a separate docker-compose file but uses the same network
-    # Make sure web-app container is running and accessible via web-app:3015
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 64M
 
-    # Certbot (Let's Encrypt SSL Certificates)
-  certbot:
-    image: certbot/certbot:latest
-    container_name: mecabal-certbot
-    volumes:
-      - ./ssl:/etc/letsencrypt
-      - ./ssl:/var/www/certbot
-    command: certonly --webroot --webroot-path=/var/www/certbot --email your-email@example.com --agree-tos --no-eff-email -d api.mecabal.com --dry-run
-    depends_on:
-      - nginx
-    networks:
-      - mecabal-network
-
-  # pgAdmin (Database Management Tool)
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: mecabal-pgadmin
-    restart: unless-stopped
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@mecabal.com
-      PGADMIN_DEFAULT_PASSWORD: admin123
-      PGADMIN_CONFIG_SERVER_MODE: 'False'
-      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
-    ports:
-      - "5050:80"
-    depends_on:
-      - postgres
-    networks:
-      - mecabal-network
 volumes:
   postgres_data:
     driver: local
   redis_data:
     driver: local
-  rabbitmq_data:
-    driver: local
   minio_data:
-    driver: local
-  pgadmin_data:
     driver: local
 
 networks:
   mecabal-network:
-    driver: bridge
+    external: true
+    name: mecabal_network
