@@ -1,33 +1,4 @@
 services:
-  # Database
-  postgres:
-    image: postgis/postgis:15-3.3
-    container_name: mecabal-postgres
-    restart: always
-    environment:
-      POSTGRES_DB: ${DATABASE_NAME}
-      POSTGRES_USER: ${DATABASE_USERNAME}
-      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
-      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./sql/init:/docker-entrypoint-initdb.d
-    ports:
-      - "5432:5432"
-    networks:
-      - mecabal-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USERNAME:-mecabal}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    deploy:
-      resources:
-        limits:
-          memory: 2G
-        reservations:
-          memory: 512M
-
   # Redis
   redis:
     image: redis:7-alpine
@@ -97,7 +68,7 @@ services:
       - .env.production
     environment:
       - NODE_ENV=production
-      - DATABASE_HOST=postgres
+      - DATABASE_HOST=localhost
       - REDIS_HOST=redis
       - DATABASE_SYNCHRONIZE=${DATABASE_SYNCHRONIZE:-false}
     ports:
@@ -112,12 +83,12 @@ services:
       - "3008:3008"  # Location Service
       - "3009:3009"  # Business Service
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
     networks:
       - mecabal-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 30s
@@ -156,8 +127,6 @@ services:
           memory: 64M
 
 volumes:
-  postgres_data:
-    driver: local
   redis_data:
     driver: local
   minio_data:
