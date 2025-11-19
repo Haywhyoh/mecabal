@@ -69,7 +69,7 @@ services:
     environment:
       - NODE_ENV=production
       - DATABASE_HOST=host.docker.internal
-      - REDIS_HOST=redis
+      - REDIS_HOST=host.docker.internal
       - DATABASE_SYNCHRONIZE=${DATABASE_SYNCHRONIZE:-false}
     ports:
       - "3000:3000"  # API Gateway
