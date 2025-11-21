@@ -381,9 +381,8 @@ http {
         }
         
         # Location Service
-        # IMPORTANT: Use exact match (=) to prevent catch-all from matching
         # Routes requiring authentication go through API Gateway
-        location = /location/neighborhoods/create {
+        location /location/neighborhoods/create {
             limit_req zone=api burst=20 nodelay;
             set $api_gateway_backend "http://mecabal-backend:3000";
             proxy_pass $api_gateway_backend;
