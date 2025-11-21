@@ -4,6 +4,8 @@ import {
   IsString,
   MinLength,
   Matches,
+  IsUUID,
+  IsNotEmpty,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
@@ -51,6 +53,56 @@ export class MobileRegisterDto {
   @IsOptional()
   @IsString()
   state_of_origin?: string;
+
+  @ApiProperty({
+    description: 'Gated estate ID (required)',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @IsNotEmpty({ message: 'Estate selection is required' })
+  @IsUUID('4', { message: 'Estate ID must be a valid UUID' })
+  estate_id: string;
+
+  @ApiProperty({
+    description: 'State of origin ID',
+    example: 'lagos-state-id',
+  })
+  @IsNotEmpty({ message: 'State of origin is required' })
+  @IsString()
+  state_of_origin_id: string;
+
+  @ApiProperty({
+    description: 'Cultural background ID',
+    example: 'yoruba-cultural-id',
+  })
+  @IsNotEmpty({ message: 'Cultural background is required' })
+  @IsString()
+  cultural_background_id: string;
+
+  @ApiProperty({
+    description: 'Professional category ID',
+    example: 'tech-category-id',
+  })
+  @IsNotEmpty({ message: 'Professional category is required' })
+  @IsString()
+  professional_category_id: string;
+
+  @ApiProperty({
+    description: 'Professional title within the category',
+    example: 'Senior Software Engineer',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  professional_title?: string;
+
+  @ApiProperty({
+    description: 'Occupation or job title',
+    example: 'Software Engineer',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  occupation?: string;
 
   @ApiProperty({
     description: 'Preferred language',

@@ -21,7 +21,7 @@ import {
 } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { ApiGatewayService } from './api-gateway.service';
-import { JwtAuthGuard } from '@app/auth';
+import { JwtAuthGuard, Public } from '@app/auth';
 import FormData from 'form-data';
 
 @ApiTags('Gateway')
@@ -918,6 +918,41 @@ export class ApiGatewayController {
   @ApiBearerAuth()
   async proxyUserDashboardWildcard(@Req() req: Request, @Res() res: Response) {
     return this.proxyUserRequest(req, res);
+  }
+
+  // Cultural profile endpoints - make accessible without /users prefix for registration flow
+  @All('cultural-profile/*path')
+  @Public() // Make public for registration flow
+  @ApiOperation({ summary: 'Proxy cultural profile requests' })
+  async proxyCulturalProfileRequest(@Req() req: Request, @Res() res: Response) {
+    try {
+      // Rewrite path to include /cultural-profile prefix for user service
+      const originalUrl = req.url;
+      const result: unknown =
+        await this.apiGatewayService.proxyToUserService(
+          originalUrl,
+          req.method,
+          req.body,
+          req.headers as Record<string, string | string[] | undefined>,
+          req.user,
+        );
+
+      let statusCode = HttpStatus.OK;
+      if (req.method === 'POST') {
+        statusCode = HttpStatus.CREATED;
+      } else if (req.method === 'DELETE') {
+        statusCode = HttpStatus.NO_CONTENT;
+      }
+
+      res.status(statusCode).json(result);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error proxying cultural profile request:', errorMessage);
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: errorMessage });
+    }
   }
 
   @All('users/me/*path')

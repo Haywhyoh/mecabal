@@ -10,6 +10,7 @@ import {
   HttpCode,
   Req,
   Res,
+  Query,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -53,6 +54,7 @@ import {
   UpdateOnboardingStepDto,
 } from '../dto/auth.dto';
 import { MobileRegisterDto } from '../dto/mobile-register.dto';
+import { RegisterUserDto } from '../dto/register-user.dto';
 import { 
   GoogleAuthMobileDto, 
   GoogleAuthResponseDto, 
@@ -87,7 +89,21 @@ export class AuthController {
     description: 'User already exists with this email or phone number',
   })
   async register(@Body() registerDto: RegisterDto) {
-    return this.authService.registerUser(registerDto);
+    // Convert RegisterDto to RegisterUserDto format
+    const registerUserDto: RegisterUserDto = {
+      email: registerDto.email,
+      phoneNumber: registerDto.phoneNumber,
+      firstName: registerDto.firstName,
+      lastName: registerDto.lastName,
+      password: registerDto.password,
+      estateId: registerDto.estateId,
+      stateOfOriginId: registerDto.stateOfOriginId,
+      culturalBackgroundId: registerDto.culturalBackgroundId,
+      professionalCategoryId: registerDto.professionalCategoryId,
+      professionalTitle: registerDto.professionalTitle,
+      occupation: registerDto.occupation,
+    };
+    return this.authService.registerUser(registerUserDto);
   }
 
   @Post('register-mobile')
@@ -106,13 +122,24 @@ export class AuthController {
     // Convert mobile DTO to internal format
     const internalDto = {
       email: registerDto.email,
+      phone_number: registerDto.phone_number,
       phoneNumber: registerDto.phone_number,
+      first_name: registerDto.first_name,
       firstName: registerDto.first_name,
+      last_name: registerDto.last_name,
       lastName: registerDto.last_name,
-      password: 'temp_password_' + Date.now(), // Temporary password for OTP-based registration
-      state: registerDto.state_of_origin,
-      city: undefined,
-      estate: undefined,
+      estate_id: registerDto.estate_id,
+      estateId: registerDto.estate_id,
+      state_of_origin_id: registerDto.state_of_origin_id,
+      stateOfOriginId: registerDto.state_of_origin_id,
+      cultural_background_id: registerDto.cultural_background_id,
+      culturalBackgroundId: registerDto.cultural_background_id,
+      professional_category_id: registerDto.professional_category_id,
+      professionalCategoryId: registerDto.professional_category_id,
+      professional_title: registerDto.professional_title,
+      professionalTitle: registerDto.professional_title,
+      occupation: registerDto.occupation,
+      preferred_language: registerDto.preferred_language || 'en',
       preferredLanguage: registerDto.preferred_language || 'en',
     };
 
@@ -943,13 +970,23 @@ export class AuthController {
 
   @Get('location/estates')
   @Public()
-  @ApiOperation({ summary: 'Search Nigerian estates by state and city' })
+  @ApiOperation({ summary: 'Search gated estates (type: ESTATE, isGated: true)' })
   @ApiResponse({
     status: 200,
-    description: 'Estates retrieved successfully',
+    description: 'Gated estates retrieved successfully',
   })
-  searchEstates() {
-    throw new Error('Method not implemented yet');
+  async searchEstates(
+    @Query('query') query?: string,
+    @Query('stateId') stateId?: string,
+    @Query('lgaId') lgaId?: string,
+    @Query('limit') limit?: number,
+  ) {
+    return this.authService.searchEstates({
+      query,
+      stateId,
+      lgaId,
+      limit: limit ? parseInt(limit.toString(), 10) : undefined,
+    });
   }
 
   @Get('location/states')

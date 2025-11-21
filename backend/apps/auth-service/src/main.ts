@@ -16,6 +16,7 @@ async function bootstrap() {
       // Local development
       'http://localhost:3000',
       'http://localhost:3001',
+      'http://localhost:3002', // Next.js frontend
       'http://localhost:8080',
       'http://localhost:8081', // Expo development server
       'http://localhost:19000', // Expo web

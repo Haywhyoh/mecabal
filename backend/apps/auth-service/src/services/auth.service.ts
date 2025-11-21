@@ -9,7 +9,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User } from '@app/database/entities/user.entity';
-import { UserLocation } from '@app/database/entities/user-location.entity';
+import { UserLocation, VerificationStatus } from '@app/database/entities/user-location.entity';
+import { Neighborhood, NeighborhoodType } from '@app/database/entities/neighborhood.entity';
+import { UserNeighborhood } from '@app/database/entities/user-neighborhood.entity';
+import { State } from '@app/database/entities/state.entity';
+import { CulturalBackground } from '@app/database/entities/cultural-background.entity';
+import { ProfessionalCategory } from '@app/database/entities/professional-category.entity';
 import { RegisterUserDto, LoginUserDto } from '../dto/register-user.dto';
 import { EmailOtpService } from './email-otp.service';
 import { PhoneOtpService } from './phone-otp.service';
@@ -26,6 +31,16 @@ export class AuthService {
     private userRepository: Repository<User>,
     @InjectRepository(UserLocation)
     private userLocationRepository: Repository<UserLocation>,
+    @InjectRepository(Neighborhood)
+    private neighborhoodRepository: Repository<Neighborhood>,
+    @InjectRepository(UserNeighborhood)
+    private userNeighborhoodRepository: Repository<UserNeighborhood>,
+    @InjectRepository(State)
+    private stateRepository: Repository<State>,
+    @InjectRepository(CulturalBackground)
+    private culturalBackgroundRepository: Repository<CulturalBackground>,
+    @InjectRepository(ProfessionalCategory)
+    private professionalCategoryRepository: Repository<ProfessionalCategory>,
     private emailOtpService: EmailOtpService,
     private phoneOtpService: PhoneOtpService,
     private tokenService: TokenService,
@@ -33,12 +48,46 @@ export class AuthService {
 
   async registerUserMobile(registerDto: any): Promise<AuthResponseDto> {
     try {
+      // Validate estate selection
+      const estateId = registerDto.estate_id || registerDto.estateId;
+      if (!estateId) {
+        return {
+          success: false,
+          error: 'Estate selection is required',
+        };
+      }
+
+      // Validate profile fields
+      const stateOfOriginId =
+        registerDto.state_of_origin_id || registerDto.stateOfOriginId;
+      const culturalBackgroundId =
+        registerDto.cultural_background_id || registerDto.culturalBackgroundId;
+      const professionalCategoryId =
+        registerDto.professional_category_id ||
+        registerDto.professionalCategoryId;
+
+      if (!stateOfOriginId || !culturalBackgroundId || !professionalCategoryId) {
+        return {
+          success: false,
+          error:
+            'State of origin, cultural background, and professional category are required',
+        };
+      }
+
+      // Validate estate and profile field references
+      await this.validateEstateSelection(estateId);
+      await this.validateProfileFields(
+        stateOfOriginId,
+        culturalBackgroundId,
+        professionalCategoryId,
+      );
+
       // Check if user already exists
       const existingUser = await this.userRepository.findOne({
         where: [
           { email: registerDto.email },
-          ...(registerDto.phoneNumber
-            ? [{ phoneNumber: registerDto.phoneNumber }]
+          ...(registerDto.phone_number || registerDto.phoneNumber
+            ? [{ phoneNumber: registerDto.phone_number || registerDto.phoneNumber }]
             : []),
         ],
       });
@@ -124,13 +173,28 @@ export class AuthService {
         );
 
         existingUser.phoneNumber =
-          registerDto.phoneNumber || existingUser.phoneNumber;
+          registerDto.phone_number ||
+          registerDto.phoneNumber ||
+          existingUser.phoneNumber;
         existingUser.firstName =
-          registerDto.firstName || existingUser.firstName;
-        existingUser.lastName = registerDto.lastName || existingUser.lastName;
-        existingUser.passwordHash = passwordHash;
-        // Location fields are handled via UserLocation; legacy fields removed
+          registerDto.first_name || registerDto.firstName || existingUser.firstName;
+        existingUser.lastName =
+          registerDto.last_name || registerDto.lastName || existingUser.lastName;
+        if (registerDto.password) {
+          existingUser.passwordHash = passwordHash;
+        }
+        // Save profile fields
+        existingUser.stateOfOriginId = stateOfOriginId;
+        existingUser.culturalBackgroundId = culturalBackgroundId;
+        existingUser.professionalCategoryId = professionalCategoryId;
+        existingUser.professionalTitle =
+          registerDto.professional_title ||
+          registerDto.professionalTitle ||
+          existingUser.professionalTitle;
+        existingUser.occupation =
+          registerDto.occupation || existingUser.occupation;
         existingUser.preferredLanguage =
+          registerDto.preferred_language ||
           registerDto.preferredLanguage ||
           existingUser.preferredLanguage ||
           'en';
@@ -138,6 +202,9 @@ export class AuthService {
         existingUser.isVerified = false; // Will be set to true after email verification
 
         savedUser = await this.userRepository.save(existingUser);
+
+        // Create estate relationships
+        await this.createEstateRelationships(savedUser.id, estateId);
       } else {
         // Create new user
         this.logger.log(`Creating new user with email: ${registerDto.email}`);
@@ -149,16 +216,29 @@ export class AuthService {
 
         const newUser = this.userRepository.create({
           email: registerDto.email,
-          phoneNumber: registerDto.phoneNumber,
-          firstName: registerDto.firstName,
-          lastName: registerDto.lastName,
-          passwordHash,
-          preferredLanguage: registerDto.preferredLanguage || 'en',
+          phoneNumber:
+            registerDto.phone_number || registerDto.phoneNumber || null,
+          firstName: registerDto.first_name || registerDto.firstName,
+          lastName: registerDto.last_name || registerDto.lastName,
+          passwordHash: registerDto.password ? passwordHash : undefined,
+          stateOfOriginId,
+          culturalBackgroundId,
+          professionalCategoryId,
+          professionalTitle:
+            registerDto.professional_title || registerDto.professionalTitle,
+          occupation: registerDto.occupation,
+          preferredLanguage:
+            registerDto.preferred_language ||
+            registerDto.preferredLanguage ||
+            'en',
           phoneVerified: false,
           isVerified: false,
         });
 
         savedUser = await this.userRepository.save(newUser);
+
+        // Create estate relationships
+        await this.createEstateRelationships(savedUser.id, estateId);
       }
 
       this.logger.log(`User registered successfully: ${savedUser.id}`);
@@ -211,15 +291,52 @@ export class AuthService {
         };
       }
 
+      // Handle BadRequestException (from validation)
+      if (error instanceof BadRequestException) {
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+
       return {
         success: false,
-        error: 'Registration failed. Please try again.',
+        error: error.message || 'Registration failed. Please try again.',
       };
     }
   }
 
   async registerUser(registerDto: RegisterUserDto): Promise<AuthResponseDto> {
     try {
+      // Validate estate selection
+      if (!registerDto.estateId) {
+        return {
+          success: false,
+          error: 'Estate selection is required',
+        };
+      }
+
+      // Validate profile fields
+      if (
+        !registerDto.stateOfOriginId ||
+        !registerDto.culturalBackgroundId ||
+        !registerDto.professionalCategoryId
+      ) {
+        return {
+          success: false,
+          error:
+            'State of origin, cultural background, and professional category are required',
+        };
+      }
+
+      // Validate estate and profile field references
+      await this.validateEstateSelection(registerDto.estateId);
+      await this.validateProfileFields(
+        registerDto.stateOfOriginId,
+        registerDto.culturalBackgroundId,
+        registerDto.professionalCategoryId,
+      );
+
       // Check if user already exists
       const existingUser = await this.userRepository.findOne({
         where: [
@@ -263,6 +380,11 @@ export class AuthService {
         firstName: registerDto.firstName,
         lastName: registerDto.lastName,
         passwordHash,
+        stateOfOriginId: registerDto.stateOfOriginId,
+        culturalBackgroundId: registerDto.culturalBackgroundId,
+        professionalCategoryId: registerDto.professionalCategoryId,
+        professionalTitle: registerDto.professionalTitle,
+        occupation: registerDto.occupation,
         preferredLanguage: registerDto.preferredLanguage || 'en',
         isVerified: false,
         phoneVerified: false,
@@ -271,6 +393,10 @@ export class AuthService {
       });
 
       const savedUser = await this.userRepository.save(user);
+      
+      // Create estate relationships
+      await this.createEstateRelationships(savedUser.id, registerDto.estateId);
+      
       this.logger.log(`User registered successfully: ${savedUser.id}`);
 
       return {
@@ -405,6 +531,17 @@ export class AuthService {
       phone_number?: string;
       state_of_origin?: string;
       preferred_language?: string;
+      estate_id?: string;
+      estateId?: string;
+      state_of_origin_id?: string;
+      stateOfOriginId?: string;
+      cultural_background_id?: string;
+      culturalBackgroundId?: string;
+      professional_category_id?: string;
+      professionalCategoryId?: string;
+      professional_title?: string;
+      professionalTitle?: string;
+      occupation?: string;
     },
     deviceInfo?: {
       deviceId?: string;
@@ -624,6 +761,29 @@ export class AuthService {
     otpId?: string,
   ): Promise<AuthResponseDto> {
     try {
+      // Extract estate and profile fields
+      const estateId = userMetadata?.estate_id || userMetadata?.estateId;
+      const stateOfOriginId =
+        userMetadata?.state_of_origin_id || userMetadata?.stateOfOriginId;
+      const culturalBackgroundId =
+        userMetadata?.cultural_background_id ||
+        userMetadata?.culturalBackgroundId;
+      const professionalCategoryId =
+        userMetadata?.professional_category_id ||
+        userMetadata?.professionalCategoryId;
+
+      // Validate estate and profile fields if provided
+      if (estateId) {
+        await this.validateEstateSelection(estateId);
+      }
+      if (stateOfOriginId && culturalBackgroundId && professionalCategoryId) {
+        await this.validateProfileFields(
+          stateOfOriginId,
+          culturalBackgroundId,
+          professionalCategoryId,
+        );
+      }
+
       // Find existing user by email
       const existingUser = await this.userRepository.findOne({
         where: { email },
@@ -648,7 +808,25 @@ export class AuthService {
           userMetadata?.last_name || existingUser.lastName;
         existingUser.phoneNumber =
           userMetadata?.phone_number || existingUser.phoneNumber;
-        // state_of_origin now tracked via cultural profile; legacy field removed
+        
+        // Update profile fields if provided
+        if (stateOfOriginId) {
+          existingUser.stateOfOriginId = stateOfOriginId;
+        }
+        if (culturalBackgroundId) {
+          existingUser.culturalBackgroundId = culturalBackgroundId;
+        }
+        if (professionalCategoryId) {
+          existingUser.professionalCategoryId = professionalCategoryId;
+        }
+        if (userMetadata?.professional_title || userMetadata?.professionalTitle) {
+          existingUser.professionalTitle =
+            userMetadata?.professional_title || userMetadata?.professionalTitle;
+        }
+        if (userMetadata?.occupation) {
+          existingUser.occupation = userMetadata.occupation;
+        }
+        
         existingUser.preferredLanguage =
           userMetadata?.preferred_language ||
           existingUser.preferredLanguage ||
@@ -666,6 +844,12 @@ export class AuthService {
         }
 
         user = await this.userRepository.save(existingUser);
+        
+        // Create estate relationships if estate ID provided
+        if (estateId) {
+          await this.createEstateRelationships(user.id, estateId);
+        }
+        
         this.logger.log(
           `Updated existing user ${user.id} after email verification, proceeding to phone verification`,
         );
@@ -687,12 +871,24 @@ export class AuthService {
           lastName: userMetadata?.last_name || '',
           phoneNumber: userMetadata?.phone_number || null,
           passwordHash,
+          stateOfOriginId: stateOfOriginId || undefined,
+          culturalBackgroundId: culturalBackgroundId || undefined,
+          professionalCategoryId: professionalCategoryId || undefined,
+          professionalTitle:
+            userMetadata?.professional_title || userMetadata?.professionalTitle,
+          occupation: userMetadata?.occupation,
           preferredLanguage: userMetadata?.preferred_language || 'en',
           phoneVerified: false,
           isVerified: false, // Will be set to true after phone verification + location setup
         });
 
         user = await this.userRepository.save(newUser);
+        
+        // Create estate relationships if estate ID provided
+        if (estateId) {
+          await this.createEstateRelationships(user.id, estateId);
+        }
+        
         this.logger.log(
           `New user created with ID: ${user.id}, proceeding to phone verification`,
         );
@@ -1113,64 +1309,29 @@ export class AuthService {
         };
       }
 
-      // Create UserLocation record if location data is provided
-      if (locationData.stateId && locationData.lgaId) {
-        this.logger.log(
-          `Creating UserLocation for user ${userId} with stateId: ${locationData.stateId}, lgaId: ${locationData.lgaId}, neighborhoodId: ${locationData.neighborhoodId}`,
-        );
-
-        // Unset any existing primary locations
-        await this.userLocationRepository.update(
-          { userId, isPrimary: true },
-          { isPrimary: false }
-        );
-
-        // Create coordinates object if latitude and longitude provided
-        let coordinates;
-        if (locationData.latitude && locationData.longitude) {
-          coordinates = {
-            type: 'Point',
-            coordinates: [locationData.longitude, locationData.latitude]
-          };
-        }
-
-        // Create new primary location
-        const userLocation = this.userLocationRepository.create({
-          userId,
-          stateId: locationData.stateId,
-          lgaId: locationData.lgaId,
-          neighborhoodId: locationData.neighborhoodId,
-          cityTown: locationData.cityTown,
-          address: locationData.address,
-          coordinates,
-          isPrimary: true,
-        });
-
-        try {
-          const savedLocation = await this.userLocationRepository.save(userLocation);
-
-          // Update user's primary location ID
-          user.primaryLocationId = savedLocation.id;
-
-          this.logger.log(
-            `📍 Created UserLocation for user ${userId}: ${locationData.cityTown || 'No city'}, ${locationData.stateId}`,
-          );
-        } catch (locationError: any) {
-          this.logger.error('Failed to save UserLocation:', {
-            error: locationError?.message,
-            code: locationError?.code,
-            constraint: locationError?.constraint,
-            detail: locationError?.detail,
-            stateId: locationData.stateId,
-            lgaId: locationData.lgaId,
-            neighborhoodId: locationData.neighborhoodId,
-          });
-          throw new Error(
-            `Failed to save location: ${locationError?.message || locationError?.detail || 'Unknown error'}. ` +
-            `Please verify that state ID "${locationData.stateId}" and LGA ID "${locationData.lgaId}" exist in the database.`
-          );
-        }
+      // Estate selection is required - neighborhoodId must be provided
+      if (!locationData.neighborhoodId) {
+        return {
+          success: false,
+          error: 'Estate selection is required. Please select a gated estate.',
+        };
       }
+
+      // Validate that the neighborhood is a gated estate
+      const estate = await this.validateEstateSelection(locationData.neighborhoodId);
+
+      // Create estate relationships using helper method
+      await this.createEstateRelationships(
+        userId,
+        locationData.neighborhoodId,
+        locationData.address,
+        locationData.latitude && locationData.longitude
+          ? {
+              latitude: locationData.latitude,
+              longitude: locationData.longitude,
+            }
+          : undefined,
+      );
 
       // Update phone number if provided
       if (locationData.phoneNumber) {
@@ -1566,6 +1727,207 @@ export class AuthService {
         success: false,
         error: 'Failed to unlink Google account',
       };
+    }
+  }
+
+  /**
+   * Search for gated estates
+   * Returns only estates with type: ESTATE and isGated: true
+   */
+  async searchEstates(filters: {
+    query?: string;
+    stateId?: string;
+    lgaId?: string;
+    limit?: number;
+  }): Promise<Neighborhood[]> {
+    try {
+      const query = this.neighborhoodRepository
+        .createQueryBuilder('neighborhood')
+        .leftJoinAndSelect('neighborhood.lga', 'lga')
+        .leftJoinAndSelect('lga.state', 'state')
+        .leftJoinAndSelect('neighborhood.ward', 'ward')
+        .where('neighborhood.type = :type', { type: NeighborhoodType.ESTATE })
+        .andWhere('neighborhood.isGated = :isGated', { isGated: true })
+        .orderBy('neighborhood.name', 'ASC');
+
+      if (filters.query && filters.query.trim()) {
+        query.andWhere('LOWER(neighborhood.name) LIKE LOWER(:query)', {
+          query: `%${filters.query.trim()}%`,
+        });
+      }
+
+      if (filters.stateId) {
+        query.andWhere('lga.stateId = :stateId', { stateId: filters.stateId });
+      }
+
+      if (filters.lgaId) {
+        query.andWhere('neighborhood.lgaId = :lgaId', { lgaId: filters.lgaId });
+      }
+
+      if (filters.limit && filters.limit > 0) {
+        query.limit(filters.limit);
+      } else {
+        query.limit(50); // Default limit
+      }
+
+      return query.getMany();
+    } catch (error) {
+      this.logger.error('Estate search error:', error);
+      throw new BadRequestException('Failed to search estates');
+    }
+  }
+
+  /**
+   * Validate estate selection
+   * Ensures estate exists, is type ESTATE, and is gated
+   */
+  async validateEstateSelection(estateId: string): Promise<Neighborhood> {
+    const estate = await this.neighborhoodRepository.findOne({
+      where: { id: estateId },
+      relations: ['lga', 'lga.state', 'ward'],
+    });
+
+    if (!estate) {
+      throw new BadRequestException(
+        `Estate with ID ${estateId} not found`,
+      );
+    }
+
+    if (estate.type !== NeighborhoodType.ESTATE) {
+      throw new BadRequestException(
+        `Selected location is not an estate. Found type: ${estate.type}`,
+      );
+    }
+
+    if (!estate.isGated) {
+      throw new BadRequestException(
+        `Selected estate "${estate.name}" is not a gated estate`,
+      );
+    }
+
+    return estate;
+  }
+
+  /**
+   * Create estate relationships for user
+   * Creates UserLocation and UserNeighborhood records
+   */
+  async createEstateRelationships(
+    userId: string,
+    estateId: string,
+    address?: string,
+    coordinates?: { latitude: number; longitude: number },
+  ): Promise<void> {
+    const estate = await this.validateEstateSelection(estateId);
+
+    // Unset any existing primary locations
+    await this.userLocationRepository.update(
+      { userId, isPrimary: true },
+      { isPrimary: false },
+    );
+
+    // Create coordinates object if provided
+    let coordinatesObj;
+    if (coordinates?.latitude && coordinates?.longitude) {
+      coordinatesObj = {
+        type: 'Point',
+        coordinates: [coordinates.longitude, coordinates.latitude],
+      };
+    }
+
+    // Create UserLocation record
+    const userLocation = this.userLocationRepository.create({
+      userId,
+      stateId: estate.lga.state.id,
+      lgaId: estate.lgaId,
+      wardId: estate.wardId,
+      neighborhoodId: estateId,
+      cityTown: estate.lga.name,
+      address,
+      coordinates: coordinatesObj,
+      isPrimary: true,
+      verificationStatus: estate.requiresVerification
+        ? VerificationStatus.PENDING
+        : VerificationStatus.VERIFIED,
+    });
+
+    const savedLocation = await this.userLocationRepository.save(userLocation) as UserLocation;
+
+    // Update user's primary location ID
+    await this.userRepository.update(userId, {
+      primaryLocationId: savedLocation.id,
+    });
+
+    // Check if UserNeighborhood relationship already exists
+    const existingRelation = await this.userNeighborhoodRepository.findOne({
+      where: { userId, neighborhoodId: estateId },
+    });
+
+    if (!existingRelation) {
+      // Unset any existing primary neighborhoods
+      await this.userNeighborhoodRepository.update(
+        { userId, isPrimary: true },
+        { isPrimary: false },
+      );
+
+      // Create UserNeighborhood relationship
+      const userNeighborhood = this.userNeighborhoodRepository.create({
+        userId,
+        neighborhoodId: estateId,
+        relationshipType: 'resident',
+        verificationMethod: estate.requiresVerification
+          ? 'manual'
+          : 'gps',
+        isPrimary: true,
+      });
+
+      await this.userNeighborhoodRepository.save(userNeighborhood);
+    } else {
+      // Update existing relationship to be primary
+      existingRelation.isPrimary = true;
+      existingRelation.relationshipType = 'resident';
+      await this.userNeighborhoodRepository.save(existingRelation);
+    }
+
+    this.logger.log(
+      `Created estate relationships for user ${userId} with estate ${estateId}`,
+    );
+  }
+
+  /**
+   * Validate profile field references exist
+   */
+  async validateProfileFields(
+    stateOfOriginId: string,
+    culturalBackgroundId: string,
+    professionalCategoryId: string,
+  ): Promise<void> {
+    const [state, culturalBackground, professionalCategory] = await Promise.all([
+      this.stateRepository.findOne({ where: { id: stateOfOriginId } }),
+      this.culturalBackgroundRepository.findOne({
+        where: { id: culturalBackgroundId },
+      }),
+      this.professionalCategoryRepository.findOne({
+        where: { id: professionalCategoryId },
+      }),
+    ]);
+
+    if (!state) {
+      throw new BadRequestException(
+        `State of origin with ID ${stateOfOriginId} not found`,
+      );
+    }
+
+    if (!culturalBackground) {
+      throw new BadRequestException(
+        `Cultural background with ID ${culturalBackgroundId} not found`,
+      );
+    }
+
+    if (!professionalCategory) {
+      throw new BadRequestException(
+        `Professional category with ID ${professionalCategoryId} not found`,
+      );
     }
   }
 }

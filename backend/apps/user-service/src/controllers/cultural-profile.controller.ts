@@ -19,7 +19,7 @@ import {
   ApiParam,
   ApiQuery,
 } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@app/auth';
+import { JwtAuthGuard, Public } from '@app/auth';
 import { CulturalProfileService } from '../services/cultural-profile.service';
 import {
   CreateCulturalProfileDto,
@@ -38,6 +38,7 @@ export class CulturalProfileController {
   constructor(private readonly culturalProfileService: CulturalProfileService) {}
 
   @Get('reference-data')
+  @Public() // Make public for registration flow
   @ApiOperation({ summary: 'Get all reference data for cultural profiles' })
   @ApiResponse({
     status: 200,

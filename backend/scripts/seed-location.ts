@@ -3,7 +3,8 @@ import { NestFactory } from '@nestjs/core';
 import { SeederModule } from '../libs/database/src/seeds/seeder.module';
 import { LocationSeeder } from '../libs/database/src/seeds/location.seed';
 
-// Polyfill for Node.js v18 compatibility
+// Polyfill for Node.js compatibility
+// Note: Node.js 22 has native crypto support, but this polyfill ensures compatibility
 if (typeof (global as any).crypto === 'undefined') {
   (global as any).crypto = crypto;
 }

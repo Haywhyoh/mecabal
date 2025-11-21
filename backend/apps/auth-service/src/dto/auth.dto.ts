@@ -6,6 +6,8 @@ import {
   Matches,
   IsEnum,
   IsBoolean,
+  IsUUID,
+  IsNotEmpty,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -57,6 +59,56 @@ export class RegisterDto {
       'Password must contain at least one lowercase letter, one uppercase letter, and one number',
   })
   password: string;
+
+  @ApiProperty({
+    description: 'Gated estate ID (required)',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @IsNotEmpty({ message: 'Estate selection is required' })
+  @IsUUID('4', { message: 'Estate ID must be a valid UUID' })
+  estateId: string;
+
+  @ApiProperty({
+    description: 'State of origin ID',
+    example: 'lagos-state-id',
+  })
+  @IsNotEmpty({ message: 'State of origin is required' })
+  @IsString()
+  stateOfOriginId: string;
+
+  @ApiProperty({
+    description: 'Cultural background ID',
+    example: 'yoruba-cultural-id',
+  })
+  @IsNotEmpty({ message: 'Cultural background is required' })
+  @IsString()
+  culturalBackgroundId: string;
+
+  @ApiProperty({
+    description: 'Professional category ID',
+    example: 'tech-category-id',
+  })
+  @IsNotEmpty({ message: 'Professional category is required' })
+  @IsString()
+  professionalCategoryId: string;
+
+  @ApiProperty({
+    description: 'Professional title within the category',
+    example: 'Senior Software Engineer',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  professionalTitle?: string;
+
+  @ApiProperty({
+    description: 'Occupation or job title',
+    example: 'Software Engineer',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  occupation?: string;
 }
 
 export class LoginDto {
