@@ -16,7 +16,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useLocation } from '../../contexts/LocationContext';
-import { HierarchicalLocationSelector, GPSLocationPicker } from '../../components/location';
+import { HierarchicalLocationSelector, GPSLocationPicker, StreetAutocompleteInput } from '../../components/location';
 import {
   State,
   LGA,
@@ -68,6 +68,7 @@ export default function LocationSetupScreenNew({ navigation, route }: LocationSe
   const [selectedMethod, setSelectedMethod] = useState<'gps' | 'manual' | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<LocationHierarchy | null>(null);
   const [cityTown, setCityTown] = useState('');
+  const [streetName, setStreetName] = useState('');
   const [showSkipWarning, setShowSkipWarning] = useState(false);
 
   // Progress calculation
@@ -165,16 +166,26 @@ export default function LocationSetupScreenNew({ navigation, route }: LocationSe
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
 
-      // Navigate to estate selection - we'll save the full location later in profile setup
+      // Navigate to estate selection with location data including street
+      const locationData = {
+        stateId: selectedState.id,
+        stateName: selectedState.name,
+        lgaId: selectedLGA.id,
+        lgaName: selectedLGA.name,
+        cityTown: cityTown,
+        street: streetName,
+        coordinates: currentCoordinates || undefined,
+      };
+
       if (isSignup) {
-        // During registration, go to estate selection
-        navigation.navigate('EstateSelection');
+        // During registration, go to estate selection with location data
+        navigation.navigate('EstateSelection', { locationData });
       } else if (onSetupComplete) {
         // If there's a completion callback, use it
         onSetupComplete();
       } else {
-        // Default to estate selection
-        navigation.navigate('EstateSelection');
+        // Default to estate selection with location data
+        navigation.navigate('EstateSelection', { locationData });
       }
     } catch (error) {
       console.error('Error navigating:', error);
@@ -323,12 +334,26 @@ export default function LocationSetupScreenNew({ navigation, route }: LocationSe
 
       {(selectedState && selectedLGA) && (
         <View style={styles.locationCard}>
+          {streetName && (
+            <Text style={styles.locationStreet}>{streetName}</Text>
+          )}
           <Text style={styles.locationName}>{selectedLGA.name}</Text>
           <Text style={styles.locationDetails}>
             {selectedState.name}
           </Text>
         </View>
       )}
+
+      {/* Street Name Input */}
+      <View style={styles.streetInputContainer}>
+        <StreetAutocompleteInput
+          value={streetName}
+          onChangeText={setStreetName}
+          placeholder="Enter street name (optional)"
+          label="Street Name"
+          coordinates={currentCoordinates || undefined}
+        />
+      </View>
 
       <TouchableOpacity
         style={styles.primaryButton}
@@ -587,5 +612,14 @@ const styles = StyleSheet.create({
     color: '#FF3B30',
     marginLeft: 8,
     fontWeight: '500',
+  },
+  streetInputContainer: {
+    marginBottom: 24,
+  },
+  locationStreet: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 4,
   },
 });

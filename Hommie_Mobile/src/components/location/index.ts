@@ -5,6 +5,7 @@ export { default as HierarchicalLocationSelector } from './HierarchicalLocationS
 export { default as GPSLocationPicker } from './GPSLocationPicker';
 export { default as NeighborhoodCard } from './NeighborhoodCard';
 export { default as EstateSearchInput } from './EstateSearchInput';
+export { default as StreetAutocompleteInput } from './StreetAutocompleteInput';
 
 export type { 
   HierarchicalLocationSelectorProps,

@@ -45,30 +45,37 @@ export class CategoriesService {
   async getCategories(
     filterDto: CategoryFilterDto,
   ): Promise<CategoryResponseDto[]> {
-    const queryBuilder = this.createCategoriesQueryBuilder();
+    try {
+      // Use simple query builder without GROUP BY since post count is calculated separately
+      const queryBuilder = this.categoryRepository.createQueryBuilder('category');
 
-    // Apply filters
-    if (filterDto.isActive !== undefined) {
-      queryBuilder.andWhere('category.isActive = :isActive', {
-        isActive: filterDto.isActive,
-      });
-    }
+      // Apply filters
+      if (filterDto.isActive !== undefined) {
+        queryBuilder.andWhere('category.isActive = :isActive', {
+          isActive: filterDto.isActive,
+        });
+      }
 
-    if (filterDto.search) {
-      queryBuilder.andWhere(
-        '(category.name ILIKE :search OR category.description ILIKE :search)',
-        { search: `%${filterDto.search}%` },
+      if (filterDto.search) {
+        queryBuilder.andWhere(
+          '(category.name ILIKE :search OR category.description ILIKE :search)',
+          { search: `%${filterDto.search}%` },
+        );
+      }
+
+      // Order by name
+      queryBuilder.orderBy('category.name', 'ASC');
+
+      const categories = await queryBuilder.getMany();
+
+      // Format categories with post counts
+      return Promise.all(
+        categories.map((category) => this.formatCategoryResponse(category)),
       );
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      throw error;
     }
-
-    // Order by name
-    queryBuilder.orderBy('category.name', 'ASC');
-
-    const categories = await queryBuilder.getMany();
-
-    return Promise.all(
-      categories.map((category) => this.formatCategoryResponse(category)),
-    );
   }
 
   async getCategoryById(id: number): Promise<CategoryResponseDto> {
@@ -220,13 +227,8 @@ export class CategoriesService {
     }
   }
 
-  private createCategoriesQueryBuilder(): SelectQueryBuilder<PostCategory> {
-    return this.categoryRepository
-      .createQueryBuilder('category')
-      .leftJoin('category.posts', 'posts')
-      .addSelect('COUNT(posts.id)', 'postCount')
-      .groupBy('category.id');
-  }
+  // Removed createCategoriesQueryBuilder - no longer needed since we calculate post count separately
+  // This method was causing issues with GROUP BY not selecting all category fields properly
 
   private async formatCategoryResponse(
     category: PostCategory,

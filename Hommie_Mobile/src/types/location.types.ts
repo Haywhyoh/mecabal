@@ -77,6 +77,7 @@ export interface UserLocation {
   neighborhoodId: string;
   cityTown?: string;
   address?: string;
+  street?: string;
   coordinates: {
     latitude: number;
     longitude: number;

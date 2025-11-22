@@ -274,9 +274,14 @@ export class PostsService {
       .leftJoinAndSelect('post.reactions', 'reactions')
       .leftJoinAndSelect('post.comments', 'comments')
       .where('post.neighborhoodId = :neighborhoodId', { neighborhoodId })
-      .andWhere('post.isApproved = :isApproved', { isApproved: true })
-      .andWhere('post.moderationStatus = :moderationStatus', {
-        moderationStatus: 'approved',
+      // Relaxed approval requirements: show approved posts OR pending posts (not rejected)
+      // This allows users to see posts that are pending moderation
+      .andWhere(
+        '(post.isApproved = :isApproved OR post.moderationStatus = :pendingStatus)',
+        { isApproved: true, pendingStatus: 'pending' }
+      )
+      .andWhere('post.moderationStatus != :rejectedStatus', {
+        rejectedStatus: 'rejected',
       });
   }
 
