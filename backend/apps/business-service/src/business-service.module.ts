@@ -39,8 +39,10 @@ import {
     }),
     DatabaseModule,
     AuthModule,
-    BusinessProfileModule,
+    // Import BusinessCategoryModule before BusinessProfileModule to ensure
+    // /categories routes are registered before the catch-all :id route
     BusinessCategoryModule,
+    BusinessProfileModule,
     BusinessServicesModule,
     BusinessLicenseModule,
     BusinessSearchModule,
