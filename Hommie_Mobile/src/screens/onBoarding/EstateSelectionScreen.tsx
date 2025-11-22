@@ -27,6 +27,7 @@ interface EstateSelectionScreenProps {
 
 export default function EstateSelectionScreen({ navigation, route }: EstateSelectionScreenProps) {
   const { selectedState, selectedLGA } = useLocation();
+  const locationData = route.params?.locationData; // Get location data from previous screen
   const [searchQuery, setSearchQuery] = useState('');
   const [estates, setEstates] = useState<Neighborhood[]>([]);
   const [selectedEstate, setSelectedEstate] = useState<Neighborhood | null>(null);
@@ -109,10 +110,11 @@ export default function EstateSelectionScreen({ navigation, route }: EstateSelec
       return;
     }
 
-    // Navigate to profile setup with estate ID
+    // Navigate to profile setup with estate ID and location data (including street)
     navigation.navigate('ProfileSetup', {
       estateId: selectedEstate.id,
       estateName: selectedEstate.name,
+      locationData: locationData, // Pass location data including street
     });
   };
 

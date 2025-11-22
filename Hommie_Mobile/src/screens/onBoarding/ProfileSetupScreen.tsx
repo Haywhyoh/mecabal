@@ -44,7 +44,7 @@ interface ProfessionalCategory {
 export default function ProfileSetupScreen({ navigation, route }: ProfileSetupScreenProps) {
   const { selectedState, selectedLGA, currentCoordinates } = useLocation();
   const { setUser } = useAuth();
-  const { estateId, estateName } = route.params || {};
+  const { estateId, estateName, locationData } = route.params || {};
 
   const [formData, setFormData] = useState({
     stateOfOriginId: '',
@@ -137,14 +137,25 @@ export default function ProfileSetupScreen({ navigation, route }: ProfileSetupSc
 
     try {
       // Complete registration with all data
+      // Use locationData from route params if available, otherwise use context
+      const finalStateId = locationData?.stateId || selectedState.id;
+      const finalLgaId = locationData?.lgaId || selectedLGA.id;
+      const finalCityTown = locationData?.cityTown;
+      const finalStreet = locationData?.street;
+      const finalCoordinates = locationData?.coordinates || currentCoordinates;
+
+      // Build address string from street if available
+      const addressString = finalStreet ? finalStreet : undefined;
+
       const response = await MeCabalAuth.setupLocation({
-        stateId: selectedState.id,
-        lgaId: selectedLGA.id,
+        stateId: finalStateId,
+        lgaId: finalLgaId,
         neighborhoodId: estateId, // estateId is the neighborhoodId for the estate
-        cityTown: undefined,
-        address: undefined,
-        latitude: currentCoordinates?.latitude,
-        longitude: currentCoordinates?.longitude,
+        cityTown: finalCityTown,
+        address: addressString,
+        street: finalStreet,
+        latitude: finalCoordinates?.latitude,
+        longitude: finalCoordinates?.longitude,
         completeRegistration: true,
         stateOfOriginId: formData.stateOfOriginId,
         culturalBackgroundId: formData.culturalBackgroundId,

@@ -611,6 +611,7 @@ export class MeCabalAuth {
     neighborhoodId?: string;
     cityTown?: string;
     address?: string;
+    street?: string;
     latitude?: number;
     longitude?: number;
     completeRegistration?: boolean;
