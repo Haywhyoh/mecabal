@@ -287,7 +287,9 @@ export class UserProfileService {
     );
 
     // Filter out null values and return
-    return estates.filter((estate) => estate !== null) as UserEstateDto[];
+    return estates.filter(
+      (estate): estate is UserEstateDto => estate !== null,
+    );
   }
 
   /**
