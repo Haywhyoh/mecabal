@@ -23,6 +23,8 @@ import LocationSetupScreen from './src/screens/onBoarding/LocationSetupScreen';
 import LocationSetupScreenNew from './src/screens/onBoarding/LocationSetupScreenNew';
 import NeighborhoodRecommendationScreen from './src/screens/onBoarding/NeighborhoodRecommendationScreen';
 import EstateVerificationScreen from './src/screens/onBoarding/EstateVerificationScreen';
+import EstateSelectionScreen from './src/screens/onBoarding/EstateSelectionScreen';
+import ProfileSetupScreen from './src/screens/onBoarding/ProfileSetupScreen';
 import EmailRegistrationScreen from './src/screens/onBoarding/EmailRegistrationScreen';
 import EmailVerificationScreen from './src/screens/onBoarding/EmailVerificationScreen';
 import EmailLoginScreen from './src/screens/onBoarding/EmailLoginScreen';
@@ -370,13 +372,25 @@ function AppContent() {
               initialParams={{ onSetupComplete: handleLoginSuccess }}
             />
             
-            {/* Neighborhood Recommendation Screen */}
+            {/* Estate Selection Screen - NEW */}
+            <Stack.Screen 
+              name="EstateSelection" 
+              component={EstateSelectionScreen}
+            />
+            
+            {/* Profile Setup Screen - NEW */}
+            <Stack.Screen 
+              name="ProfileSetup" 
+              component={ProfileSetupScreen}
+            />
+            
+            {/* Neighborhood Recommendation Screen - DEPRECATED: Replaced by EstateSelection */}
             <Stack.Screen 
               name="NeighborhoodRecommendation" 
               component={NeighborhoodRecommendationScreen}
             />
             
-            {/* Estate Verification Screen */}
+            {/* Estate Verification Screen - DEPRECATED: Verification happens async */}
             <Stack.Screen 
               name="EstateVerification" 
               component={EstateVerificationScreen}

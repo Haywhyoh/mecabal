@@ -135,7 +135,7 @@ export default function OTPVerificationScreen({ navigation, route }: any) {
               navigation.navigate('LocationSetup', {
                 language,
                 phoneNumber,
-                isSignup,
+                isSignup: true,
                 userId: verifyResult.user?.id,
                 userDetails: verifyResult.user
               });
@@ -161,7 +161,7 @@ export default function OTPVerificationScreen({ navigation, route }: any) {
                 navigation.navigate('LocationSetup', {
                   language,
                   phoneNumber,
-                  isSignup,
+                  isSignup: false,
                   userId: verifyResult.user?.id,
                   userDetails: verifyResult.user
                 });

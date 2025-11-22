@@ -88,33 +88,30 @@ export default function LocationSetupScreenNew({ navigation, route }: LocationSe
     clearLocationSelection();
   }, []);
 
-  // Handle location selection from GPS picker
+  // Handle location selection from GPS picker - simplified to only need state and LGA
   const handleGPSLocationSelected = useCallback((location: {
     coordinates: { latitude: number; longitude: number };
     neighborhood?: Neighborhood;
     address?: string;
   }) => {
-    if (location.neighborhood && selectedState && selectedLGA) {
-      setSelectedLocation({
-        state: selectedState,
-        lga: selectedLGA,
-        ward: selectedWard || undefined,
-        neighborhood: location.neighborhood,
-      });
+    // Just need state and LGA, not full neighborhood
+    if (selectedState && selectedLGA) {
       setCityTown(location.address || '');
       setCurrentStep('confirmation');
     }
-  }, [selectedState, selectedLGA, selectedWard]);
+  }, [selectedState, selectedLGA]);
 
-  // Handle location selection from manual selector
+  // Handle location selection from manual selector - simplified to only need state and LGA
   const handleManualLocationSelected = useCallback((location: {
     state: State;
     lga: LGA;
     ward?: Ward;
-    neighborhood: Neighborhood;
+    neighborhood?: Neighborhood;
   }) => {
-    setSelectedLocation(location);
-    setCurrentStep('confirmation');
+    // Just need state and LGA confirmed
+    if (location.state && location.lga) {
+      setCurrentStep('confirmation');
+    }
   }, []);
 
   // Handle skip with warning
@@ -147,7 +144,7 @@ export default function LocationSetupScreenNew({ navigation, route }: LocationSe
             if (onSetupComplete) {
               onSetupComplete();
             } else {
-              navigation.navigate('ProfileSetupScreen');
+              navigation.navigate('EstateSelection');
             }
           }
         },
@@ -155,45 +152,33 @@ export default function LocationSetupScreenNew({ navigation, route }: LocationSe
     );
   };
 
-  // Handle continue to next step
+  // Handle continue to next step - simplified to only require state and LGA
   const handleContinue = async () => {
-    if (!selectedLocation) return;
+    if (!selectedState || !selectedLGA) {
+      Alert.alert('Required Fields', 'Please select both state and LGA to continue.');
+      return;
+    }
 
     try {
-      // Save location to user profile
-      await saveUserLocation({
-        stateId: selectedLocation.state.id,
-        lgaId: selectedLocation.lga.id,
-        wardId: selectedLocation.ward?.id,
-        neighborhoodId: selectedLocation.neighborhood.id,
-        cityTown: cityTown || undefined,
-        coordinates: currentCoordinates || {
-          latitude: selectedLocation.neighborhood.coordinates?.latitude || 0,
-          longitude: selectedLocation.neighborhood.coordinates?.longitude || 0,
-        },
-        isPrimary: true,
-        verificationStatus: 'UNVERIFIED' as any,
-      });
-
       // Haptic feedback
       if (Platform.OS === 'ios') {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
 
-      // Navigate to next step based on context
+      // Navigate to estate selection - we'll save the full location later in profile setup
       if (isSignup) {
-        // During registration, go to neighborhood recommendation
-        navigation.navigate('NeighborhoodRecommendation');
+        // During registration, go to estate selection
+        navigation.navigate('EstateSelection');
       } else if (onSetupComplete) {
         // If there's a completion callback, use it
         onSetupComplete();
       } else {
-        // Default to profile setup
-        navigation.navigate('ProfileSetupScreen');
+        // Default to estate selection
+        navigation.navigate('EstateSelection');
       }
     } catch (error) {
-      console.error('Error saving location:', error);
-      Alert.alert('Error', 'Failed to save your location. Please try again.');
+      console.error('Error navigating:', error);
+      Alert.alert('Error', 'Failed to proceed. Please try again.');
     }
   };
 
@@ -324,7 +309,7 @@ export default function LocationSetupScreenNew({ navigation, route }: LocationSe
     </View>
   );
 
-  // Render confirmation step
+  // Render confirmation step - simplified to show state and LGA only
   const renderConfirmationStep = () => (
     <View style={styles.stepContainer}>
       <View style={styles.confirmationIcon}>
@@ -333,21 +318,15 @@ export default function LocationSetupScreenNew({ navigation, route }: LocationSe
 
       <Text style={styles.title}>Location Confirmed!</Text>
       <Text style={styles.subtitle}>
-        We've found your neighborhood
+        We've confirmed your location
       </Text>
 
-      {selectedLocation && (
+      {(selectedState && selectedLGA) && (
         <View style={styles.locationCard}>
-          <Text style={styles.locationName}>{selectedLocation.neighborhood.name}</Text>
+          <Text style={styles.locationName}>{selectedLGA.name}</Text>
           <Text style={styles.locationDetails}>
-            {selectedLocation.neighborhood.type} • {selectedLocation.lga.name}, {selectedLocation.state.name}
+            {selectedState.name}
           </Text>
-          {selectedLocation.neighborhood.isGated && (
-            <View style={styles.gatedIndicator}>
-              <Ionicons name="lock-closed" size={16} color="#FF3B30" />
-              <Text style={styles.gatedText}>Gated Community</Text>
-            </View>
-          )}
         </View>
       )}
 
@@ -356,8 +335,9 @@ export default function LocationSetupScreenNew({ navigation, route }: LocationSe
         onPress={handleContinue}
         accessibilityLabel="Continue to next step"
         accessibilityRole="button"
+        disabled={!selectedState || !selectedLGA}
       >
-        <Text style={styles.primaryButtonText}>Continue</Text>
+        <Text style={styles.primaryButtonText}>Continue to Estate Selection</Text>
         <Ionicons name="arrow-forward" size={20} color="white" />
       </TouchableOpacity>
 

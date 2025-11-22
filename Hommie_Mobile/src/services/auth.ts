@@ -111,8 +111,13 @@ class ApiClient {
     });
   }
 
-  static async get<T>(endpoint: string): Promise<ApiResponse<T>> {
-    return this.makeRequest<T>(endpoint, { method: 'GET' });
+  static async get<T>(endpoint: string, options?: { params?: Record<string, string> }): Promise<ApiResponse<T>> {
+    let url = endpoint;
+    if (options?.params) {
+      const queryParams = new URLSearchParams(options.params);
+      url = `${endpoint}?${queryParams.toString()}`;
+    }
+    return this.makeRequest<T>(url, { method: 'GET' });
   }
 
   static async put<T>(endpoint: string, data: any): Promise<ApiResponse<T>> {
@@ -601,15 +606,20 @@ export class MeCabalAuth {
 
   // Location Setup - Save user location data to backend
   static async setupLocation(locationData: {
-    state?: string;
-    city?: string;
-    estate?: string;
-    location?: string;
-    landmark?: string;
+    stateId?: string;
+    lgaId?: string;
+    neighborhoodId?: string;
+    cityTown?: string;
     address?: string;
     latitude?: number;
     longitude?: number;
     completeRegistration?: boolean;
+    // Profile fields
+    stateOfOriginId?: string;
+    culturalBackgroundId?: string;
+    professionalCategoryId?: string;
+    professionalTitle?: string;
+    occupation?: string;
   }): Promise<ApiResponse<any>> {
     try {
       const result = await ApiClient.post<any>('/auth/location/setup', locationData);
@@ -621,6 +631,14 @@ export class MeCabalAuth {
         };
       }
 
+      // Store tokens if provided
+      if (result.data?.accessToken) {
+        await AsyncStorage.setItem('auth_token', result.data.accessToken);
+        if (result.data.refreshToken) {
+          await AsyncStorage.setItem('refresh_token', result.data.refreshToken);
+        }
+      }
+
       return {
         success: true,
         data: result.data,
@@ -630,6 +648,75 @@ export class MeCabalAuth {
       return {
         success: false,
         error: error.message || 'Failed to save location'
+      };
+    }
+  }
+
+  // Search for gated estates
+  static async searchEstates(params: {
+    query?: string;
+    stateId?: string;
+    lgaId?: string;
+    limit?: number;
+  }): Promise<ApiResponse<any[]>> {
+    try {
+      const queryParams: Record<string, string> = {};
+      if (params.query) queryParams.query = params.query;
+      if (params.stateId) queryParams.stateId = params.stateId;
+      if (params.lgaId) queryParams.lgaId = params.lgaId;
+      if (params.limit) queryParams.limit = params.limit.toString();
+
+      const result = await ApiClient.get<any>('/auth/location/estates', { params: queryParams });
+
+      if (!result.success) {
+        return {
+          success: false,
+          error: result.error || 'Failed to search estates',
+          data: []
+        };
+      }
+
+      return {
+        success: true,
+        data: result.data || [],
+        message: result.message
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Failed to search estates',
+        data: []
+      };
+    }
+  }
+
+  // Get cultural profile reference data
+  static async getReferenceData(): Promise<ApiResponse<{
+    culturalBackgrounds: any[];
+    professionalCategories: any[];
+    states?: any[];
+  }>> {
+    try {
+      const result = await ApiClient.get<any>('/cultural-profile/reference-data');
+
+      if (!result.success) {
+        return {
+          success: false,
+          error: result.error || 'Failed to load reference data',
+          data: { culturalBackgrounds: [], professionalCategories: [], states: [] }
+        };
+      }
+
+      return {
+        success: true,
+        data: result.data || { culturalBackgrounds: [], professionalCategories: [], states: [] },
+        message: result.message
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Failed to load reference data',
+        data: { culturalBackgrounds: [], professionalCategories: [], states: [] }
       };
     }
   }

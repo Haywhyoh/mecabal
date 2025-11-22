@@ -110,7 +110,7 @@ export default function EmailVerificationScreen({ navigation, route }: any) {
                 isSignup: true,
                 userDetails: { firstName, lastName, email },
                 emailVerified: true,
-                userId: authResult.user.id, // Pass the user ID from email verification
+                userId: authResult.user?.id, // Pass the user ID from email verification
                 existingUser: authResult.user // Pass the full user object
               });
             }}]

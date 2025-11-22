@@ -1,3 +1,8 @@
+/**
+ * @deprecated This screen is deprecated. Registration is now handled through:
+ * - LocationSetup -> EstateSelection -> ProfileSetup
+ * This screen may be removed in a future version.
+ */
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, StatusBar, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native';
