@@ -220,7 +220,7 @@ export default function EditProfileScreen() {
               <Text style={styles.inputLabel}>Estate/Compound</Text>
               {(() => {
                 // Get primary estate from userNeighborhoods
-                const primaryEstate = (user as any)?.userNeighborhoods?.find((estate: any) => estate.isPrimary);
+                const primaryEstate = user?.userNeighborhoods?.find((estate) => estate.isPrimary);
                 const estateName = primaryEstate?.name || formData.estate || 'No estate selected';
                 
                 return (

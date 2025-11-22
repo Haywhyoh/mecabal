@@ -112,9 +112,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           updatedAt: profileResult.data.updatedAt,
           joinDate: profileResult.data.joinDate,
           profileCompleteness: profileResult.data.profileCompleteness,
+          userNeighborhoods: profileResult.data.userNeighborhoods,
         };
 
         console.log('🔄 Auth initialization result: User found:', backendUser.firstName, backendUser.lastName);
+        console.log('🔄 User neighborhoods:', profileResult.data.userNeighborhoods?.length || 0);
         setUser(backendUser);
       } else {
         // Fallback to /auth/me if profile service fails
@@ -391,6 +393,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           updatedAt: profileResult.data.updatedAt,
           joinDate: profileResult.data.joinDate,
           profileCompleteness: profileResult.data.profileCompleteness,
+          userNeighborhoods: profileResult.data.userNeighborhoods,
         };
         
         setUser(backendUser);

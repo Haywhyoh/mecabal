@@ -65,7 +65,23 @@ export interface NigerianUser {
   isVerified: boolean;
   verificationLevel: number;
   createdAt: string;
-  updatedAt: string;  
+  updatedAt: string;
+  // User estates/neighborhoods
+  userNeighborhoods?: Array<{
+    id: string;
+    name: string;
+    type: string;
+    location: string;
+    state?: string;
+    lga?: string;
+    city?: string;
+    isPrimary: boolean;
+    isVerified: boolean;
+    joinedAt: string;
+    relationshipType: string;
+    verificationMethod: string;
+    memberCount?: number;
+  }>;
 }
 
 export interface Neighborhood {

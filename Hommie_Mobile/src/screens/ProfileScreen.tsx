@@ -54,9 +54,11 @@ export default function ProfileScreen() {
   const slideAnim = useRef(new Animated.Value(30)).current;
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch dashboard data on mount
+  // Fetch dashboard data and refresh user on mount
   useEffect(() => {
     fetchDashboardData();
+    // Refresh user to ensure we have latest data including userNeighborhoods
+    refreshUser();
   }, []);
 
   // Animation effect
@@ -301,7 +303,7 @@ export default function ProfileScreen() {
             <Text style={styles.userLocation}>
               {(() => {
                 // Get primary estate from userNeighborhoods
-                const primaryEstate = (user as any)?.userNeighborhoods?.find((estate: any) => estate.isPrimary);
+                const primaryEstate = user?.userNeighborhoods?.find((estate) => estate.isPrimary);
                 if (primaryEstate) {
                   return `${primaryEstate.name}, ${primaryEstate.city || user?.city || 'Unknown'}, ${primaryEstate.state || user?.state || 'Unknown'}`;
                 }
@@ -314,7 +316,7 @@ export default function ProfileScreen() {
             </Text>
             <Text style={styles.estateCount}>
               • {(() => {
-                const estates = (user as any)?.userNeighborhoods || [];
+                const estates = user?.userNeighborhoods || [];
                 const count = estates.length;
                 if (count === 0) return 'No estates';
                 if (count === 1) return '1 estate';
