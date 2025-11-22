@@ -397,6 +397,18 @@ export class ApiGatewayController {
   // Use wildcard matching to catch all social service routes
   // IMPORTANT: More specific routes must come FIRST
 
+  // Catch-all route for /social/* - strips /social prefix and forwards to social service
+  @All('social/*path')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxySocialWildcard(@Req() req: Request, @Res() res: Response) {
+    // Strip /social prefix from the URL
+    const originalUrl = req.url;
+    const pathWithoutPrefix = originalUrl.replace(/^\/social/, '');
+    req.url = pathWithoutPrefix;
+    return this.proxySocialRequest(req, res);
+  }
+
   // Posts routes - specific routes before general
   @All('posts/categories')
   @UseGuards(JwtAuthGuard)
