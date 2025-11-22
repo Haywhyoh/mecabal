@@ -347,6 +347,9 @@ export class UserProfileService {
       excludeExtraneousValues: true,
     });
 
+    // Initialize userNeighborhoods to ensure it's always defined
+    response.userNeighborhoods = [];
+
     // Add verification level
     response.verificationLevel = user.getVerificationLevel();
 
@@ -398,12 +401,10 @@ export class UserProfileService {
           } as UserEstateDto;
         })
       );
-      // Filter out null values
+      // Filter out null values and assign
       response.userNeighborhoods = estates.filter(
         (estate): estate is UserEstateDto => estate !== null,
       );
-    } else {
-      response.userNeighborhoods = [];
     }
 
     return response;
