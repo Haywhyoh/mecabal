@@ -356,13 +356,13 @@ export class UserProfileService {
     // Populate estate/state/city from primaryNeighborhood if available
     if (primaryNeighborhood) {
       response.estate = primaryNeighborhood.name;
-      response.state = primaryNeighborhood.lga?.state?.name || user.state;
-      response.city = primaryNeighborhood.ward?.name || primaryNeighborhood.lga?.name || user.city;
+      response.state = primaryNeighborhood.lga?.state?.name;
+      response.city = primaryNeighborhood.ward?.name || primaryNeighborhood.lga?.name;
     }
 
     // Transform userNeighborhoods to UserEstateDto array
     if (user.userNeighborhoods && user.userNeighborhoods.length > 0) {
-      response.userNeighborhoods = await Promise.all(
+      const estates = await Promise.all(
         user.userNeighborhoods.map(async (userNeighborhood) => {
           const neighborhood = userNeighborhood.neighborhood;
           if (!neighborhood) return null;
@@ -399,9 +399,9 @@ export class UserProfileService {
         })
       );
       // Filter out null values
-      response.userNeighborhoods = response.userNeighborhoods.filter(
-        (estate) => estate !== null,
-      ) as UserEstateDto[];
+      response.userNeighborhoods = estates.filter(
+        (estate): estate is UserEstateDto => estate !== null,
+      );
     } else {
       response.userNeighborhoods = [];
     }
