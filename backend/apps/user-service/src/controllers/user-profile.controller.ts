@@ -31,7 +31,7 @@ import { FileUploadService } from '@app/storage';
 import { UserProfileService } from '../services/user-profile.service';
 import { UserSearchService } from '../services/user-search.service';
 import { UpdateProfileDto } from '../dto/update-profile.dto';
-import { UserResponseDto } from '../dto/user-response.dto';
+import { UserResponseDto, UserEstateDto } from '../dto/user-response.dto';
 import { UserSearchDto, UserSearchResponseDto } from '../dto/user-search.dto';
 
 @ApiTags('User Profile')
@@ -157,6 +157,40 @@ export class UserProfileController {
     @Body() updateData: UpdateProfileDto,
   ): Promise<UserResponseDto> {
     return this.userProfileService.updateProfile(userId, updateData);
+  }
+
+  @Get('me/estates')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get current user estates/neighborhoods' })
+  @ApiResponse({
+    status: 200,
+    description: 'User estates retrieved successfully',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          name: { type: 'string' },
+          type: { type: 'string' },
+          location: { type: 'string' },
+          state: { type: 'string' },
+          lga: { type: 'string' },
+          city: { type: 'string' },
+          isPrimary: { type: 'boolean' },
+          isVerified: { type: 'boolean' },
+          joinedAt: { type: 'string', format: 'date-time' },
+          relationshipType: { type: 'string' },
+          verificationMethod: { type: 'string' },
+          memberCount: { type: 'number' },
+        },
+      },
+    },
+  })
+  async getUserEstates(
+    @CurrentUser() user: User,
+  ): Promise<UserEstateDto[]> {
+    return this.userProfileService.getUserEstates(user.id);
   }
 
   @Get('me/completion')

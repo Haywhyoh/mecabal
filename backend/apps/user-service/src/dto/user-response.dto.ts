@@ -1,6 +1,60 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Exclude, Expose, Type } from 'class-transformer';
 
+export class UserEstateDto {
+  @Expose()
+  @ApiProperty({ description: 'Estate ID' })
+  id: string;
+
+  @Expose()
+  @ApiProperty({ description: 'Estate name' })
+  name: string;
+
+  @Expose()
+  @ApiProperty({ description: 'Estate type' })
+  type: string;
+
+  @Expose()
+  @ApiProperty({ description: 'Full location string' })
+  location: string;
+
+  @Expose()
+  @ApiProperty({ description: 'State name' })
+  state?: string;
+
+  @Expose()
+  @ApiProperty({ description: 'LGA name' })
+  lga?: string;
+
+  @Expose()
+  @ApiProperty({ description: 'City/Ward name' })
+  city?: string;
+
+  @Expose()
+  @ApiProperty({ description: 'Whether this is the primary estate' })
+  isPrimary: boolean;
+
+  @Expose()
+  @ApiProperty({ description: 'Whether the estate is verified' })
+  isVerified: boolean;
+
+  @Expose()
+  @ApiProperty({ description: 'When user joined this estate' })
+  joinedAt: Date;
+
+  @Expose()
+  @ApiProperty({ description: 'Relationship type' })
+  relationshipType: string;
+
+  @Expose()
+  @ApiProperty({ description: 'Verification method' })
+  verificationMethod: string;
+
+  @Expose()
+  @ApiPropertyOptional({ description: 'Member count' })
+  memberCount?: number;
+}
+
 @Exclude()
 export class UserResponseDto {
   @Expose()
@@ -174,4 +228,12 @@ export class UserResponseDto {
 
     return Math.min(score, 100);
   }
+
+  @Expose()
+  @ApiPropertyOptional({ 
+    description: 'User estates/neighborhoods',
+    type: [UserEstateDto]
+  })
+  @Type(() => UserEstateDto)
+  userNeighborhoods?: UserEstateDto[];
 }

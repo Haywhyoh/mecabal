@@ -218,13 +218,26 @@ export default function EditProfileScreen() {
 
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Estate/Compound</Text>
-              <TextInput
-                style={styles.input}
-                value={formData.estate}
-                onChangeText={(value) => handleUpdateField('estate', value)}
-                placeholder="e.g., Lekki Gardens Estate"
-                placeholderTextColor="#8E8E8E"
-              />
+              {(() => {
+                // Get primary estate from userNeighborhoods
+                const primaryEstate = (user as any)?.userNeighborhoods?.find((estate: any) => estate.isPrimary);
+                const estateName = primaryEstate?.name || formData.estate || 'No estate selected';
+                
+                return (
+                  <>
+                    <TextInput
+                      style={[styles.input, { backgroundColor: '#F5F5F5', color: '#8E8E8E' }]}
+                      value={estateName}
+                      placeholder="e.g., Lekki Gardens Estate"
+                      placeholderTextColor="#8E8E8E"
+                      editable={false}
+                    />
+                    <Text style={styles.inputHelp}>
+                      Estates are managed in the Estate Manager. Tap "Your Estate" in your profile to manage.
+                    </Text>
+                  </>
+                );
+              })()}
             </View>
 
             <View style={styles.inputGroup}>

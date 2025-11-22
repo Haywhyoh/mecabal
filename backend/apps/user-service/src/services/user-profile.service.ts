@@ -6,10 +6,10 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Not } from 'typeorm';
-import { User } from '@app/database';
+import { User, UserNeighborhood } from '@app/database';
 import { FileUploadService } from '@app/storage';
 import { UpdateProfileDto } from '../dto/update-profile.dto';
-import { UserResponseDto } from '../dto/user-response.dto';
+import { UserResponseDto, UserEstateDto } from '../dto/user-response.dto';
 import { plainToClass } from 'class-transformer';
 
 @Injectable()
@@ -17,6 +17,8 @@ export class UserProfileService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(UserNeighborhood)
+    private readonly userNeighborhoodRepository: Repository<UserNeighborhood>,
     private readonly fileUploadService: FileUploadService,
   ) {}
 
@@ -26,14 +28,20 @@ export class UserProfileService {
   async getUserById(userId: string): Promise<UserResponseDto> {
     const user = await this.userRepository.findOne({
       where: { id: userId },
-      relations: ['userNeighborhoods', 'userNeighborhoods.neighborhood'],
+      relations: [
+        'userNeighborhoods',
+        'userNeighborhoods.neighborhood',
+        'userNeighborhoods.neighborhood.lga',
+        'userNeighborhoods.neighborhood.lga.state',
+        'userNeighborhoods.neighborhood.ward',
+      ],
     });
 
     if (!user) {
       throw new NotFoundException(`User with ID ${userId} not found`);
     }
 
-    return this.transformUserToResponse(user);
+    return await this.transformUserToResponse(user);
   }
 
   /**
@@ -42,14 +50,20 @@ export class UserProfileService {
   async getUserByEmail(email: string): Promise<UserResponseDto> {
     const user = await this.userRepository.findOne({
       where: { email },
-      relations: ['userNeighborhoods', 'userNeighborhoods.neighborhood'],
+      relations: [
+        'userNeighborhoods',
+        'userNeighborhoods.neighborhood',
+        'userNeighborhoods.neighborhood.lga',
+        'userNeighborhoods.neighborhood.lga.state',
+        'userNeighborhoods.neighborhood.ward',
+      ],
     });
 
     if (!user) {
       throw new NotFoundException(`User with email ${email} not found`);
     }
 
-    return this.transformUserToResponse(user);
+    return await this.transformUserToResponse(user);
   }
 
   /**
@@ -58,14 +72,20 @@ export class UserProfileService {
   async getUserByPhone(phoneNumber: string): Promise<UserResponseDto> {
     const user = await this.userRepository.findOne({
       where: { phoneNumber },
-      relations: ['userNeighborhoods', 'userNeighborhoods.neighborhood'],
+      relations: [
+        'userNeighborhoods',
+        'userNeighborhoods.neighborhood',
+        'userNeighborhoods.neighborhood.lga',
+        'userNeighborhoods.neighborhood.lga.state',
+        'userNeighborhoods.neighborhood.ward',
+      ],
     });
 
     if (!user) {
       throw new NotFoundException(`User with phone ${phoneNumber} not found`);
     }
 
-    return this.transformUserToResponse(user);
+    return await this.transformUserToResponse(user);
   }
 
   /**
@@ -109,10 +129,23 @@ export class UserProfileService {
     Object.assign(user, updateData);
 
     // Save updated user
-    const updatedUser = await this.userRepository.save(user);
+    const updatedUser = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: [
+        'userNeighborhoods',
+        'userNeighborhoods.neighborhood',
+        'userNeighborhoods.neighborhood.lga',
+        'userNeighborhoods.neighborhood.lga.state',
+        'userNeighborhoods.neighborhood.ward',
+      ],
+    });
+
+    if (!updatedUser) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
 
     // Return response
-    return this.transformUserToResponse(updatedUser);
+    return await this.transformUserToResponse(updatedUser);
   }
 
   /**
@@ -131,9 +164,24 @@ export class UserProfileService {
     }
 
     user.profilePictureUrl = avatarUrl || undefined;
-    const updatedUser = await this.userRepository.save(user);
+    await this.userRepository.save(user);
 
-    return this.transformUserToResponse(updatedUser);
+    const updatedUser = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: [
+        'userNeighborhoods',
+        'userNeighborhoods.neighborhood',
+        'userNeighborhoods.neighborhood.lga',
+        'userNeighborhoods.neighborhood.lga.state',
+        'userNeighborhoods.neighborhood.ward',
+      ],
+    });
+
+    if (!updatedUser) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    return await this.transformUserToResponse(updatedUser);
   }
 
   /**
@@ -175,6 +223,71 @@ export class UserProfileService {
     return {
       message: 'Account reactivated successfully',
     };
+  }
+
+  /**
+   * Get user estates/neighborhoods
+   */
+  async getUserEstates(userId: string): Promise<UserEstateDto[]> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: [
+        'userNeighborhoods',
+        'userNeighborhoods.neighborhood',
+        'userNeighborhoods.neighborhood.lga',
+        'userNeighborhoods.neighborhood.lga.state',
+        'userNeighborhoods.neighborhood.ward',
+      ],
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    if (!user.userNeighborhoods || user.userNeighborhoods.length === 0) {
+      return [];
+    }
+
+    // Transform userNeighborhoods to UserEstateDto array
+    const estates = await Promise.all(
+      user.userNeighborhoods.map(async (userNeighborhood) => {
+        const neighborhood = userNeighborhood.neighborhood;
+        if (!neighborhood) return null;
+
+        // Get member count for this neighborhood
+        const memberCount = await this.userNeighborhoodRepository.count({
+          where: { neighborhoodId: neighborhood.id },
+        });
+
+        // Build location string
+        const locationParts = [
+          neighborhood.name,
+          neighborhood.ward?.name,
+          neighborhood.lga?.name,
+          neighborhood.lga?.state?.name,
+        ].filter(Boolean);
+        const location = locationParts.join(', ');
+
+        return {
+          id: neighborhood.id,
+          name: neighborhood.name,
+          type: neighborhood.type,
+          location,
+          state: neighborhood.lga?.state?.name,
+          lga: neighborhood.lga?.name,
+          city: neighborhood.ward?.name || neighborhood.lga?.name,
+          isPrimary: userNeighborhood.isPrimary,
+          isVerified: neighborhood.isVerified || false,
+          joinedAt: userNeighborhood.joinedAt,
+          relationshipType: userNeighborhood.relationshipType,
+          verificationMethod: userNeighborhood.verificationMethod,
+          memberCount,
+        } as UserEstateDto;
+      })
+    );
+
+    // Filter out null values and return
+    return estates.filter((estate) => estate !== null) as UserEstateDto[];
   }
 
   /**
@@ -229,13 +342,69 @@ export class UserProfileService {
   /**
    * Transform User entity to UserResponseDto
    */
-  private transformUserToResponse(user: User): UserResponseDto {
+  private async transformUserToResponse(user: User): Promise<UserResponseDto> {
     const response = plainToClass(UserResponseDto, user, {
       excludeExtraneousValues: true,
     });
 
     // Add verification level
     response.verificationLevel = user.getVerificationLevel();
+
+    // Get primary neighborhood
+    const primaryNeighborhood = user.primaryNeighborhood;
+
+    // Populate estate/state/city from primaryNeighborhood if available
+    if (primaryNeighborhood) {
+      response.estate = primaryNeighborhood.name;
+      response.state = primaryNeighborhood.lga?.state?.name || user.state;
+      response.city = primaryNeighborhood.ward?.name || primaryNeighborhood.lga?.name || user.city;
+    }
+
+    // Transform userNeighborhoods to UserEstateDto array
+    if (user.userNeighborhoods && user.userNeighborhoods.length > 0) {
+      response.userNeighborhoods = await Promise.all(
+        user.userNeighborhoods.map(async (userNeighborhood) => {
+          const neighborhood = userNeighborhood.neighborhood;
+          if (!neighborhood) return null;
+
+          // Get member count for this neighborhood
+          const memberCount = await this.userNeighborhoodRepository.count({
+            where: { neighborhoodId: neighborhood.id },
+          });
+
+          // Build location string
+          const locationParts = [
+            neighborhood.name,
+            neighborhood.ward?.name,
+            neighborhood.lga?.name,
+            neighborhood.lga?.state?.name,
+          ].filter(Boolean);
+          const location = locationParts.join(', ');
+
+          return {
+            id: neighborhood.id,
+            name: neighborhood.name,
+            type: neighborhood.type,
+            location,
+            state: neighborhood.lga?.state?.name,
+            lga: neighborhood.lga?.name,
+            city: neighborhood.ward?.name || neighborhood.lga?.name,
+            isPrimary: userNeighborhood.isPrimary,
+            isVerified: neighborhood.isVerified || false,
+            joinedAt: userNeighborhood.joinedAt,
+            relationshipType: userNeighborhood.relationshipType,
+            verificationMethod: userNeighborhood.verificationMethod,
+            memberCount,
+          } as UserEstateDto;
+        })
+      );
+      // Filter out null values
+      response.userNeighborhoods = response.userNeighborhoods.filter(
+        (estate) => estate !== null,
+      ) as UserEstateDto[];
+    } else {
+      response.userNeighborhoods = [];
+    }
 
     return response;
   }

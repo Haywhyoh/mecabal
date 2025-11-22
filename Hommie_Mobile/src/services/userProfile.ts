@@ -9,6 +9,23 @@ import type { NigerianUser } from '../types/supabase';
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 const API_TIMEOUT = 10000;
 
+// Estate/Neighborhood Types
+export interface UserEstate {
+  id: string;
+  name: string;
+  type: string;
+  location: string;
+  state?: string;
+  lga?: string;
+  city?: string;
+  isPrimary: boolean;
+  isVerified: boolean;
+  joinedAt: string;
+  relationshipType: string;
+  verificationMethod: string;
+  memberCount?: number;
+}
+
 // User Profile Response Types
 export interface UserProfileResponse {
   id: string;
@@ -46,6 +63,7 @@ export interface UserProfileResponse {
   updatedAt: Date;
   joinDate: string;
   profileCompleteness: number;
+  userNeighborhoods?: UserEstate[];
 }
 
 export interface UpdateProfileRequest {
@@ -192,6 +210,14 @@ export class UserProfileService {
   static async getProfileCompletion(): Promise<ApiResponse<ProfileCompletionResponse>> {
     console.log('📱 Fetching profile completion...');
     return UserProfileApiClient.get<ProfileCompletionResponse>('/users/me/completion');
+  }
+
+  /**
+   * Get user estates/neighborhoods
+   */
+  static async getUserEstates(): Promise<ApiResponse<UserEstate[]>> {
+    console.log('📱 Fetching user estates...');
+    return UserProfileApiClient.get<UserEstate[]>('/users/me/estates');
   }
 
   /**

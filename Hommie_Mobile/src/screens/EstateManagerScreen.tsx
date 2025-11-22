@@ -1,18 +1,8 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, Modal } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, Modal, ActivityIndicator, Alert, RefreshControl } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { ScreenHeader } from '../components/ScreenHeader';
-
-interface Estate {
-  id: string;
-  name: string;
-  location: string;
-  isPrimary: boolean;
-  isVerified: boolean;
-  memberSince: string;
-  memberCount: number;
-  distance?: string;
-}
+import { UserProfileService, UserEstate } from '../services/userProfile';
 
 interface EstateManagerScreenProps {
   navigation?: any;
@@ -20,46 +10,80 @@ interface EstateManagerScreenProps {
 
 export default function EstateManagerScreen({ navigation }: EstateManagerScreenProps) {
   const [showAddEstate, setShowAddEstate] = useState(false);
-  const [estates] = useState<Estate[]>([
-    {
-      id: '1',
-      name: 'Victoria Island Estate',
-      location: 'Victoria Island, Lagos',
-      isPrimary: true,
-      isVerified: true,
-      memberSince: 'August 2024',
-      memberCount: 1247,
-    },
-    {
-      id: '2',
-      name: 'Lekki Phase 1 Gardens',
-      location: 'Lekki Phase 1, Lagos',
-      isPrimary: false,
-      isVerified: true,
-      memberSince: 'September 2024',
-      memberCount: 892,
-      distance: '4.2km away',
-    },
-    {
-      id: '3',
-      name: 'Ikoyi Heights',
-      location: 'Ikoyi, Lagos',
-      isPrimary: false,
-      isVerified: false,
-      memberSince: 'October 2024',
-      memberCount: 645,
-      distance: '2.8km away',
-    },
-  ]);
+  const [estates, setEstates] = useState<UserEstate[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadEstates();
+  }, []);
+
+  const loadEstates = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await UserProfileService.getUserEstates();
+      
+      if (response.success && response.data) {
+        setEstates(response.data);
+      } else {
+        setError(response.error || 'Failed to load estates');
+      }
+    } catch (err) {
+      console.error('Error loading estates:', err);
+      setError('Failed to load estates. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await loadEstates();
+    setIsRefreshing(false);
+  };
+
+  const formatMemberSince = (joinedAt: string): string => {
+    try {
+      const date = new Date(joinedAt);
+      return date.toLocaleDateString('en-GB', {
+        year: 'numeric',
+        month: 'long',
+      });
+    } catch {
+      return 'Recently joined';
+    }
+  };
 
   const handleSetPrimary = (estateId: string) => {
-    // Implementation for setting primary estate
+    // TODO: Implement API call to set primary estate
+    Alert.alert(
+      'Set Primary Estate',
+      'This feature will be available soon. You can manage your primary estate through the backend API.',
+      [{ text: 'OK' }]
+    );
     console.log('Setting primary estate:', estateId);
   };
 
   const handleLeaveEstate = (estateId: string) => {
-    // Implementation for leaving estate
-    console.log('Leaving estate:', estateId);
+    // TODO: Implement API call to leave estate
+    Alert.alert(
+      'Leave Estate',
+      'Are you sure you want to leave this estate? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Leave',
+          style: 'destructive',
+          onPress: () => {
+            // TODO: Call API to leave estate
+            console.log('Leaving estate:', estateId);
+            Alert.alert('Info', 'This feature will be available soon.');
+          },
+        },
+      ]
+    );
   };
 
   const handleMoveToNewEstate = () => {
@@ -79,13 +103,50 @@ export default function EstateManagerScreen({ navigation }: EstateManagerScreenP
         }
       />
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor="#00A651"
+          />
+        }
+      >
+        {/* Loading State */}
+        {isLoading && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#00A651" />
+            <Text style={styles.loadingText}>Loading estates...</Text>
+          </View>
+        )}
+
+        {/* Error State */}
+        {!isLoading && error && (
+          <View style={styles.errorContainer}>
+            <MaterialCommunityIcons name="alert-circle" size={48} color="#E74C3C" />
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={loadEstates}>
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Current Estates */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Your Estates ({estates.length})</Text>
-          <Text style={styles.sectionSubtitle}>You're a member of these communities</Text>
-          
-          {estates.map((estate) => (
+        {!isLoading && !error && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Your Estates ({estates.length})</Text>
+            <Text style={styles.sectionSubtitle}>You're a member of these communities</Text>
+            
+            {estates.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <MaterialCommunityIcons name="home-outline" size={64} color="#8E8E8E" />
+                <Text style={styles.emptyText}>No estates found</Text>
+                <Text style={styles.emptySubtext}>You haven't joined any estates yet</Text>
+              </View>
+            ) : (
+              estates.map((estate) => (
             <View key={estate.id} style={styles.estateCard}>
               <View style={styles.estateHeader}>
                 <View style={styles.estateIcon}>
@@ -109,10 +170,9 @@ export default function EstateManagerScreen({ navigation }: EstateManagerScreenP
                   <Text style={styles.estateLocation}>{estate.location}</Text>
                   
                   <View style={styles.estateDetails}>
-                    <Text style={styles.memberSince}>Member since {estate.memberSince}</Text>
-                    <Text style={styles.memberCount}>{estate.memberCount.toLocaleString()} members</Text>
-                    {estate.distance && (
-                      <Text style={styles.distance}>• {estate.distance}</Text>
+                    <Text style={styles.memberSince}>Member since {formatMemberSince(estate.joinedAt)}</Text>
+                    {estate.memberCount !== undefined && (
+                      <Text style={styles.memberCount}>{estate.memberCount.toLocaleString()} members</Text>
                     )}
                   </View>
                 </View>
@@ -156,8 +216,10 @@ export default function EstateManagerScreen({ navigation }: EstateManagerScreenP
                 </View>
               )}
             </View>
-          ))}
-        </View>
+              ))
+            )}
+          </View>
+        )}
 
         {/* Privacy Settings */}
         <View style={styles.section}>
@@ -609,5 +671,60 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#2C2C2C',
     marginLeft: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#8E8E8E',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 32,
+  },
+  errorText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#E74C3C',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  retryButton: {
+    backgroundColor: '#00A651',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 32,
+  },
+  emptyText: {
+    marginTop: 16,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#2C2C2C',
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#8E8E8E',
+    textAlign: 'center',
   },
 });

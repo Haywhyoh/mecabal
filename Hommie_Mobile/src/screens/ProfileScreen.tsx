@@ -299,9 +299,28 @@ export default function ProfileScreen() {
           >
             <MaterialCommunityIcons name="map-marker" size={16} color="#8E8E8E" />
             <Text style={styles.userLocation}>
-              {user?.city || 'Unknown'}, {user?.state || 'Unknown'}
+              {(() => {
+                // Get primary estate from userNeighborhoods
+                const primaryEstate = (user as any)?.userNeighborhoods?.find((estate: any) => estate.isPrimary);
+                if (primaryEstate) {
+                  return `${primaryEstate.name}, ${primaryEstate.city || user?.city || 'Unknown'}, ${primaryEstate.state || user?.state || 'Unknown'}`;
+                }
+                // Fallback to user estate/city/state
+                if (user?.estate) {
+                  return `${user.estate}, ${user?.city || 'Unknown'}, ${user?.state || 'Unknown'}`;
+                }
+                return `${user?.city || 'Unknown'}, ${user?.state || 'Unknown'}`;
+              })()}
             </Text>
-            <Text style={styles.estateCount}>• {user?.estate ? '1 estate' : 'No estates'}</Text>
+            <Text style={styles.estateCount}>
+              • {(() => {
+                const estates = (user as any)?.userNeighborhoods || [];
+                const count = estates.length;
+                if (count === 0) return 'No estates';
+                if (count === 1) return '1 estate';
+                return `${count} estates`;
+              })()}
+            </Text>
             <MaterialCommunityIcons name="chevron-right" size={16} color="#8E8E8E" style={styles.chevron} />
           </TouchableOpacity>
         </View>
