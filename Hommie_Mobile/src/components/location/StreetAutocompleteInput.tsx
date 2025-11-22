@@ -40,7 +40,9 @@ export default function StreetAutocompleteInput({
   const [isSearching, setIsSearching] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+  const blurTimer = useRef<NodeJS.Timeout | null>(null);
   const inputRef = useRef<TextInput>(null);
+  const isSelectingRef = useRef(false);
 
   // Debounced search function
   useEffect(() => {
@@ -104,6 +106,9 @@ export default function StreetAutocompleteInput({
       if (debounceTimer.current) {
         clearTimeout(debounceTimer.current);
       }
+      if (blurTimer.current) {
+        clearTimeout(blurTimer.current);
+      }
     };
   }, [value, coordinates]);
 
@@ -112,9 +117,21 @@ export default function StreetAutocompleteInput({
     const addressParts = place.formatted_address.split(',');
     const streetName = addressParts[0]?.trim() || place.name;
 
+    // Clear any pending blur timer
+    if (blurTimer.current) {
+      clearTimeout(blurTimer.current);
+      blurTimer.current = null;
+    }
+
+    isSelectingRef.current = true;
     onChangeText(streetName);
     setShowSuggestions(false);
     inputRef.current?.blur();
+    
+    // Reset selection flag after a short delay
+    setTimeout(() => {
+      isSelectingRef.current = false;
+    }, 100);
 
     if (onPlaceSelected) {
       onPlaceSelected(place);
@@ -142,13 +159,27 @@ export default function StreetAutocompleteInput({
           placeholderTextColor="#8E8E93"
           editable={!disabled}
           onFocus={() => {
+            // Clear any pending blur timer
+            if (blurTimer.current) {
+              clearTimeout(blurTimer.current);
+              blurTimer.current = null;
+            }
             if (suggestions.length > 0) {
               setShowSuggestions(true);
             }
           }}
           onBlur={() => {
-            // Delay hiding suggestions to allow selection
-            setTimeout(() => setShowSuggestions(false), 200);
+            // Only hide suggestions if user is not selecting
+            // Use a longer delay to allow for selection
+            if (blurTimer.current) {
+              clearTimeout(blurTimer.current);
+            }
+            blurTimer.current = setTimeout(() => {
+              if (!isSelectingRef.current) {
+                setShowSuggestions(false);
+              }
+              blurTimer.current = null;
+            }, 300); // Increased delay to 300ms
           }}
         />
         {isSearching && (
@@ -167,6 +198,10 @@ export default function StreetAutocompleteInput({
               <TouchableOpacity
                 style={styles.suggestionItem}
                 onPress={() => handleSelectPlace(item)}
+                onPressIn={() => {
+                  // Mark that user is selecting to prevent blur from hiding suggestions
+                  isSelectingRef.current = true;
+                }}
               >
                 <Ionicons name="location-outline" size={18} color="#00A651" />
                 <View style={styles.suggestionContent}>

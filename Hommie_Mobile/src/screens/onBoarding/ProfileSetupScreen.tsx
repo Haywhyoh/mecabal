@@ -23,6 +23,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { contextAwareGoBack } from '../../utils/navigationUtils';
 import { locationApi } from '../../services/api/locationApi';
 import type { State } from '../../types/location.types';
+import { StreetAutocompleteInput } from '../../components/location';
 
 interface ProfileSetupScreenProps {
   navigation: any;
@@ -53,6 +54,7 @@ export default function ProfileSetupScreen({ navigation, route }: ProfileSetupSc
     professionalTitle: '',
     occupation: '',
   });
+  const [streetName, setStreetName] = useState('');
 
   const [states, setStates] = useState<State[]>([]);
   const [culturalBackgrounds, setCulturalBackgrounds] = useState<CulturalBackground[]>([]);
@@ -141,7 +143,7 @@ export default function ProfileSetupScreen({ navigation, route }: ProfileSetupSc
       const finalStateId = locationData?.stateId || selectedState.id;
       const finalLgaId = locationData?.lgaId || selectedLGA.id;
       const finalCityTown = locationData?.cityTown;
-      const finalStreet = locationData?.street;
+      const finalStreet = streetName || locationData?.street; // Use streetName from form, fallback to locationData
       const finalCoordinates = locationData?.coordinates || currentCoordinates;
 
       // Build address string from street if available
@@ -246,6 +248,32 @@ export default function ProfileSetupScreen({ navigation, route }: ProfileSetupSc
               <Text style={styles.title}>Complete Your Profile</Text>
               <Text style={styles.subtitle}>Tell us a bit about yourself</Text>
             </View>
+          </View>
+
+          {/* Estate Info Display */}
+          {estateName && (
+            <View style={styles.estateInfoCard}>
+              <Ionicons name="home" size={20} color={COLORS.primary} />
+              <Text style={styles.estateInfoText}>{estateName}</Text>
+            </View>
+          )}
+
+          {/* Street Name Input */}
+          <View style={styles.formSection}>
+            <Text style={styles.label}>Street Address (Optional)</Text>
+            <StreetAutocompleteInput
+              value={streetName}
+              onChangeText={setStreetName}
+              placeholder="e.g., Admiralty Way, Ozumba Mbadiwe Avenue"
+              onPlaceSelected={(place) => {
+                setStreetName(place.formatted_address);
+                // Optionally update coordinates if place has them
+                if (place.geometry?.location && currentCoordinates) {
+                  // Coordinates already set from location setup
+                }
+              }}
+              coordinates={currentCoordinates || undefined}
+            />
           </View>
 
           {/* State of Origin */}
@@ -559,6 +587,22 @@ const styles = StyleSheet.create({
   },
   formSection: {
     marginBottom: SPACING.lg,
+  },
+  estateInfoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.lightGreen,
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.md,
+    marginBottom: SPACING.lg,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+  },
+  estateInfoText: {
+    fontSize: TYPOGRAPHY.fontSizes.md || 16,
+    color: COLORS.text,
+    marginLeft: SPACING.sm,
+    fontWeight: '600',
   },
   label: {
     fontSize: TYPOGRAPHY.fontSizes.sm || 14,

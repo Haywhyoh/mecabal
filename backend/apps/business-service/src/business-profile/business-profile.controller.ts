@@ -10,6 +10,9 @@ import {
   Request,
   HttpCode,
   HttpStatus,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Request as ExpressRequest } from 'express';
 import {
@@ -61,9 +64,15 @@ export class BusinessProfileController {
   @ApiResponse({ status: 200, description: 'Business profile retrieved' })
   @ApiResponse({ status: 404, description: 'No business profile found' })
   async getMyBusiness(@Request() req: AuthenticatedRequest) {
-      const business = await this.businessProfileService.findByUserId(
-        req.user.id,
-      );
+    const business = await this.businessProfileService.findByUserId(
+      req.user.id,
+    );
+    
+    // Return 404 if no business found (matches mobile app behavior)
+    if (!business) {
+      throw new NotFoundException('No business profile found for this user');
+    }
+    
     return {
       success: true,
       data: business,

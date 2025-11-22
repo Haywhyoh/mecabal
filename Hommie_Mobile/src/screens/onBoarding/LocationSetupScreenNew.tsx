@@ -16,7 +16,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useLocation } from '../../contexts/LocationContext';
-import { HierarchicalLocationSelector, GPSLocationPicker, StreetAutocompleteInput } from '../../components/location';
+import { HierarchicalLocationSelector, GPSLocationPicker } from '../../components/location';
 import {
   State,
   LGA,
@@ -44,7 +44,7 @@ interface LocationSetupScreenProps {
   };
 }
 
-type SetupStep = 'welcome' | 'method-selection' | 'gps-picker' | 'manual-selector' | 'confirmation';
+type SetupStep = 'method-selection' | 'gps-picker' | 'manual-selector' | 'confirmation';
 
 export default function LocationSetupScreenNew({ navigation, route }: LocationSetupScreenProps) {
   // Route params
@@ -64,21 +64,19 @@ export default function LocationSetupScreenNew({ navigation, route }: LocationSe
   } = useLocation();
 
   // Local state
-  const [currentStep, setCurrentStep] = useState<SetupStep>('welcome');
+  const [currentStep, setCurrentStep] = useState<SetupStep>('method-selection');
   const [selectedMethod, setSelectedMethod] = useState<'gps' | 'manual' | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<LocationHierarchy | null>(null);
   const [cityTown, setCityTown] = useState('');
-  const [streetName, setStreetName] = useState('');
   const [showSkipWarning, setShowSkipWarning] = useState(false);
 
   // Progress calculation
   const getProgress = () => {
     switch (currentStep) {
-      case 'welcome': return 0.2;
-      case 'method-selection': return 0.4;
+      case 'method-selection': return 0.33;
       case 'gps-picker':
-      case 'manual-selector': return 0.6;
-      case 'confirmation': return 0.8;
+      case 'manual-selector': return 0.66;
+      case 'confirmation': return 1.0;
       default: return 1.0;
     }
   };
@@ -166,14 +164,13 @@ export default function LocationSetupScreenNew({ navigation, route }: LocationSe
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
 
-      // Navigate to estate selection with location data including street
+      // Navigate to estate selection with location data (street will be added later)
       const locationData = {
         stateId: selectedState.id,
         stateName: selectedState.name,
         lgaId: selectedLGA.id,
         lgaName: selectedLGA.name,
         cityTown: cityTown,
-        street: streetName,
         coordinates: currentCoordinates || undefined,
       };
 
@@ -200,59 +197,9 @@ export default function LocationSetupScreenNew({ navigation, route }: LocationSe
         <View style={[styles.progressFill, { width: `${getProgress() * 100}%` }]} />
       </View>
       <Text style={styles.progressText}>
-        Step {currentStep === 'welcome' ? 1 : currentStep === 'method-selection' ? 2 : 
-              currentStep === 'gps-picker' || currentStep === 'manual-selector' ? 3 : 4} of 4
+        Step {currentStep === 'method-selection' ? 1 : 
+              currentStep === 'gps-picker' || currentStep === 'manual-selector' ? 2 : 3} of 3
       </Text>
-    </View>
-  );
-
-  // Render welcome step
-  const renderWelcomeStep = () => (
-    <View style={styles.stepContainer}>
-      <View style={styles.iconContainer}>
-        <Ionicons name="location" size={64} color={MECABAL_GREEN} />
-      </View>
-      
-      <Text style={styles.title}>Let's Find Your Neighborhood</Text>
-      <Text style={styles.subtitle}>
-        Your location helps us connect you with neighbors, local events, and nearby services in your area.
-      </Text>
-
-      <View style={styles.benefitsContainer}>
-        <View style={styles.benefitItem}>
-          <Ionicons name="people" size={20} color={MECABAL_GREEN} />
-          <Text style={styles.benefitText}>Connect with neighbors</Text>
-        </View>
-        <View style={styles.benefitItem}>
-          <Ionicons name="calendar" size={20} color={MECABAL_GREEN} />
-          <Text style={styles.benefitText}>Discover local events</Text>
-        </View>
-        <View style={styles.benefitItem}>
-          <Ionicons name="storefront" size={20} color={MECABAL_GREEN} />
-          <Text style={styles.benefitText}>Find nearby services</Text>
-        </View>
-      </View>
-
-      <TouchableOpacity
-        style={styles.primaryButton}
-        onPress={() => setCurrentStep('method-selection')}
-        accessibilityLabel="Continue to location selection"
-        accessibilityRole="button"
-      >
-        <Text style={styles.primaryButtonText}>Get Started</Text>
-        <Ionicons name="arrow-forward" size={20} color="white" />
-      </TouchableOpacity>
-
-      {!isSignup && (
-        <TouchableOpacity
-          style={styles.skipButton}
-          onPress={handleSkip}
-          accessibilityLabel="Skip location setup"
-          accessibilityRole="button"
-        >
-          <Text style={styles.skipButtonText}>Skip for now</Text>
-        </TouchableOpacity>
-      )}
     </View>
   );
 
@@ -308,15 +255,16 @@ export default function LocationSetupScreenNew({ navigation, route }: LocationSe
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => setCurrentStep('welcome')}
-        accessibilityLabel="Go back"
-        accessibilityRole="button"
-      >
-        <Ionicons name="arrow-back" size={20} color="#8E8E93" />
-        <Text style={styles.backButtonText}>Back</Text>
-      </TouchableOpacity>
+      {!isSignup && (
+        <TouchableOpacity
+          style={styles.skipButton}
+          onPress={handleSkip}
+          accessibilityLabel="Skip location setup"
+          accessibilityRole="button"
+        >
+          <Text style={styles.skipButtonText}>Skip for now</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 
@@ -334,26 +282,12 @@ export default function LocationSetupScreenNew({ navigation, route }: LocationSe
 
       {(selectedState && selectedLGA) && (
         <View style={styles.locationCard}>
-          {streetName && (
-            <Text style={styles.locationStreet}>{streetName}</Text>
-          )}
           <Text style={styles.locationName}>{selectedLGA.name}</Text>
           <Text style={styles.locationDetails}>
             {selectedState.name}
           </Text>
         </View>
       )}
-
-      {/* Street Name Input */}
-      <View style={styles.streetInputContainer}>
-        <StreetAutocompleteInput
-          value={streetName}
-          onChangeText={setStreetName}
-          placeholder="Enter street name (optional)"
-          label="Street Name"
-          coordinates={currentCoordinates || undefined}
-        />
-      </View>
 
       <TouchableOpacity
         style={styles.primaryButton}
@@ -381,8 +315,6 @@ export default function LocationSetupScreenNew({ navigation, route }: LocationSe
   // Render current step
   const renderCurrentStep = () => {
     switch (currentStep) {
-      case 'welcome':
-        return renderWelcomeStep();
       case 'method-selection':
         return renderMethodSelectionStep();
       case 'gps-picker':
@@ -392,7 +324,7 @@ export default function LocationSetupScreenNew({ navigation, route }: LocationSe
       case 'confirmation':
         return renderConfirmationStep();
       default:
-        return renderWelcomeStep();
+        return renderMethodSelectionStep();
     }
   };
 
@@ -612,14 +544,5 @@ const styles = StyleSheet.create({
     color: '#FF3B30',
     marginLeft: 8,
     fontWeight: '500',
-  },
-  streetInputContainer: {
-    marginBottom: 24,
-  },
-  locationStreet: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000',
-    marginBottom: 4,
   },
 });

@@ -1191,9 +1191,26 @@ export class ApiGatewayController {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
       console.error('Error proxying business service request:', errorMessage);
-      res
-        .status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .json({ error: errorMessage });
+      
+      // Check if it's a connection error
+      if (error && typeof error === 'object' && 'code' in error) {
+        const errorCode = (error as { code: string }).code;
+        if (errorCode === 'ECONNREFUSED' || errorCode === 'ETIMEDOUT') {
+          // Return 503 Service Unavailable for connection errors
+          res.status(HttpStatus.SERVICE_UNAVAILABLE).json({
+            success: false,
+            error: 'Business service is currently unavailable. Please try again later.',
+            message: 'Cannot connect to business service',
+          });
+          return;
+        }
+      }
+      
+      // For other errors, return 500
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        error: errorMessage,
+      });
     }
   }
 

@@ -21,8 +21,6 @@ import PhoneVerificationScreen from './src/screens/onBoarding/PhoneVerificationS
 import OTPVerificationScreen from './src/screens/onBoarding/OTPVerificationScreen';
 import LocationSetupScreen from './src/screens/onBoarding/LocationSetupScreen';
 import LocationSetupScreenNew from './src/screens/onBoarding/LocationSetupScreenNew';
-import NeighborhoodRecommendationScreen from './src/screens/onBoarding/NeighborhoodRecommendationScreen';
-import EstateVerificationScreen from './src/screens/onBoarding/EstateVerificationScreen';
 import EstateSelectionScreen from './src/screens/onBoarding/EstateSelectionScreen';
 import ProfileSetupScreen from './src/screens/onBoarding/ProfileSetupScreen';
 import EmailRegistrationScreen from './src/screens/onBoarding/EmailRegistrationScreen';
@@ -62,8 +60,6 @@ import LocationTestScreen from './src/screens/LocationTestScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
 import MoreScreen from './src/screens/MoreScreen';
 
-// Map Picker Screen
-import MapPickerScreen from './src/screens/onBoarding/MapPickerScreen';
 
 
 // Event Screens
@@ -259,7 +255,6 @@ function MainStackNavigator() {
 
       {/* Development & Testing */}
       <Stack.Screen name="LocationTest" component={LocationTestScreen} />
-      <Stack.Screen name="MapPicker" component={MapPickerScreen} />
     </Stack.Navigator>
   );
 }
@@ -382,24 +377,6 @@ function AppContent() {
             <Stack.Screen 
               name="ProfileSetup" 
               component={ProfileSetupScreen}
-            />
-            
-            {/* Neighborhood Recommendation Screen - DEPRECATED: Replaced by EstateSelection */}
-            <Stack.Screen 
-              name="NeighborhoodRecommendation" 
-              component={NeighborhoodRecommendationScreen}
-            />
-            
-            {/* Estate Verification Screen - DEPRECATED: Verification happens async */}
-            <Stack.Screen 
-              name="EstateVerification" 
-              component={EstateVerificationScreen}
-            />
-            
-            {/* Map Picker Screen */}
-            <Stack.Screen 
-              name="MapPicker" 
-              component={MapPickerScreen}
             />
             
             <Stack.Screen 

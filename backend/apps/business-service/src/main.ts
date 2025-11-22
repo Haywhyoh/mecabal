@@ -62,7 +62,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
-  await app.listen(3009);
-  console.log('🚀 Business Service running on http://localhost:3008');
+  await app.listen(Number(process.env.BUSINESS_SERVICE_PORT));
+  console.log(`🚀 Business Service running on http://localhost:${process.env.BUSINESS_SERVICE_PORT}`);
 }
 bootstrap();

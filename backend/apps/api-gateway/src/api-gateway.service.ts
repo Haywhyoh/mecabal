@@ -563,17 +563,73 @@ export class ApiGatewayService {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
       console.error(`Error proxying to business service: ${errorMessage}`);
+      console.error('Full error object:', error);
+      
+      // Check if it's a connection error
+      if (error && typeof error === 'object' && 'code' in error) {
+        const errorCode = (error as { code: string }).code;
+        if (errorCode === 'ECONNREFUSED' || errorCode === 'ETIMEDOUT') {
+          console.error(`Business service connection error: ${errorCode}`);
+          throw new Error(
+            `Cannot connect to business service at ${this.businessServiceUrl}. Is the service running?`,
+          );
+        }
+      }
 
       if (error && typeof error === 'object' && 'response' in error) {
-        const response = (
-          error as { response: { status: number; statusText: string } }
-        ).response;
+        const axiosError = error as {
+          response?: {
+            status: number;
+            statusText: string;
+            data?: any;
+          };
+        };
+        const response = axiosError.response;
+
+        // Log the full error response for debugging
+        if (response?.data) {
+          console.error('Business service error response:', JSON.stringify(response.data, null, 2));
+        }
+
+        if (!response) {
+          throw new Error(`Business service request failed: ${errorMessage}`);
+        }
+
         const status = response.status;
         const statusText = response.statusText;
+        
+        // Include full error details
+        let errorDetails: any = {
+          status,
+          statusText,
+          message: statusText,
+        };
 
-        throw new Error(
-          `Business request failed with status code ${status}: ${statusText}`,
+        if (response?.data) {
+          if (typeof response.data === 'string') {
+            errorDetails.message = response.data;
+            errorDetails.raw = response.data;
+          } else if (response.data) {
+            // Include the full error response
+            errorDetails = {
+              ...errorDetails,
+              ...response.data,
+              message: response.data.message || response.data.error || statusText,
+            };
+          }
+        }
+
+        // Create a more detailed error message
+        const finalErrorMsg = errorDetails.message || errorDetails.error || statusText;
+        const finalError = new Error(
+          `Business request failed with status code ${status}: ${finalErrorMsg}`,
         );
+
+        // Attach full error details to the error object
+        (finalError as any).response = errorDetails;
+        (finalError as any).status = status;
+
+        throw finalError;
       }
 
       throw error;
