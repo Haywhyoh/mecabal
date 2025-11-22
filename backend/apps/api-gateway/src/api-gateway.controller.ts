@@ -1206,6 +1206,32 @@ export class ApiGatewayController {
         }
       }
       
+      // Check if error has a status code (e.g., 404 from business service)
+      if (error && typeof error === 'object' && 'status' in error) {
+        const errorStatus = (error as { status: number; response?: any }).status;
+        const errorResponse = (error as { response?: any }).response;
+        
+        // Pass through 404 errors with the original response
+        if (errorStatus === 404) {
+          res.status(HttpStatus.NOT_FOUND).json({
+            success: false,
+            error: errorResponse?.message || errorResponse?.error || 'Not found',
+            ...errorResponse,
+          });
+          return;
+        }
+        
+        // Pass through other HTTP status codes (4xx, 5xx)
+        if (errorStatus >= 400 && errorStatus < 600) {
+          res.status(errorStatus).json({
+            success: false,
+            error: errorResponse?.message || errorResponse?.error || errorMessage,
+            ...errorResponse,
+          });
+          return;
+        }
+      }
+      
       // For other errors, return 500
       res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,

@@ -598,6 +598,16 @@ export class ApiGatewayService {
         const status = response.status;
         const statusText = response.statusText;
         
+        // For 404 errors, create a special error that preserves the status code
+        if (status === 404) {
+          const notFoundError = new Error(
+            response.data?.message || response.data?.error || 'Not found',
+          );
+          (notFoundError as any).status = 404;
+          (notFoundError as any).response = response.data;
+          throw notFoundError;
+        }
+        
         // Include full error details
         let errorDetails: any = {
           status,
