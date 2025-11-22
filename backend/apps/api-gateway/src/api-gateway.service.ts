@@ -598,14 +598,14 @@ export class ApiGatewayService {
         const status = response.status;
         const statusText = response.statusText;
         
-        // For 404 errors, create a special error that preserves the status code
-        if (status === 404) {
-          const notFoundError = new Error(
-            response.data?.message || response.data?.error || 'Not found',
+        // For 4xx errors (client errors), preserve the status code
+        if (status >= 400 && status < 500) {
+          const clientError = new Error(
+            response.data?.message || response.data?.error || statusText,
           );
-          (notFoundError as any).status = 404;
-          (notFoundError as any).response = response.data;
-          throw notFoundError;
+          (clientError as any).status = status;
+          (clientError as any).response = response.data;
+          throw clientError;
         }
         
         // Include full error details

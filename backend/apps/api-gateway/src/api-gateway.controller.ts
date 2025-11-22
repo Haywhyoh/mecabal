@@ -490,18 +490,23 @@ export class ApiGatewayController {
   }
 
   // Categories routes
-  @All('categories/*path')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  async proxyCategoriesWildcard(@Req() req: Request, @Res() res: Response) {
-    return this.proxySocialRequest(req, res);
-  }
-
+  // Business categories routes - these should come before the general categories routes
+  // to ensure business categories are routed correctly
   @All('categories')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  async proxyCategories(@Req() req: Request, @Res() res: Response) {
-    return this.proxySocialRequest(req, res);
+  async proxyBusinessCategoriesRoute(@Req() req: Request, @Res() res: Response) {
+    // Route /categories to business service (for business categories)
+    // Transform /categories to /categories for business service
+    return this.proxyBusinessRequest(req, res);
+  }
+
+  @All('categories/*path')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async proxyBusinessCategoriesWildcardRoute(@Req() req: Request, @Res() res: Response) {
+    // Route /categories/* to business service (for business categories)
+    return this.proxyBusinessRequest(req, res);
   }
 
   // Media routes
@@ -1206,23 +1211,34 @@ export class ApiGatewayController {
         }
       }
       
-      // Check if error has a status code (e.g., 404 from business service)
+      // Check if error has a status code (e.g., 404, 401 from business service)
       if (error && typeof error === 'object' && 'status' in error) {
         const errorStatus = (error as { status: number; response?: any }).status;
         const errorResponse = (error as { response?: any }).response;
         
-        // Pass through 404 errors with the original response
-        if (errorStatus === 404) {
-          res.status(HttpStatus.NOT_FOUND).json({
-            success: false,
-            error: errorResponse?.message || errorResponse?.error || 'Not found',
-            ...errorResponse,
-          });
-          return;
-        }
-        
-        // Pass through other HTTP status codes (4xx, 5xx)
+        // Pass through all HTTP status codes (4xx, 5xx) with the original response
         if (errorStatus >= 400 && errorStatus < 600) {
+          // For 401, return proper unauthorized response
+          if (errorStatus === 401) {
+            res.status(HttpStatus.UNAUTHORIZED).json({
+              success: false,
+              error: errorResponse?.message || errorResponse?.error || 'Unauthorized',
+              ...errorResponse,
+            });
+            return;
+          }
+          
+          // For 404, return not found
+          if (errorStatus === 404) {
+            res.status(HttpStatus.NOT_FOUND).json({
+              success: false,
+              error: errorResponse?.message || errorResponse?.error || 'Not found',
+              ...errorResponse,
+            });
+            return;
+          }
+          
+          // For other status codes, pass through
           res.status(errorStatus).json({
             success: false,
             error: errorResponse?.message || errorResponse?.error || errorMessage,
