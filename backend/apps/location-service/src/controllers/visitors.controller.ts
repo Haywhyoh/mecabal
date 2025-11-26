@@ -12,10 +12,13 @@ import {
   Req,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
-import { VisitorService, PreRegisterVisitorDto, GenerateVisitorPassDto } from '../services/visitor.service';
-import { VisitorLogService, VisitorLogFilters } from '../services/visitor-log.service';
+import { VisitorService } from '../services/visitor.service';
+import type { PreRegisterVisitorDto, GenerateVisitorPassDto } from '../services/visitor.service';
+import { VisitorLogService } from '../services/visitor-log.service';
+import type { VisitorLogFilters } from '../services/visitor-log.service';
 import { VisitorAnalyticsService } from '../services/visitor-analytics.service';
-import { VisitorAlertService, CreateAlertDto, AlertFilters } from '../services/visitor-alert.service';
+import { VisitorAlertService } from '../services/visitor-alert.service';
+import type { CreateAlertDto, AlertFilters } from '../services/visitor-alert.service';
 import { JwtAuthGuard, CurrentUser, Public } from '@app/auth';
 import { UseGuards } from '@nestjs/common';
 
