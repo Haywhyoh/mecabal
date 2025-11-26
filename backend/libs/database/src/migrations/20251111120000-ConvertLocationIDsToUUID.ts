@@ -9,15 +9,48 @@ export class ConvertLocationIDsToUUID20251111120000 implements MigrationInterfac
         // Enable UUID extension if not already enabled
         await queryRunner.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`);
 
+        // Check if states table already uses UUIDs - if so, skip entire migration
+        const statesIdTypeResult = await queryRunner.query(`
+            SELECT data_type 
+            FROM information_schema.columns 
+            WHERE table_schema = 'public'
+            AND table_name = 'states' 
+            AND column_name = 'id'
+        `);
+
+        // Also check if states table exists
+        if (!statesIdTypeResult || statesIdTypeResult.length === 0) {
+            this.logger('⚠️  States table not found. Skipping conversion migration.');
+            return;
+        }
+
+        const dataType = statesIdTypeResult[0]?.data_type;
+        this.logger(`States table ID data type: ${dataType}`);
+
+        if (dataType === 'uuid') {
+            this.logger('⚠️  States table already uses UUIDs. Skipping conversion migration.');
+            this.logger('✅ Migration skipped - tables already converted.');
+            return;
+        }
+
+        // Only proceed if states table has integer/bigint IDs
+        if (dataType !== 'integer' && dataType !== 'bigint') {
+            this.logger(`⚠️  States table ID type is ${dataType}, not integer. Skipping conversion.`);
+            return;
+        }
+
         // ============================================
         // STEP 1: Convert States Table
         // ============================================
         this.logger('Step 1: Converting states table...');
 
         // Create a mapping table to store old ID -> new UUID mappings
+        // Use the actual data type from the states table
+        const mappingTableType = dataType === 'bigint' ? 'bigint' : 'integer';
+        
         await queryRunner.query(`
             CREATE TEMPORARY TABLE state_id_mapping (
-                old_id integer PRIMARY KEY,
+                old_id ${mappingTableType} PRIMARY KEY,
                 new_id uuid NOT NULL DEFAULT uuid_generate_v4()
             )
         `);

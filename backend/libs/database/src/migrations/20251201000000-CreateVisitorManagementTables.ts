@@ -4,8 +4,14 @@ export class CreateVisitorManagementTables20251201000000 implements MigrationInt
   name = 'CreateVisitorManagementTables20251201000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
+    // Check if tables already exist
+    const visitorsExists = await queryRunner.hasTable('visitors');
+    const passesExists = await queryRunner.hasTable('visitor_passes');
+    const alertsExists = await queryRunner.hasTable('visitor_alerts');
+
     // Create visitors table
-    await queryRunner.query(`
+    if (!visitorsExists) {
+      await queryRunner.query(`
       CREATE TABLE "visitors" (
         "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
         "full_name" character varying(200) NOT NULL,
@@ -28,9 +34,11 @@ export class CreateVisitorManagementTables20251201000000 implements MigrationInt
         CONSTRAINT "PK_visitors" PRIMARY KEY ("id")
       )
     `);
+    }
 
     // Create visitor_passes table
-    await queryRunner.query(`
+    if (!passesExists) {
+      await queryRunner.query(`
       CREATE TABLE "visitor_passes" (
         "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
         "visitor_id" uuid NOT NULL,
@@ -54,9 +62,11 @@ export class CreateVisitorManagementTables20251201000000 implements MigrationInt
         CONSTRAINT "UQ_visitor_passes_qr_code" UNIQUE ("qr_code")
       )
     `);
+    }
 
     // Create visitor_alerts table
-    await queryRunner.query(`
+    if (!alertsExists) {
+      await queryRunner.query(`
       CREATE TABLE "visitor_alerts" (
         "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
         "estate_id" uuid NOT NULL,
@@ -80,124 +90,124 @@ export class CreateVisitorManagementTables20251201000000 implements MigrationInt
         CONSTRAINT "PK_visitor_alerts" PRIMARY KEY ("id")
       )
     `);
+    }
 
-    // Add foreign key constraints for visitors table
-    await queryRunner.query(`
-      ALTER TABLE "visitors"
-      ADD CONSTRAINT "FK_visitors_estate"
-      FOREIGN KEY ("estate_id")
-      REFERENCES "neighborhoods"("id")
-      ON DELETE CASCADE
-    `);
+    // Add foreign key constraints with exception handling
+    if (!visitorsExists || await queryRunner.hasTable('visitors')) {
+      await queryRunner.query(`
+        DO $$ BEGIN
+          ALTER TABLE "visitors"
+          ADD CONSTRAINT "FK_visitors_estate"
+          FOREIGN KEY ("estate_id")
+          REFERENCES "neighborhoods"("id")
+          ON DELETE CASCADE;
+        EXCEPTION
+          WHEN duplicate_object THEN null;
+        END $$;
+      `);
+    }
 
-    // Add foreign key constraints for visitor_passes table
-    await queryRunner.query(`
-      ALTER TABLE "visitor_passes"
-      ADD CONSTRAINT "FK_visitor_passes_visitor"
-      FOREIGN KEY ("visitor_id")
-      REFERENCES "visitors"("id")
-      ON DELETE CASCADE
-    `);
+    if (!passesExists || await queryRunner.hasTable('visitor_passes')) {
+      await queryRunner.query(`
+        DO $$ BEGIN
+          ALTER TABLE "visitor_passes"
+          ADD CONSTRAINT "FK_visitor_passes_visitor"
+          FOREIGN KEY ("visitor_id")
+          REFERENCES "visitors"("id")
+          ON DELETE CASCADE;
+        EXCEPTION
+          WHEN duplicate_object THEN null;
+        END $$;
+      `);
 
-    await queryRunner.query(`
-      ALTER TABLE "visitor_passes"
-      ADD CONSTRAINT "FK_visitor_passes_host"
-      FOREIGN KEY ("host_id")
-      REFERENCES "users"("id")
-      ON DELETE CASCADE
-    `);
+      await queryRunner.query(`
+        DO $$ BEGIN
+          ALTER TABLE "visitor_passes"
+          ADD CONSTRAINT "FK_visitor_passes_host"
+          FOREIGN KEY ("host_id")
+          REFERENCES "users"("id")
+          ON DELETE CASCADE;
+        EXCEPTION
+          WHEN duplicate_object THEN null;
+        END $$;
+      `);
 
-    await queryRunner.query(`
-      ALTER TABLE "visitor_passes"
-      ADD CONSTRAINT "FK_visitor_passes_estate"
-      FOREIGN KEY ("estate_id")
-      REFERENCES "neighborhoods"("id")
-      ON DELETE CASCADE
-    `);
+      await queryRunner.query(`
+        DO $$ BEGIN
+          ALTER TABLE "visitor_passes"
+          ADD CONSTRAINT "FK_visitor_passes_estate"
+          FOREIGN KEY ("estate_id")
+          REFERENCES "neighborhoods"("id")
+          ON DELETE CASCADE;
+        EXCEPTION
+          WHEN duplicate_object THEN null;
+        END $$;
+      `);
+    }
 
-    // Add foreign key constraints for visitor_alerts table
-    await queryRunner.query(`
-      ALTER TABLE "visitor_alerts"
-      ADD CONSTRAINT "FK_visitor_alerts_estate"
-      FOREIGN KEY ("estate_id")
-      REFERENCES "neighborhoods"("id")
-      ON DELETE CASCADE
-    `);
+    if (!alertsExists || await queryRunner.hasTable('visitor_alerts')) {
+      await queryRunner.query(`
+        DO $$ BEGIN
+          ALTER TABLE "visitor_alerts"
+          ADD CONSTRAINT "FK_visitor_alerts_estate"
+          FOREIGN KEY ("estate_id")
+          REFERENCES "neighborhoods"("id")
+          ON DELETE CASCADE;
+        EXCEPTION
+          WHEN duplicate_object THEN null;
+        END $$;
+      `);
 
-    await queryRunner.query(`
-      ALTER TABLE "visitor_alerts"
-      ADD CONSTRAINT "FK_visitor_alerts_visitor"
-      FOREIGN KEY ("visitor_id")
-      REFERENCES "visitors"("id")
-      ON DELETE SET NULL
-    `);
+      await queryRunner.query(`
+        DO $$ BEGIN
+          ALTER TABLE "visitor_alerts"
+          ADD CONSTRAINT "FK_visitor_alerts_visitor"
+          FOREIGN KEY ("visitor_id")
+          REFERENCES "visitors"("id")
+          ON DELETE SET NULL;
+        EXCEPTION
+          WHEN duplicate_object THEN null;
+        END $$;
+      `);
 
-    await queryRunner.query(`
-      ALTER TABLE "visitor_alerts"
-      ADD CONSTRAINT "FK_visitor_alerts_resolver"
-      FOREIGN KEY ("resolved_by")
-      REFERENCES "users"("id")
-      ON DELETE SET NULL
-    `);
+      await queryRunner.query(`
+        DO $$ BEGIN
+          ALTER TABLE "visitor_alerts"
+          ADD CONSTRAINT "FK_visitor_alerts_resolver"
+          FOREIGN KEY ("resolved_by")
+          REFERENCES "users"("id")
+          ON DELETE SET NULL;
+        EXCEPTION
+          WHEN duplicate_object THEN null;
+        END $$;
+      `);
+    }
 
     // Create indexes for visitors table
-    await queryRunner.query(`
-      CREATE INDEX "IDX_visitors_estate_id" ON "visitors" ("estate_id")
-    `);
-
-    await queryRunner.query(`
-      CREATE INDEX "IDX_visitors_phone_number" ON "visitors" ("phone_number")
-    `);
-
-    await queryRunner.query(`
-      CREATE INDEX "IDX_visitors_email" ON "visitors" ("email")
-    `);
+    if (!visitorsExists || await queryRunner.hasTable('visitors')) {
+      await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_visitors_estate_id" ON "visitors" ("estate_id")`);
+      await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_visitors_phone_number" ON "visitors" ("phone_number")`);
+      await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_visitors_email" ON "visitors" ("email")`);
+    }
 
     // Create indexes for visitor_passes table
-    await queryRunner.query(`
-      CREATE INDEX "IDX_visitor_passes_visitor_id" ON "visitor_passes" ("visitor_id")
-    `);
-
-    await queryRunner.query(`
-      CREATE INDEX "IDX_visitor_passes_host_id" ON "visitor_passes" ("host_id")
-    `);
-
-    await queryRunner.query(`
-      CREATE INDEX "IDX_visitor_passes_estate_id" ON "visitor_passes" ("estate_id")
-    `);
-
-    await queryRunner.query(`
-      CREATE INDEX "IDX_visitor_passes_status" ON "visitor_passes" ("status")
-    `);
-
-    await queryRunner.query(`
-      CREATE INDEX "IDX_visitor_passes_qr_code" ON "visitor_passes" ("qr_code")
-    `);
-
-    await queryRunner.query(`
-      CREATE INDEX "IDX_visitor_passes_expires_at" ON "visitor_passes" ("expires_at")
-    `);
+    if (!passesExists || await queryRunner.hasTable('visitor_passes')) {
+      await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_visitor_passes_visitor_id" ON "visitor_passes" ("visitor_id")`);
+      await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_visitor_passes_host_id" ON "visitor_passes" ("host_id")`);
+      await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_visitor_passes_estate_id" ON "visitor_passes" ("estate_id")`);
+      await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_visitor_passes_status" ON "visitor_passes" ("status")`);
+      await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_visitor_passes_qr_code" ON "visitor_passes" ("qr_code")`);
+      await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_visitor_passes_expires_at" ON "visitor_passes" ("expires_at")`);
+    }
 
     // Create indexes for visitor_alerts table
-    await queryRunner.query(`
-      CREATE INDEX "IDX_visitor_alerts_estate_id" ON "visitor_alerts" ("estate_id")
-    `);
-
-    await queryRunner.query(`
-      CREATE INDEX "IDX_visitor_alerts_visitor_id" ON "visitor_alerts" ("visitor_id")
-    `);
-
-    await queryRunner.query(`
-      CREATE INDEX "IDX_visitor_alerts_severity" ON "visitor_alerts" ("severity")
-    `);
-
-    await queryRunner.query(`
-      CREATE INDEX "IDX_visitor_alerts_status" ON "visitor_alerts" ("status")
-    `);
-
-    await queryRunner.query(`
-      CREATE INDEX "IDX_visitor_alerts_created_at" ON "visitor_alerts" ("created_at")
-    `);
+    if (!alertsExists || await queryRunner.hasTable('visitor_alerts')) {
+      await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_visitor_alerts_estate_id" ON "visitor_alerts" ("estate_id")`);
+      await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_visitor_alerts_visitor_id" ON "visitor_alerts" ("visitor_id")`);
+      await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_visitor_alerts_severity" ON "visitor_alerts" ("severity")`);
+      await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_visitor_alerts_status" ON "visitor_alerts" ("status")`);
+      await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_visitor_alerts_created_at" ON "visitor_alerts" ("created_at")`);
+    }
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
@@ -232,4 +242,3 @@ export class CreateVisitorManagementTables20251201000000 implements MigrationInt
     await queryRunner.query(`DROP TABLE IF EXISTS "visitors"`);
   }
 }
-

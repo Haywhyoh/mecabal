@@ -61,24 +61,30 @@ export class CreateLocationHierarchy20251017130000 implements MigrationInterface
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_lgas_type" ON "local_government_areas" ("type")`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_lgas_name" ON "local_government_areas" ("name")`);
 
-        // Create wards table
-        await queryRunner.query(`
-            CREATE TABLE "wards" (
-                "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
-                "name" character varying(100) NOT NULL,
-                "code" character varying(10) NOT NULL,
-                "lga_id" uuid NOT NULL,
-                "boundaries" geometry(Polygon,4326),
-                "created_at" TIMESTAMP NOT NULL DEFAULT now(),
-                "updated_at" TIMESTAMP NOT NULL DEFAULT now(),
-                CONSTRAINT "PK_wards" PRIMARY KEY ("id")
-            )
-        `);
+        // Check if wards table exists before creating
+        const wardsTableExists = await queryRunner.hasTable('wards');
+        if (!wardsTableExists) {
+            // Create wards table
+            await queryRunner.query(`
+                CREATE TABLE "wards" (
+                    "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+                    "name" character varying(100) NOT NULL,
+                    "code" character varying(10) NOT NULL,
+                    "lga_id" uuid NOT NULL,
+                    "boundaries" geometry(Polygon,4326),
+                    "created_at" TIMESTAMP NOT NULL DEFAULT now(),
+                    "updated_at" TIMESTAMP NOT NULL DEFAULT now(),
+                    CONSTRAINT "PK_wards" PRIMARY KEY ("id")
+                )
+            `);
+        }
 
-        // Create indexes on wards
-        await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_wards_lga_id" ON "wards" ("lga_id")`);
-        await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_wards_name" ON "wards" ("name")`);
-        await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_wards_boundaries_gist" ON "wards" USING gist ("boundaries")`);
+        // Create indexes on wards (only if table exists)
+        if (wardsTableExists || await queryRunner.hasTable('wards')) {
+            await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_wards_lga_id" ON "wards" ("lga_id")`);
+            await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_wards_name" ON "wards" ("name")`);
+            await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_wards_boundaries_gist" ON "wards" USING gist ("boundaries")`);
+        }
 
         // Check if neighborhoods table exists and update it
         const neighborhoodsTableExists = await queryRunner.hasTable('neighborhoods');
@@ -124,61 +130,73 @@ export class CreateLocationHierarchy20251017130000 implements MigrationInterface
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_neighborhoods_name" ON "neighborhoods" ("name")`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_neighborhoods_boundaries_gist" ON "neighborhoods" USING gist ("boundaries")`);
 
-        // Create landmarks table
-        await queryRunner.query(`
-            CREATE TABLE "landmarks" (
-                "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
-                "name" character varying(200) NOT NULL,
-                "type" character varying(20) NOT NULL DEFAULT 'OTHER',
-                "neighborhood_id" uuid NOT NULL,
-                "location" geometry(Point,4326),
-                "address" text,
-                "description" text,
-                "created_by" uuid,
-                "verification_status" character varying(20) NOT NULL DEFAULT 'PENDING',
-                "created_at" TIMESTAMP NOT NULL DEFAULT now(),
-                "updated_at" TIMESTAMP NOT NULL DEFAULT now(),
-                CONSTRAINT "PK_landmarks" PRIMARY KEY ("id")
-            )
-        `);
+        // Check if landmarks table exists before creating
+        const landmarksTableExists = await queryRunner.hasTable('landmarks');
+        if (!landmarksTableExists) {
+            // Create landmarks table
+            await queryRunner.query(`
+                CREATE TABLE "landmarks" (
+                    "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+                    "name" character varying(200) NOT NULL,
+                    "type" character varying(20) NOT NULL DEFAULT 'OTHER',
+                    "neighborhood_id" uuid NOT NULL,
+                    "location" geometry(Point,4326),
+                    "address" text,
+                    "description" text,
+                    "created_by" uuid,
+                    "verification_status" character varying(20) NOT NULL DEFAULT 'PENDING',
+                    "created_at" TIMESTAMP NOT NULL DEFAULT now(),
+                    "updated_at" TIMESTAMP NOT NULL DEFAULT now(),
+                    CONSTRAINT "PK_landmarks" PRIMARY KEY ("id")
+                )
+            `);
+        }
 
-        // Create indexes on landmarks
-        await queryRunner.query(`CREATE INDEX "IDX_landmarks_neighborhood_id" ON "landmarks" ("neighborhood_id")`);
-        await queryRunner.query(`CREATE INDEX "IDX_landmarks_type" ON "landmarks" ("type")`);
-        await queryRunner.query(`CREATE INDEX "IDX_landmarks_verification_status" ON "landmarks" ("verification_status")`);
-        await queryRunner.query(`CREATE INDEX "IDX_landmarks_location_gist" ON "landmarks" USING gist ("location")`);
+        // Create indexes on landmarks (only if table exists)
+        if (landmarksTableExists || await queryRunner.hasTable('landmarks')) {
+            await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_landmarks_neighborhood_id" ON "landmarks" ("neighborhood_id")`);
+            await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_landmarks_type" ON "landmarks" ("type")`);
+            await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_landmarks_verification_status" ON "landmarks" ("verification_status")`);
+            await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_landmarks_location_gist" ON "landmarks" USING gist ("location")`);
+        }
 
-        // Create user_locations table
-        await queryRunner.query(`
-            CREATE TABLE "user_locations" (
-                "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
-                "user_id" uuid NOT NULL,
-                "state_id" uuid NOT NULL,
-                "lga_id" uuid NOT NULL,
-                "ward_id" uuid,
-                "neighborhood_id" uuid NOT NULL,
-                "city_town" character varying(100),
-                "address" text,
-                "coordinates" geometry(Point,4326),
-                "is_primary" boolean NOT NULL DEFAULT false,
-                "verification_status" character varying(20) NOT NULL DEFAULT 'UNVERIFIED',
-                "created_at" TIMESTAMP NOT NULL DEFAULT now(),
-                "updated_at" TIMESTAMP NOT NULL DEFAULT now(),
-                CONSTRAINT "PK_user_locations" PRIMARY KEY ("id")
-            )
-        `);
+        // Check if user_locations table exists before creating
+        const userLocationsTableExists = await queryRunner.hasTable('user_locations');
+        if (!userLocationsTableExists) {
+            // Create user_locations table
+            await queryRunner.query(`
+                CREATE TABLE "user_locations" (
+                    "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+                    "user_id" uuid NOT NULL,
+                    "state_id" uuid NOT NULL,
+                    "lga_id" uuid NOT NULL,
+                    "ward_id" uuid,
+                    "neighborhood_id" uuid NOT NULL,
+                    "city_town" character varying(100),
+                    "address" text,
+                    "coordinates" geometry(Point,4326),
+                    "is_primary" boolean NOT NULL DEFAULT false,
+                    "verification_status" character varying(20) NOT NULL DEFAULT 'UNVERIFIED',
+                    "created_at" TIMESTAMP NOT NULL DEFAULT now(),
+                    "updated_at" TIMESTAMP NOT NULL DEFAULT now(),
+                    CONSTRAINT "PK_user_locations" PRIMARY KEY ("id")
+                )
+            `);
+        }
 
-        // Create indexes on user_locations
-        await queryRunner.query(`CREATE INDEX "IDX_user_locations_user_id" ON "user_locations" ("user_id")`);
-        await queryRunner.query(`CREATE INDEX "IDX_user_locations_state_id" ON "user_locations" ("state_id")`);
-        await queryRunner.query(`CREATE INDEX "IDX_user_locations_lga_id" ON "user_locations" ("lga_id")`);
-        await queryRunner.query(`CREATE INDEX "IDX_user_locations_ward_id" ON "user_locations" ("ward_id")`);
-        await queryRunner.query(`CREATE INDEX "IDX_user_locations_neighborhood_id" ON "user_locations" ("neighborhood_id")`);
-        await queryRunner.query(`CREATE INDEX "IDX_user_locations_is_primary" ON "user_locations" ("is_primary")`);
-        await queryRunner.query(`CREATE INDEX "IDX_user_locations_coordinates_gist" ON "user_locations" USING gist ("coordinates")`);
+        // Create indexes on user_locations (only if table exists)
+        if (userLocationsTableExists || await queryRunner.hasTable('user_locations')) {
+            await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_user_locations_user_id" ON "user_locations" ("user_id")`);
+            await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_user_locations_state_id" ON "user_locations" ("state_id")`);
+            await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_user_locations_lga_id" ON "user_locations" ("lga_id")`);
+            await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_user_locations_ward_id" ON "user_locations" ("ward_id")`);
+            await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_user_locations_neighborhood_id" ON "user_locations" ("neighborhood_id")`);
+            await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_user_locations_is_primary" ON "user_locations" ("is_primary")`);
+            await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_user_locations_coordinates_gist" ON "user_locations" USING gist ("coordinates")`);
 
-        // Create unique constraint for primary location per user
-        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_user_primary_location" ON "user_locations" ("user_id") WHERE "is_primary" = true`);
+            // Create unique constraint for primary location per user
+            await queryRunner.query(`CREATE UNIQUE INDEX IF NOT EXISTS "IDX_user_primary_location" ON "user_locations" ("user_id") WHERE "is_primary" = true`);
+        }
 
         // Skip foreign key constraints for now due to type mismatches
         // These will be added in a separate migration after ID type conversions

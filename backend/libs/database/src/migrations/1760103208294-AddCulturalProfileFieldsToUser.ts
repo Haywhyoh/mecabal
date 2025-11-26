@@ -2,87 +2,187 @@ import { MigrationInterface, QueryRunner, TableColumn, TableForeignKey } from 't
 
 export class AddCulturalProfileFieldsToUser1760103208294 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // Add cultural profile fields to users table
-    await queryRunner.addColumns('users', [
-      new TableColumn({
-        name: 'state_of_origin_id',
-        type: 'varchar',
-        length: '50',
-        isNullable: true,
-      }),
-      new TableColumn({
-        name: 'cultural_background_id',
-        type: 'varchar',
-        length: '50',
-        isNullable: true,
-      }),
-      new TableColumn({
-        name: 'professional_category_id',
-        type: 'uuid',
-        isNullable: true,
-      }),
-      new TableColumn({
-        name: 'professional_title',
-        type: 'varchar',
-        length: '100',
-        isNullable: true,
-      }),
-    ]);
+    // Check if columns already exist
+    const columnsToAdd: TableColumn[] = [];
+    
+    const stateOfOriginExists = await queryRunner.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'users' 
+      AND column_name = 'state_of_origin_id'
+    `);
+    
+    const culturalBackgroundExists = await queryRunner.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'users' 
+      AND column_name = 'cultural_background_id'
+    `);
+    
+    const professionalCategoryExists = await queryRunner.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'users' 
+      AND column_name = 'professional_category_id'
+    `);
+    
+    const professionalTitleExists = await queryRunner.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'users' 
+      AND column_name = 'professional_title'
+    `);
 
-    // Add foreign key constraints
-    await queryRunner.createForeignKey(
-      'users',
-      new TableForeignKey({
-        columnNames: ['state_of_origin_id'],
-        referencedColumnNames: ['id'],
-        referencedTableName: 'nigerian_states',
-        onDelete: 'SET NULL',
-      }),
-    );
+    // Add columns that don't exist
+    if (!stateOfOriginExists || stateOfOriginExists.length === 0) {
+      columnsToAdd.push(
+        new TableColumn({
+          name: 'state_of_origin_id',
+          type: 'varchar',
+          length: '50',
+          isNullable: true,
+        })
+      );
+    }
 
-    await queryRunner.createForeignKey(
-      'users',
-      new TableForeignKey({
-        columnNames: ['cultural_background_id'],
-        referencedColumnNames: ['id'],
-        referencedTableName: 'cultural_backgrounds',
-        onDelete: 'SET NULL',
-      }),
-    );
+    if (!culturalBackgroundExists || culturalBackgroundExists.length === 0) {
+      columnsToAdd.push(
+        new TableColumn({
+          name: 'cultural_background_id',
+          type: 'varchar',
+          length: '50',
+          isNullable: true,
+        })
+      );
+    }
 
-    await queryRunner.createForeignKey(
-      'users',
-      new TableForeignKey({
-        columnNames: ['professional_category_id'],
-        referencedColumnNames: ['id'],
-        referencedTableName: 'professional_categories',
-        onDelete: 'SET NULL',
-      }),
-    );
+    if (!professionalCategoryExists || professionalCategoryExists.length === 0) {
+      columnsToAdd.push(
+        new TableColumn({
+          name: 'professional_category_id',
+          type: 'uuid',
+          isNullable: true,
+        })
+      );
+    }
+
+    if (!professionalTitleExists || professionalTitleExists.length === 0) {
+      columnsToAdd.push(
+        new TableColumn({
+          name: 'professional_title',
+          type: 'varchar',
+          length: '100',
+          isNullable: true,
+        })
+      );
+    }
+
+    // Add columns if any need to be added
+    if (columnsToAdd.length > 0) {
+      await queryRunner.addColumns('users', columnsToAdd);
+    }
+
+    // Add foreign key constraints with exception handling
+    // Check if columns exist (either already existed or were just added)
+    const stateOfOriginColumnExists = (stateOfOriginExists && stateOfOriginExists.length > 0) || columnsToAdd.some(c => c.name === 'state_of_origin_id');
+    const culturalBackgroundColumnExists = (culturalBackgroundExists && culturalBackgroundExists.length > 0) || columnsToAdd.some(c => c.name === 'cultural_background_id');
+    const professionalCategoryColumnExists = (professionalCategoryExists && professionalCategoryExists.length > 0) || columnsToAdd.some(c => c.name === 'professional_category_id');
+
+    if (stateOfOriginColumnExists) {
+      await queryRunner.query(`
+        DO $$ BEGIN
+          ALTER TABLE "users" 
+          ADD CONSTRAINT "FK_users_state_of_origin" 
+          FOREIGN KEY ("state_of_origin_id") 
+          REFERENCES "nigerian_states"("id") 
+          ON DELETE SET NULL;
+        EXCEPTION
+          WHEN duplicate_object THEN null;
+        END $$;
+      `);
+    }
+
+    if (culturalBackgroundColumnExists) {
+      await queryRunner.query(`
+        DO $$ BEGIN
+          ALTER TABLE "users" 
+          ADD CONSTRAINT "FK_users_cultural_background" 
+          FOREIGN KEY ("cultural_background_id") 
+          REFERENCES "cultural_backgrounds"("id") 
+          ON DELETE SET NULL;
+        EXCEPTION
+          WHEN duplicate_object THEN null;
+        END $$;
+      `);
+    }
+
+    if (professionalCategoryColumnExists) {
+      await queryRunner.query(`
+        DO $$ BEGIN
+          ALTER TABLE "users" 
+          ADD CONSTRAINT "FK_users_professional_category" 
+          FOREIGN KEY ("professional_category_id") 
+          REFERENCES "professional_categories"("id") 
+          ON DELETE SET NULL;
+        EXCEPTION
+          WHEN duplicate_object THEN null;
+        END $$;
+      `);
+    }
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     // Drop foreign key constraints
-    const table = await queryRunner.getTable('users');
-    if (table) {
-      const foreignKeys = table.foreignKeys.filter(
-        (fk) =>
-          fk.columnNames.includes('state_of_origin_id') ||
-          fk.columnNames.includes('cultural_background_id') ||
-          fk.columnNames.includes('professional_category_id'),
-      );
+    await queryRunner.query(`ALTER TABLE "users" DROP CONSTRAINT IF EXISTS "FK_users_state_of_origin"`);
+    await queryRunner.query(`ALTER TABLE "users" DROP CONSTRAINT IF EXISTS "FK_users_cultural_background"`);
+    await queryRunner.query(`ALTER TABLE "users" DROP CONSTRAINT IF EXISTS "FK_users_professional_category"`);
 
-      for (const foreignKey of foreignKeys) {
-        await queryRunner.dropForeignKey('users', foreignKey);
-      }
+    // Drop columns if they exist
+    const columnsToDrop: string[] = [];
+    
+    const stateOfOriginExists = await queryRunner.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'users' 
+      AND column_name = 'state_of_origin_id'
+    `);
+    
+    const culturalBackgroundExists = await queryRunner.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'users' 
+      AND column_name = 'cultural_background_id'
+    `);
+    
+    const professionalCategoryExists = await queryRunner.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'users' 
+      AND column_name = 'professional_category_id'
+    `);
+    
+    const professionalTitleExists = await queryRunner.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'users' 
+      AND column_name = 'professional_title'
+    `);
+
+    if (stateOfOriginExists && stateOfOriginExists.length > 0) {
+      columnsToDrop.push('state_of_origin_id');
+    }
+    if (culturalBackgroundExists && culturalBackgroundExists.length > 0) {
+      columnsToDrop.push('cultural_background_id');
+    }
+    if (professionalCategoryExists && professionalCategoryExists.length > 0) {
+      columnsToDrop.push('professional_category_id');
+    }
+    if (professionalTitleExists && professionalTitleExists.length > 0) {
+      columnsToDrop.push('professional_title');
     }
 
-    // Drop columns
-    await queryRunner.dropColumns('users', [
-      'state_of_origin_id',
-      'cultural_background_id',
-      'professional_category_id',
-      'professional_title',
-    ]);
+    if (columnsToDrop.length > 0) {
+      await queryRunner.dropColumns('users', columnsToDrop);
+    }
   }
 }

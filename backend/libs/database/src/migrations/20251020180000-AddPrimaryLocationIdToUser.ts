@@ -4,24 +4,38 @@ export class AddPrimaryLocationIdToUser20251020180000 implements MigrationInterf
   name = 'AddPrimaryLocationIdToUser20251020180000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // Add primary_location_id column to users table
-    await queryRunner.query(`
-      ALTER TABLE "users" 
-      ADD COLUMN "primary_location_id" uuid;
+    // Check if column already exists
+    const columnExists = await queryRunner.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'users' 
+      AND column_name = 'primary_location_id'
     `);
 
-    // Add foreign key constraint to user_locations table
+    // Add primary_location_id column to users table (only if it doesn't exist)
+    if (!columnExists || columnExists.length === 0) {
+      await queryRunner.query(`
+        ALTER TABLE "users" 
+        ADD COLUMN "primary_location_id" uuid;
+      `);
+    }
+
+    // Add foreign key constraint to user_locations table (with exception handling)
     await queryRunner.query(`
-      ALTER TABLE "users" 
-      ADD CONSTRAINT "FK_users_primary_location" 
-      FOREIGN KEY ("primary_location_id") 
-      REFERENCES "user_locations"("id") 
-      ON DELETE SET NULL;
+      DO $$ BEGIN
+        ALTER TABLE "users" 
+        ADD CONSTRAINT "FK_users_primary_location" 
+        FOREIGN KEY ("primary_location_id") 
+        REFERENCES "user_locations"("id") 
+        ON DELETE SET NULL;
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
     `);
 
     // Add index for better query performance
     await queryRunner.query(`
-      CREATE INDEX "IDX_users_primary_location_id" 
+      CREATE INDEX IF NOT EXISTS "IDX_users_primary_location_id" 
       ON "users" ("primary_location_id");
     `);
   }
