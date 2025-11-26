@@ -121,10 +121,18 @@ export class FileUploadService {
 
     // Only process images
     if (file.mimeType.startsWith('image/')) {
+      // Ensure numeric values (convert strings to numbers)
+      const maxWidth = options?.maxWidth 
+        ? (typeof options.maxWidth === 'string' ? parseInt(options.maxWidth, 10) : options.maxWidth)
+        : 1920;
+      const quality = options?.quality 
+        ? (typeof options.quality === 'string' ? parseFloat(options.quality) : options.quality)
+        : 85;
+      
       const processed = await this.imageService.processImage(file.buffer, {
-        maxWidth: options?.maxWidth || 1920,
+        maxWidth,
         maxHeight: 1920,
-        quality: options?.quality || 85,
+        quality,
       });
 
       file = {

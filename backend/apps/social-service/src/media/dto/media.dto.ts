@@ -14,13 +14,14 @@ export enum MediaType {
 }
 
 export class UploadMediaDto {
-  @ApiProperty({
-    description: 'Media type',
+  @ApiPropertyOptional({
+    description: 'Media type (auto-detected from file if not provided)',
     enum: MediaType,
     example: MediaType.IMAGE,
   })
+  @IsOptional()
   @IsEnum(MediaType)
-  type: MediaType;
+  type?: MediaType;
 
   @ApiPropertyOptional({
     description: 'Media caption',

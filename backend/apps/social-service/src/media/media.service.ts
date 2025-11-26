@@ -43,8 +43,11 @@ export class MediaService {
 
     try {
       for (const file of files) {
+        // Determine media type from mimeType if not provided
+        const mediaType = uploadDto.type || this.determineMediaType(file.mimetype);
+
         // Validate file type
-        this.validateFileType(file, uploadDto.type);
+        this.validateFileType(file, mediaType);
 
         // Prepare file data
         const mediaFile = {
@@ -55,19 +58,27 @@ export class MediaService {
         };
 
         // Use shared file upload service
+        // Ensure numeric values (convert strings to numbers if needed)
+        const quality = uploadDto.quality 
+          ? (typeof uploadDto.quality === 'string' ? parseFloat(uploadDto.quality) : uploadDto.quality)
+          : undefined;
+        const maxWidth = uploadDto.maxWidth 
+          ? (typeof uploadDto.maxWidth === 'string' ? parseInt(uploadDto.maxWidth, 10) : uploadDto.maxWidth)
+          : undefined;
+        
         const uploadResult = await this.fileUploadService.uploadMedia(
           mediaFile,
           userId,
           {
-            quality: uploadDto.quality,
-            maxWidth: uploadDto.maxWidth,
+            quality,
+            maxWidth,
           },
         );
 
         // Save to database
         const media = this.mediaRepository.create({
           url: uploadResult.url,
-          type: uploadDto.type,
+          type: mediaType,
           caption: uploadDto.caption,
           size: uploadResult.size,
           mimeType: uploadResult.mimeType,
@@ -267,6 +278,18 @@ export class MediaService {
       uploadedAt: media.uploadedAt,
       uploadedBy: media.uploadedBy,
     };
+  }
+
+  private determineMediaType(mimeType: string): MediaType {
+    if (mimeType.startsWith('image/')) {
+      return MediaType.IMAGE;
+    }
+    if (mimeType.startsWith('video/')) {
+      return MediaType.VIDEO;
+    }
+    throw new BadRequestException(
+      `Unsupported file type: ${mimeType}. Only images and videos are supported.`,
+    );
   }
 
   private validateFileType(

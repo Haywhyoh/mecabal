@@ -13,6 +13,7 @@ import {
   PostReaction,
   PostComment,
   User,
+  Media,
 } from '@app/database';
 import {
   CreatePostDto,
@@ -41,6 +42,8 @@ export class PostsService {
     private readonly commentRepository: Repository<PostComment>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(Media)
+    private readonly uploadedMediaRepository: Repository<Media>,
   ) {}
 
   async createPost(
@@ -48,6 +51,25 @@ export class PostsService {
     userId: string,
     neighborhoodId: string,
   ): Promise<PostResponseDto> {
+    // Log incoming DTO for debugging
+    console.log('📝 Creating post with DTO:', {
+      hasContent: !!createPostDto.content,
+      hasTitle: !!createPostDto.title,
+      postType: createPostDto.postType,
+      privacyLevel: createPostDto.privacyLevel,
+      hasMedia: !!createPostDto.media,
+      mediaCount: Array.isArray(createPostDto.media) ? createPostDto.media.length : 0,
+      mediaDetails: Array.isArray(createPostDto.media) ? createPostDto.media.map((m, i) => ({
+        index: i,
+        hasMediaId: !!m.mediaId,
+        hasUrl: !!m.url,
+        hasType: !!m.type,
+        mediaId: m.mediaId,
+        url: m.url ? m.url.substring(0, 50) + '...' : undefined,
+        type: m.type,
+      })) : undefined,
+    });
+
     // Validate category if provided
     if (createPostDto.categoryId) {
       const category = await this.categoryRepository.findOne({
@@ -91,18 +113,106 @@ export class PostsService {
     });
 
     const savedPost = await this.postRepository.save(post);
+    console.log('✅ Post created successfully:', savedPost.id);
 
     // Create media attachments if provided
     if (createPostDto.media && createPostDto.media.length > 0) {
-      const mediaEntities = createPostDto.media.map((media) =>
-        this.mediaRepository.create({
-          postId: (savedPost as any).id,
-          fileUrl: media.url,
-          mediaType: media.type,
-          caption: media.caption,
-        }),
-      );
-      await this.mediaRepository.save(mediaEntities);
+      console.log('📎 Creating media attachments for post:', savedPost.id);
+      console.log('📎 Media DTOs received:', JSON.stringify(createPostDto.media, null, 2));
+      console.log('📎 Media array length:', createPostDto.media.length);
+      
+      try {
+        const mediaEntities = await Promise.all(
+          createPostDto.media.map(async (mediaDto, index) => {
+            try {
+              console.log(`📎 Processing media item ${index + 1}/${createPostDto.media.length}:`, {
+                hasMediaId: !!mediaDto.mediaId,
+                hasUrl: !!mediaDto.url,
+                hasType: !!mediaDto.type,
+                mediaId: mediaDto.mediaId,
+                url: mediaDto.url,
+                type: mediaDto.type,
+              });
+
+              let fileUrl: string;
+              let mediaType: string;
+
+              // If mediaId is provided, look up the media record
+              if (mediaDto.mediaId) {
+                console.log('🔍 Looking up media with ID:', mediaDto.mediaId, 'for user:', userId);
+                const uploadedMedia = await this.uploadedMediaRepository.findOne({
+                  where: { id: mediaDto.mediaId, uploadedBy: userId },
+                });
+
+                if (!uploadedMedia) {
+                  console.error('❌ Media not found:', mediaDto.mediaId, 'for user:', userId);
+                  throw new BadRequestException(
+                    `Media with ID ${mediaDto.mediaId} not found or you don't have permission to use it`,
+                  );
+                }
+
+                console.log('✅ Found media:', uploadedMedia.url, uploadedMedia.type);
+                fileUrl = uploadedMedia.url;
+                mediaType = uploadedMedia.type;
+              } else {
+                // Use provided url and type
+                if (!mediaDto.url || !mediaDto.type) {
+                  console.error('❌ Invalid media data - missing url or type:', {
+                    hasUrl: !!mediaDto.url,
+                    hasType: !!mediaDto.type,
+                    url: mediaDto.url,
+                    type: mediaDto.type,
+                  });
+                  throw new BadRequestException(
+                    'Either mediaId or both url and type must be provided for media',
+                  );
+                }
+                fileUrl = mediaDto.url;
+                mediaType = mediaDto.type;
+                console.log('✅ Using provided url and type:', fileUrl, mediaType);
+              }
+
+              const mediaEntity = this.mediaRepository.create({
+                postId: savedPost.id,
+                fileUrl,
+                mediaType,
+                caption: mediaDto.caption,
+              });
+
+              console.log('✅ Created media entity:', {
+                postId: savedPost.id,
+                fileUrl,
+                mediaType,
+                hasCaption: !!mediaDto.caption,
+              });
+
+              return mediaEntity;
+            } catch (error) {
+              console.error(`❌ Error processing media item ${index + 1}:`, error);
+              throw error;
+            }
+          }),
+        );
+        
+        console.log('💾 Saving', mediaEntities.length, 'media entities to database');
+        const savedMedia = await this.mediaRepository.save(mediaEntities);
+        console.log('✅ Successfully saved', savedMedia.length, 'media entities:', 
+          savedMedia.map(m => ({ id: m.id, url: m.fileUrl, type: m.mediaType }))
+        );
+      } catch (error) {
+        console.error('❌ Error creating media attachments:', error);
+        console.error('❌ Error details:', {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+          postId: savedPost.id,
+          mediaCount: createPostDto.media?.length || 0,
+        });
+        // Don't throw - allow post to be created even if media fails
+        // But log the error for debugging
+        console.warn('⚠️ Post created but media attachments failed. Post ID:', savedPost.id);
+      }
+    } else {
+      console.log('ℹ️ No media provided in createPostDto');
     }
 
     // Reload the post with all relations for formatting
@@ -206,12 +316,42 @@ export class PostsService {
 
       // Add new media
       if (updatePostDto.media.length > 0) {
-        const mediaEntities = updatePostDto.media.map((media) =>
-          this.mediaRepository.create({
-            postId: id,
-            fileUrl: media.url,
-            mediaType: media.type,
-            caption: media.caption,
+        const mediaEntities = await Promise.all(
+          updatePostDto.media.map(async (mediaDto) => {
+            let fileUrl: string;
+            let mediaType: string;
+
+            // If mediaId is provided, look up the media record
+            if (mediaDto.mediaId) {
+              const uploadedMedia = await this.uploadedMediaRepository.findOne({
+                where: { id: mediaDto.mediaId, uploadedBy: userId },
+              });
+
+              if (!uploadedMedia) {
+                throw new BadRequestException(
+                  `Media with ID ${mediaDto.mediaId} not found or you don't have permission to use it`,
+                );
+              }
+
+              fileUrl = uploadedMedia.url;
+              mediaType = uploadedMedia.type;
+            } else {
+              // Use provided url and type
+              if (!mediaDto.url || !mediaDto.type) {
+                throw new BadRequestException(
+                  'Either mediaId or both url and type must be provided for media',
+                );
+              }
+              fileUrl = mediaDto.url;
+              mediaType = mediaDto.type;
+            }
+
+            return this.mediaRepository.create({
+              postId: id,
+              fileUrl,
+              mediaType,
+              caption: mediaDto.caption,
+            });
           }),
         );
         await this.mediaRepository.save(mediaEntities);

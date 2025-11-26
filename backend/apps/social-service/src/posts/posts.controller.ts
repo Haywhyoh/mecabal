@@ -11,6 +11,7 @@ import {
   Request,
   HttpCode,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import type { Request as ExpressRequest } from 'express';
 import {
@@ -68,6 +69,16 @@ export class PostsController {
   ): Promise<PostResponseDto> {
     const userId = req.user.id;
 
+    // Log received DTO at controller level
+    console.log('🎮 Posts Controller - Received createPostDto:', {
+      hasContent: !!createPostDto.content,
+      hasTitle: !!createPostDto.title,
+      postType: createPostDto.postType,
+      hasMedia: !!createPostDto.media,
+      mediaCount: Array.isArray(createPostDto.media) ? createPostDto.media.length : 0,
+      mediaArray: createPostDto.media,
+    });
+
     // Get user's primary neighborhood
     const primaryNeighborhood = req.user.userNeighborhoods?.find(
       (un) => un.isPrimary,
@@ -120,20 +131,40 @@ export class PostsController {
     );
   }
 
+  @Get('categories')
+  @ApiOperation({ summary: 'Get all post categories' })
+  @ApiResponse({
+    status: 200,
+    description: 'Categories retrieved successfully',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getPostCategories(): Promise<any[]> {
+    return this.categoriesService.getCategories({});
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get a single post by ID' })
-  @ApiParam({ name: 'id', description: 'Post ID' })
+  @ApiParam({ name: 'id', description: 'Post ID (UUID)' })
   @ApiResponse({
     status: 200,
     description: 'Post retrieved successfully',
     type: PostResponseDto,
   })
+  @ApiResponse({ status: 400, description: 'Invalid post ID format' })
   @ApiResponse({ status: 404, description: 'Post not found' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getPostById(
     @Param('id') id: string,
     @Request() req: AuthenticatedRequest,
   ): Promise<PostResponseDto> {
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(id)) {
+      throw new BadRequestException(
+        `Invalid post ID format. Expected UUID, got: ${id}`,
+      );
+    }
+    
     const userId = req.user.id;
     return this.postsService.getPostById(id, userId);
   }
@@ -207,16 +238,5 @@ export class PostsController {
     const userId = req.user.id;
     const pinStatus = isPinned === 'true';
     return this.postsService.pinPost(id, userId, pinStatus);
-  }
-
-  @Get('categories')
-  @ApiOperation({ summary: 'Get all post categories' })
-  @ApiResponse({
-    status: 200,
-    description: 'Categories retrieved successfully',
-  })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async getPostCategories(): Promise<any[]> {
-    return this.categoriesService.getCategories({});
   }
 }

@@ -397,6 +397,80 @@ export class ApiGatewayController {
   // Use wildcard matching to catch all social service routes
   // IMPORTANT: More specific routes must come FIRST
 
+  // Specific route for /social/media/upload - handles multipart form data correctly
+  @Post('social/media/upload')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FilesInterceptor('files', 10)) // Allow up to 10 files
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Upload media files via social service' })
+  @ApiConsumes('multipart/form-data')
+  @ApiResponse({ status: 201, description: 'Media uploaded successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async uploadSocialMedia(
+    @UploadedFiles() files: Express.Multer.File[],
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    try {
+      // Create FormData for the social service
+      const formData = new FormData();
+
+      // Add files to form data
+      if (files && files.length > 0) {
+        files.forEach((file) => {
+          if (file.buffer) {
+            formData.append('files', file.buffer, {
+              filename: file.originalname,
+              contentType: file.mimetype,
+            });
+          } else {
+            throw new Error(
+              `File buffer is undefined for ${file.originalname}`,
+            );
+          }
+        });
+      } else {
+        throw new Error('No files provided');
+      }
+
+      // Add other form fields from body or query (merge like media controller does)
+      const type = (req.query as Record<string, any>).type || (req.body as Record<string, any>).type;
+      const caption = (req.query as Record<string, any>).caption || (req.body as Record<string, any>).caption;
+      const quality = (req.query as Record<string, any>).quality || (req.body as Record<string, any>).quality;
+      const maxWidth = (req.query as Record<string, any>).maxWidth || (req.body as Record<string, any>).maxWidth;
+      const maxHeight = (req.query as Record<string, any>).maxHeight || (req.body as Record<string, any>).maxHeight;
+
+      if (type) formData.append('type', type);
+      if (caption) formData.append('caption', caption);
+      if (quality) formData.append('quality', quality);
+      if (maxWidth) formData.append('maxWidth', maxWidth);
+      if (maxHeight) formData.append('maxHeight', maxHeight);
+
+      // Create headers without Content-Type (let FormData set it)
+      const headers = {
+        ...req.headers,
+      };
+      delete headers['content-type'];
+      delete headers['Content-Type'];
+
+      const result: unknown = await this.apiGatewayService.proxyToSocialService(
+        '/media/upload',
+        req.method,
+        formData,
+        headers as Record<string, string | string[] | undefined>,
+        req.user as any,
+      );
+      res.status(HttpStatus.CREATED).json(result);
+    } catch (error) {
+      console.error('Social media upload error:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: errorMessage });
+    }
+  }
+
   // Catch-all route for /social/* - strips /social prefix and forwards to social service
   @All('social/*path')
   @UseGuards(JwtAuthGuard)
@@ -1004,6 +1078,32 @@ export class ApiGatewayController {
   private async proxySocialRequest(req: Request, res: Response) {
     try {
       console.log('🌐 API Gateway - Proxying social service request:', req.url, req.method);
+      
+      // Log request body details for POST requests (especially for post creation)
+      if (req.method === 'POST' && req.body) {
+        const body = req.body as Record<string, any>;
+        console.log('📤 Request body summary:', {
+          hasContent: !!body.content,
+          hasTitle: !!body.title,
+          postType: body.postType,
+          privacyLevel: body.privacyLevel,
+          hasMedia: !!body.media,
+          mediaCount: Array.isArray(body.media) ? body.media.length : 0,
+          mediaDetails: Array.isArray(body.media) ? body.media.map((m: any) => ({
+            hasMediaId: !!m.mediaId,
+            hasUrl: !!m.url,
+            hasType: !!m.type,
+            mediaId: m.mediaId,
+            url: m.url ? m.url.substring(0, 100) + '...' : undefined,
+            type: m.type,
+          })) : undefined,
+        });
+        
+        // Log full media array for debugging
+        if (Array.isArray(body.media) && body.media.length > 0) {
+          console.log('📎 Full media array being sent:', JSON.stringify(body.media, null, 2));
+        }
+      }
 
       const result: unknown = await this.apiGatewayService.proxyToSocialService(
         req.url,
@@ -1019,11 +1119,28 @@ export class ApiGatewayController {
         statusCode = HttpStatus.CREATED;
       }
 
+      // Log response summary for POST requests
+      if (req.method === 'POST' && result) {
+        const response = result as Record<string, any>;
+        console.log('📥 Response summary:', {
+          hasId: !!response.id,
+          hasMedia: !!response.media,
+          mediaCount: Array.isArray(response.media) ? response.media.length : 0,
+        });
+      }
+
       res.status(statusCode).json(result);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
-      console.error('Error proxying social service request:', errorMessage);
+      console.error('❌ Error proxying social service request:', errorMessage);
+      console.error('❌ Error details:', {
+        url: req.url,
+        method: req.method,
+        hasBody: !!req.body,
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       res
         .status(HttpStatus.INTERNAL_SERVER_ERROR)
         .json({ error: errorMessage });

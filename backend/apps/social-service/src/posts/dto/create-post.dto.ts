@@ -46,13 +46,27 @@ export enum PrivacyLevel {
 }
 
 export class PostMediaDto {
-  @ApiProperty({ description: 'Media file URL' })
-  @IsString()
-  url: string;
+  @ApiPropertyOptional({ 
+    description: 'Media ID (from media upload endpoint). If provided, url and type will be fetched automatically.',
+    format: 'uuid'
+  })
+  @IsOptional()
+  @IsUUID()
+  mediaId?: string;
 
-  @ApiProperty({ description: 'Media type', enum: ['image', 'video'] })
-  @IsEnum(['image', 'video'])
-  type: 'image' | 'video';
+  @ApiPropertyOptional({ description: 'Media file URL (required if mediaId is not provided)' })
+  @IsOptional()
+  @ValidateIf((o) => !o.mediaId)
+  @IsNotEmpty({ message: 'URL is required when mediaId is not provided' })
+  @IsString()
+  url?: string;
+
+  @ApiPropertyOptional({ description: 'Media type (required if mediaId is not provided)', enum: ['image', 'video'] })
+  @IsOptional()
+  @ValidateIf((o) => !o.mediaId)
+  @IsNotEmpty({ message: 'Type is required when mediaId is not provided' })
+  @IsEnum(['image', 'video'], { message: 'Type must be either "image" or "video"' })
+  type?: 'image' | 'video';
 
   @ApiPropertyOptional({ description: 'Media caption' })
   @IsOptional()

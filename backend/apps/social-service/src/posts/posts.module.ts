@@ -10,6 +10,7 @@ import {
   PostReaction,
   PostComment,
   User,
+  Media,
 } from '@app/database';
 
 @Module({
@@ -21,6 +22,7 @@ import {
       PostReaction,
       PostComment,
       User,
+      Media,
     ]),
     CategoriesModule,
   ],
