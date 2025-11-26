@@ -117,15 +117,18 @@ export class PostsService {
 
     // Create media attachments if provided
     if (createPostDto.media && createPostDto.media.length > 0) {
+      // Store in local variable so TypeScript knows it's defined
+      const mediaArray = createPostDto.media;
+      
       console.log('📎 Creating media attachments for post:', savedPost.id);
-      console.log('📎 Media DTOs received:', JSON.stringify(createPostDto.media, null, 2));
-      console.log('📎 Media array length:', createPostDto.media.length);
+      console.log('📎 Media DTOs received:', JSON.stringify(mediaArray, null, 2));
+      console.log('📎 Media array length:', mediaArray.length);
       
       try {
         const mediaEntities = await Promise.all(
-          createPostDto.media.map(async (mediaDto, index) => {
+          mediaArray.map(async (mediaDto, index) => {
             try {
-              console.log(`📎 Processing media item ${index + 1}/${createPostDto.media.length}:`, {
+              console.log(`📎 Processing media item ${index + 1}/${mediaArray.length}:`, {
                 hasMediaId: !!mediaDto.mediaId,
                 hasUrl: !!mediaDto.url,
                 hasType: !!mediaDto.type,
