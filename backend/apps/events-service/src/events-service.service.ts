@@ -34,6 +34,12 @@ export class EventsServiceService {
    * Create a new event
    */
   async create(userId: string, neighborhoodId: string, dto: CreateEventDto): Promise<EventResponseDto> {
+    // Ensure categories are seeded
+    const categoryCount = await this.categoryRepo.count();
+    if (categoryCount === 0) {
+      await this.seedCategories();
+    }
+
     // Validate category exists
     const category = await this.categoryRepo.findOne({ where: { id: dto.categoryId } });
     if (!category) {
@@ -876,5 +882,57 @@ export class EventsServiceService {
       isToday: event.isToday(),
       durationString: event.getDurationString(),
     };
+  }
+
+  /**
+   * Get all event categories
+   */
+  async getCategories() {
+    let categories = await this.categoryRepo.find({
+      order: { id: 'ASC' },
+    });
+
+    // If no categories exist, seed them
+    if (categories.length === 0) {
+      categories = await this.seedCategories();
+    }
+
+    return categories.map((cat) => ({
+      id: cat.id,
+      name: cat.name,
+      icon: cat.icon,
+      colorCode: cat.colorCode,
+      description: cat.description,
+    }));
+  }
+
+  /**
+   * Seed event categories if they don't exist
+   */
+  private async seedCategories(): Promise<EventCategory[]> {
+    const defaultCategories = [
+      { id: 1, name: 'Religious Services', icon: 'church', colorCode: '#7B68EE', description: 'Religious gatherings and services' },
+      { id: 2, name: 'Cultural Festivals', icon: 'party-popper', colorCode: '#FF6B35', description: 'Cultural celebrations and festivals' },
+      { id: 3, name: 'Community Events', icon: 'account-group', colorCode: '#4CAF50', description: 'Community gatherings and activities' },
+      { id: 4, name: 'Sports & Fitness', icon: 'dumbbell', colorCode: '#FF9800', description: 'Sports and fitness activities' },
+      { id: 5, name: 'Educational', icon: 'school', colorCode: '#2196F3', description: 'Educational workshops and seminars' },
+      { id: 6, name: 'Business & Networking', icon: 'briefcase', colorCode: '#9C27B0', description: 'Business and networking events' },
+      { id: 7, name: 'Entertainment', icon: 'music', colorCode: '#E91E63', description: 'Entertainment and music events' },
+      { id: 8, name: 'Food & Dining', icon: 'food', colorCode: '#FF5722', description: 'Food and dining experiences' },
+      { id: 9, name: 'Health & Wellness', icon: 'heart-pulse', colorCode: '#00BCD4', description: 'Health and wellness activities' },
+      { id: 10, name: 'Technology', icon: 'laptop', colorCode: '#607D8B', description: 'Technology and innovation events' },
+    ];
+
+    const createdCategories: EventCategory[] = [];
+    for (const catData of defaultCategories) {
+      let category = await this.categoryRepo.findOne({ where: { id: catData.id } });
+      if (!category) {
+        category = this.categoryRepo.create(catData);
+        category = await this.categoryRepo.save(category);
+      }
+      createdCategories.push(category);
+    }
+
+    return createdCategories;
   }
 }

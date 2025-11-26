@@ -390,7 +390,11 @@ export class ApiGatewayService {
   ) {
     try {
       // Strip the /events prefix when forwarding to the events service
-      const eventsPath = path.startsWith('/events') ? path.substring(7) : path;
+      let eventsPath = path.startsWith('/events') ? path.substring(7) : path;
+      // If path becomes empty after stripping, use root path
+      if (eventsPath === '') {
+        eventsPath = '/';
+      }
       const url = `${this.eventsServiceUrl}${eventsPath}`;
 
       console.log('🌐 API Gateway - Proxying to events service:');
@@ -464,11 +468,38 @@ export class ApiGatewayService {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
       console.error(`Error proxying to events service: ${errorMessage}`);
+      console.error('Full error object:', error);
+
+      // Check if it's a connection error
+      if (error && typeof error === 'object' && 'code' in error) {
+        const errorCode = (error as { code: string }).code;
+        if (errorCode === 'ECONNREFUSED' || errorCode === 'ETIMEDOUT') {
+          console.error(`Events service connection error: ${errorCode}`);
+          throw new Error(
+            `Cannot connect to events service at ${this.eventsServiceUrl}. Is the service running?`,
+          );
+        }
+      }
 
       if (error && typeof error === 'object' && 'response' in error) {
-        const response = (
-          error as { response: { status: number; statusText: string } }
-        ).response;
+        const axiosError = error as {
+          response?: {
+            status: number;
+            statusText: string;
+            data?: any;
+          };
+        };
+        const response = axiosError.response;
+
+        // Log the full error response for debugging
+        if (response?.data) {
+          console.error('Events service error response:', JSON.stringify(response.data, null, 2));
+        }
+
+        if (!response) {
+          throw new Error(`Events service request failed: ${errorMessage}`);
+        }
+
         const status = response.status;
         const statusText = response.statusText;
 

@@ -112,6 +112,16 @@ export class EventsServiceController {
     return this.eventsService.getFeaturedEvents(limit);
   }
 
+  @Get('categories')
+  @ApiOperation({ summary: 'Get all event categories' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of event categories',
+  })
+  async getCategories() {
+    return this.eventsService.getCategories();
+  }
+
   @Get('health')
   @ApiOperation({ summary: 'Health check endpoint' })
   @ApiResponse({ status: 200, description: 'Service is healthy' })

@@ -88,7 +88,12 @@ export class AddCulturalProfileFieldsToUser1760103208294 implements MigrationInt
     const culturalBackgroundColumnExists = (culturalBackgroundExists && culturalBackgroundExists.length > 0) || columnsToAdd.some(c => c.name === 'cultural_background_id');
     const professionalCategoryColumnExists = (professionalCategoryExists && professionalCategoryExists.length > 0) || columnsToAdd.some(c => c.name === 'professional_category_id');
 
-    if (stateOfOriginColumnExists) {
+    // Check if referenced tables exist before adding foreign keys
+    const nigerianStatesExists = await queryRunner.hasTable('nigerian_states');
+    const culturalBackgroundsExists = await queryRunner.hasTable('cultural_backgrounds');
+    const professionalCategoriesExists = await queryRunner.hasTable('professional_categories');
+
+    if (stateOfOriginColumnExists && nigerianStatesExists) {
       await queryRunner.query(`
         DO $$ BEGIN
           ALTER TABLE "users" 
@@ -98,11 +103,13 @@ export class AddCulturalProfileFieldsToUser1760103208294 implements MigrationInt
           ON DELETE SET NULL;
         EXCEPTION
           WHEN duplicate_object THEN null;
+          WHEN OTHERS THEN
+            RAISE NOTICE 'Could not add FK_users_state_of_origin: %', SQLERRM;
         END $$;
       `);
     }
 
-    if (culturalBackgroundColumnExists) {
+    if (culturalBackgroundColumnExists && culturalBackgroundsExists) {
       await queryRunner.query(`
         DO $$ BEGIN
           ALTER TABLE "users" 
@@ -112,11 +119,13 @@ export class AddCulturalProfileFieldsToUser1760103208294 implements MigrationInt
           ON DELETE SET NULL;
         EXCEPTION
           WHEN duplicate_object THEN null;
+          WHEN OTHERS THEN
+            RAISE NOTICE 'Could not add FK_users_cultural_background: %', SQLERRM;
         END $$;
       `);
     }
 
-    if (professionalCategoryColumnExists) {
+    if (professionalCategoryColumnExists && professionalCategoriesExists) {
       await queryRunner.query(`
         DO $$ BEGIN
           ALTER TABLE "users" 
@@ -126,6 +135,8 @@ export class AddCulturalProfileFieldsToUser1760103208294 implements MigrationInt
           ON DELETE SET NULL;
         EXCEPTION
           WHEN duplicate_object THEN null;
+          WHEN OTHERS THEN
+            RAISE NOTICE 'Could not add FK_users_professional_category: %', SQLERRM;
         END $$;
       `);
     }

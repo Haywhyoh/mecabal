@@ -693,6 +693,11 @@ export class ApiGatewayController {
     return this.proxyEventsRequest(req, res);
   }
 
+  @All('events/categories')
+  async proxyEventCategories(@Req() req: Request, @Res() res: Response) {
+    return this.proxyEventsRequest(req, res);
+  }
+
   @All('events/:id/rsvp')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
