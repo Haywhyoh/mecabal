@@ -18,6 +18,11 @@ export { Landmark, LandmarkType, VerificationStatus as LandmarkVerificationStatu
 export { UserLocation, VerificationStatus as UserLocationVerificationStatus } from './user-location.entity';
 export { UserNeighborhood } from './user-neighborhood.entity';
 
+// Visitor Management Entities
+export { Visitor } from './visitor.entity';
+export { VisitorPass, VisitorPassStatus } from './visitor-pass.entity';
+export { VisitorAlert, AlertSeverity, AlertType, AlertStatus } from './visitor-alert.entity';
+
 // Social Feed & Content Entities
 export { PostCategory } from './post-category.entity';
 export { Post } from './post.entity';

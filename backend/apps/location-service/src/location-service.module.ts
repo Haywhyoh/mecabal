@@ -8,10 +8,14 @@ import {
   Neighborhood, 
   Landmark, 
   User,
-  UserLocation
+  UserLocation,
+  Visitor,
+  VisitorPass,
+  VisitorAlert
 } from '@app/database/entities';
 import { DatabaseModule } from '@app/database';
 import { GoogleMapsService } from '@app/common/services/google-maps.service';
+import { JwtModule } from '@nestjs/jwt';
 
 // Controllers
 import { LocationServiceController } from './location-service.controller';
@@ -23,6 +27,7 @@ import { LandmarksController } from './controllers/landmarks.controller';
 import { VerificationController } from './controllers/verification.controller';
 import { UserLocationsController } from './controllers/user-locations.controller';
 import { GeocodingController } from './controllers/geocoding.controller';
+import { VisitorsController } from './controllers/visitors.controller';
 
 // Services
 import { LocationServiceService } from './location-service.service';
@@ -35,6 +40,10 @@ import { EstateManagementService } from './services/estate-management.service';
 import { LocationHierarchyService } from './services/location-hierarchy.service';
 import { NeighborhoodRecommendationService } from './services/neighborhood-recommendation.service';
 import { LocationVerificationService } from './verification/location-verification.service';
+import { VisitorService } from './services/visitor.service';
+import { VisitorLogService } from './services/visitor-log.service';
+import { VisitorAnalyticsService } from './services/visitor-analytics.service';
+import { VisitorAlertService } from './services/visitor-alert.service';
 
 // Repositories
 import { NeighborhoodRepository } from './repositories/neighborhood.repository';
@@ -55,7 +64,14 @@ import { UserLocationRepository } from './repositories/user-location.repository'
       Landmark,
       User,
       UserLocation,
+      Visitor,
+      VisitorPass,
+      VisitorAlert,
     ]),
+    JwtModule.register({
+      secret: process.env.JWT_SECRET || 'visitor-pass-secret',
+      signOptions: { expiresIn: '24h' },
+    }),
   ],
   controllers: [
     LocationServiceController,
@@ -67,6 +83,7 @@ import { UserLocationRepository } from './repositories/user-location.repository'
     VerificationController,
     UserLocationsController,
     GeocodingController,
+    VisitorsController,
   ],
   providers: [
     LocationServiceService,
@@ -79,6 +96,10 @@ import { UserLocationRepository } from './repositories/user-location.repository'
     LocationHierarchyService,
     NeighborhoodRecommendationService,
     LocationVerificationService,
+    VisitorService,
+    VisitorLogService,
+    VisitorAnalyticsService,
+    VisitorAlertService,
     NeighborhoodRepository,
     LandmarkRepository,
     UserLocationRepository,
@@ -94,6 +115,10 @@ import { UserLocationRepository } from './repositories/user-location.repository'
     LocationHierarchyService,
     NeighborhoodRecommendationService,
     LocationVerificationService,
+    VisitorService,
+    VisitorLogService,
+    VisitorAnalyticsService,
+    VisitorAlertService,
     NeighborhoodRepository,
     LandmarkRepository,
     UserLocationRepository,
