@@ -88,8 +88,8 @@ export default function WelcomeHeroScreen({ navigation }: any) {
   const handleSignIn = () => {
     // Add haptic feedback
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    // Navigate to WelcomeScreen in login mode  
-    navigation.navigate('Welcome', { mode: 'login' });
+    // Navigate directly to EmailLogin screen
+    navigation.navigate('EmailLogin');
   };
 
   return (

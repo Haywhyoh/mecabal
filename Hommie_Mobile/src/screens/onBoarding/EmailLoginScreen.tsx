@@ -83,21 +83,6 @@ export default function EmailLoginScreen({ navigation, route }: any) {
     }
   };
 
-  const handleAppleLogin = () => {
-    console.log('Apple login pressed');
-    // For SSO login, authenticate and go to home if successful
-    if (onLoginSuccess) {
-      onLoginSuccess();
-    }
-  };
-
-  const handleFacebookLogin = () => {
-    console.log('Facebook login pressed');
-    // For SSO login, authenticate and go to home if successful
-    if (onLoginSuccess) {
-      onLoginSuccess();
-    }
-  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -132,7 +117,25 @@ export default function EmailLoginScreen({ navigation, route }: any) {
               </Text>
             </View>
 
-            {/* Email Input Section */}
+            {/* Google Sign-In - Primary Option */}
+            <View style={styles.socialSection}>
+              <GoogleSignInButton 
+                buttonText="Sign in with Google"
+                onSuccess={handleGoogleLogin}
+                size="large"
+                variant="default"
+                disabled={authLoading}
+                style={styles.googleButton}
+              />
+              
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or continue with email</Text>
+                <View style={styles.dividerLine} />
+              </View>
+            </View>
+
+            {/* Email Input Section - Secondary Option */}
             <View style={styles.inputSection}>
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Email Address</Text>
@@ -147,39 +150,8 @@ export default function EmailLoginScreen({ navigation, route }: any) {
                     autoCapitalize="none"
                     autoCorrect={false}
                     placeholderTextColor={COLORS.textSecondary}
-                    autoFocus
                   />
                 </View>
-              </View>
-            </View>
-
-            {/* Social Login Options */}
-            <View style={styles.socialSection}>
-              <GoogleSignInButton 
-                buttonText="Sign in with Google"
-                onSuccess={handleGoogleLogin}
-                size="large"
-                variant="default"
-                disabled={authLoading}
-                style={styles.googleButton}
-              />
-              
-              <View style={styles.divider}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>or continue with</Text>
-                <View style={styles.dividerLine} />
-              </View>
-
-              <View style={styles.socialButtons}>
-                <TouchableOpacity style={styles.socialButton} onPress={handleAppleLogin}>
-                  <Icon name="apple" size={20} color="#000000" style={styles.socialIcon} />
-                  <Text style={styles.socialButtonText}>Apple</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity style={styles.socialButton} onPress={handleFacebookLogin}>
-                  <Icon name="facebook" size={20} color="#1877F2" style={styles.socialIcon} />
-                  <Text style={styles.socialButtonText}>Facebook</Text>
-                </TouchableOpacity>
               </View>
             </View>
           </View>
@@ -204,7 +176,7 @@ export default function EmailLoginScreen({ navigation, route }: any) {
             
             <TouchableOpacity 
               style={styles.signUpPrompt}
-              onPress={() => safeGoBack(navigation, 'Welcome')}
+              onPress={() => safeGoBack(navigation, 'WelcomeHero')}
             >
               <Text style={styles.signUpText}>
                 Don't have an account? <Text style={styles.signUpLink}>Sign Up</Text>
@@ -323,29 +295,6 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     fontSize: TYPOGRAPHY.fontSizes.sm,
     marginHorizontal: SPACING.md,
-  },
-  socialButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  socialButton: {
-    backgroundColor: COLORS.lightGray,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.sm,
-    borderRadius: BORDER_RADIUS.md,
-    flex: 1,
-    marginHorizontal: SPACING.xs,
-    justifyContent: 'center',
-  },
-  socialIcon: {
-    marginRight: SPACING.sm,
-  },
-  socialButtonText: {
-    color: COLORS.text,
-    fontSize: TYPOGRAPHY.fontSizes.sm,
-    fontWeight: '500',
   },
   buttonContainer: {
     paddingBottom: SPACING.sm,

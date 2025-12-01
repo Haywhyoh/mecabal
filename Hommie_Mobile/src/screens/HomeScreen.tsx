@@ -296,10 +296,10 @@ export default function HomeScreen() {
 
               {/* Menu Items */}
               <View style={styles.sidebarMenu}>
-                {/* Profile */}
+                {/* Profile - Links to More Screen */}
                 <TouchableOpacity
                   style={styles.menuItem}
-                  onPress={() => handleMenuItemPress(() => navigation.navigate('Profile' as never))}
+                  onPress={() => handleMenuItemPress(() => navigation.navigate('More' as never))}
                 >
                   <MaterialCommunityIcons name="account" size={24} color="#00A651" />
                   <Text style={styles.menuItemText}>Profile</Text>

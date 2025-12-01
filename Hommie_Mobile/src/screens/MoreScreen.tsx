@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,12 +8,17 @@ import {
   SafeAreaView,
   Image,
   Alert,
+  Modal,
+  Platform,
+  StatusBar,
 } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { colors, spacing, typography } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
 import { UserAvatar } from '../components/UserAvatar';
 import { HapticFeedback } from '../utils/haptics';
+import { contextAwareGoBack } from '../utils/navigationUtils';
+import MessagingService from '../services/MessagingService';
 
 interface MoreScreenProps {
   navigation?: any;
@@ -37,6 +42,54 @@ interface MenuItem {
 
 const MoreScreen: React.FC<MoreScreenProps> = ({ navigation }) => {
   const { logout, user } = useAuth();
+  const [sidebarVisible, setSidebarVisible] = useState(false);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
+
+  // Get user data for sidebar
+  const currentUser = {
+    firstName: user?.firstName || 'User',
+    lastName: user?.lastName || '',
+    profileImage: user?.profilePictureUrl || null,
+  };
+
+  // Subscribe to messaging service updates for unread count
+  useEffect(() => {
+    const messagingService = MessagingService.getInstance();
+
+    const updateUnreadCount = async () => {
+      try {
+        const conversations = await messagingService.getConversations();
+        const total = Array.isArray(conversations)
+          ? conversations.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0)
+          : 0;
+        setUnreadMessagesCount(total);
+      } catch (error) {
+        console.error('Failed to get conversations for unread count:', error);
+        setUnreadMessagesCount(0);
+      }
+    };
+
+    updateUnreadCount();
+    messagingService.on('conversationUpdated', updateUnreadCount);
+
+    return () => {
+      messagingService.off('conversationUpdated', updateUnreadCount);
+    };
+  }, []);
+
+  const openSidebar = () => {
+    setSidebarVisible(true);
+  };
+
+  const closeSidebar = () => {
+    setSidebarVisible(false);
+  };
+
+  const handleMenuItemPress = (action: () => void) => {
+    closeSidebar();
+    // Small delay to let sidebar close before navigation
+    setTimeout(action, 200);
+  };
 
   const handleNavigation = (screenName: string, params?: any) => {
     navigation?.navigate(screenName, params);
@@ -319,6 +372,25 @@ const MoreScreen: React.FC<MoreScreenProps> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" />
+      
+      {/* Header with Back and Menu buttons */}
+      <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => contextAwareGoBack(navigation, 'main')}
+        >
+          <MaterialCommunityIcons name="arrow-left" size={24} color="#2C2C2C" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>More</Text>
+        <TouchableOpacity 
+          style={styles.menuButton}
+          onPress={openSidebar}
+        >
+          <MaterialCommunityIcons name="menu" size={24} color="#2C2C2C" />
+        </TouchableOpacity>
+      </View>
+
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <ProfileHeader />
         
@@ -346,6 +418,129 @@ const MoreScreen: React.FC<MoreScreenProps> = ({ navigation }) => {
           <Text style={styles.footerVersion}>MeCabal v1.0.0</Text>
         </View>
       </ScrollView>
+
+      {/* Sidebar Menu */}
+      <Modal
+        visible={sidebarVisible}
+        transparent
+        animationType="none"
+        onRequestClose={closeSidebar}
+      >
+        <View style={styles.sidebarOverlay}>
+          {/* Backdrop */}
+          <TouchableOpacity 
+            style={styles.backdrop} 
+            activeOpacity={1} 
+            onPress={closeSidebar}
+          />
+          
+          {/* Sidebar Content */}
+          <View style={styles.sidebar}>
+            <SafeAreaView style={styles.sidebarContent}>
+              {/* Header */}
+              <View style={styles.sidebarHeader}>
+                <View style={styles.sidebarProfileSection}>
+                  <UserAvatar
+                    user={user}
+                    size="medium"
+                    showBadge={true}
+                  />
+                  <View style={styles.sidebarUserInfo}>
+                    <Text style={styles.sidebarUserName}>
+                      {currentUser.firstName} {currentUser.lastName}
+                    </Text>
+                    <Text style={styles.sidebarUserStatus}>
+                      {user?.isVerified ? 'Verified Neighbor' : 'Active Neighbor'}
+                    </Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  style={styles.closeSidebarButton}
+                  onPress={closeSidebar}
+                >
+                  <MaterialCommunityIcons name="close" size={24} color="#8E8E8E" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Menu Items */}
+              <View style={styles.sidebarMenu}>
+                {/* Profile - Links to More Screen */}
+                <TouchableOpacity
+                  style={styles.sidebarMenuItem}
+                  onPress={() => handleMenuItemPress(() => navigation?.navigate('More' as never))}
+                >
+                  <MaterialCommunityIcons name="account" size={24} color="#00A651" />
+                  <Text style={styles.sidebarMenuItemText}>Profile</Text>
+                  <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E93" />
+                </TouchableOpacity>
+
+                {/* Dashboard */}
+                <TouchableOpacity
+                  style={styles.sidebarMenuItem}
+                  onPress={() => handleMenuItemPress(() => navigation?.navigate('Dashboard' as never))}
+                >
+                  <MaterialCommunityIcons name="view-dashboard" size={24} color="#0066CC" />
+                  <Text style={styles.sidebarMenuItemText}>Dashboard</Text>
+                  <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E93" />
+                </TouchableOpacity>
+
+                {/* Events */}
+                <TouchableOpacity
+                  style={styles.sidebarMenuItem}
+                  onPress={() => handleMenuItemPress(() => navigation?.navigate('Events' as never))}
+                >
+                  <MaterialCommunityIcons name="calendar" size={24} color="#7B68EE" />
+                  <Text style={styles.sidebarMenuItemText}>Events</Text>
+                  <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E93" />
+                </TouchableOpacity>
+
+                {/* Messages */}
+                <TouchableOpacity
+                  style={styles.sidebarMenuItem}
+                  onPress={() => handleMenuItemPress(() => navigation?.navigate('Messaging' as never))}
+                >
+                  <View style={styles.sidebarMenuIconContainer}>
+                    <MaterialCommunityIcons name="message" size={24} color="#FF9800" />
+                    {unreadMessagesCount > 0 && (
+                      <View style={styles.sidebarMenuBadge}>
+                        <Text style={styles.sidebarMenuBadgeText}>
+                          {unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={styles.sidebarMenuItemText}>Messages</Text>
+                  <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E93" />
+                </TouchableOpacity>
+
+                {/* Divider */}
+                <View style={styles.sidebarMenuDivider} />
+
+                {/* More/Settings (links to MoreScreen) */}
+                <TouchableOpacity
+                  style={styles.sidebarMenuItem}
+                  onPress={() => handleMenuItemPress(() => navigation?.navigate('More' as never))}
+                >
+                  <MaterialCommunityIcons name="menu" size={24} color="#8E8E93" />
+                  <Text style={styles.sidebarMenuItemText}>More</Text>
+                  <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E93" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Footer */}
+              <View style={styles.sidebarFooter}>
+                <TouchableOpacity
+                  style={styles.sidebarFooterButton}
+                  onPress={() => handleMenuItemPress(() => navigation?.navigate('Profile' as never))}
+                >
+                  <MaterialCommunityIcons name="account-circle" size={20} color="#8E8E93" />
+                  <Text style={styles.sidebarFooterButtonText}>Profile & Settings</Text>
+                </TouchableOpacity>
+              </View>
+            </SafeAreaView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -354,6 +549,30 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F2F2F7',  // Apple's background
+  },
+  header: {
+    backgroundColor: '#FFFFFF',
+    paddingTop: Platform.OS === 'ios' ? 0 : 20,
+    paddingBottom: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  backButton: {
+    padding: 8,
+  },
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#2C2C2C',
+    flex: 1,
+    textAlign: 'center',
+  },
+  menuButton: {
+    padding: 8,
   },
   scrollView: {
     flex: 1,
@@ -504,6 +723,124 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#8E8E93',
     textAlign: 'center',
+  },
+  // Sidebar Styles
+  sidebarOverlay: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  sidebar: {
+    width: '85%',
+    maxWidth: 320,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000000',
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    shadowOffset: { width: 2, height: 0 },
+    elevation: 10,
+  },
+  backdrop: {
+    flex: 1,
+  },
+  sidebarContent: {
+    flex: 1,
+  },
+  sidebarHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+    backgroundColor: '#FAFAFA',
+  },
+  sidebarProfileSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  sidebarUserInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  sidebarUserName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#2C2C2C',
+    marginBottom: 2,
+  },
+  sidebarUserStatus: {
+    fontSize: 14,
+    color: '#00A651',
+    fontWeight: '500',
+  },
+  closeSidebarButton: {
+    padding: 8,
+  },
+  sidebarMenu: {
+    flex: 1,
+    paddingTop: 8,
+  },
+  sidebarMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#F5F5F5',
+  },
+  sidebarMenuItemText: {
+    fontSize: 16,
+    color: '#2C2C2C',
+    marginLeft: 16,
+    flex: 1,
+  },
+  sidebarMenuIconContainer: {
+    position: 'relative',
+    width: 24,
+    height: 24,
+  },
+  sidebarMenuBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -8,
+    backgroundColor: '#E74C3C',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  sidebarMenuBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  sidebarMenuDivider: {
+    height: 0.5,
+    backgroundColor: '#E5E5EA',
+    marginHorizontal: 20,
+    marginVertical: 8,
+  },
+  sidebarFooter: {
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+  },
+  sidebarFooterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  sidebarFooterButtonText: {
+    fontSize: 14,
+    color: '#8E8E8E',
+    marginLeft: 12,
   },
 });
 
