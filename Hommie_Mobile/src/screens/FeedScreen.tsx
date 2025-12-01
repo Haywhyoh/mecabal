@@ -13,7 +13,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import useUnifiedFeed from '../hooks/useUnifiedFeed';
 import { Post } from '../services/postsService';
 import { Event } from '../services/EventsApi';
-import UnifiedFeedList from '../components/UnifiedFeedList';
+import { UnifiedFeedList } from '../components/feed';
 import { PostCreator } from '../components/posts';
 import { SegmentedControl } from '../components/ui';
 import { HelpPostCard } from '../components/posts';
