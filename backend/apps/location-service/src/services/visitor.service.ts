@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, ForbiddenException 
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
-import { Visitor, VisitorPass, VisitorPassStatus, Neighborhood, User } from '@app/database/entities';
+import { Visitor, VisitorPass, VisitorPassStatus, SendMethod, Neighborhood, User } from '@app/database/entities';
 import { EstateManagementService } from './estate-management.service';
 import * as crypto from 'crypto';
 
@@ -29,6 +29,8 @@ export interface GenerateVisitorPassDto {
   guestCount?: number;
   purpose?: string;
   notes?: string;
+  generateAccessCode?: boolean;
+  sendMethod?: SendMethod;
 }
 
 @Injectable()
@@ -48,13 +50,14 @@ export class VisitorService {
 
   /**
    * Pre-register a visitor for an estate
+   * Now allows regular users (residents) to pre-register visitors
    */
   async preRegisterVisitor(
     estateId: string,
     userId: string,
     dto: PreRegisterVisitorDto,
   ): Promise<Visitor> {
-    // Verify estate exists and user is admin
+    // Verify estate exists
     const estate = await this.neighborhoodRepository.findOne({
       where: { id: estateId, type: 'ESTATE' as any },
     });
@@ -63,10 +66,8 @@ export class VisitorService {
       throw new NotFoundException(`Estate with ID ${estateId} not found`);
     }
 
-    const isAdmin = await this.estateManagementService.isEstateAdmin(userId, estateId);
-    if (!isAdmin) {
-      throw new ForbiddenException('Only estate administrators can pre-register visitors');
-    }
+    // Allow both admins and regular users to pre-register visitors
+    // Regular users can pre-register visitors they will host
 
     // Check if visitor already exists (by phone or email)
     let visitor = await this.visitorRepository.findOne({
@@ -214,6 +215,12 @@ export class VisitorService {
       throw new NotFoundException(`Host with ID ${dto.hostId} not found`);
     }
 
+    // Verify host matches requesting user (unless admin)
+    const isAdmin = await this.estateManagementService.isEstateAdmin(userId, estateId);
+    if (!isAdmin && dto.hostId !== userId) {
+      throw new ForbiddenException('You can only create passes for yourself as host');
+    }
+
     // Generate unique QR code token
     const qrToken = crypto.randomBytes(32).toString('hex');
     const passId = crypto.randomUUID();
@@ -233,6 +240,12 @@ export class VisitorService {
       expiresIn: Math.floor((dto.expiresAt.getTime() - Date.now()) / 1000), // Expires when pass expires
     });
 
+    // Generate 4-digit access code if requested
+    let accessCode: string | undefined;
+    if (dto.generateAccessCode) {
+      accessCode = await this.generateAccessCode(estateId);
+    }
+
     // Create visitor pass
     const pass = this.visitorPassRepository.create({
       id: passId,
@@ -241,6 +254,8 @@ export class VisitorService {
       estateId,
       qrCode,
       qrPayload: JSON.stringify(qrPayload),
+      accessCode,
+      sendMethod: dto.sendMethod,
       status: VisitorPassStatus.PENDING,
       expectedArrival: dto.expectedArrival,
       expiresAt: dto.expiresAt,
@@ -250,6 +265,133 @@ export class VisitorService {
     });
 
     return this.visitorPassRepository.save(pass);
+  }
+
+  /**
+   * Generate a unique 4-digit access code for a visitor pass
+   */
+  async generateAccessCode(estateId: string): Promise<string> {
+    let attempts = 0;
+    const maxAttempts = 100;
+
+    while (attempts < maxAttempts) {
+      // Generate random 4-digit code
+      const code = Math.floor(1000 + Math.random() * 9000).toString();
+
+      // Check if code already exists for this estate
+      const existing = await this.visitorPassRepository.findOne({
+        where: { accessCode: code, estateId },
+      });
+
+      if (!existing) {
+        return code;
+      }
+
+      attempts++;
+    }
+
+    throw new BadRequestException('Failed to generate unique access code');
+  }
+
+  /**
+   * Send visitor code via email or SMS
+   */
+  async sendVisitorCode(
+    passId: string,
+    estateId: string,
+    userId: string,
+    method: SendMethod,
+  ): Promise<void> {
+    const pass = await this.visitorPassRepository.findOne({
+      where: { id: passId, estateId },
+      relations: ['visitor', 'host'],
+    });
+
+    if (!pass) {
+      throw new NotFoundException(`Visitor pass with ID ${passId} not found`);
+    }
+
+    // Verify user is the host or admin
+    const isAdmin = await this.estateManagementService.isEstateAdmin(userId, estateId);
+    if (!isAdmin && pass.hostId !== userId) {
+      throw new ForbiddenException('You can only send codes for your own visitor passes');
+    }
+
+    if (!pass.visitor.phoneNumber && !pass.visitor.email) {
+      throw new BadRequestException('Visitor must have phone number or email to send code');
+    }
+
+    // Update send method
+    pass.sendMethod = method;
+    await this.visitorPassRepository.save(pass);
+
+    // TODO: Integrate with email/SMS service
+    // For now, we'll just update the pass
+    // In production, this should call the notification service
+    // await this.notificationService.sendVisitorCode(pass, method);
+  }
+
+  /**
+   * Validate 4-digit access code at entry gate
+   */
+  async validateAccessCode(
+    code: string,
+    estateId: string,
+    gateName?: string,
+  ): Promise<{
+    valid: boolean;
+    pass?: VisitorPass;
+    message: string;
+  }> {
+    // Find pass by access code and estate
+    const pass = await this.visitorPassRepository.findOne({
+      where: { accessCode: code, estateId },
+      relations: ['visitor', 'host', 'estate'],
+    });
+
+    if (!pass) {
+      return {
+        valid: false,
+        message: 'Invalid access code',
+      };
+    }
+
+    // Check if pass is expired
+    if (new Date() > pass.expiresAt) {
+      pass.status = VisitorPassStatus.EXPIRED;
+      await this.visitorPassRepository.save(pass);
+
+      return {
+        valid: false,
+        pass,
+        message: 'Visitor pass has expired',
+      };
+    }
+
+    // Check if pass is revoked
+    if (pass.status === VisitorPassStatus.REVOKED) {
+      return {
+        valid: false,
+        pass,
+        message: 'Visitor pass has been revoked',
+      };
+    }
+
+    // Check if visitor is blacklisted
+    if (pass.visitor.isBlacklisted) {
+      return {
+        valid: false,
+        pass,
+        message: 'Visitor is blacklisted',
+      };
+    }
+
+    // All checks passed
+    return {
+      valid: true,
+      pass,
+      message: 'Access code is valid',
+    };
   }
 
   /**
@@ -396,24 +538,25 @@ export class VisitorService {
   }
 
   /**
-   * Revoke visitor pass
+   * Revoke visitor pass (allow host or admin to revoke)
    */
   async revokeVisitorPass(
     passId: string,
     estateId: string,
     userId: string,
   ): Promise<VisitorPass> {
-    const isAdmin = await this.estateManagementService.isEstateAdmin(userId, estateId);
-    if (!isAdmin) {
-      throw new ForbiddenException('Only estate administrators can revoke visitor passes');
-    }
-
     const pass = await this.visitorPassRepository.findOne({
       where: { id: passId, estateId },
     });
 
     if (!pass) {
       throw new NotFoundException(`Visitor pass with ID ${passId} not found`);
+    }
+
+    // Allow host or admin to revoke
+    const isAdmin = await this.estateManagementService.isEstateAdmin(userId, estateId);
+    if (!isAdmin && pass.hostId !== userId) {
+      throw new ForbiddenException('You can only revoke your own visitor passes');
     }
 
     pass.status = VisitorPassStatus.REVOKED;
@@ -428,11 +571,6 @@ export class VisitorService {
     estateId: string,
     userId: string,
   ): Promise<VisitorPass> {
-    const isAdmin = await this.estateManagementService.isEstateAdmin(userId, estateId);
-    if (!isAdmin) {
-      throw new ForbiddenException('Only estate administrators can view visitor passes');
-    }
-
     const pass = await this.visitorPassRepository.findOne({
       where: { id: passId, estateId },
       relations: ['visitor', 'host', 'estate'],
@@ -442,7 +580,49 @@ export class VisitorService {
       throw new NotFoundException(`Visitor pass with ID ${passId} not found`);
     }
 
+    // Allow access if user is admin or the host
+    const isAdmin = await this.estateManagementService.isEstateAdmin(userId, estateId);
+    if (!isAdmin && pass.hostId !== userId) {
+      throw new ForbiddenException('You can only view your own visitor passes');
+    }
+
     return pass;
+  }
+
+  /**
+   * Get visitor passes created by a user
+   */
+  async getMyVisitorPasses(
+    estateId: string,
+    userId: string,
+  ): Promise<VisitorPass[]> {
+    return this.visitorPassRepository.find({
+      where: { hostId: userId, estateId },
+      relations: ['visitor', 'estate'],
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  /**
+   * Pre-register visitor and generate pass in one call
+   */
+  async preRegisterVisitorWithPass(
+    estateId: string,
+    userId: string,
+    visitorDto: PreRegisterVisitorDto,
+    passDto: Omit<GenerateVisitorPassDto, 'visitorId' | 'hostId'>,
+  ): Promise<{ visitor: Visitor; pass: VisitorPass }> {
+    // Pre-register visitor
+    const visitor = await this.preRegisterVisitor(estateId, userId, visitorDto);
+
+    // Generate pass
+    const pass = await this.generateVisitorPass(estateId, userId, {
+      ...passDto,
+      visitorId: visitor.id,
+      hostId: userId,
+    });
+
+    return { visitor, pass };
   }
 }
 

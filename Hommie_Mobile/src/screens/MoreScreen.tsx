@@ -15,7 +15,7 @@ import {
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { colors, spacing, typography } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
-import { UserAvatar } from '../components/UserAvatar';
+import { UserAvatar } from '../components/profile';
 import { HapticFeedback } from '../utils/haptics';
 import { contextAwareGoBack } from '../utils/navigationUtils';
 import MessagingService from '../services/MessagingService';
@@ -423,8 +423,9 @@ const MoreScreen: React.FC<MoreScreenProps> = ({ navigation }) => {
       <Modal
         visible={sidebarVisible}
         transparent
-        animationType="none"
+        animationType="slide"
         onRequestClose={closeSidebar}
+        statusBarTranslucent
       >
         <View style={styles.sidebarOverlay}>
           {/* Backdrop */}

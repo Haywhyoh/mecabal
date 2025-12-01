@@ -8,7 +8,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import PostCreator from '../components/PostCreator';
+import { PostCreator } from '../components/posts';
 import { Post } from '../services/postsService';
 
 interface CreatePostScreenProps {

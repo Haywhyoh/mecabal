@@ -12,9 +12,8 @@ import {
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import EventCard from '../components/EventCard';
-import EventCardSkeleton from '../components/EventCardSkeleton';
-import ErrorView from '../components/ErrorView';
+import { EventCard, EventCardSkeleton } from '../components/events';
+import { ErrorView } from '../components/ui';
 import { EventsApi, handleApiError } from '../services/EventsApi';
 import type { Event } from '../services/EventsApi';
 import { colors, spacing, typography, shadows } from '../constants';

@@ -78,6 +78,10 @@ import ChatScreen from './src/screens/ChatScreen';
 // Community Posts
 import CreatePostScreen from './src/screens/CreatePostScreen';
 import PostDetailScreen from './src/screens/PostDetailScreen';
+import { VisitorManagementScreen } from './src/screens/VisitorManagementScreen';
+import { PreRegisterVisitorScreen } from './src/screens/PreRegisterVisitorScreen';
+import { VisitorPassScreen } from './src/screens/VisitorPassScreen';
+import { MyQRCodeScreen } from './src/screens/MyQRCodeScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -183,7 +187,7 @@ function TabNavigator() {
       />
       <Tab.Screen
         name="ProfileTab"
-        component={ProfileScreen}
+        component={MoreScreen}
         options={{
           tabBarLabel: 'Profile',
           tabBarIcon: ({ color, focused, size }) => {
@@ -252,6 +256,12 @@ function MainStackNavigator() {
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="Messaging" component={MessagingScreen} />
       <Stack.Screen name="Chat" component={ChatScreen} />
+
+      {/* Visitor Management */}
+      <Stack.Screen name="VisitorManagement" component={VisitorManagementScreen} />
+      <Stack.Screen name="PreRegisterVisitor" component={PreRegisterVisitorScreen} />
+      <Stack.Screen name="VisitorPass" component={VisitorPassScreen} />
+      <Stack.Screen name="MyQRCode" component={MyQRCodeScreen} />
 
       {/* Development & Testing */}
       <Stack.Screen name="LocationTest" component={LocationTestScreen} />

@@ -11,7 +11,7 @@ import {
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
-import { UserProfile } from '../components/UserProfile';
+import { UserProfile } from '../components/profile';
 import { AvatarUploadService } from '../services/avatarUpload';
 
 export default function AvatarTestScreen() {

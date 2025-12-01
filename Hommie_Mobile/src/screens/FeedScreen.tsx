@@ -14,9 +14,9 @@ import useUnifiedFeed from '../hooks/useUnifiedFeed';
 import { Post } from '../services/postsService';
 import { Event } from '../services/EventsApi';
 import UnifiedFeedList from '../components/UnifiedFeedList';
-import PostCreator from '../components/PostCreator';
-import SegmentedControl from '../components/SegmentedControl';
-import HelpPostCard from '../components/HelpPostCard';
+import { PostCreator } from '../components/posts';
+import { SegmentedControl } from '../components/ui';
+import { HelpPostCard } from '../components/posts';
 import { useAuth } from '../contexts/AuthContext';
 
 interface FeedScreenProps {

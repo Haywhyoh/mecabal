@@ -6,7 +6,7 @@ import { contextAwareGoBack } from '../utils/navigationUtils';
 import { useProfile } from '../contexts/ProfileContext';
 import { HapticFeedback } from '../utils/haptics';
 import { Typography } from '../constants/typography';
-import { SkeletonPlaceholder } from '../components/SkeletonPlaceholder';
+import { SkeletonPlaceholder } from '../components/ui';
 
 export default function DashboardScreen() {
   const navigation = useNavigation();

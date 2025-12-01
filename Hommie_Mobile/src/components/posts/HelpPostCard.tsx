@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Post } from '../services/postsService';
-import { UserAvatar } from './UserAvatar';
+import { UserAvatar } from '../profile';
 
 interface HelpPostCardProps {
   post: Post;

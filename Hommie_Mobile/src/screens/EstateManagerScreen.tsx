@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, Modal, ActivityIndicator, Alert, RefreshControl } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { ScreenHeader } from '../components/ScreenHeader';
+import { ScreenHeader } from '../components/ui';
 import { UserProfileService, UserEstate } from '../services/userProfile';
 
 interface EstateManagerScreenProps {

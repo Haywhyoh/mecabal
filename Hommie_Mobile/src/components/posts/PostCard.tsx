@@ -12,7 +12,7 @@ import {
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { Ionicons } from '@expo/vector-icons';
 import { Post } from '../services/postsService';
-import { UserAvatar } from './UserAvatar';
+import { UserAvatar } from '../profile';
 import { PostActionMenu } from './PostActionMenu';
 
 interface PostCardProps {

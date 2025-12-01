@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, Alert, ActivityIndicator, RefreshControl, Modal, TextInput } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { ScreenHeader } from '../components/ScreenHeader';
+import { ScreenHeader } from '../components/ui';
 import { businessInquiryApi } from '../services/api';
 import { BusinessInquiry, InquiryStatus } from '../services/types/business.types';
 

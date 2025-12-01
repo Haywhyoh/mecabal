@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, TextInput, Modal, FlatList, Alert, ActivityIndicator } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { ScreenHeader } from '../components/ScreenHeader';
+import { ScreenHeader } from '../components/ui';
 import { businessApi } from '../services/api';
 import { BusinessProfile, ServiceArea, PricingModel, Availability } from '../services/types/business.types';
 import {

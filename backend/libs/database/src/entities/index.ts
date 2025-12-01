@@ -20,7 +20,7 @@ export { UserNeighborhood } from './user-neighborhood.entity';
 
 // Visitor Management Entities
 export { Visitor } from './visitor.entity';
-export { VisitorPass, VisitorPassStatus } from './visitor-pass.entity';
+export { VisitorPass, VisitorPassStatus, SendMethod } from './visitor-pass.entity';
 export { VisitorAlert, AlertSeverity, AlertType, AlertStatus } from './visitor-alert.entity';
 
 // Social Feed & Content Entities

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, Modal } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { VERIFICATION_BADGES } from '../constants/nigerianData';
-import { ScreenHeader } from '../components/ScreenHeader';
+import { ScreenHeader } from '../components/ui';
 
 interface UserBadge {
   badgeId: string;

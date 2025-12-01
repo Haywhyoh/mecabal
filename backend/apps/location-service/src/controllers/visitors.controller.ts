@@ -36,10 +36,9 @@ export class VisitorsController {
 
   // Visitor Management Endpoints
   @Post(':id/visitors/pre-register')
-  @ApiOperation({ summary: 'Pre-register a visitor for an estate' })
+  @ApiOperation({ summary: 'Pre-register a visitor for an estate (residents can pre-register)' })
   @ApiParam({ name: 'id', description: 'Estate ID' })
   @ApiResponse({ status: 201, description: 'Visitor pre-registered successfully' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Not an estate administrator' })
   async preRegisterVisitor(
     @Param('id') estateId: string,
     @CurrentUser() user: any,
@@ -55,6 +54,35 @@ export class VisitorsController {
     } catch (error) {
       throw new HttpException(
         error.message || 'Failed to pre-register visitor',
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post(':id/visitors/pre-register-with-pass')
+  @ApiOperation({ summary: 'Pre-register visitor and generate pass in one call' })
+  @ApiParam({ name: 'id', description: 'Estate ID' })
+  @ApiResponse({ status: 201, description: 'Visitor pre-registered and pass generated successfully' })
+  async preRegisterVisitorWithPass(
+    @Param('id') estateId: string,
+    @CurrentUser() user: any,
+    @Body() body: { visitor: PreRegisterVisitorDto; pass: Omit<GenerateVisitorPassDto, 'visitorId' | 'hostId'> },
+  ) {
+    try {
+      const result = await this.visitorService.preRegisterVisitorWithPass(
+        estateId,
+        user.id,
+        body.visitor,
+        body.pass,
+      );
+      return {
+        success: true,
+        data: result,
+        message: 'Visitor pre-registered and pass generated successfully',
+      };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to pre-register visitor with pass',
         error.status || HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -260,6 +288,80 @@ export class VisitorsController {
     }
   }
 
+  @Put(':id/visitor-pass/:passId/revoke')
+  @ApiOperation({ summary: 'Revoke visitor pass (host or admin can revoke)' })
+  @ApiParam({ name: 'id', description: 'Estate ID' })
+  @ApiParam({ name: 'passId', description: 'Visitor Pass ID' })
+  @ApiResponse({ status: 200, description: 'Visitor pass revoked successfully' })
+  async revokeVisitorPass(
+    @Param('id') estateId: string,
+    @Param('passId') passId: string,
+    @CurrentUser() user: any,
+  ) {
+    try {
+      const pass = await this.visitorService.revokeVisitorPass(passId, estateId, user.id);
+      return {
+        success: true,
+        data: pass,
+        message: 'Visitor pass revoked successfully',
+      };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to revoke visitor pass',
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get(':id/visitor-pass/my-passes')
+  @ApiOperation({ summary: 'Get visitor passes created by the current user' })
+  @ApiParam({ name: 'id', description: 'Estate ID' })
+  @ApiResponse({ status: 200, description: 'Visitor passes retrieved successfully' })
+  async getMyVisitorPasses(
+    @Param('id') estateId: string,
+    @CurrentUser() user: any,
+  ) {
+    try {
+      const passes = await this.visitorService.getMyVisitorPasses(estateId, user.id);
+      return {
+        success: true,
+        data: passes,
+        count: passes.length,
+      };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to retrieve visitor passes',
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post(':id/visitor-pass/:passId/send-code')
+  @ApiOperation({ summary: 'Send visitor code via email or SMS' })
+  @ApiParam({ name: 'id', description: 'Estate ID' })
+  @ApiParam({ name: 'passId', description: 'Visitor Pass ID' })
+  @ApiBody({ schema: { properties: { method: { type: 'string', enum: ['EMAIL', 'SMS', 'QR'] } } } })
+  @ApiResponse({ status: 200, description: 'Code sent successfully' })
+  async sendVisitorCode(
+    @Param('id') estateId: string,
+    @Param('passId') passId: string,
+    @CurrentUser() user: any,
+    @Body() body: { method: 'EMAIL' | 'SMS' | 'QR' },
+  ) {
+    try {
+      await this.visitorService.sendVisitorCode(passId, estateId, user.id, body.method as any);
+      return {
+        success: true,
+        message: 'Code sent successfully',
+      };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to send code',
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   // Public QR Validation Endpoint (for gate scanners)
   @Post('visitor-pass/validate')
   @Public()
@@ -299,6 +401,50 @@ export class VisitorsController {
     } catch (error) {
       throw new HttpException(
         error.message || 'Failed to validate QR code',
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  // Public Access Code Validation Endpoint (for gate scanners)
+  @Post('visitor-pass/validate-code')
+  @Public()
+  @ApiOperation({ summary: 'Validate 4-digit access code at entry gate (public endpoint)' })
+  @ApiBody({ schema: { properties: { code: { type: 'string' }, estateId: { type: 'string' }, gateName: { type: 'string' } } } })
+  @ApiResponse({ status: 200, description: 'Access code validation result' })
+  async validateAccessCode(
+    @Body() body: { code: string; estateId: string; gateName?: string },
+    @Req() req: any,
+  ) {
+    try {
+      const result = await this.visitorService.validateAccessCode(body.code, body.estateId, body.gateName);
+      
+      // If validation fails, create a system alert
+      if (!result.valid && result.pass) {
+        await this.visitorAlertService.createSystemAlert(
+          result.pass.estateId,
+          {
+            type: 'UNAUTHORIZED_ACCESS' as any,
+            severity: 'HIGH' as any,
+            title: 'Failed Access Code Validation',
+            description: result.message,
+            qrCode: body.code,
+            gateName: body.gateName,
+            visitorId: result.pass.visitorId,
+            visitorPassId: result.pass.id,
+            ipAddress: req.ip,
+            userAgent: req.headers['user-agent'],
+          },
+        );
+      }
+
+      return {
+        success: result.valid,
+        data: result,
+      };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to validate access code',
         error.status || HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

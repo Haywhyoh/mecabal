@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { colors, spacing, typography } from '../constants';
 import NotificationService, { NotificationData } from '../services/NotificationService';
-import { ScreenHeader } from '../components/ScreenHeader';
+import { ScreenHeader } from '../components/ui';
 
 interface NotificationItemProps {
   notification: NotificationData;

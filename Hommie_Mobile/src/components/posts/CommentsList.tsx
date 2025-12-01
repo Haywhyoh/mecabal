@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { Comment } from '../services/postsService';
 import PostsService from '../services/postsService';
-import { UserAvatar } from './UserAvatar';
+import { UserAvatar } from '../profile';
 import { useAuth } from '../contexts/AuthContext';
 import CommentCreator from './CommentCreator';
 

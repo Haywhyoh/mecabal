@@ -404,4 +404,21 @@ export class UserProfileController {
 
     return { message: 'Avatar deleted successfully' };
   }
+
+  @Get('me/qr-code')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Generate QR code for current user with profile information' })
+  @ApiResponse({
+    status: 200,
+    description: 'QR code generated successfully',
+  })
+  async getUserQRCode(
+    @CurrentUser() user: User,
+  ) {
+    const result = await this.userProfileService.generateUserQRCode(user.id);
+    return {
+      success: true,
+      data: result,
+    };
+  }
 }

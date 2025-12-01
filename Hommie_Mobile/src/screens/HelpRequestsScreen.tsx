@@ -17,7 +17,7 @@ import { HelpStackParamList } from '../navigation/HelpNavigation';
 import { COMMUNITY_HELP_CATEGORIES } from '../constants';
 import { PostsService } from '../services/postsService';
 import { useAuth } from '../contexts/AuthContext';
-import { HelpPostCard } from '../components/HelpPostCard';
+import { HelpPostCard } from '../components/posts';
 
 type HelpRequestsScreenProps = {
   navigation: StackNavigationProp<HelpStackParamList, 'HelpRequests'>;

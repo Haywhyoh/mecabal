@@ -8,10 +8,10 @@ import { ListingsService } from '../services/listingsService';
 import { DataService } from '../services/data';
 import { EventsApi } from '../services/EventsApi';
 import MessagingService from '../services/MessagingService';
-import FloatingActionButton from '../components/FloatingActionButton';
+import { FloatingActionButton } from '../components/ui';
 import { useAuth } from '../contexts/AuthContext';
 import { FeedScreen } from '../screens/FeedScreen';
-import { UserAvatar } from '../components/UserAvatar';
+import { UserAvatar } from '../components/profile';
 import MoreScreen from './MoreScreen';
 
 const { width } = Dimensions.get('window');

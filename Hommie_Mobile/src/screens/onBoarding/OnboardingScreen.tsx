@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar } from 'react-native';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../../constants';
-import BackButton from '../../components/BackButton';
+import { BackButton } from '../../components/ui';
 
 export default function OnboardingScreen({ navigation, route }: any) {
   const handleGetStarted = () => {

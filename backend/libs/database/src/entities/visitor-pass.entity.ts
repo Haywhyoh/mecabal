@@ -22,12 +22,19 @@ export enum VisitorPassStatus {
   REVOKED = 'REVOKED',
 }
 
+export enum SendMethod {
+  EMAIL = 'EMAIL',
+  SMS = 'SMS',
+  QR = 'QR',
+}
+
 @Entity('visitor_passes')
 @Index(['visitorId'])
 @Index(['hostId'])
 @Index(['estateId'])
 @Index(['status'])
 @Index(['qrCode'])
+@Index(['accessCode'])
 @Index(['expiresAt'])
 export class VisitorPass {
   @ApiProperty({ description: 'Unique identifier for the visitor pass' })
@@ -101,6 +108,23 @@ export class VisitorPass {
   @ApiProperty({ description: 'Additional notes', required: false })
   @Column({ type: 'text', nullable: true })
   notes?: string;
+
+  @ApiProperty({ description: '4-digit access code for visitor', required: false })
+  @Column({ name: 'access_code', length: 4, nullable: true })
+  accessCode?: string;
+
+  @ApiProperty({
+    description: 'Method used to send the pass',
+    enum: SendMethod,
+    required: false,
+  })
+  @Column({
+    name: 'send_method',
+    type: 'enum',
+    enum: SendMethod,
+    nullable: true,
+  })
+  sendMethod?: SendMethod;
 
   @ApiProperty({ description: 'Pass creation timestamp' })
   @CreateDateColumn({ name: 'created_at' })

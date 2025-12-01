@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { colors, typography, spacing, BORDER_RADIUS, shadows } from '../constants';
-import { ScreenHeader } from '../components/ScreenHeader';
+import { ScreenHeader } from '../components/ui';
 import { MetricsCard } from '../components/analytics/MetricsCard';
 import { AnalyticsChart } from '../components/analytics/AnalyticsChart';
 import { businessAnalyticsApi } from '../services/api/businessAnalyticsApi';

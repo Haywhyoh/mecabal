@@ -5,15 +5,12 @@ import { useNavigation } from '@react-navigation/native';
 import { contextAwareGoBack } from '../utils/navigationUtils';
 import { useAuth } from '../contexts/AuthContext';
 import { useProfile } from '../contexts/ProfileContext';
-import { UserProfile } from '../components/UserProfile';
-import TrustScoreCard from '../components/TrustScoreCard';
-import DashboardStatsCard from '../components/DashboardStatsCard';
+import { UserProfile, TrustScoreCard, DashboardStatsCard } from '../components/profile';
 import { UserDashboardService, DashboardStats } from '../services/userDashboard';
 import { UserProfileService, ProfileCompletionResponse } from '../services/userProfile';
 import { AvatarUploadService } from '../services/avatarUpload';
-import { LoadingState } from '../components/LoadingState';
-import { ErrorState } from '../components/ErrorState';
-import { SkeletonPlaceholder } from '../components/SkeletonPlaceholder';
+import { LoadingState, ErrorState } from '../components/ui';
+import { SkeletonPlaceholder } from '../components/ui';
 import { ToastService } from '../services/toastService';
 import { HapticFeedback } from '../utils/haptics';
 import { Typography } from '../constants/typography';
@@ -441,6 +438,30 @@ export default function ProfileScreen() {
         >
           <MaterialCommunityIcons name="plus-circle" size={20} color="#00A651" />
           <Text style={styles.businessText}>Add business page</Text>
+        </TouchableOpacity>
+
+        {/* 8.5. VISITOR MANAGEMENT */}
+        <TouchableOpacity 
+          style={styles.businessCard} 
+          onPress={() => {
+            HapticFeedback.light();
+            navigation.navigate('VisitorManagement' as never);
+          }}
+        >
+          <MaterialCommunityIcons name="account-group" size={20} color="#00A651" />
+          <Text style={styles.businessText}>Visitor Management</Text>
+        </TouchableOpacity>
+
+        {/* 8.6. MY QR CODE */}
+        <TouchableOpacity 
+          style={styles.businessCard} 
+          onPress={() => {
+            HapticFeedback.light();
+            navigation.navigate('MyQRCode' as never);
+          }}
+        >
+          <MaterialCommunityIcons name="qrcode" size={20} color="#00A651" />
+          <Text style={styles.businessText}>My QR Code</Text>
         </TouchableOpacity>
 
         {/* 9. SIGN OUT - Destructive action at bottom */}

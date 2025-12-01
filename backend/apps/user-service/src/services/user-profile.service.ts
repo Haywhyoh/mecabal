@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Not } from 'typeorm';
+import { JwtService } from '@nestjs/jwt';
 import { User, UserNeighborhood } from '@app/database';
 import { FileUploadService } from '@app/storage';
 import { UpdateProfileDto } from '../dto/update-profile.dto';
@@ -20,6 +21,7 @@ export class UserProfileService {
     @InjectRepository(UserNeighborhood)
     private readonly userNeighborhoodRepository: Repository<UserNeighborhood>,
     private readonly fileUploadService: FileUploadService,
+    private readonly jwtService: JwtService,
   ) {}
 
   /**
@@ -410,5 +412,45 @@ export class UserProfileService {
     }
 
     return response;
+  }
+
+  /**
+   * Generate QR code for user with profile information
+   */
+  async generateUserQRCode(userId: string): Promise<{ qrCode: string; data: any }> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: ['userNeighborhoods', 'userNeighborhoods.neighborhood'],
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    // Get primary estate
+    const primaryEstate = user.userNeighborhoods?.find((un) => un.isPrimary)?.neighborhood;
+
+    // Create QR payload with user information
+    const qrPayload = {
+      userId: user.id,
+      fullName: user.fullName,
+      phoneNumber: user.phoneNumber,
+      email: user.email,
+      estateId: primaryEstate?.id,
+      estateName: primaryEstate?.name,
+      verified: user.isVerified,
+      timestamp: new Date().toISOString(),
+    };
+
+    // Sign QR payload with JWT
+    const qrCode = this.jwtService.sign(qrPayload, {
+      secret: process.env.JWT_SECRET || 'user-qr-secret',
+      expiresIn: '365d', // QR code valid for 1 year
+    });
+
+    return {
+      qrCode,
+      data: qrPayload,
+    };
   }
 }

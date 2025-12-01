@@ -17,6 +17,16 @@ export { businessLicenseApi } from './businessLicenseApi';
 // Export location services
 export { locationApi } from './locationApi';
 
+// Export visitor services
+export { visitorApi } from './visitorApi';
+export type {
+  PreRegisterVisitorDto,
+  GenerateVisitorPassDto,
+  VisitorPass,
+  Visitor,
+  UserQRCode,
+} from './visitorApi';
+
 // Export types
 export * from '../types/business.types';
 export * from '../types/review.types';

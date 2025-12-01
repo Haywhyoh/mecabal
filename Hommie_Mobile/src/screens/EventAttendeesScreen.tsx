@@ -15,8 +15,8 @@ import {
   RefreshControl,
 } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import AttendeeCardSkeleton from '../components/AttendeeCardSkeleton';
-import ErrorView from '../components/ErrorView';
+import { AttendeeCardSkeleton } from '../components/events';
+import { ErrorView } from '../components/ui';
 import { EventsApi, handleApiError } from '../services/EventsApi';
 import type { EventAttendee, AttendeeFilterDto, PaginatedResponse } from '../services/EventsApi';
 import { colors, spacing, typography, shadows } from '../constants';
