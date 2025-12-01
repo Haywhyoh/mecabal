@@ -5,7 +5,7 @@ import {
   NeighborProfile,
   NeighborConnection,
   CONNECTION_TYPES
-} from '../constants/socialNetworkingData';
+} from '../../constants/socialNetworkingData';
 
 interface MutualConnectionsDisplayProps {
   currentUserId: string;

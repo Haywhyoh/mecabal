@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Text } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { UserDashboardService } from '../services/userDashboard';
-import { useProfile } from '../contexts/ProfileContext';
+import { UserDashboardService } from '../../services/userDashboard';
+import { useProfile } from '../../contexts/ProfileContext';
 
 interface BookmarkButtonProps {
   itemType: 'post' | 'listing' | 'event';

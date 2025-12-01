@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { colors, spacing, typography, shadows } from '../constants';
+import { colors, spacing, typography, shadows } from '../../constants';
 
 interface NetworkErrorViewProps {
   onRetry: () => void;

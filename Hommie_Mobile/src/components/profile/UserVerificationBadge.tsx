@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { colors, spacing, typography } from '../constants';
+import { colors, spacing, typography } from '../../constants';
 
 export type VerificationLevel = 'unverified' | 'phone' | 'identity' | 'full';
 export type VerificationBadgeType = 'Estate Manager' | 'Community Leader' | 'Religious Leader' | 'Tech Professional' | 'Sports Coordinator' | 'Cultural Leader' | 'Business Owner' | 'Parent' | 'Verified Resident';

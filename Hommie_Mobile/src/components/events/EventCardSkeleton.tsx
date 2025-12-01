@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
-import { colors, spacing, shadows } from '../constants';
+import { colors, spacing, shadows } from '../../constants';
 
 const EventCardSkeleton: React.FC = () => {
   const shimmerAnimation = useRef(new Animated.Value(0)).current;

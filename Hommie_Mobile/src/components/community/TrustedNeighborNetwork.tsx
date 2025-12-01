@@ -7,7 +7,7 @@ import {
   NeighborProfile,
   NeighborConnection,
   TrustedNeighborLevel
-} from '../constants/socialNetworkingData';
+} from '../../constants/socialNetworkingData';
 
 interface TrustedNeighborNetworkProps {
   userId: string;

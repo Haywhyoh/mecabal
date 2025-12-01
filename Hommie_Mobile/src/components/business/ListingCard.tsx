@@ -8,9 +8,9 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, typography, spacing, shadows } from '../constants';
-import { Listing } from '../services/listingsService';
-import { BusinessProfile } from '../services/businessService';
+import { colors, typography, spacing, shadows } from '../../constants';
+import { Listing } from '../../services/listingsService';
+import { BusinessProfile } from '../../services/businessService';
 
 interface ListingCardProps {
   listing: Listing;

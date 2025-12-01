@@ -14,8 +14,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import * as Haptics from 'expo-haptics';
-import { colors, typography, spacing, BORDER_RADIUS, shadows } from '../constants';
-import { businessReviewApi } from '../services/api/businessReviewApi';
+import { colors, typography, spacing, BORDER_RADIUS, shadows } from '../../constants';
+import { businessReviewApi } from '../../services/api/businessReviewApi';
 
 interface ReviewResponseModalProps {
   visible: boolean;

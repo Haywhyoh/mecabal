@@ -9,12 +9,12 @@ import {
   RefreshControl,
 } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Post } from '../services/postsService';
-import { Event } from '../services/EventsApi';
+import { Post } from '../../services/postsService';
+import { Event } from '../../services/EventsApi';
 import { FeedItem } from '../hooks/useUnifiedFeed';
 import PostCard from './PostCard';
 import EventCard from './EventCard';
-import { colors, spacing, typography } from '../constants';
+import { colors, spacing, typography } from '../../constants';
 
 interface UnifiedFeedListProps {
   items: FeedItem[];

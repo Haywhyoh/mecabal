@@ -11,8 +11,8 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, typography, spacing, shadows } from '../constants';
-import { BusinessService } from '../services/businessService';
+import { colors, typography, spacing, shadows } from '../../constants';
+import { BusinessService } from '../../services/businessService';
 
 interface BusinessInquiryFormProps {
   visible: boolean;

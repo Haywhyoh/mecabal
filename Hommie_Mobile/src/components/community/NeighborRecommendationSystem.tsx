@@ -7,7 +7,7 @@ import {
   RECOMMENDATION_REASONS,
   TRUSTED_NEIGHBOR_LEVELS,
   NIGERIAN_CONNECTION_CONTEXTS
-} from '../constants/socialNetworkingData';
+} from '../../constants/socialNetworkingData';
 
 interface NeighborRecommendationSystemProps {
   userId: string;

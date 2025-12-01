@@ -13,8 +13,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import MediaService, { MediaFile, UploadedMedia } from '../services/mediaService';
-import PostsService, { CreateCommentRequest } from '../services/postsService';
+import MediaService, { MediaFile, UploadedMedia } from '../../services/mediaService';
+import PostsService, { CreateCommentRequest } from '../../services/postsService';
 
 interface CommentCreatorProps {
   visible: boolean;

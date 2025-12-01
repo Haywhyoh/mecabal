@@ -10,8 +10,8 @@ import {
 } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Event, EVENT_CATEGORIES } from '../services/EventsApi';
-import { colors, spacing, typography, shadows } from '../constants';
+import { Event, EVENT_CATEGORIES } from '../../services/EventsApi';
+import { colors, spacing, typography, shadows } from '../../constants';
 
 interface EventCardProps {
   event: Event;

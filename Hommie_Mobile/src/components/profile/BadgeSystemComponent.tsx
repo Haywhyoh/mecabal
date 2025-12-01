@@ -7,7 +7,7 @@ import {
   NIGERIAN_COMMUNITY_TITLES,
   Badge,
   Achievement 
-} from '../constants/gamificationData';
+} from '../../constants/gamificationData';
 
 const { width } = Dimensions.get('window');
 

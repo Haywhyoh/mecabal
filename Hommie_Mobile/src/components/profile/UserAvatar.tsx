@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { NigerianUser } from '../types/supabase';
-import { AvatarUploadService } from '../services/avatarUpload';
+import { NigerianUser } from '../../types/supabase';
+import { AvatarUploadService } from '../../services/avatarUpload';
 
 interface UserAvatarProps {
   user?: NigerianUser | null;

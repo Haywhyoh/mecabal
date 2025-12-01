@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { DashboardStats } from '../contexts/ProfileContext';
+import { DashboardStats } from '../../contexts/ProfileContext';
 
 interface DashboardStatsCardProps {
   dashboardStats: DashboardStats | null;

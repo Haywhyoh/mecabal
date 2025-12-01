@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { colors, typography, spacing, shadows } from '../constants';
-import { NigerianPrice, NigerianLocation } from './NigerianComponents';
+import { colors, typography, spacing, shadows } from '../../constants';
+import { NigerianPrice, NigerianLocation } from '../NigerianComponents';
 
 interface MarketplaceListingCardProps {
   item: {

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, ScrollView, Alert, ActivityIndicator, Platform } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { businessInquiryApi } from '../services/api';
+import { businessInquiryApi } from '../../services/api';
 
 interface SendInquiryModalProps {
   visible: boolean;

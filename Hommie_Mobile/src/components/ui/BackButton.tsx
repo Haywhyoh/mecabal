@@ -2,8 +2,8 @@ import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { COLORS, SPACING, TYPOGRAPHY, SHADOWS } from '../constants';
-import { safeGoBack, contextAwareGoBack } from '../utils/navigationUtils';
+import { COLORS, SPACING, TYPOGRAPHY, SHADOWS } from '../../constants';
+import { safeGoBack, contextAwareGoBack } from '../../utils/navigationUtils';
 
 interface BackButtonProps {
   /** Custom onPress handler - if provided, overrides default back behavior */

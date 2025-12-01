@@ -9,7 +9,7 @@ import {
   TouchableWithoutFeedback,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Post } from '../services/postsService';
+import { Post } from '../../services/postsService';
 
 interface PostActionMenuProps {
   visible: boolean;

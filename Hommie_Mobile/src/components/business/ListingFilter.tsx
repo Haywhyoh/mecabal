@@ -12,7 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 // Note: Slider component would need to be installed separately
 // import Slider from '@react-native-community/slider';
-import { ListingFilter as ListingFilterType } from '../services/listingsService';
+import { ListingFilter as ListingFilterType } from '../../services/listingsService';
 
 interface ListingFilterProps {
   visible: boolean;

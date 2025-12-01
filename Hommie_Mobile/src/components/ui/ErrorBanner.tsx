@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
-import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS } from '../constants';
+import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS } from '../../constants';
 
 interface ErrorBannerProps {
   message: string;

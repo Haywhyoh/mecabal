@@ -11,10 +11,10 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { VideoView, useVideoPlayer } from 'expo-video';
-import { Comment } from '../services/postsService';
-import PostsService from '../services/postsService';
+import { Comment } from '../../services/postsService';
+import PostsService from '../../services/postsService';
 import { UserAvatar } from '../profile';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import CommentCreator from './CommentCreator';
 
 interface CommentsListProps {

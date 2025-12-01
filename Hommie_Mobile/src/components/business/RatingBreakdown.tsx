@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { colors, typography, spacing, BORDER_RADIUS } from '../constants';
-import { ReviewStats } from '../services/types/review.types';
+import { colors, typography, spacing, BORDER_RADIUS } from '../../constants';
+import { ReviewStats } from '../../services/types/review.types';
 
 interface RatingBreakdownProps {
   stats: ReviewStats;

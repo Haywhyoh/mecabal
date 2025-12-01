@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { colors, spacing, typography } from '../constants';
+import { colors, spacing, typography } from '../../constants';
 
 interface PostType {
   id: string;

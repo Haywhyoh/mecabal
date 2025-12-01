@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { TrustScore } from '../contexts/ProfileContext';
+import { TrustScore } from '../../contexts/ProfileContext';
 
 const { width } = Dimensions.get('window');
 

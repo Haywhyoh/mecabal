@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { Ionicons } from '@expo/vector-icons';
-import { Post } from '../services/postsService';
+import { Post } from '../../services/postsService';
 import { UserAvatar } from '../profile';
 import { PostActionMenu } from './PostActionMenu';
 

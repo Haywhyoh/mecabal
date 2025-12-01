@@ -11,8 +11,8 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useLocation } from '../contexts/LocationContext';
-import { networkStatus } from '../utils/networkStatus';
+import { useLocation } from '../../contexts/LocationContext';
+import { networkStatus } from '../../utils/networkStatus';
 
 // MeCabal brand colors
 const MECABAL_GREEN = '#00A651';

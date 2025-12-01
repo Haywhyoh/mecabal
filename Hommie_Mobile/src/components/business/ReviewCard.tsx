@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { colors, typography, spacing, BORDER_RADIUS, shadows } from '../constants';
-import { BusinessReview } from '../services/types/review.types';
+import { colors, typography, spacing, BORDER_RADIUS, shadows } from '../../constants';
+import { BusinessReview } from '../../services/types/review.types';
 import { ReviewResponseModal } from './ReviewResponseModal';
 
 interface ReviewCardProps {

@@ -10,7 +10,7 @@ import {
   Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { PostFilter as PostFilterType } from '../services/postsService';
+import { PostFilter as PostFilterType } from '../../services/postsService';
 
 interface PostFilterProps {
   visible: boolean;

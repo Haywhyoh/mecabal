@@ -7,7 +7,7 @@ import {
   ACHIEVEMENTS,
   ContributionActivity,
   ContributionLevel 
-} from '../constants/gamificationData';
+} from '../../constants/gamificationData';
 
 interface ActivityTrackingProps {
   userId?: string;

@@ -10,8 +10,8 @@ import {
 import * as Haptics from 'expo-haptics';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import EventCard from './EventCard';
-import { colors, spacing, typography } from '../constants';
-import type { Event } from '../services/EventsApi';
+import { colors, spacing, typography } from '../../constants';
+import type { Event } from '../../services/EventsApi';
 
 const { width } = Dimensions.get('window');
 

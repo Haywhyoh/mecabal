@@ -15,8 +15,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import RichTextEditor from './RichTextEditor';
-import MediaService, { MediaFile, UploadedMedia } from '../services/mediaService';
-import PostsService, { CreatePostRequest, Category } from '../services/postsService';
+import MediaService, { MediaFile, UploadedMedia } from '../../services/mediaService';
+import PostsService, { CreatePostRequest, Category } from '../../services/postsService';
 
 interface PostCreatorProps {
   visible: boolean;
