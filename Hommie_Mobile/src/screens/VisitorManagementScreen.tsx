@@ -14,9 +14,7 @@ import { VisitorPassCard } from '../components/VisitorPassCard';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocation } from '../contexts/LocationContext';
 import Toast from 'react-native-toast-message';
-import { LoadingState } from '../components/LoadingState';
-import { ErrorState } from '../components/ErrorState';
-import { EmptyState } from '../components/EmptyState';
+import { LoadingState, ErrorState, EmptyState } from '../components/ui';
 
 export const VisitorManagementScreen: React.FC = () => {
   const navigation = useNavigation();

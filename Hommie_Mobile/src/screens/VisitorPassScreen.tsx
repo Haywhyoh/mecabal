@@ -15,8 +15,7 @@ import { AccessCodeDisplay } from '../components/AccessCodeDisplay';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocation } from '../contexts/LocationContext';
 import Toast from 'react-native-toast-message';
-import { LoadingState } from '../components/LoadingState';
-import { ErrorState } from '../components/ErrorState';
+import { LoadingState, ErrorState } from '../components/ui';
 import { format } from 'date-fns';
 
 export const VisitorPassScreen: React.FC = () => {
