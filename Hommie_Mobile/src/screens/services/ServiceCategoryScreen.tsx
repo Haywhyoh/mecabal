@@ -138,7 +138,7 @@ export default function ServiceCategoryScreen({ route, navigation }: ServiceCate
           <View style={styles.ratingContainer}>
             <MaterialCommunityIcons name="star" size={14} color="#FFC107" />
             <Text style={styles.ratingText}>
-              {item.business.rating.toFixed(1)} ({item.business.reviewCount} reviews)
+              {(typeof item.business.rating === 'number' ? item.business.rating : 0).toFixed(1)} ({item.business.reviewCount || 0} reviews)
             </Text>
           </View>
         )}

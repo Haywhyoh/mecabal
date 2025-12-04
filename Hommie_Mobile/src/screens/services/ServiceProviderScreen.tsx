@@ -107,7 +107,7 @@ export default function ServiceProviderScreen({ route, navigation }: ServiceProv
             <View style={styles.ratingRow}>
               <MaterialCommunityIcons name="star" size={16} color="#FFC107" />
               <Text style={styles.ratingText}>
-                {item.rating.toFixed(1)} ({item.reviewCount} reviews)
+                {(typeof item.rating === 'number' ? item.rating : 0).toFixed(1)} ({item.reviewCount || 0} reviews)
               </Text>
             </View>
             {item.completedJobs > 0 && (

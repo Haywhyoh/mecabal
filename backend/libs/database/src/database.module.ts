@@ -63,6 +63,9 @@ import {
   Visitor,
   VisitorPass,
   VisitorAlert,
+  Booking,
+  Payment,
+  BankAccount,
 } from './entities';
 // Import messaging entities from the messaging service
 import { Conversation } from '../../../apps/messaging-service/src/entities/conversation.entity';
@@ -141,6 +144,9 @@ import { TypingIndicator } from '../../../apps/messaging-service/src/entities/ty
           Visitor,
           VisitorPass,
           VisitorAlert,
+          Booking,
+          Payment,
+          BankAccount,
           // Messaging entities
           Conversation,
           ConversationParticipant,
@@ -224,6 +230,9 @@ import { TypingIndicator } from '../../../apps/messaging-service/src/entities/ty
       Visitor,
       VisitorPass,
       VisitorAlert,
+      Booking,
+      Payment,
+      BankAccount,
       // Messaging entities
       Conversation,
       ConversationParticipant,

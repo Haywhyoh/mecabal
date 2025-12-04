@@ -230,3 +230,32 @@ export interface ServiceBooking {
   serviceDescription?: string;
   serviceDuration?: string;
 }
+
+// DTO for creating a booking
+export interface CreateBookingDto {
+  businessId: string;
+  serviceId?: string;
+  serviceName: string;
+  scheduledDate?: string;
+  scheduledTime?: string;
+  address?: string;
+  description?: string;
+  price: number;
+}
+
+// DTO for updating booking status
+export interface UpdateBookingStatusDto {
+  status: 'pending' | 'confirmed' | 'in-progress' | 'completed' | 'cancelled';
+  cancellationReason?: string;
+}
+
+// Filter for booking queries
+export interface BookingFilter {
+  page?: number;
+  limit?: number;
+  status?: 'pending' | 'confirmed' | 'in-progress' | 'completed' | 'cancelled' | string;
+  businessId?: string;
+  userId?: string;
+  startDate?: string;
+  endDate?: string;
+}

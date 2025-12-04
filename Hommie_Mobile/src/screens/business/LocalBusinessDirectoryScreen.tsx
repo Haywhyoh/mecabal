@@ -356,7 +356,9 @@ export default function LocalBusinessDirectoryScreen() {
 
               <View style={styles.ratingContainer}>
                 <MaterialCommunityIcons name="star" size={14} color="#FFC107" />
-                <Text style={styles.rating}>{business.rating?.toFixed(1) || '0.0'}</Text>
+                <Text style={styles.rating}>
+                  {(typeof business.rating === 'number' ? business.rating : 0).toFixed(1)}
+                </Text>
                 <Text style={styles.reviewCount}>({business.reviewCount || 0} reviews)</Text>
               </View>
             </View>

@@ -14,6 +14,8 @@ export { businessInquiryApi } from './businessInquiryApi';
 export { businessAnalyticsApi } from './businessAnalyticsApi';
 export { businessLicenseApi } from './businessLicenseApi';
 export { businessServiceApi } from './businessServiceApi';
+export { bookingApi } from './bookingApi';
+export { paymentApi } from './paymentApi';
 
 // Export location services
 export { locationApi } from './locationApi';

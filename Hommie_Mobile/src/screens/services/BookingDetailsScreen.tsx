@@ -13,6 +13,9 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { ScreenHeader } from '../../components/ui';
 import { ServiceBooking } from '../../services/types/business.types';
 import { formatNairaCurrency } from '../../constants/businessData';
+import { bookingApi } from '../../services/api';
+import { paymentApi } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface BookingDetailsScreenProps {
   route: {
@@ -25,8 +28,10 @@ interface BookingDetailsScreenProps {
 
 export default function BookingDetailsScreen({ route, navigation }: BookingDetailsScreenProps) {
   const { bookingId } = route.params;
+  const { user } = useAuth();
   const [booking, setBooking] = useState<ServiceBooking | null>(null);
   const [loading, setLoading] = useState(true);
+  const [processingPayment, setProcessingPayment] = useState(false);
 
   useEffect(() => {
     loadBooking();
@@ -35,13 +40,10 @@ export default function BookingDetailsScreen({ route, navigation }: BookingDetai
   const loadBooking = async () => {
     try {
       setLoading(true);
-      // TODO: Implement booking API call
-      // const bookingData = await bookingApi.getBookingById(bookingId);
-      // setBooking(bookingData);
-      
-      // Mock data for now
-      setBooking(null);
+      const bookingData = await bookingApi.getBookingById(bookingId);
+      setBooking(bookingData);
     } catch (error: any) {
+      console.error('Error loading booking:', error);
       Alert.alert('Error', error.message || 'Failed to load booking details');
     } finally {
       setLoading(false);
@@ -59,11 +61,12 @@ export default function BookingDetailsScreen({ route, navigation }: BookingDetai
           style: 'destructive',
           onPress: async () => {
             try {
-              // TODO: Implement cancel booking API
-              // await bookingApi.cancelBooking(bookingId);
-              Alert.alert('Success', 'Booking cancelled successfully');
-              navigation?.goBack();
+              await bookingApi.cancelBooking(bookingId);
+              Alert.alert('Success', 'Booking cancelled successfully', [
+                { text: 'OK', onPress: () => navigation?.goBack() },
+              ]);
             } catch (error: any) {
+              console.error('Cancel booking error:', error);
               Alert.alert('Error', error.message || 'Failed to cancel booking');
             }
           },
@@ -73,17 +76,64 @@ export default function BookingDetailsScreen({ route, navigation }: BookingDetai
   };
 
   const handleSubmitReview = () => {
+    if (!booking?.businessId) {
+      Alert.alert('Error', 'Business information is missing');
+      return;
+    }
     navigation?.navigate('WriteReview', {
-      bookingId: bookingId,
-      businessId: booking?.businessId,
-      serviceName: booking?.serviceName,
+      businessId: booking.businessId,
+      businessName: booking.businessName || 'Business',
     });
   };
 
-  const handleProcessPayment = () => {
-    navigation?.navigate('EventPayment', {
-      // TODO: Pass payment details
-    });
+  const handleProcessPayment = async () => {
+    if (!booking || !user?.email) {
+      Alert.alert('Error', 'Booking or user information is missing');
+      return;
+    }
+
+    try {
+      setProcessingPayment(true);
+      
+      // Initialize payment
+      const paymentData = {
+        amount: booking.price,
+        email: user.email,
+        currency: 'NGN',
+        type: 'service-booking',
+        description: `Payment for ${booking.serviceName}`,
+        bookingId: booking.id,
+        metadata: {
+          bookingId: booking.id,
+          serviceName: booking.serviceName,
+          businessId: booking.businessId,
+        },
+      };
+
+      const paymentResponse = await paymentApi.initializePayment(paymentData);
+      
+      // For React Native, we'll need to open the payment URL in a WebView
+      // For now, show the authorization URL - in production, use react-native-paystack or WebView
+      Alert.alert(
+        'Payment',
+        `Payment initialized. Reference: ${paymentResponse.reference}\n\nIn production, this would open Paystack payment interface.`,
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              // TODO: Open Paystack payment interface
+              // For now, reload booking to check payment status
+              loadBooking();
+            },
+          },
+        ]
+      );
+    } catch (error: any) {
+      console.error('Payment initialization error:', error);
+      Alert.alert('Error', error.message || 'Failed to initialize payment');
+    } finally {
+      setProcessingPayment(false);
+    }
   };
 
   if (loading) {
@@ -243,11 +293,21 @@ export default function BookingDetailsScreen({ route, navigation }: BookingDetai
 
           {booking.paymentStatus === 'pending' && booking.status !== 'cancelled' && (
             <TouchableOpacity
-              style={styles.paymentButton}
+              style={[styles.paymentButton, processingPayment && styles.paymentButtonDisabled]}
               onPress={handleProcessPayment}
+              disabled={processingPayment}
             >
-              <MaterialCommunityIcons name="credit-card" size={20} color="#FFFFFF" />
-              <Text style={styles.paymentButtonText}>Process Payment</Text>
+              {processingPayment ? (
+                <>
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <Text style={styles.paymentButtonText}>Processing...</Text>
+                </>
+              ) : (
+                <>
+                  <MaterialCommunityIcons name="credit-card" size={20} color="#FFFFFF" />
+                  <Text style={styles.paymentButtonText}>Process Payment</Text>
+                </>
+              )}
             </TouchableOpacity>
           )}
         </View>
@@ -391,6 +451,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
     marginLeft: 8,
+  },
+  paymentButtonDisabled: {
+    opacity: 0.6,
   },
 });
 

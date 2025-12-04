@@ -8,11 +8,13 @@ import {
   SafeAreaView,
   ActivityIndicator,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { ScreenHeader } from '../../components/ui';
-import { ServiceBooking } from '../../services/types/business.types';
+import { ServiceBooking, BookingFilter } from '../../services/types/business.types';
 import { formatNairaCurrency } from '../../constants/businessData';
+import { bookingApi } from '../../services/api';
 
 interface MyBookingsScreenProps {
   navigation?: any;
@@ -31,14 +33,17 @@ export default function MyBookingsScreen({ navigation }: MyBookingsScreenProps) 
   const loadBookings = async () => {
     try {
       setLoading(true);
-      // TODO: Implement booking API call
-      // const response = await bookingApi.getMyBookings({ status: filter !== 'all' ? filter : undefined });
-      // setBookings(response.data || []);
+      const filterParams: BookingFilter = {
+        page: 1,
+        limit: 50,
+        status: filter !== 'all' ? filter : undefined,
+      };
       
-      // Mock data for now
-      setBookings([]);
+      const response = await bookingApi.getMyBookings(filterParams);
+      setBookings(response.data || []);
     } catch (error: any) {
       console.error('Error loading bookings:', error);
+      Alert.alert('Error', error.message || 'Failed to load bookings');
     } finally {
       setLoading(false);
       setRefreshing(false);

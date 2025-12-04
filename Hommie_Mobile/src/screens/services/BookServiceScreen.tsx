@@ -14,8 +14,10 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { ScreenHeader } from '../../components/ui';
-import { BusinessService, BusinessProfile } from '../../services/types/business.types';
+import { BusinessService, BusinessProfile, CreateBookingDto } from '../../services/types/business.types';
 import { formatNairaCurrency } from '../../constants/businessData';
+import { bookingApi } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface BookServiceScreenProps {
   route: {
@@ -29,6 +31,7 @@ interface BookServiceScreenProps {
 
 export default function BookServiceScreen({ route, navigation }: BookServiceScreenProps) {
   const { service, business } = route.params;
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [scheduledDate, setScheduledDate] = useState<Date | null>(null);
   const [scheduledTime, setScheduledTime] = useState<Date | null>(null);
@@ -64,34 +67,43 @@ export default function BookServiceScreen({ route, navigation }: BookServiceScre
       return;
     }
 
+    if (!user?.email) {
+      Alert.alert('Error', 'User email is required for booking');
+      return;
+    }
+
     try {
       setLoading(true);
-      // TODO: Implement booking API call
-      // const booking = await bookingApi.createBooking({
-      //   businessId: business.id,
-      //   serviceId: service.id,
-      //   serviceName: service.serviceName,
-      //   scheduledDate: scheduledDate.toISOString().split('T')[0],
-      //   scheduledTime: scheduledTime ? scheduledTime.toTimeString().split(' ')[0] : undefined,
-      //   address: address.trim(),
-      //   description: description.trim(),
-      //   price,
-      // });
+      
+      const bookingData: CreateBookingDto = {
+        businessId: business.id,
+        serviceId: service.id,
+        serviceName: service.serviceName,
+        scheduledDate: scheduledDate.toISOString().split('T')[0],
+        scheduledTime: scheduledTime ? scheduledTime.toTimeString().split(' ')[0].substring(0, 5) : undefined,
+        address: address.trim(),
+        description: description.trim() || undefined,
+        price,
+      };
 
-      // For now, navigate to confirmation
+      const booking = await bookingApi.createBooking(bookingData);
+
       navigation?.navigate('BookingConfirmation', {
         booking: {
-          id: 'temp-id',
-          serviceName: service.serviceName,
+          id: booking.id,
+          serviceName: booking.serviceName,
           businessName: business.businessName,
-          scheduledDate: scheduledDate.toISOString().split('T')[0],
-          scheduledTime: scheduledTime ? scheduledTime.toTimeString().split(' ')[0] : undefined,
-          address: address.trim(),
-          price,
+          scheduledDate: booking.scheduledDate,
+          scheduledTime: booking.scheduledTime,
+          address: booking.address,
+          price: booking.price,
+          paymentStatus: booking.paymentStatus,
         },
       });
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to book service. Please try again.');
+      console.error('Booking error:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to book service. Please try again.';
+      Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
     }

@@ -98,7 +98,7 @@ export default function ServiceDetailsScreen({ route, navigation }: ServiceDetai
               <View style={styles.ratingRow}>
                 <MaterialCommunityIcons name="star" size={16} color="#FFC107" />
                 <Text style={styles.ratingText}>
-                  {business.rating.toFixed(1)} ({business.reviewCount} reviews)
+                  {(typeof business.rating === 'number' ? business.rating : 0).toFixed(1)} ({business.reviewCount || 0} reviews)
                 </Text>
               </View>
               {business.completedJobs > 0 && (
