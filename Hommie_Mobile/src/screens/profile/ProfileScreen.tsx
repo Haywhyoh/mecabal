@@ -440,18 +440,6 @@ export default function ProfileScreen() {
           <Text style={styles.businessText}>Add business page</Text>
         </TouchableOpacity>
 
-        {/* 8.5. VISITOR MANAGEMENT */}
-        <TouchableOpacity 
-          style={styles.businessCard} 
-          onPress={() => {
-            HapticFeedback.light();
-            navigation.navigate('VisitorManagement' as never);
-          }}
-        >
-          <MaterialCommunityIcons name="account-group" size={20} color="#00A651" />
-          <Text style={styles.businessText}>Visitor Management</Text>
-        </TouchableOpacity>
-
         {/* 8.6. MY QR CODE */}
         <TouchableOpacity 
           style={styles.businessCard} 

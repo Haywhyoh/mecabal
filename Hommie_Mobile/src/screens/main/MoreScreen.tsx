@@ -181,6 +181,14 @@ const MoreScreen: React.FC<MoreScreenProps> = ({ navigation }) => {
           iconColor: '#FF9800',
           onPress: () => handleNavigation('LocalBusinessDirectory'),
         },
+        {
+          id: 'visitor-management',
+          title: 'Visitor Management',
+          subtitle: 'Manage visitor passes and access',
+          icon: 'account-group',
+          iconColor: '#00A651',
+          onPress: () => handleNavigation('VisitorManagement'),
+        },
       ],
     },
 

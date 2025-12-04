@@ -28,9 +28,7 @@ export const VisitorManagementScreen: React.FC = () => {
   const estateId = primaryLocation?.neighborhoodId || user?.primaryLocationId;
 
   useEffect(() => {
-    if (estateId) {
-      loadPasses();
-    }
+    loadPasses();
   }, [estateId]);
 
   const loadPasses = async () => {
