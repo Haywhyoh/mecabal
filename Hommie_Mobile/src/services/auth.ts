@@ -157,25 +157,25 @@ export class MeCabalAuth {
         ...(email && { email })
       });
 
-      if (!result.success) {
+      // Check if the request was successful
+      if (!result || result.success === false) {
         return {
           success: false,
-          error: result.error || 'Failed to send SMS OTP'
+          error: result?.error || 'Failed to send SMS OTP'
         };
       }
 
-      const { data } = result;
-      
+      // API returns response directly, not wrapped in data property
       // Extract carrier info from response for user feedback
-      const carrierInfo = data.carrier ? {
-        name: data.carrier.name,
-        color: data.carrier.color || '#00A651'
+      const carrierInfo = result.carrier ? {
+        name: result.carrier,
+        color: result.carrier_color || '#00A651'
       } : undefined;
 
       return {
         success: true,
-        message: data.message || 'SMS OTP sent successfully to your phone',
-        expires_at: data.expires_at || new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+        message: result.message || 'SMS OTP sent successfully to your phone',
+        expires_at: result.expiresAt ? new Date(result.expiresAt).toISOString() : new Date(Date.now() + 5 * 60 * 1000).toISOString(),
         carrier: carrierInfo?.name,
         carrier_color: carrierInfo?.color
       };
@@ -744,19 +744,19 @@ export class MeCabalAuth {
         purpose
       });
 
-      if (!result.success) {
+      // Check if the request was successful
+      if (!result || result.success === false) {
         return {
           success: false,
-          error: result.error || 'Failed to send OTP email'
+          error: result?.error || 'Failed to send OTP email'
         };
       }
 
-      const { data } = result;
-
+      // API returns response directly, not wrapped in data property
       return {
         success: true,
-        message: data.message || 'OTP code sent to your email address',
-        expires_at: data.expires_at || new Date(Date.now() + 10 * 60 * 1000).toISOString()
+        message: result.message || 'OTP code sent to your email address',
+        expires_at: result.expiresAt ? new Date(result.expiresAt).toISOString() : new Date(Date.now() + 10 * 60 * 1000).toISOString()
       };
     } catch (error: any) {
       return {

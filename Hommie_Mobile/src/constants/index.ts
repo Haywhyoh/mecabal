@@ -558,6 +558,9 @@ export const NIGERIAN_SERVICE_CATEGORIES = [
 // Import Nigerian context utilities
 export * from './nigerianContext';
 
+// Export Typography from typography file
+export { Typography } from './typography';
+
 // Event Categories
 export const EVENT_CATEGORIES = [
   'Community Meeting',
