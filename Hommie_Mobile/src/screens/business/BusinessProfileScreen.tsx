@@ -57,7 +57,7 @@ export default function BusinessProfileScreen({ navigation }: BusinessProfileScr
 
   const handleManageServices = () => {
     if (businessProfile) {
-      navigation?.navigate('BusinessInquiries', { businessId: businessProfile.id });
+      navigation?.navigate('ManageServices');
     }
   };
 

@@ -2204,6 +2204,39 @@ export class ApiGatewayController {
   // ==================== BOOKING ENDPOINTS ====================
   // Bookings are handled by business service, but we need to add routes here
 
+  @All('bookings')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Proxy booking requests to business service' })
+  async proxyBookingsBase(@Req() req: Request, @Res() res: Response) {
+    try {
+      const result: unknown =
+        await this.apiGatewayService.proxyToBusinessService(
+          req.url,
+          req.method,
+          req.body,
+          req.headers as Record<string, string | string[] | undefined>,
+          req.user,
+        );
+
+      let statusCode = HttpStatus.OK;
+      if (req.method === 'POST') {
+        statusCode = HttpStatus.CREATED;
+      } else if (req.method === 'DELETE') {
+        statusCode = HttpStatus.NO_CONTENT;
+      }
+
+      res.status(statusCode).json(result);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error proxying booking request:', errorMessage);
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: errorMessage });
+    }
+  }
+
   @All('bookings/*path')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

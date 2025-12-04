@@ -62,6 +62,7 @@ import MoreScreen from './src/screens/main/MoreScreen';
 // Service screens
 import ServicesScreen from './src/screens/services/ServicesScreen';
 import ServiceCategoryScreen from './src/screens/services/ServiceCategoryScreen';
+import ServiceProviderScreen from './src/screens/services/ServiceProviderScreen';
 import ServiceDetailsScreen from './src/screens/services/ServiceDetailsScreen';
 import BookServiceScreen from './src/screens/services/BookServiceScreen';
 import BookingConfirmationScreen from './src/screens/services/BookingConfirmationScreen';
@@ -275,6 +276,7 @@ function MainStackNavigator() {
       {/* Service Screens */}
       <Stack.Screen name="Services" component={ServicesScreen} />
       <Stack.Screen name="ServiceCategory" component={ServiceCategoryScreen} />
+      <Stack.Screen name="ServiceProvider" component={ServiceProviderScreen} />
       <Stack.Screen name="ServiceDetails" component={ServiceDetailsScreen} />
       <Stack.Screen name="BookService" component={BookServiceScreen} />
       <Stack.Screen name="BookingConfirmation" component={BookingConfirmationScreen} />
