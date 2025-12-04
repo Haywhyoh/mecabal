@@ -107,6 +107,7 @@ import { UserLocationRepository } from './repositories/user-location.repository'
     LandmarkRepository,
     UserLocationRepository,
     GoogleMapsService,
+    JwtStrategy,
   ],
   exports: [
     StatesService,
