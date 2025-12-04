@@ -121,7 +121,7 @@ export const VisitorManagementScreen: React.FC = () => {
       <ScreenHeader
         title="Visitor Management"
         navigation={navigation}
-        showBackButton={false}
+        showBackButton={true}
         rightComponent={
           <TouchableOpacity
             style={styles.addButton}

@@ -1802,8 +1802,32 @@ export class ApiGatewayController {
 
   // ==================== ESTATE VISITOR MANAGEMENT ENDPOINTS ====================
 
+  @All('estate/:id/visitors')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Estate visitor management endpoints - base route' })
+  async proxyEstateVisitorsBase(@Req() req: Request, @Res() res: Response) {
+    try {
+      const path = req.url.replace(/^\/estate/, '/estate');
+      const result: unknown = await this.apiGatewayService.proxyToLocationService(
+        path,
+        req.method,
+        req.body,
+        req.headers as Record<string, string | string[] | undefined>,
+        req.user,
+      );
+      const statusCode = req.method === 'POST' ? HttpStatus.CREATED : HttpStatus.OK;
+      res.status(statusCode).json(result);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStatus = (error as any)?.status || HttpStatus.INTERNAL_SERVER_ERROR;
+      res.status(errorStatus).json({ error: errorMessage });
+    }
+  }
+
   @All('estate/:id/visitors/*path')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Estate visitor management endpoints' })
   async proxyEstateVisitors(@Req() req: Request, @Res() res: Response) {
     try {
