@@ -166,6 +166,22 @@ const MoreScreen: React.FC<MoreScreenProps> = ({ navigation }) => {
           onPress: () => handleNavigation('Events'),
         },
         {
+          id: 'services',
+          title: 'Services',
+          subtitle: 'Browse and book services',
+          icon: 'wrench',
+          iconColor: '#00A651',
+          onPress: () => handleNavigation('Services'),
+        },
+        {
+          id: 'bookings',
+          title: 'My Bookings',
+          subtitle: 'View your service bookings',
+          icon: 'calendar-check',
+          iconColor: '#2196F3',
+          onPress: () => handleNavigation('MyBookings'),
+        },
+        {
           id: 'neighbors',
           title: 'Neighbors',
           subtitle: 'Connect with your community',
@@ -180,6 +196,17 @@ const MoreScreen: React.FC<MoreScreenProps> = ({ navigation }) => {
           icon: 'store',
           iconColor: '#FF9800',
           onPress: () => handleNavigation('LocalBusinessDirectory'),
+        },
+        {
+          id: 'marketplace',
+          title: 'Marketplace',
+          subtitle: 'Buy and sell items',
+          icon: 'shopping',
+          iconColor: '#9C27B0',
+          onPress: () => {
+            // Navigate to Market tab
+            navigation?.navigate('MainTabs', { screen: 'Market' });
+          },
         },
         {
           id: 'visitor-management',
@@ -519,6 +546,38 @@ const MoreScreen: React.FC<MoreScreenProps> = ({ navigation }) => {
                     )}
                   </View>
                   <Text style={styles.sidebarMenuItemText}>Messages</Text>
+                  <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E93" />
+                </TouchableOpacity>
+
+                {/* Services */}
+                <TouchableOpacity
+                  style={styles.sidebarMenuItem}
+                  onPress={() => handleMenuItemPress(() => navigation?.navigate('Services' as never))}
+                >
+                  <MaterialCommunityIcons name="wrench" size={24} color="#00A651" />
+                  <Text style={styles.sidebarMenuItemText}>Services</Text>
+                  <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E93" />
+                </TouchableOpacity>
+
+                {/* My Bookings */}
+                <TouchableOpacity
+                  style={styles.sidebarMenuItem}
+                  onPress={() => handleMenuItemPress(() => navigation?.navigate('MyBookings' as never))}
+                >
+                  <MaterialCommunityIcons name="calendar-check" size={24} color="#2196F3" />
+                  <Text style={styles.sidebarMenuItemText}>My Bookings</Text>
+                  <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E93" />
+                </TouchableOpacity>
+
+                {/* Marketplace */}
+                <TouchableOpacity
+                  style={styles.sidebarMenuItem}
+                  onPress={() => handleMenuItemPress(() => {
+                    navigation?.navigate('MainTabs' as never, { screen: 'Market' });
+                  })}
+                >
+                  <MaterialCommunityIcons name="shopping" size={24} color="#9C27B0" />
+                  <Text style={styles.sidebarMenuItemText}>Marketplace</Text>
                   <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E93" />
                 </TouchableOpacity>
 

@@ -49,15 +49,15 @@ import {
     // specific routes are registered before the catch-all :id route
     BusinessCategoryModule,
     BusinessSearchModule, // Must be before BusinessProfileModule to handle /search routes
+    BookingModule, // Must be before BusinessProfileModule to handle /bookings routes
+    PaymentModule, // Must be before BusinessProfileModule to handle /payments routes
+    BankAccountModule, // Must be before BusinessProfileModule to handle /bank-accounts routes
     BusinessProfileModule,
     BusinessServicesModule,
     BusinessLicenseModule,
     BusinessReviewModule,
     BusinessActivityModule,
     BusinessInquiryModule,
-    BookingModule,
-    PaymentModule,
-    BankAccountModule,
     TypeOrmModule.forFeature([
       BusinessProfile,
       BusinessCategory,
