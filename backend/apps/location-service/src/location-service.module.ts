@@ -16,6 +16,8 @@ import {
 import { DatabaseModule } from '@app/database';
 import { GoogleMapsService } from '@app/common/services/google-maps.service';
 import { JwtModule } from '@nestjs/jwt';
+import { PassportModule } from '@nestjs/passport';
+import { JwtStrategy } from '@app/auth/strategies/jwt.strategy';
 
 // Controllers
 import { LocationServiceController } from './location-service.controller';
@@ -56,6 +58,7 @@ import { UserLocationRepository } from './repositories/user-location.repository'
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    PassportModule.register({ defaultStrategy: 'jwt' }),
     TypeOrmModule.forFeature([
       State,
       LocalGovernmentArea,
