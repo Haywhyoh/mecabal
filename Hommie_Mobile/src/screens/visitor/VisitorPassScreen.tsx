@@ -168,7 +168,7 @@ export const VisitorPassScreen: React.FC = () => {
                   },
                 ]}
               >
-                {pass.status.replace('_', ' ')}
+                {pass.status ? pass.status.replace('_', ' ') : 'Unknown'}
               </Text>
             </View>
           </View>
@@ -188,24 +188,28 @@ export const VisitorPassScreen: React.FC = () => {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Visit Details</Text>
-          <View style={styles.detailRow}>
-            <MaterialCommunityIcons name="calendar-clock" size={20} color="#666" />
-            <View style={styles.detailContent}>
-              <Text style={styles.detailLabel}>Expected Arrival</Text>
-              <Text style={styles.detailValue}>
-                {format(new Date(pass.expectedArrival), 'MMM dd, yyyy HH:mm')}
-              </Text>
+          {pass.expectedArrival && (
+            <View style={styles.detailRow}>
+              <MaterialCommunityIcons name="calendar-clock" size={20} color="#666" />
+              <View style={styles.detailContent}>
+                <Text style={styles.detailLabel}>Expected Arrival</Text>
+                <Text style={styles.detailValue}>
+                  {format(new Date(pass.expectedArrival), 'MMM dd, yyyy HH:mm')}
+                </Text>
+              </View>
             </View>
-          </View>
-          <View style={styles.detailRow}>
-            <MaterialCommunityIcons name="calendar-alert" size={20} color="#666" />
-            <View style={styles.detailContent}>
-              <Text style={styles.detailLabel}>Expires At</Text>
-              <Text style={styles.detailValue}>
-                {format(new Date(pass.expiresAt), 'MMM dd, yyyy HH:mm')}
-              </Text>
+          )}
+          {pass.expiresAt && (
+            <View style={styles.detailRow}>
+              <MaterialCommunityIcons name="calendar-alert" size={20} color="#666" />
+              <View style={styles.detailContent}>
+                <Text style={styles.detailLabel}>Expires At</Text>
+                <Text style={styles.detailValue}>
+                  {format(new Date(pass.expiresAt), 'MMM dd, yyyy HH:mm')}
+                </Text>
+              </View>
             </View>
-          </View>
+          )}
           {pass.purpose && (
             <View style={styles.detailRow}>
               <MaterialCommunityIcons name="information" size={20} color="#666" />

@@ -1,10 +1,11 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { Visitor, VisitorPass, VisitorPassStatus, SendMethod, Neighborhood, User } from '@app/database/entities';
 import { EstateManagementService } from './estate-management.service';
 import * as crypto from 'crypto';
+import * as nodemailer from 'nodemailer';
 
 export interface PreRegisterVisitorDto {
   fullName: string;
