@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import Clipboard from '@react-native-clipboard/clipboard';
+import * as Clipboard from 'expo-clipboard';
 import Toast from 'react-native-toast-message';
 
 interface AccessCodeDisplayProps {
@@ -17,7 +17,7 @@ export const AccessCodeDisplay: React.FC<AccessCodeDisplayProps> = ({
 
   const handleCopy = async () => {
     try {
-      Clipboard.setString(code);
+      await Clipboard.setStringAsync(code);
       setCopied(true);
       Toast.show({
         type: 'success',

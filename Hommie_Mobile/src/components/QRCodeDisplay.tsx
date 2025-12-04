@@ -23,15 +23,22 @@ export const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
     try {
       // For now, share the QR code value as text
       // In a full implementation, you might want to generate an image first
-      await Share.share({
+      const result = await Share.share({
         message: `QR Code: ${value}`,
         title: 'Share QR Code',
       });
-    } catch (error) {
-      // User cancelled sharing or error occurred
-      if ((error as any)?.message !== 'User did not share') {
-        console.error('Error sharing QR code:', error);
+      
+      // React Native's Share API returns an object with an 'action' property
+      // On iOS: action can be Share.sharedAction or Share.dismissedAction
+      // On Android: action is Share.sharedAction (dismissal doesn't trigger the callback)
+      if (result.action === Share.dismissedAction) {
+        // User dismissed the share sheet (iOS only)
+        // This is expected behavior, no need to log
+        return;
       }
+    } catch (error) {
+      // Only log actual errors (not user cancellation)
+      console.error('Error sharing QR code:', error);
     }
   };
 
