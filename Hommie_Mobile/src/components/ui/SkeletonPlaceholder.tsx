@@ -64,3 +64,5 @@ export function SkeletonPlaceholder({
   );
 }
 
+
+export default SkeletonPlaceholder;

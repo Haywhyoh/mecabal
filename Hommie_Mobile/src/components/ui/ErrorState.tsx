@@ -69,3 +69,5 @@ const styles = StyleSheet.create({
   },
 });
 
+
+export default ErrorState;

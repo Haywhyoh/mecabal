@@ -70,3 +70,4 @@ const styles = StyleSheet.create({
     color: colors.white,
   },
 });
+export default EmptyState;
