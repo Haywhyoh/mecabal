@@ -210,6 +210,29 @@ export class VisitorsController {
     }
   }
 
+  @Get(':id/visitor-pass/my-passes')
+  @ApiOperation({ summary: 'Get visitor passes created by the current user' })
+  @ApiParam({ name: 'id', description: 'Estate ID' })
+  @ApiResponse({ status: 200, description: 'Visitor passes retrieved successfully' })
+  async getMyVisitorPasses(
+    @Param('id') estateId: string,
+    @CurrentUser() user: any,
+  ) {
+    try {
+      const passes = await this.visitorService.getMyVisitorPasses(estateId, user.id);
+      return {
+        success: true,
+        data: passes,
+        count: passes.length,
+      };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to retrieve visitor passes',
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   @Get(':id/visitor-pass/:passId')
   @ApiOperation({ summary: 'Get visitor pass by ID' })
   @ApiParam({ name: 'id', description: 'Estate ID' })
@@ -308,29 +331,6 @@ export class VisitorsController {
     } catch (error) {
       throw new HttpException(
         error.message || 'Failed to revoke visitor pass',
-        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  @Get(':id/visitor-pass/my-passes')
-  @ApiOperation({ summary: 'Get visitor passes created by the current user' })
-  @ApiParam({ name: 'id', description: 'Estate ID' })
-  @ApiResponse({ status: 200, description: 'Visitor passes retrieved successfully' })
-  async getMyVisitorPasses(
-    @Param('id') estateId: string,
-    @CurrentUser() user: any,
-  ) {
-    try {
-      const passes = await this.visitorService.getMyVisitorPasses(estateId, user.id);
-      return {
-        success: true,
-        data: passes,
-        count: passes.length,
-      };
-    } catch (error) {
-      throw new HttpException(
-        error.message || 'Failed to retrieve visitor passes',
         error.status || HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   RefreshControl,
   TouchableOpacity,
+  SafeAreaView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -14,7 +14,7 @@ import { VisitorPassCard } from '../../components/VisitorPassCard';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLocation } from '../../contexts/LocationContext';
 import Toast from 'react-native-toast-message';
-import { LoadingState, ErrorState, EmptyState } from '../../components/ui';
+import { LoadingState, ErrorState, EmptyState, ScreenHeader } from '../../components/ui';
 
 export const VisitorManagementScreen: React.FC = () => {
   const navigation = useNavigation();

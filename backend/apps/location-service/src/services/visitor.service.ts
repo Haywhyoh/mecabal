@@ -183,6 +183,14 @@ export class VisitorService {
     userId: string,
     dto: GenerateVisitorPassDto,
   ): Promise<VisitorPass> {
+    // Convert date strings to Date objects if needed
+    const expectedArrival = dto.expectedArrival instanceof Date 
+      ? dto.expectedArrival 
+      : new Date(dto.expectedArrival);
+    const expiresAt = dto.expiresAt instanceof Date 
+      ? dto.expiresAt 
+      : new Date(dto.expiresAt);
+
     // Verify estate exists
     const estate = await this.neighborhoodRepository.findOne({
       where: { id: estateId },
@@ -231,13 +239,13 @@ export class VisitorService {
       visitorId: dto.visitorId,
       estateId,
       hostId: dto.hostId,
-      expiresAt: dto.expiresAt.toISOString(),
+      expiresAt: expiresAt.toISOString(),
     };
 
     // Sign QR payload with JWT
     const qrCode = this.jwtService.sign(qrPayload, {
       secret: process.env.JWT_SECRET || 'visitor-pass-secret',
-      expiresIn: Math.floor((dto.expiresAt.getTime() - Date.now()) / 1000), // Expires when pass expires
+      expiresIn: Math.floor((expiresAt.getTime() - Date.now()) / 1000), // Expires when pass expires
     });
 
     // Generate 4-digit access code if requested
@@ -257,8 +265,8 @@ export class VisitorService {
       accessCode,
       sendMethod: dto.sendMethod,
       status: VisitorPassStatus.PENDING,
-      expectedArrival: dto.expectedArrival,
-      expiresAt: dto.expiresAt,
+      expectedArrival,
+      expiresAt,
       guestCount: dto.guestCount || 0,
       purpose: dto.purpose,
       notes: dto.notes,
@@ -615,9 +623,20 @@ export class VisitorService {
     // Pre-register visitor
     const visitor = await this.preRegisterVisitor(estateId, userId, visitorDto);
 
+    // Convert date strings to Date objects if needed
+    const normalizedPassDto: Omit<GenerateVisitorPassDto, 'visitorId' | 'hostId'> = {
+      ...passDto,
+      expectedArrival: passDto.expectedArrival instanceof Date 
+        ? passDto.expectedArrival 
+        : new Date(passDto.expectedArrival),
+      expiresAt: passDto.expiresAt instanceof Date 
+        ? passDto.expiresAt 
+        : new Date(passDto.expiresAt),
+    };
+
     // Generate pass
     const pass = await this.generateVisitorPass(estateId, userId, {
-      ...passDto,
+      ...normalizedPassDto,
       visitorId: visitor.id,
       hostId: userId,
     });

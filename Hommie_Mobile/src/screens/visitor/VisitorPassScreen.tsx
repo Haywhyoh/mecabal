@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  SafeAreaView,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -15,7 +16,7 @@ import { AccessCodeDisplay } from '../../components/AccessCodeDisplay';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLocation } from '../../contexts/LocationContext';
 import Toast from 'react-native-toast-message';
-import { LoadingState, ErrorState } from '../../components/ui';
+import { LoadingState, ErrorState, ScreenHeader } from '../../components/ui';
 import { format } from 'date-fns';
 
 export const VisitorPassScreen: React.FC = () => {
@@ -131,40 +132,46 @@ export const VisitorPassScreen: React.FC = () => {
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.visitorName}>{pass.visitor?.fullName || 'Unknown Visitor'}</Text>
-          <View
-            style={[
-              styles.statusBadge,
-              {
-                backgroundColor:
-                  pass.status === 'PENDING'
-                    ? '#FFA50020'
-                    : pass.status === 'CHECKED_IN'
-                    ? '#00A65120'
-                    : '#66620',
-              },
-            ]}
-          >
-            <Text
+    <SafeAreaView style={styles.container}>
+      <ScreenHeader
+        title="Visitor Pass"
+        navigation={navigation}
+        showBackButton={true}
+      />
+      <ScrollView style={styles.scrollView}>
+        <View style={styles.content}>
+          <View style={styles.header}>
+            <Text style={styles.visitorName}>{pass.visitor?.fullName || 'Unknown Visitor'}</Text>
+            <View
               style={[
-                styles.statusText,
+                styles.statusBadge,
                 {
-                  color:
+                  backgroundColor:
                     pass.status === 'PENDING'
-                      ? '#FFA500'
+                      ? '#FFA50020'
                       : pass.status === 'CHECKED_IN'
-                      ? '#00A651'
-                      : '#666',
+                      ? '#00A65120'
+                      : '#66620',
                 },
               ]}
             >
-              {pass.status.replace('_', ' ')}
-            </Text>
+              <Text
+                style={[
+                  styles.statusText,
+                  {
+                    color:
+                      pass.status === 'PENDING'
+                        ? '#FFA500'
+                        : pass.status === 'CHECKED_IN'
+                        ? '#00A651'
+                        : '#666',
+                  },
+                ]}
+              >
+                {pass.status.replace('_', ' ')}
+              </Text>
+            </View>
           </View>
-        </View>
 
         {pass.qrCode && (
           <View style={styles.section}>
@@ -245,13 +252,18 @@ export const VisitorPassScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
         )}
-      </View>
-    </ScrollView>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  scrollView: {
     flex: 1,
     backgroundColor: '#F5F5F5',
   },

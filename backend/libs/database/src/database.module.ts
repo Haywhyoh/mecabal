@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { join } from 'path';
 import { DatabaseService } from './database.service';
 import { SeederService } from './seeds/seeder.service';
 import {
@@ -59,6 +60,9 @@ import {
   ProfessionalCategory,
   UserLanguage,
   UserPrivacySettings,
+  Visitor,
+  VisitorPass,
+  VisitorAlert,
 } from './entities';
 // Import messaging entities from the messaging service
 import { Conversation } from '../../../apps/messaging-service/src/entities/conversation.entity';
@@ -134,6 +138,9 @@ import { TypingIndicator } from '../../../apps/messaging-service/src/entities/ty
           ProfessionalCategory,
           UserLanguage,
           UserPrivacySettings,
+          Visitor,
+          VisitorPass,
+          VisitorAlert,
           // Messaging entities
           Conversation,
           ConversationParticipant,
@@ -142,6 +149,11 @@ import { TypingIndicator } from '../../../apps/messaging-service/src/entities/ty
           TypingIndicator,
         ],
         synchronize: configService.get('DATABASE_SYNCHRONIZE') === 'true', // Use env variable for initial deployment
+        migrations: [
+          join(__dirname, 'migrations', '*.ts'),
+          join(__dirname, 'migrations', '*.js'),
+        ],
+        migrationsRun: configService.get('DATABASE_MIGRATIONS_RUN') === 'true', // Run migrations automatically if enabled
         logging: configService.get('NODE_ENV') === 'development',
         ssl: configService.get('DATABASE_SSL') === 'true' ? {
           rejectUnauthorized: false,
@@ -209,6 +221,9 @@ import { TypingIndicator } from '../../../apps/messaging-service/src/entities/ty
       ProfessionalCategory,
       UserLanguage,
       UserPrivacySettings,
+      Visitor,
+      VisitorPass,
+      VisitorAlert,
       // Messaging entities
       Conversation,
       ConversationParticipant,
