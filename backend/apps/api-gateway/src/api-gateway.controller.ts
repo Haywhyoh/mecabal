@@ -10,6 +10,7 @@ import {
   UseInterceptors,
   UploadedFiles,
   UploadedFile,
+  Param,
 } from '@nestjs/common';
 import { FilesInterceptor, FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -953,6 +954,122 @@ export class ApiGatewayController {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       const errorStatus = (error as any)?.status || HttpStatus.INTERNAL_SERVER_ERROR;
       res.status(errorStatus).json({ error: errorMessage });
+    }
+  }
+
+  @Post('business/:id/profile-image')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('image'))
+  @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Upload business profile image' })
+  @ApiResponse({ status: 200, description: 'Profile image uploaded successfully' })
+  async uploadBusinessProfileImage(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    try {
+      if (!file) {
+        return res.status(HttpStatus.BAD_REQUEST).json({
+          error: 'No image file provided',
+        });
+      }
+
+      // Create FormData for the business service
+      const formData = new FormData();
+
+      if (file.buffer) {
+        formData.append('image', file.buffer, {
+          filename: file.originalname,
+          contentType: file.mimetype,
+        });
+      } else {
+        throw new Error('File buffer is undefined');
+      }
+
+      // Create headers without Content-Type (let FormData set it)
+      const headers = {
+        ...req.headers,
+      };
+      delete headers['content-type'];
+      delete headers['Content-Type'];
+
+      const result: unknown = await this.apiGatewayService.proxyToBusinessService(
+        `/${id}/profile-image`,
+        'POST',
+        formData,
+        headers as Record<string, string | string[] | undefined>,
+        req.user,
+      );
+
+      res.status(HttpStatus.OK).json(result);
+    } catch (error) {
+      console.error('Business profile image upload error:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: errorMessage });
+    }
+  }
+
+  @Post('business/:id/cover-image')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('image'))
+  @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Upload business cover image' })
+  @ApiResponse({ status: 200, description: 'Cover image uploaded successfully' })
+  async uploadBusinessCoverImage(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    try {
+      if (!file) {
+        return res.status(HttpStatus.BAD_REQUEST).json({
+          error: 'No image file provided',
+        });
+      }
+
+      // Create FormData for the business service
+      const formData = new FormData();
+
+      if (file.buffer) {
+        formData.append('image', file.buffer, {
+          filename: file.originalname,
+          contentType: file.mimetype,
+        });
+      } else {
+        throw new Error('File buffer is undefined');
+      }
+
+      // Create headers without Content-Type (let FormData set it)
+      const headers = {
+        ...req.headers,
+      };
+      delete headers['content-type'];
+      delete headers['Content-Type'];
+
+      const result: unknown = await this.apiGatewayService.proxyToBusinessService(
+        `/${id}/cover-image`,
+        'POST',
+        formData,
+        headers as Record<string, string | string[] | undefined>,
+        req.user,
+      );
+
+      res.status(HttpStatus.OK).json(result);
+    } catch (error) {
+      console.error('Business cover image upload error:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: errorMessage });
     }
   }
 

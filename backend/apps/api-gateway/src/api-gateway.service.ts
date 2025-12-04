@@ -536,9 +536,20 @@ export class ApiGatewayService {
             }
           : 'No user',
       );
+      console.log('  - Data type:', data?.constructor?.name);
+
+      // Check if data is FormData
+      const isFormData =
+        data &&
+        typeof (data as { getHeaders?: () => any }).getHeaders === 'function';
+
+      console.log('  - Is FormData:', isFormData);
 
       const baseHeaders: Record<string, string> = {
-        'Content-Type': 'application/json',
+        // Don't set Content-Type for FormData, let axios handle it
+        ...(isFormData
+          ? {}
+          : ({ 'Content-Type': 'application/json' } as Record<string, string>)),
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         Pragma: 'no-cache',
         Expires: '0',
@@ -553,12 +564,22 @@ export class ApiGatewayService {
         }),
       };
 
+      // If FormData, merge its headers (important for boundary)
+      if (isFormData) {
+        Object.assign(
+          baseHeaders,
+          (data as { getHeaders: () => Record<string, string> }).getHeaders(),
+        );
+      }
+
       const config: Record<string, unknown> = {
         headers: baseHeaders,
         timeout: 60000,
         maxRedirects: 5,
-        // Only apply transformRequest for non-string data to avoid double-stringification
-        ...(typeof data === 'string' ? {} : { transformRequest: [(data: unknown) => JSON.stringify(data)] }),
+        // Don't transform FormData - let axios handle it natively
+        ...(isFormData
+          ? {}
+          : (typeof data === 'string' ? {} : { transformRequest: [(data: unknown) => JSON.stringify(data)] })),
       };
 
       let response;

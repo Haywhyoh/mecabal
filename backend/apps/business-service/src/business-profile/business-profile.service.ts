@@ -9,12 +9,15 @@ import { Repository } from 'typeorm';
 import { BusinessProfile } from '@app/database/entities/business-profile.entity';
 import { CreateBusinessProfileDto } from '../dto/create-business-profile.dto';
 import { UpdateBusinessProfileDto } from '../dto/update-business-profile.dto';
+import { FileUploadService } from '@app/storage';
+import { MediaFile } from '@app/storage/interfaces/upload.interface';
 
 @Injectable()
 export class BusinessProfileService {
   constructor(
     @InjectRepository(BusinessProfile)
     private businessProfileRepo: Repository<BusinessProfile>,
+    private readonly fileUploadService: FileUploadService,
   ) {}
 
   async create(
@@ -115,5 +118,31 @@ export class BusinessProfileService {
 
   async incrementCompletedJobs(id: string): Promise<void> {
     await this.businessProfileRepo.increment({ id }, 'completedJobs', 1);
+  }
+
+  async updateProfileImage(id: string, userId: string, imageUrl: string): Promise<BusinessProfile> {
+    const business = await this.findById(id);
+
+    if (business.userId !== userId) {
+      throw new ForbiddenException(
+        'You do not have permission to update this business',
+      );
+    }
+
+    business.profileImageUrl = imageUrl;
+    return await this.businessProfileRepo.save(business);
+  }
+
+  async updateCoverImage(id: string, userId: string, imageUrl: string): Promise<BusinessProfile> {
+    const business = await this.findById(id);
+
+    if (business.userId !== userId) {
+      throw new ForbiddenException(
+        'You do not have permission to update this business',
+      );
+    }
+
+    business.coverImageUrl = imageUrl;
+    return await this.businessProfileRepo.save(business);
   }
 }

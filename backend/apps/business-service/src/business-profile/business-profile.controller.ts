@@ -13,14 +13,19 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { Request as ExpressRequest } from 'express';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiConsumes,
 } from '@nestjs/swagger';
+import { FileUploadService } from '@app/storage';
 
 interface AuthenticatedRequest extends ExpressRequest {
   user: {
@@ -38,7 +43,10 @@ import { JwtAuthGuard } from '@app/auth/guards/jwt-auth.guard';
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class BusinessProfileController {
-  constructor(private readonly businessProfileService: BusinessProfileService) {}
+  constructor(
+    private readonly businessProfileService: BusinessProfileService,
+    private readonly fileUploadService: FileUploadService,
+  ) {}
 
   @Post('register')
   @ApiOperation({ summary: 'Register a new business profile' })
@@ -163,5 +171,124 @@ export class BusinessProfileController {
     }
     
     await this.businessProfileService.delete(id, req.user.id);
+  }
+
+  @Post(':id/profile-image')
+  @UseInterceptors(FileInterceptor('image'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Upload business profile image' })
+  @ApiResponse({ status: 200, description: 'Profile image uploaded successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid file or file too large' })
+  @ApiResponse({ status: 404, description: 'Business not found' })
+  async uploadProfileImage(
+    @Param('id') id: string,
+    @Request() req: AuthenticatedRequest,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    // Validate that id is a UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(id)) {
+      throw new NotFoundException('Invalid business ID format');
+    }
+
+    if (!file) {
+      throw new BadRequestException('No image file provided');
+    }
+
+    const business = await this.businessProfileService.findById(id);
+
+    if (business.userId !== req.user.id) {
+      throw new ForbiddenException(
+        'You do not have permission to update this business',
+      );
+    }
+
+    // Prepare file for upload
+    const mediaFile = {
+      buffer: file.buffer,
+      originalName: file.originalname,
+      mimeType: file.mimetype,
+      size: file.size,
+    };
+
+    // Upload image (process as avatar-like image, 400x400)
+    const uploadResult = await this.fileUploadService.uploadAvatar(
+      mediaFile,
+      req.user.id,
+    );
+
+    // Update business profile with new image URL
+    const updatedBusiness = await this.businessProfileService.updateProfileImage(
+      id,
+      req.user.id,
+      uploadResult.url,
+    );
+
+    return {
+      success: true,
+      message: 'Profile image uploaded successfully',
+      profileImageUrl: uploadResult.url,
+      data: updatedBusiness,
+    };
+  }
+
+  @Post(':id/cover-image')
+  @UseInterceptors(FileInterceptor('image'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Upload business cover image' })
+  @ApiResponse({ status: 200, description: 'Cover image uploaded successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid file or file too large' })
+  @ApiResponse({ status: 404, description: 'Business not found' })
+  async uploadCoverImage(
+    @Param('id') id: string,
+    @Request() req: AuthenticatedRequest,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    // Validate that id is a UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(id)) {
+      throw new NotFoundException('Invalid business ID format');
+    }
+
+    if (!file) {
+      throw new BadRequestException('No image file provided');
+    }
+
+    const business = await this.businessProfileService.findById(id);
+
+    if (business.userId !== req.user.id) {
+      throw new ForbiddenException(
+        'You do not have permission to update this business',
+      );
+    }
+
+    // Prepare file for upload
+    const mediaFile = {
+      buffer: file.buffer,
+      originalName: file.originalname,
+      mimeType: file.mimetype,
+      size: file.size,
+    };
+
+    // Upload cover image (process as larger image, 1200x400 recommended)
+    const uploadResult = await this.fileUploadService.uploadMedia(
+      mediaFile,
+      req.user.id,
+      { maxWidth: 1200, quality: 85 },
+    );
+
+    // Update business profile with new cover image URL
+    const updatedBusiness = await this.businessProfileService.updateCoverImage(
+      id,
+      req.user.id,
+      uploadResult.url,
+    );
+
+    return {
+      success: true,
+      message: 'Cover image uploaded successfully',
+      coverImageUrl: uploadResult.url,
+      data: updatedBusiness,
+    };
   }
 }
