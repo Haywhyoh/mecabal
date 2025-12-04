@@ -14,7 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { colors, spacing, typography } from '../constants';
+import { colors, spacing, typography } from '../../constants';
 import MessagingService, { Conversation, TypingStatus } from '../../services/MessagingService';
 import { webSocketService } from '../../services/WebSocketService';
 

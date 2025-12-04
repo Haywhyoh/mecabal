@@ -10,7 +10,7 @@ import {
   FlatList
 } from 'react-native';
 import { SafeAreaView } from 'react-native';
-import { colors, typography, spacing, shadows } from '../constants';
+import { colors, typography, spacing, shadows } from '../../constants';
 
 interface ServiceProviderProfileScreenProps {
   route?: {

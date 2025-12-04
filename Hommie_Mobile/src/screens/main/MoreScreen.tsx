@@ -13,7 +13,7 @@ import {
   StatusBar,
 } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { colors, spacing, typography } from '../constants';
+import { colors, spacing, typography } from '../../constants';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserAvatar } from '../../components/profile';
 import { HapticFeedback } from '../../utils/haptics';

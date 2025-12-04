@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { colors, typography, spacing, BORDER_RADIUS, shadows } from '../constants';
+import { colors, typography, spacing, BORDER_RADIUS, shadows } from '../../constants';
 import { ScreenHeader } from '../../components/ui';
 import { MetricsCard } from '../../components/analytics/MetricsCard';
 import { AnalyticsChart } from '../../components/analytics/AnalyticsChart';

@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { colors, spacing, typography } from '../constants';
+import { colors, spacing, typography } from '../../constants';
 import MessagingService, { Message, Conversation, TypingStatus } from '../../services/MessagingService';
 
 interface MessageBubbleProps {

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native';
-import { colors, typography, spacing, shadows, MARKETPLACE_CATEGORIES } from '../constants';
+import { colors, typography, spacing, shadows, MARKETPLACE_CATEGORIES } from '../../constants';
 import { MarketplaceListingCard } from '../../components/business';
 import { EmptyState } from '../../components/ui';
 

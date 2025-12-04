@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { default as UserVerificationBadge, UserVerification } from '../../components/profile/UserVerificationBadge';
-import { colors, spacing, typography, shadows } from '../constants';
+import { colors, spacing, typography, shadows } from '../../constants';
 
 interface Endorsement {
   id: string;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView, TextInput, Alert, ActivityIndicator, SafeAreaView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, typography, spacing, shadows, MARKETPLACE_MAIN_CATEGORIES, MARKETPLACE_CATEGORIES } from '../constants';
+import { colors, typography, spacing, shadows, MARKETPLACE_MAIN_CATEGORIES, MARKETPLACE_CATEGORIES } from '../../constants';
 import { ListingCard } from '../../components/business';
 import { EmptyState } from '../../components/ui';
 import { ListingsService, Listing, ListingFilter } from '../../services/listingsService';

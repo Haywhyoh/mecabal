@@ -13,7 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { PostsService } from '../../services/postsService';
-import { COMMUNITY_HELP_CATEGORIES, HELP_REQUEST_EXAMPLES } from '../constants';
+import { COMMUNITY_HELP_CATEGORIES, HELP_REQUEST_EXAMPLES } from '../../constants';
 
 interface CreateHelpPostScreenProps {
   navigation: any;
