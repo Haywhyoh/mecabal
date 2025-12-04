@@ -23,6 +23,7 @@ export class ApiGatewayService {
     process.env.MESSAGING_SERVICE_URL || 'http://localhost:3004';
   private readonly locationServiceUrl =
     process.env.LOCATION_SERVICE_URL || 'http://localhost:3007';
+  // Payment service is now part of business service
 
   constructor(
     private readonly httpService: HttpService,
@@ -1008,5 +1009,17 @@ export class ApiGatewayService {
 
       throw err;
     }
+  }
+
+  // Proxy methods for payment service (now part of business service)
+  async proxyToPaymentService(
+    path: string,
+    method: string,
+    data?: unknown,
+    headers?: Record<string, string | string[] | undefined>,
+    user?: any,
+  ) {
+    // Payment service is now part of business service, so proxy to business service
+    return this.proxyToBusinessService(path, method, data, headers, user);
   }
 }

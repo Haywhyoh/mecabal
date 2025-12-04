@@ -24,6 +24,17 @@ export class CreateBusinessReviewDto {
   @MaxLength(1000)
   reviewText?: string;
 
+  @ApiPropertyOptional({ example: 'uuid-of-booking' })
+  @IsString()
+  @IsOptional()
+  bookingId?: string;
+
+  @ApiPropertyOptional({ example: 'Plumbing Repair' })
+  @IsString()
+  @IsOptional()
+  @MaxLength(255)
+  serviceType?: string;
+
   @ApiPropertyOptional({ example: 5, description: 'Service quality rating (1-5)' })
   @IsInt()
   @IsOptional()

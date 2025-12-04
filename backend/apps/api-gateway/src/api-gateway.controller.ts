@@ -55,6 +55,9 @@ export class ApiGatewayController {
         messaging: '/messaging',
         business: '/business',
         location: '/location',
+        bookings: '/bookings',
+        payments: '/payments',
+        bankAccounts: '/bank-accounts',
       },
     });
   }
@@ -909,6 +912,49 @@ export class ApiGatewayController {
     return this.proxyBusinessRequest(req, res);
   }
 
+  @All('business-services')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Business services endpoints - base route' })
+  async proxyBusinessServicesBase(@Req() req: Request, @Res() res: Response) {
+    try {
+      const result: unknown = await this.apiGatewayService.proxyToBusinessService(
+        req.url,
+        req.method,
+        req.body,
+        req.headers as Record<string, string | string[] | undefined>,
+        req.user,
+      );
+      const statusCode = req.method === 'POST' ? HttpStatus.CREATED : HttpStatus.OK;
+      res.status(statusCode).json(result);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStatus = (error as any)?.status || HttpStatus.INTERNAL_SERVER_ERROR;
+      res.status(errorStatus).json({ error: errorMessage });
+    }
+  }
+
+  @All('business-services/*path')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Business services endpoints' })
+  async proxyBusinessServicesPath(@Req() req: Request, @Res() res: Response) {
+    try {
+      const result: unknown = await this.apiGatewayService.proxyToBusinessService(
+        req.url,
+        req.method,
+        req.body,
+        req.headers as Record<string, string | string[] | undefined>,
+        req.user,
+      );
+      const statusCode = req.method === 'POST' ? HttpStatus.CREATED : HttpStatus.OK;
+      res.status(statusCode).json(result);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStatus = (error as any)?.status || HttpStatus.INTERNAL_SERVER_ERROR;
+      res.status(errorStatus).json({ error: errorMessage });
+    }
+  }
 
   @All('business/:id/status')
   @UseGuards(JwtAuthGuard)
@@ -2081,6 +2127,110 @@ export class ApiGatewayController {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
       console.error('Error proxying location service request:', errorMessage);
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: errorMessage });
+    }
+  }
+
+  // ==================== PAYMENT SERVICE ENDPOINTS ====================
+
+  @All('payments/*path')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Proxy all payment service requests' })
+  async proxyPaymentService(@Req() req: Request, @Res() res: Response) {
+    try {
+      const result: unknown =
+        await this.apiGatewayService.proxyToPaymentService(
+          req.url,
+          req.method,
+          req.body,
+          req.headers as Record<string, string | string[] | undefined>,
+          req.user,
+        );
+
+      let statusCode = HttpStatus.OK;
+      if (req.method === 'POST') {
+        statusCode = HttpStatus.CREATED;
+      } else if (req.method === 'DELETE') {
+        statusCode = HttpStatus.NO_CONTENT;
+      }
+
+      res.status(statusCode).json(result);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error proxying payment service request:', errorMessage);
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: errorMessage });
+    }
+  }
+
+  @All('bank-accounts/*path')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Proxy all bank account requests to business service' })
+  async proxyBankAccounts(@Req() req: Request, @Res() res: Response) {
+    try {
+      const result: unknown =
+        await this.apiGatewayService.proxyToBusinessService(
+          req.url,
+          req.method,
+          req.body,
+          req.headers as Record<string, string | string[] | undefined>,
+          req.user,
+        );
+
+      let statusCode = HttpStatus.OK;
+      if (req.method === 'POST') {
+        statusCode = HttpStatus.CREATED;
+      } else if (req.method === 'DELETE') {
+        statusCode = HttpStatus.NO_CONTENT;
+      }
+
+      res.status(statusCode).json(result);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error proxying bank account request:', errorMessage);
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: errorMessage });
+    }
+  }
+
+  // ==================== BOOKING ENDPOINTS ====================
+  // Bookings are handled by business service, but we need to add routes here
+
+  @All('bookings/*path')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Proxy all booking requests to business service' })
+  async proxyBookings(@Req() req: Request, @Res() res: Response) {
+    try {
+      const result: unknown =
+        await this.apiGatewayService.proxyToBusinessService(
+          req.url,
+          req.method,
+          req.body,
+          req.headers as Record<string, string | string[] | undefined>,
+          req.user,
+        );
+
+      let statusCode = HttpStatus.OK;
+      if (req.method === 'POST') {
+        statusCode = HttpStatus.CREATED;
+      } else if (req.method === 'DELETE') {
+        statusCode = HttpStatus.NO_CONTENT;
+      }
+
+      res.status(statusCode).json(result);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error proxying booking request:', errorMessage);
       res
         .status(HttpStatus.INTERNAL_SERVER_ERROR)
         .json({ error: errorMessage });

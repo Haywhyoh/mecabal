@@ -16,6 +16,9 @@ import { BusinessSearchModule } from './business-search/business-search.module';
 import { BusinessReviewModule } from './business-review/business-review.module';
 import { BusinessActivityModule } from './business-activity/business-activity.module';
 import { BusinessInquiryModule } from './business-inquiry/business-inquiry.module';
+import { BookingModule } from './booking/booking.module';
+import { PaymentModule } from './payment/payment.module';
+import { BankAccountModule } from './bank-account/bank-account.module';
 import {
   BusinessProfile,
   BusinessCategory,
@@ -23,7 +26,10 @@ import {
   BusinessService,
   BusinessReview,
   BusinessInquiry,
-  BusinessActivityLog
+  BusinessActivityLog,
+  Booking,
+  Payment,
+  BankAccount,
 } from '@app/database/entities';
 
 @Module({
@@ -49,6 +55,9 @@ import {
     BusinessReviewModule,
     BusinessActivityModule,
     BusinessInquiryModule,
+    BookingModule,
+    PaymentModule,
+    BankAccountModule,
     TypeOrmModule.forFeature([
       BusinessProfile,
       BusinessCategory,
@@ -57,6 +66,9 @@ import {
       BusinessReview,
       BusinessInquiry,
       BusinessActivityLog,
+      Booking,
+      Payment,
+      BankAccount,
     ]),
   ],
   controllers: [BusinessServiceController],

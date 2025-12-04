@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BusinessReview } from '@app/database/entities/business-review.entity';
 import { BusinessProfile } from '@app/database/entities/business-profile.entity';
+import { Booking } from '@app/database/entities/booking.entity';
 import {
   CreateBusinessReviewDto,
   RespondToReviewDto,
@@ -21,6 +22,8 @@ export class BusinessReviewService {
     private reviewRepo: Repository<BusinessReview>,
     @InjectRepository(BusinessProfile)
     private businessRepo: Repository<BusinessProfile>,
+    @InjectRepository(Booking)
+    private bookingRepo: Repository<Booking>,
   ) {}
 
   async create(
@@ -53,6 +56,21 @@ export class BusinessReviewService {
       throw new ForbiddenException('You cannot review your own business');
     }
 
+    // If bookingId is provided, verify booking exists and belongs to user
+    if (createDto.bookingId) {
+      const booking = await this.bookingRepo.findOne({
+        where: { id: createDto.bookingId, userId, businessId },
+      });
+
+      if (!booking) {
+        throw new NotFoundException('Booking not found or does not belong to you');
+      }
+
+      if (booking.hasReviewed) {
+        throw new BadRequestException('This booking has already been reviewed');
+      }
+    }
+
     // Create review
     const review = this.reviewRepo.create({
       businessId,
@@ -61,6 +79,14 @@ export class BusinessReviewService {
     });
 
     const savedReview = await this.reviewRepo.save(review);
+
+    // If bookingId is provided, mark booking as reviewed
+    if (createDto.bookingId) {
+      await this.bookingRepo.update(createDto.bookingId, {
+        hasReviewed: true,
+        reviewId: savedReview.id,
+      });
+    }
 
     // Update business rating and review count
     await this.updateBusinessRating(businessId);

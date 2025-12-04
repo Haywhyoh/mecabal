@@ -73,6 +73,11 @@ export { BusinessInquiry } from './business-inquiry.entity';
 export { ServiceInquiry } from './service-inquiry.entity';
 export { BusinessActivityLog } from './business-activity-log.entity';
 
+// Booking & Payment Entities
+export { Booking, BookingStatus, PaymentStatus as BookingPaymentStatus } from './booking.entity';
+export { Payment, PaymentStatus, PaymentType } from './payment.entity';
+export { BankAccount } from './bank-account.entity';
+
 // Cultural Profile Entities
 export { NigerianState } from './nigerian-state.entity';
 export { NigerianLanguage } from './nigerian-language.entity';

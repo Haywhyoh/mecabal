@@ -2,13 +2,14 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BusinessReview } from '@app/database/entities/business-review.entity';
 import { BusinessProfile } from '@app/database/entities/business-profile.entity';
+import { Booking } from '@app/database/entities/booking.entity';
 import { BusinessReviewService } from './business-review.service';
 import { BusinessReviewController } from './business-review.controller';
 import { AuthModule } from '@app/auth';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([BusinessReview, BusinessProfile]),
+    TypeOrmModule.forFeature([BusinessReview, BusinessProfile, Booking]),
     AuthModule,
   ],
   providers: [BusinessReviewService],
