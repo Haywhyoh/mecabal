@@ -11,11 +11,15 @@ import {
   Alert,
   Linking,
   Dimensions,
+  FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { colors, typography, spacing, shadows } from '../../constants';
-import { BusinessService, BusinessProfile, BusinessInquiry } from '../../services/businessService';
-import { BusinessInquiryForm } from '../../components/business';
+import { BusinessProfile, BusinessService } from '../../services/types/business.types';
+import { businessApi, businessServiceApi } from '../../services/api';
+import { formatNairaCurrency } from '../../constants/businessData';
+import { ScreenHeader } from '../../components/ui';
 
 interface BusinessDetailScreenProps {
   navigation: any;
@@ -30,28 +34,49 @@ const { width } = Dimensions.get('window');
 
 export default function BusinessDetailScreen({ navigation, route }: BusinessDetailScreenProps) {
   const [business, setBusiness] = useState<BusinessProfile | null>(null);
+  const [services, setServices] = useState<BusinessService[]>([]);
   const [loading, setLoading] = useState(true);
-  const [inquiries, setInquiries] = useState<BusinessInquiry[]>([]);
-  const [showInquiryForm, setShowInquiryForm] = useState(false);
-
-  const businessService = BusinessService.getInstance();
+  const [loadingServices, setLoadingServices] = useState(true);
   const { businessId } = route.params;
 
   useEffect(() => {
     fetchBusinessDetails();
+    fetchBusinessServices();
   }, [businessId]);
 
   const fetchBusinessDetails = async () => {
     try {
       setLoading(true);
-      const businessData = await businessService.getBusiness(businessId);
+      const businessData = await businessApi.getBusinessById(businessId);
       setBusiness(businessData);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching business details:', error);
-      Alert.alert('Error', 'Failed to load business details');
+      Alert.alert('Error', error.message || 'Failed to load business details');
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchBusinessServices = async () => {
+    try {
+      setLoadingServices(true);
+      const servicesData = await businessServiceApi.getBusinessServices(businessId);
+      // Only show active services
+      setServices(servicesData.filter(service => service.isActive));
+    } catch (error: any) {
+      console.error('Error fetching business services:', error);
+      // Don't show alert for services, just log the error
+    } finally {
+      setLoadingServices(false);
+    }
+  };
+
+  const handleServicePress = (service: BusinessService) => {
+    if (!business) return;
+    navigation?.navigate('BookService', {
+      service,
+      business,
+    });
   };
 
   const handleCall = () => {
@@ -66,38 +91,6 @@ export default function BusinessDetailScreen({ navigation, route }: BusinessDeta
     }
   };
 
-  const handleInquiry = () => {
-    setShowInquiryForm(true);
-  };
-
-  const handleInquirySuccess = () => {
-    setShowInquiryForm(false);
-    // Optionally refresh business data or show success message
-  };
-
-  const renderHeader = () => {
-    if (!business) return null;
-
-    return (
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="chevron-back" size={28} color={colors.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Business Details</Text>
-        <TouchableOpacity
-          style={styles.shareButton}
-          onPress={() => {
-            // TODO: Implement share functionality
-          }}
-        >
-          <Ionicons name="share-outline" size={24} color={colors.primary} />
-        </TouchableOpacity>
-      </View>
-    );
-  };
 
   const renderBusinessInfo = () => {
     if (!business) return null;
@@ -120,25 +113,27 @@ export default function BusinessDetailScreen({ navigation, route }: BusinessDeta
           <View style={styles.statItem}>
             <Ionicons name="star" size={20} color={colors.accent.warmGold} />
             <Text style={styles.statText}>
-              {business.rating.toFixed(1)} ({business.reviewCount} reviews)
+              {(typeof business.rating === 'number' ? business.rating : 0).toFixed(1)} ({business.reviewCount || 0} reviews)
             </Text>
           </View>
           <View style={styles.statItem}>
             <Ionicons name="checkmark-circle" size={20} color={colors.success} />
-            <Text style={styles.statText}>{business.completedJobs} jobs completed</Text>
+            <Text style={styles.statText}>{business.completedJobs || 0} jobs completed</Text>
           </View>
-          <View style={styles.statItem}>
-            <Ionicons name="time" size={20} color={colors.text.light} />
-            <Text style={styles.statText}>Responds within {business.responseTime}h</Text>
-          </View>
+          {business.yearsOfExperience > 0 && (
+            <View style={styles.statItem}>
+              <Ionicons name="briefcase" size={20} color={colors.text.light} />
+              <Text style={styles.statText}>{business.yearsOfExperience} years experience</Text>
+            </View>
+          )}
         </View>
 
-        <View style={styles.verificationBadge}>
-          <Ionicons name="shield-checkmark" size={16} color={colors.primary} />
-          <Text style={styles.verificationText}>
-            {business.verificationLevel.toUpperCase()} VERIFIED
-          </Text>
-        </View>
+        {business.isVerified && (
+          <View style={styles.verificationBadge}>
+            <Ionicons name="shield-checkmark" size={16} color={colors.primary} />
+            <Text style={styles.verificationText}>VERIFIED</Text>
+          </View>
+        )}
       </View>
     );
   };
@@ -157,7 +152,9 @@ export default function BusinessDetailScreen({ navigation, route }: BusinessDeta
 
         <View style={styles.contactItem}>
           <Ionicons name="business" size={20} color={colors.text.light} />
-          <Text style={styles.contactText}>{business.serviceArea}</Text>
+          <Text style={styles.contactText}>
+            {business.serviceArea?.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Not specified'}
+          </Text>
         </View>
 
         {business.phoneNumber && (
@@ -193,70 +190,101 @@ export default function BusinessDetailScreen({ navigation, route }: BusinessDeta
   };
 
   const renderServices = () => {
-    if (!business?.servicesOffered || business.servicesOffered.length === 0) return null;
+    if (loadingServices) {
+      return (
+        <View style={styles.servicesSection}>
+          <Text style={styles.sectionTitle}>Services</Text>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={styles.loadingText}>Loading services...</Text>
+          </View>
+        </View>
+      );
+    }
+
+    if (!services || services.length === 0) {
+      return (
+        <View style={styles.servicesSection}>
+          <Text style={styles.sectionTitle}>Services</Text>
+          <View style={styles.emptyState}>
+            <MaterialCommunityIcons name="wrench" size={48} color={colors.text.light} />
+            <Text style={styles.emptyText}>No services available</Text>
+          </View>
+        </View>
+      );
+    }
 
     return (
       <View style={styles.servicesSection}>
-        <Text style={styles.sectionTitle}>Services Offered</Text>
-        {business.servicesOffered.map((service, index) => (
-          <View key={index} style={styles.serviceItem}>
-            <Text style={styles.serviceName}>{service.category}</Text>
-            <Text style={styles.serviceDescription}>{service.description}</Text>
-            <View style={styles.servicePricing}>
-              <Text style={styles.pricingText}>
-                {service.pricing.model} - ₦{service.pricing.rate?.toLocaleString() || 'Negotiable'}
-              </Text>
+        <Text style={styles.sectionTitle}>Services ({services.length})</Text>
+        {services.map((service) => (
+          <TouchableOpacity
+            key={service.id}
+            style={styles.serviceItem}
+            onPress={() => handleServicePress(service)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.serviceContent}>
+              <View style={styles.serviceHeader}>
+                <Text style={styles.serviceName}>{service.serviceName}</Text>
+                {service.priceMin && (
+                  <Text style={styles.servicePrice}>
+                    {formatNairaCurrency(service.priceMin)}
+                    {service.priceMax && ` - ${formatNairaCurrency(service.priceMax)}`}
+                  </Text>
+                )}
+              </View>
+              {service.description && (
+                <Text style={styles.serviceDescription} numberOfLines={2}>
+                  {service.description}
+                </Text>
+              )}
+              {service.duration && (
+                <View style={styles.serviceMeta}>
+                  <MaterialCommunityIcons name="clock-outline" size={16} color={colors.text.light} />
+                  <Text style={styles.serviceMetaText}>{service.duration}</Text>
+                </View>
+              )}
             </View>
-          </View>
+            <MaterialCommunityIcons name="chevron-right" size={24} color={colors.text.light} />
+          </TouchableOpacity>
         ))}
       </View>
     );
   };
 
   const renderBusinessHours = () => {
-    if (!business?.businessHours) return null;
+    if (!business?.availability) return null;
 
-    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    
+    const availabilityMap: Record<string, string> = {
+      'business-hours': 'Business Hours',
+      'extended-hours': 'Extended Hours',
+      'weekend-available': 'Weekend Available',
+      'twenty-four-seven': '24/7 Available',
+      'flexible': 'Flexible Schedule',
+      'weekdays': 'Weekdays Only',
+      'weekends': 'Weekends Only',
+      'custom': 'Custom Schedule',
+    };
+
     return (
       <View style={styles.hoursSection}>
-        <Text style={styles.sectionTitle}>Business Hours</Text>
-        {days.map((day) => {
-          const hours = business.businessHours?.[day.toLowerCase()];
-          if (!hours) return null;
-          
-          return (
-            <View key={day} style={styles.hoursItem}>
-              <Text style={styles.dayText}>{day}</Text>
-              <Text style={styles.hoursText}>
-                {hours.open} - {hours.close}
-              </Text>
-            </View>
-          );
-        })}
+        <Text style={styles.sectionTitle}>Availability</Text>
+        <View style={styles.hoursItem}>
+          <Text style={styles.dayText}>Schedule</Text>
+          <Text style={styles.hoursText}>
+            {availabilityMap[business.availability] || business.availability}
+          </Text>
+        </View>
       </View>
     );
   };
 
-  const renderActionButtons = () => {
-    return (
-      <View style={styles.actionButtons}>
-        <TouchableOpacity style={styles.inquiryButton} onPress={handleInquiry}>
-          <Ionicons name="chatbubble" size={20} color={colors.white} />
-          <Text style={styles.inquiryButtonText}>Send Inquiry</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.saveButton}>
-          <Ionicons name="bookmark-outline" size={20} color={colors.primary} />
-          <Text style={styles.saveButtonText}>Save</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  };
 
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        {renderHeader()}
+        <ScreenHeader title="Business Details" navigation={navigation} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>Loading business details...</Text>
@@ -268,7 +296,7 @@ export default function BusinessDetailScreen({ navigation, route }: BusinessDeta
   if (!business) {
     return (
       <SafeAreaView style={styles.container}>
-        {renderHeader()}
+        <ScreenHeader title="Business Details" navigation={navigation} />
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle" size={64} color={colors.text.light} />
           <Text style={styles.errorTitle}>Business not found</Text>
@@ -282,7 +310,7 @@ export default function BusinessDetailScreen({ navigation, route }: BusinessDeta
 
   return (
     <SafeAreaView style={styles.container}>
-      {renderHeader()}
+      <ScreenHeader title="Business Details" navigation={navigation} />
       
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {renderBusinessInfo()}
@@ -290,19 +318,6 @@ export default function BusinessDetailScreen({ navigation, route }: BusinessDeta
         {renderServices()}
         {renderBusinessHours()}
       </ScrollView>
-
-      {renderActionButtons()}
-
-      {/* Business Inquiry Form Modal */}
-      {business && (
-        <BusinessInquiryForm
-          visible={showInquiryForm}
-          onClose={() => setShowInquiryForm(false)}
-          businessId={business.id}
-          businessName={business.businessName}
-          onSuccess={handleInquirySuccess}
-        />
-      )}
     </SafeAreaView>
   );
 }
@@ -470,17 +485,36 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   serviceItem: {
-    marginBottom: spacing.md,
-    paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral.lightGray,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+    padding: spacing.md,
+    backgroundColor: colors.white,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.neutral.lightGray,
+  },
+  serviceContent: {
+    flex: 1,
+  },
+  serviceHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: spacing.xs,
   },
   serviceName: {
     fontSize: typography.sizes.subhead,
     fontWeight: '600' as const,
     lineHeight: typography.lineHeights.subhead,
     color: colors.text.dark,
-    marginBottom: spacing.xs / 2,
+    flex: 1,
+    marginRight: spacing.sm,
+  },
+  servicePrice: {
+    fontSize: typography.sizes.subhead,
+    fontWeight: '600' as const,
+    color: colors.primary,
   },
   serviceDescription: {
     fontSize: typography.sizes.body,
@@ -489,18 +523,24 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     marginBottom: spacing.xs,
   },
-  servicePricing: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.lightGreen,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs / 2,
-    borderRadius: 4,
+  serviceMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs / 2,
   },
-  pricingText: {
+  serviceMetaText: {
     fontSize: typography.sizes.caption1,
-    fontWeight: '600' as const,
-    lineHeight: typography.lineHeights.caption1,
-    color: colors.primary,
+    color: colors.text.light,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xl,
+  },
+  emptyText: {
+    fontSize: typography.sizes.body,
+    color: colors.text.light,
+    marginTop: spacing.sm,
   },
   hoursSection: {
     backgroundColor: colors.white,
@@ -525,52 +565,10 @@ const styles = StyleSheet.create({
     lineHeight: typography.lineHeights.body,
     color: colors.text.secondary,
   },
-  actionButtons: {
-    flexDirection: 'row',
-    padding: spacing.md,
-    backgroundColor: colors.white,
-    borderTopWidth: 1,
-    borderTopColor: colors.neutral.lightGray,
-    gap: spacing.sm,
-  },
-  inquiryButton: {
-    flex: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.md,
-    borderRadius: 8,
-    gap: spacing.xs,
-  },
-  inquiryButtonText: {
-    fontSize: typography.sizes.subhead,
-    fontWeight: '600' as const,
-    lineHeight: typography.lineHeights.subhead,
-    color: colors.white,
-  },
-  saveButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.primary,
-    paddingVertical: spacing.md,
-    borderRadius: 8,
-    gap: spacing.xs,
-  },
-  saveButtonText: {
-    fontSize: typography.sizes.subhead,
-    fontWeight: '600' as const,
-    lineHeight: typography.lineHeights.subhead,
-    color: colors.primary,
-  },
   loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
+    paddingVertical: spacing.xl,
     alignItems: 'center',
+    justifyContent: 'center',
     gap: spacing.sm,
   },
   loadingText: {
@@ -578,6 +576,7 @@ const styles = StyleSheet.create({
     fontWeight: '400' as const,
     lineHeight: typography.lineHeights.body,
     color: colors.text.light,
+    marginTop: spacing.xs,
   },
   errorContainer: {
     flex: 1,
