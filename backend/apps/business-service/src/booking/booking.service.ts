@@ -9,6 +9,7 @@ import { Repository, FindOptionsWhere } from 'typeorm';
 import { Booking, BookingStatus } from '@app/database/entities/booking.entity';
 import { BusinessProfile } from '@app/database/entities/business-profile.entity';
 import { BusinessService } from '@app/database/entities/business-service.entity';
+import { BankAccount } from '@app/database/entities/bank-account.entity';
 import {
   CreateBookingDto,
   UpdateBookingStatusDto,
@@ -24,6 +25,8 @@ export class BookingService {
     private businessRepo: Repository<BusinessProfile>,
     @InjectRepository(BusinessService)
     private serviceRepo: Repository<BusinessService>,
+    @InjectRepository(BankAccount)
+    private bankAccountRepo: Repository<BankAccount>,
   ) {}
 
   async create(userId: string, createDto: CreateBookingDto): Promise<Booking> {
@@ -34,6 +37,20 @@ export class BookingService {
 
     if (!business) {
       throw new NotFoundException('Business not found');
+    }
+
+    // Check if business owner has a verified bank account
+    const bankAccount = await this.bankAccountRepo.findOne({
+      where: {
+        userId: business.userId,
+        isVerified: true,
+      },
+    });
+
+    if (!bankAccount) {
+      throw new BadRequestException(
+        'This business owner has not set up a verified bank account. Please contact the business owner to add a bank account before booking.',
+      );
     }
 
     // Verify service exists if serviceId is provided

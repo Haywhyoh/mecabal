@@ -241,7 +241,10 @@ export class BusinessService {
       }
     });
 
-    const url = `${this.baseUrl}/businesses?${queryParams.toString()}`;
+    // Use /business/search endpoint for filtered searches, or /business for listing
+    const url = filter.search || filter.category || filter.serviceArea
+      ? `${this.baseUrl}/business/search?${queryParams.toString()}`
+      : `${this.baseUrl}/business?${queryParams.toString()}`;
     
     return this.makeApiRequest<PaginatedBusinesses>(
       url,
@@ -255,7 +258,7 @@ export class BusinessService {
    */
   async getBusiness(id: string): Promise<BusinessProfile> {
     return this.makeApiRequest<BusinessProfile>(
-      `${this.baseUrl}/businesses/${id}`,
+      `${this.baseUrl}/business/${id}`,
       { method: 'GET' },
       'Fetch business'
     );
@@ -307,7 +310,7 @@ export class BusinessService {
     preferredContact: 'call' | 'message' | 'whatsapp';
   }): Promise<BusinessInquiry> {
     return this.makeApiRequest<BusinessInquiry>(
-      `${this.baseUrl}/businesses/inquiries`,
+      `${this.baseUrl}/business/${data.businessId}/inquiries`,
       {
         method: 'POST',
         body: JSON.stringify(data),
@@ -321,7 +324,7 @@ export class BusinessService {
    */
   async getMyInquiries(): Promise<BusinessInquiry[]> {
     return this.makeApiRequest<BusinessInquiry[]>(
-      `${this.baseUrl}/businesses/inquiries/my`,
+      `${this.baseUrl}/user/inquiries`,
       { method: 'GET' },
       'Fetch my inquiries'
     );
@@ -330,9 +333,9 @@ export class BusinessService {
   /**
    * Update inquiry status
    */
-  async updateInquiryStatus(inquiryId: string, status: 'pending' | 'responded' | 'completed' | 'cancelled'): Promise<BusinessInquiry> {
+  async updateInquiryStatus(businessId: string, inquiryId: string, status: 'pending' | 'responded' | 'completed' | 'cancelled'): Promise<BusinessInquiry> {
     return this.makeApiRequest<BusinessInquiry>(
-      `${this.baseUrl}/businesses/inquiries/${inquiryId}/status`,
+      `${this.baseUrl}/business/${businessId}/inquiries/${inquiryId}/status`,
       {
         method: 'PATCH',
         body: JSON.stringify({ status }),
@@ -361,7 +364,7 @@ export class BusinessService {
       page: number;
       limit: number;
     }>(
-      `${this.baseUrl}/businesses/${businessId}/reviews?${queryParams.toString()}`,
+      `${this.baseUrl}/business/${businessId}/reviews?${queryParams.toString()}`,
       { method: 'GET' },
       'Fetch business reviews'
     );
@@ -376,7 +379,7 @@ export class BusinessService {
     serviceType: string;
   }): Promise<any> {
     return this.makeApiRequest<any>(
-      `${this.baseUrl}/businesses/${businessId}/reviews`,
+      `${this.baseUrl}/business/${businessId}/reviews`,
       {
         method: 'POST',
         body: JSON.stringify(data),
@@ -406,7 +409,7 @@ export class BusinessService {
         name: string;
       }[];
     }[]>(
-      `${this.baseUrl}/businesses/categories`,
+      `${this.baseUrl}/business-categories`,
       { method: 'GET' },
       'Fetch business categories'
     );
@@ -417,7 +420,7 @@ export class BusinessService {
    */
   async saveBusiness(businessId: string): Promise<void> {
     return this.makeApiRequest<void>(
-      `${this.baseUrl}/businesses/${businessId}/save`,
+      `${this.baseUrl}/business/${businessId}/save`,
       { method: 'POST' },
       'Save business'
     );
@@ -428,7 +431,7 @@ export class BusinessService {
    */
   async unsaveBusiness(businessId: string): Promise<void> {
     return this.makeApiRequest<void>(
-      `${this.baseUrl}/businesses/${businessId}/save`,
+      `${this.baseUrl}/business/${businessId}/save`,
       { method: 'DELETE' },
       'Unsave business'
     );
@@ -447,7 +450,7 @@ export class BusinessService {
       }
     });
 
-    const url = `${this.baseUrl}/businesses/saved?${queryParams.toString()}`;
+    const url = `${this.baseUrl}/business/saved?${queryParams.toString()}`;
     
     return this.makeApiRequest<PaginatedBusinesses>(
       url,

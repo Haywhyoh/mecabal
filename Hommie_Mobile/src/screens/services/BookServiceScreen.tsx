@@ -40,7 +40,12 @@ export default function BookServiceScreen({ route, navigation }: BookServiceScre
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
 
-  const price = service.priceMin || 0;
+  // Ensure price is a number, not a string
+  const price = typeof service.priceMin === 'number' 
+    ? service.priceMin 
+    : service.priceMin 
+      ? parseFloat(String(service.priceMin)) || 0 
+      : 0;
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
     setShowDatePicker(Platform.OS === 'ios');
@@ -75,6 +80,16 @@ export default function BookServiceScreen({ route, navigation }: BookServiceScre
     try {
       setLoading(true);
       
+      // Ensure price is a valid number
+      const bookingPrice = typeof price === 'number' && !isNaN(price) && price >= 0 
+        ? price 
+        : 0;
+
+      if (bookingPrice <= 0) {
+        Alert.alert('Invalid Price', 'Service price must be greater than 0');
+        return;
+      }
+
       const bookingData: CreateBookingDto = {
         businessId: business.id,
         serviceId: service.id,
@@ -83,7 +98,7 @@ export default function BookServiceScreen({ route, navigation }: BookServiceScre
         scheduledTime: scheduledTime ? scheduledTime.toTimeString().split(' ')[0].substring(0, 5) : undefined,
         address: address.trim(),
         description: description.trim() || undefined,
-        price,
+        price: bookingPrice, // Ensure it's a number
       };
 
       const booking = await bookingApi.createBooking(bookingData);

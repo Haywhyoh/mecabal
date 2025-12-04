@@ -86,19 +86,28 @@ export class PaymentService {
   }
 
   async verifyPayment(reference: string): Promise<Payment> {
-    // Find payment by reference
-    const payment = await this.paymentRepo.findOne({
+    // Find payment by reference or paystackReference
+    let payment = await this.paymentRepo.findOne({
       where: { reference },
       relations: ['booking'],
     });
+
+    // If not found by reference, try paystackReference
+    if (!payment) {
+      payment = await this.paymentRepo.findOne({
+        where: { paystackReference: reference },
+        relations: ['booking'],
+      });
+    }
 
     if (!payment) {
       throw new NotFoundException('Payment not found');
     }
 
-    // Verify with Paystack
+    // Verify with Paystack - use paystackReference if available, otherwise use the provided reference
+    const paystackReference = payment.paystackReference || payment.reference;
     const paystackResponse = await this.paystackService.verifyPayment(
-      payment.paystackReference || reference,
+      paystackReference,
     );
 
     // Update payment status
