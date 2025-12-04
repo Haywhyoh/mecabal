@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Alert } from 'react-native';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../../constants';
-import { MeCabalLocation } from '../services';
+import { MeCabalLocation } from '../../services';
 
 export default function LocationTestScreen({ navigation }: any) {
   const [testResults, setTestResults] = useState<any[]>([]);

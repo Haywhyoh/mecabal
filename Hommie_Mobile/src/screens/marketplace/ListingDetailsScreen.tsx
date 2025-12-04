@@ -16,7 +16,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, shadows } from '../../constants';
 import { ListingsService, Listing } from '../../services/listingsService';
-import { ENV, validateEnvironment } from '../config/environment';
+import { ENV, validateEnvironment } from '../../config/environment';
 
 interface ListingDetailsScreenProps {
   navigation: any;

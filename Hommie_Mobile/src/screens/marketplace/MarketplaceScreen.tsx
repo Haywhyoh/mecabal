@@ -6,7 +6,7 @@ import { ListingCard } from '../../components/business';
 import { EmptyState } from '../../components/ui';
 import { ListingsService, Listing, ListingFilter } from '../../services/listingsService';
 import { BusinessService, BusinessProfile } from '../../services/businessService';
-import { ENV } from '../config/environment';
+import { ENV } from '../../config/environment';
 
 interface MarketplaceScreenProps {
   navigation?: any;

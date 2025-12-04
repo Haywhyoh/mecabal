@@ -74,6 +74,8 @@ export class AuthController {
     private readonly emailOtpService: EmailOtpService,
     private readonly phoneOtpService: PhoneOtpService,
     private readonly googleTokenVerifierService: GoogleTokenVerifierService,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
   ) {}
 
   @Post('register')
@@ -1025,9 +1027,35 @@ export class AuthController {
       purpose?: 'registration' | 'login' | 'password_reset';
     },
   ) {
+    const purpose = body.purpose || 'registration';
+
+    // For login purpose, check if user exists before sending OTP
+    if (purpose === 'login') {
+      const user = await this.userRepository.findOne({
+        where: { email: body.email },
+      });
+
+      if (!user) {
+        return {
+          success: false,
+          error: 'User not found. Please register first.',
+          method: 'email',
+        };
+      }
+
+      // Check if account is active
+      if (!user.isActive) {
+        return {
+          success: false,
+          error: 'Account is deactivated. Please contact support.',
+          method: 'email',
+        };
+      }
+    }
+
     const result = await this.emailOtpService.sendEmailOTP(
       body.email,
-      body.purpose || 'registration',
+      purpose,
     );
 
     return {
@@ -1120,9 +1148,35 @@ export class AuthController {
       email?: string;
     },
   ) {
+    const purpose = body.purpose || 'registration';
+
+    // For login purpose, check if user exists before sending OTP
+    if (purpose === 'login') {
+      const user = await this.userRepository.findOne({
+        where: { phoneNumber: body.phone },
+      });
+
+      if (!user) {
+        return {
+          success: false,
+          error: 'User not found. Please register first.',
+          method: 'phone',
+        };
+      }
+
+      // Check if account is active
+      if (!user.isActive) {
+        return {
+          success: false,
+          error: 'Account is deactivated. Please contact support.',
+          method: 'phone',
+        };
+      }
+    }
+
     const result = await this.phoneOtpService.sendPhoneOTP(
       body.phone,
-      body.purpose || 'registration',
+      purpose,
       body.method || 'sms',
       body.email,
     );

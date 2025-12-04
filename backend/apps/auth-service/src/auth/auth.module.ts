@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule as SharedAuthModule } from '@app/auth';
 import { DatabaseModule } from '@app/database';
+import { User } from '@app/database';
 import { AuthController } from './auth.controller';
 import { GoogleTokenVerifierService } from '../services/google-token-verifier.service';
 
@@ -35,6 +37,7 @@ import { GoogleTokenVerifierService } from '../services/google-token-verifier.se
       },
     ]),
     DatabaseModule,
+    TypeOrmModule.forFeature([User]),
     SharedAuthModule,
   ],
   controllers: [AuthController],
