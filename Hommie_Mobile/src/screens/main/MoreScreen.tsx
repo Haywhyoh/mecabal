@@ -215,7 +215,7 @@ const MoreScreen: React.FC<MoreScreenProps> = ({ navigation }) => {
           id: 'notifications',
           title: 'Notifications',
           subtitle: 'Manage your alerts',
-          icon: 'bell-cog',
+          icon: 'bell-outline',
           iconColor: '#FF6B35',
           onPress: () => {
             console.log('Navigate to Notification Settings');

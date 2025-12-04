@@ -325,8 +325,34 @@ export class MessagingService extends SimpleEventEmitter {
           if (!a.isPinned && b.isPinned) return 1;
           return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
         });
-      } catch (error) {
+      } catch (error: any) {
+        // Handle 504 Gateway Timeout specifically
+        if (error?.response?.status === 504 || error?.code === 'ECONNABORTED') {
+          console.error('Request timeout fetching conversations (504):', error);
+          throw new Error('Request timeout. The server took too long to respond. Please try again.');
+        }
+        
+        // Handle other HTTP errors
+        if (error?.response?.status) {
+          const status = error.response.status;
+          if (status >= 500) {
+            console.error(`Server error fetching conversations (${status}):`, error);
+            throw new Error('Server error. Please try again later.');
+          }
+          if (status === 401) {
+            console.error('Authentication error fetching conversations:', error);
+            throw new Error('Authentication required. Please sign in again.');
+          }
+        }
+        
+        // Handle network errors
+        if (error?.message?.includes('Network Error') || error?.code === 'ERR_NETWORK') {
+          console.error('Network error fetching conversations:', error);
+          throw new Error('Network error. Please check your internet connection and try again.');
+        }
+        
         console.error('Failed to fetch conversations:', error);
+        // Return empty array for non-critical errors to allow app to continue
         return [];
       }
     } else {
