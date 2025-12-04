@@ -13,6 +13,7 @@ export { businessReviewApi } from './businessReviewApi';
 export { businessInquiryApi } from './businessInquiryApi';
 export { businessAnalyticsApi } from './businessAnalyticsApi';
 export { businessLicenseApi } from './businessLicenseApi';
+export { businessServiceApi } from './businessServiceApi';
 
 // Export location services
 export { locationApi } from './locationApi';

@@ -59,6 +59,18 @@ import RegisterScreen from './src/screens/onBoarding/RegisterScreen';
 import LocationTestScreen from './src/screens/location/LocationTestScreen';
 import DashboardScreen from './src/screens/main/DashboardScreen';
 import MoreScreen from './src/screens/main/MoreScreen';
+// Service screens
+import ServicesScreen from './src/screens/services/ServicesScreen';
+import ServiceCategoryScreen from './src/screens/services/ServiceCategoryScreen';
+import ServiceDetailsScreen from './src/screens/services/ServiceDetailsScreen';
+import BookServiceScreen from './src/screens/services/BookServiceScreen';
+import BookingConfirmationScreen from './src/screens/services/BookingConfirmationScreen';
+import MyBookingsScreen from './src/screens/services/MyBookingsScreen';
+import BookingDetailsScreen from './src/screens/services/BookingDetailsScreen';
+// Business service management screens
+import ManageServicesScreen from './src/screens/business/ManageServicesScreen';
+import CreateServiceScreen from './src/screens/business/CreateServiceScreen';
+import EditServiceScreen from './src/screens/business/EditServiceScreen';
 
 
 
@@ -234,6 +246,9 @@ function MainStackNavigator() {
       <Stack.Screen name="BusinessInquiries" component={BusinessInquiriesScreen} />
       <Stack.Screen name="MyInquiries" component={MyInquiriesScreen} />
       <Stack.Screen name="AdvancedSearchFilters" component={AdvancedSearchFiltersScreen} />
+      <Stack.Screen name="ManageServices" component={ManageServicesScreen} />
+      <Stack.Screen name="CreateService" component={CreateServiceScreen} />
+      <Stack.Screen name="EditService" component={EditServiceScreen} />
       
       {/* Community Screens */}
       <Stack.Screen name="Dashboard" component={DashboardScreen} />
@@ -256,6 +271,15 @@ function MainStackNavigator() {
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="Messaging" component={MessagingScreen} />
       <Stack.Screen name="Chat" component={ChatScreen} />
+
+      {/* Service Screens */}
+      <Stack.Screen name="Services" component={ServicesScreen} />
+      <Stack.Screen name="ServiceCategory" component={ServiceCategoryScreen} />
+      <Stack.Screen name="ServiceDetails" component={ServiceDetailsScreen} />
+      <Stack.Screen name="BookService" component={BookServiceScreen} />
+      <Stack.Screen name="BookingConfirmation" component={BookingConfirmationScreen} />
+      <Stack.Screen name="MyBookings" component={MyBookingsScreen} />
+      <Stack.Screen name="BookingDetails" component={BookingDetailsScreen} />
 
       {/* Visitor Management */}
       <Stack.Screen name="VisitorManagement" component={VisitorManagementScreen} />

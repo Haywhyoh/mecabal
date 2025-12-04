@@ -51,6 +51,9 @@ export default function EditBusinessProfileScreen({ route, navigation }: EditBus
     yearsOfExperience: business.yearsOfExperience,
     paymentMethods: business.paymentMethods || [],
     hasInsurance: business.hasInsurance || false,
+    bankName: business.bankName || '',
+    accountNumber: business.accountNumber || '',
+    accountName: business.accountName || '',
   });
 
   const [hasChanges, setHasChanges] = useState(false);
@@ -71,6 +74,9 @@ export default function EditBusinessProfileScreen({ route, navigation }: EditBus
       formData.yearsOfExperience !== business.yearsOfExperience ||
       formData.hasInsurance !== (business.hasInsurance || false) ||
       JSON.stringify(formData.paymentMethods) !== JSON.stringify(business.paymentMethods || []) ||
+      formData.bankName !== (business.bankName || '') ||
+      formData.accountNumber !== (business.accountNumber || '') ||
+      formData.accountName !== (business.accountName || '') ||
       businessData.profileImageUrl !== business.profileImageUrl ||
       businessData.coverImageUrl !== business.coverImageUrl;
 
@@ -265,6 +271,15 @@ export default function EditBusinessProfileScreen({ route, navigation }: EditBus
       }
       if (formData.hasInsurance !== (business.hasInsurance || false)) {
         updateData.hasInsurance = formData.hasInsurance;
+      }
+      if (formData.bankName !== (business.bankName || '')) {
+        updateData.bankName = formData.bankName.trim() || undefined;
+      }
+      if (formData.accountNumber !== (business.accountNumber || '')) {
+        updateData.accountNumber = formData.accountNumber.trim() || undefined;
+      }
+      if (formData.accountName !== (business.accountName || '')) {
+        updateData.accountName = formData.accountName.trim() || undefined;
       }
 
       console.log('Updating business with:', updateData);
@@ -788,6 +803,43 @@ export default function EditBusinessProfileScreen({ route, navigation }: EditBus
               </View>
               <Text style={styles.checkboxLabel}>I have business insurance coverage</Text>
             </TouchableOpacity>
+          </View>
+
+          {/* Bank Details */}
+          <Text style={styles.sectionTitle}>Bank Details</Text>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Bank Name</Text>
+            <TextInput
+              style={styles.textInput}
+              value={formData.bankName}
+              onChangeText={(text) => setFormData(prev => ({ ...prev, bankName: text }))}
+              placeholder="e.g., Access Bank, GTBank"
+              placeholderTextColor="#8E8E8E"
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Account Number</Text>
+            <TextInput
+              style={styles.textInput}
+              value={formData.accountNumber}
+              onChangeText={(text) => setFormData(prev => ({ ...prev, accountNumber: text }))}
+              placeholder="Enter account number"
+              placeholderTextColor="#8E8E8E"
+              keyboardType="numeric"
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Account Name</Text>
+            <TextInput
+              style={styles.textInput}
+              value={formData.accountName}
+              onChangeText={(text) => setFormData(prev => ({ ...prev, accountName: text }))}
+              placeholder="Enter account name"
+              placeholderTextColor="#8E8E8E"
+            />
           </View>
         </View>
       </ScrollView>

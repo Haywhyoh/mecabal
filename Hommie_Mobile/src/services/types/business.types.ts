@@ -61,6 +61,13 @@ export interface BusinessProfile {
   completedJobs: number;
   createdAt: string;
   updatedAt: string;
+  // Bank details
+  bankName?: string;
+  accountNumber?: string;
+  accountName?: string;
+  // Profile images
+  profileImageUrl?: string;
+  coverImageUrl?: string;
 }
 
 // DTO for creating a new business
@@ -95,6 +102,10 @@ export interface UpdateBusinessProfileDto {
   yearsOfExperience?: number;
   paymentMethods?: string[];
   hasInsurance?: boolean;
+  // Bank details
+  bankName?: string;
+  accountNumber?: string;
+  accountName?: string;
 }
 
 // Search business DTO
@@ -146,4 +157,76 @@ export interface ServiceAreaGroup {
   serviceArea: string;
   businesses: BusinessProfile[];
   count: number;
+}
+
+// Business Service interface
+export interface BusinessService {
+  id: string;
+  businessId: string;
+  serviceName: string;
+  description?: string;
+  priceMin?: number;
+  priceMax?: number;
+  duration?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
+  // Business info (when fetched with relations)
+  business?: BusinessProfile;
+}
+
+// DTO for creating a business service
+export interface CreateBusinessServiceDto {
+  serviceName: string;
+  description?: string;
+  priceMin?: number;
+  priceMax?: number;
+  duration?: string;
+  isActive?: boolean;
+}
+
+// DTO for updating a business service
+export interface UpdateBusinessServiceDto {
+  serviceName?: string;
+  description?: string;
+  priceMin?: number;
+  priceMax?: number;
+  duration?: string;
+  isActive?: boolean;
+}
+
+// Bank details interface
+export interface BankDetails {
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
+}
+
+// Service Booking interface
+export interface ServiceBooking {
+  id: string;
+  userId: string;
+  businessId: string;
+  serviceId?: string;
+  serviceName: string;
+  status: 'pending' | 'confirmed' | 'in-progress' | 'completed' | 'cancelled';
+  scheduledDate?: string;
+  scheduledTime?: string;
+  address?: string;
+  description?: string;
+  price: number;
+  paymentStatus: 'pending' | 'paid' | 'refunded' | 'failed';
+  paymentId?: string;
+  createdAt: string;
+  updatedAt?: string;
+  completedAt?: string;
+  cancelledAt?: string;
+  cancellationReason?: string;
+  canReview?: boolean;
+  hasReviewed?: boolean;
+  reviewId?: string;
+  businessName?: string;
+  businessProfileImageUrl?: string;
+  serviceDescription?: string;
+  serviceDuration?: string;
 }

@@ -174,6 +174,14 @@ const MoreScreen: React.FC<MoreScreenProps> = ({ navigation }) => {
           onPress: () => handleNavigation('NeighborConnections'),
         },
         {
+          id: 'services',
+          title: 'Services',
+          subtitle: 'Browse and book services',
+          icon: 'wrench',
+          iconColor: '#00A651',
+          onPress: () => handleNavigation('Services'),
+        },
+        {
           id: 'businesses',
           title: 'Local Businesses',
           subtitle: 'Find trusted services nearby',
@@ -511,6 +519,16 @@ const MoreScreen: React.FC<MoreScreenProps> = ({ navigation }) => {
                     )}
                   </View>
                   <Text style={styles.sidebarMenuItemText}>Messages</Text>
+                  <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E93" />
+                </TouchableOpacity>
+
+                {/* Services */}
+                <TouchableOpacity
+                  style={styles.sidebarMenuItem}
+                  onPress={() => handleMenuItemPress(() => navigation?.navigate('Services' as never))}
+                >
+                  <MaterialCommunityIcons name="wrench" size={24} color="#00A651" />
+                  <Text style={styles.sidebarMenuItemText}>Services</Text>
                   <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E93" />
                 </TouchableOpacity>
 
