@@ -278,22 +278,27 @@ export class PostsService {
           const errorData = await response.json();
           throw new Error(errorData.message || `Failed to fetch posts (${response.status})`);
         } catch (parseError) {
-          throw new Error(`Failed to fetch posts (${response.status} ${response.statusText})`);
+          // Only catch JSON parsing errors, not intentional throws
+          if (parseError instanceof SyntaxError || (parseError instanceof Error && parseError.message.includes('JSON'))) {
+            throw new Error(`Failed to fetch posts (${response.status} ${response.statusText})`);
+          }
+          // Re-throw intentional errors (from line 279)
+          throw parseError;
         }
       }
 
       return await response.json();
     } catch (error) {
+      // Handle network errors first (more specific check before general Error check)
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        console.error('Network error fetching posts:', error);
+        throw new Error('Network error. Please check your internet connection and try again.');
+      }
+      
       // Preserve original error message if it's already user-friendly
       if (error instanceof Error && error.message) {
         console.error('Error fetching posts:', error.message);
         throw error;
-      }
-      
-      // Handle network errors
-      if (error instanceof TypeError && error.message.includes('fetch')) {
-        console.error('Network error fetching posts:', error);
-        throw new Error('Network error. Please check your internet connection and try again.');
       }
       
       console.error('Error fetching posts:', error);

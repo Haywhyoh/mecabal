@@ -16,7 +16,7 @@ import { EventCard, EventCardSkeleton } from '../../components/events';
 import { ErrorView } from '../../components/ui';
 import { EventsApi, handleApiError } from '../../services/EventsApi';
 import type { Event } from '../../services/EventsApi';
-import { colors, spacing, typography, shadows } from '../constants';
+import { colors, spacing, typography, shadows } from '../../constants';
 
 const { width } = Dimensions.get('window');
 

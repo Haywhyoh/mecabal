@@ -25,7 +25,7 @@ import { EventsApi, handleApiError, EVENT_CATEGORIES } from '../../services/Even
 import { StatesApi, handleStatesApiError } from '../../services/StatesApi';
 import type { CreateEventDto, EventMediaDto } from '../../services/EventsApi';
 import type { State } from '../../services/StatesApi';
-import { colors, spacing, typography, shadows } from '../constants';
+import { colors, spacing, typography, shadows } from '../../constants';
 
 const { width } = Dimensions.get('window');
 

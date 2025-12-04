@@ -19,7 +19,7 @@ import { AttendeeCardSkeleton } from '../../components/events';
 import { ErrorView } from '../../components/ui';
 import { EventsApi, handleApiError } from '../../services/EventsApi';
 import type { EventAttendee, AttendeeFilterDto, PaginatedResponse } from '../../services/EventsApi';
-import { colors, spacing, typography, shadows } from '../constants';
+import { colors, spacing, typography, shadows } from '../../constants';
 
 // Using EventAttendee from EventsApi instead of local interface
 
