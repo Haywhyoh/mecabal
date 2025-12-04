@@ -47,7 +47,6 @@ export default function LocalBusinessDirectoryScreen() {
   const navigation = useNavigation();
   const [searchText, setSearchText] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [selectedServiceArea, setSelectedServiceArea] = useState<string>('neighborhood');
   const [sortBy, setSortBy] = useState<'rating' | 'distance' | 'price'>('rating');
   const [showFilters, setShowFilters] = useState(false);
 
@@ -61,24 +60,35 @@ export default function LocalBusinessDirectoryScreen() {
   // Load businesses on mount
   useEffect(() => {
     loadBusinesses();
-  }, [selectedCategory, selectedServiceArea, sortBy, advancedFilters]);
+  }, [selectedCategory, sortBy, advancedFilters]);
 
   const loadBusinesses = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const searchParams = {
+      // Build search params according to backend DTO
+      const searchParams: any = {
         category: selectedCategory !== 'all' ? selectedCategory : undefined,
-        serviceArea: selectedServiceArea,
-        isActive: true,
+        verifiedOnly: true, // Only show verified businesses
         sortBy: sortBy === 'rating' ? 'rating' : sortBy === 'distance' ? 'distance' : undefined,
         sortOrder: 'DESC' as const,
-        ...advancedFilters,
       };
 
+      // Add query if search text exists
+      if (searchText.trim()) {
+        searchParams.query = searchText.trim();
+      }
+
+      // Add advanced filters (excluding serviceArea and isActive)
+      Object.keys(advancedFilters).forEach((key) => {
+        if (key !== 'serviceArea' && key !== 'isActive' && advancedFilters[key as keyof SearchFilters] !== undefined) {
+          searchParams[key] = advancedFilters[key as keyof SearchFilters];
+        }
+      });
+
       const response = await businessSearchApi.searchBusinesses(searchParams);
-      setBusinesses(response.businesses);
+      setBusinesses(response.data || []);
     } catch (err: any) {
       setError(err.message || 'Failed to load businesses');
       console.error('Error loading businesses:', err);
@@ -91,7 +101,7 @@ export default function LocalBusinessDirectoryScreen() {
     setRefreshing(true);
     await loadBusinesses();
     setRefreshing(false);
-  }, [selectedCategory, selectedServiceArea, sortBy]);
+  }, [selectedCategory, sortBy]);
 
   // Debounced search
   useEffect(() => {
@@ -110,16 +120,16 @@ export default function LocalBusinessDirectoryScreen() {
       setLoading(true);
       setError(null);
 
-      const response = await businessSearchApi.searchBusinesses({
-        search: searchText.trim(),
+      const searchParams: any = {
+        query: searchText.trim(),
         category: selectedCategory !== 'all' ? selectedCategory : undefined,
-        serviceArea: selectedServiceArea,
-        isActive: true,
+        verifiedOnly: true, // Only show verified businesses
         sortBy: sortBy === 'rating' ? 'rating' : sortBy === 'distance' ? 'distance' : undefined,
         sortOrder: 'DESC' as const,
-      });
+      };
 
-      setBusinesses(response.businesses);
+      const response = await businessSearchApi.searchBusinesses(searchParams);
+      setBusinesses(response.data || []);
     } catch (err: any) {
       setError(err.message || 'Search failed');
       console.error('Error searching businesses:', err);
