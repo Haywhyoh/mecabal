@@ -23,7 +23,11 @@ export const VisitorPassScreen: React.FC = () => {
   const route = useRoute();
   const { user } = useAuth();
   const { primaryLocation } = useLocation();
-  const estateId = primaryLocation?.neighborhoodId || user?.primaryLocationId;
+  // Get estateId from multiple sources with fallback
+  const estateId = 
+    primaryLocation?.neighborhoodId || 
+    user?.primaryLocationId || 
+    user?.userNeighborhoods?.find((neighborhood) => neighborhood.isPrimary)?.id;
 
   const { passId } = (route.params as any) || {};
   const [pass, setPass] = useState<VisitorPass | null>(null);

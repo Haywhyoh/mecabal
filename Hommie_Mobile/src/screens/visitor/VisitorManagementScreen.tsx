@@ -25,7 +25,11 @@ export const VisitorManagementScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const estateId = primaryLocation?.neighborhoodId || user?.primaryLocationId;
+  // Get estateId from multiple sources with fallback
+  const estateId = 
+    primaryLocation?.neighborhoodId || 
+    user?.primaryLocationId || 
+    user?.userNeighborhoods?.find((neighborhood) => neighborhood.isPrimary)?.id;
 
   useEffect(() => {
     loadPasses();

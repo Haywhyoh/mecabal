@@ -21,7 +21,11 @@ export const PreRegisterVisitorScreen: React.FC = () => {
   const navigation = useNavigation();
   const { user } = useAuth();
   const { primaryLocation } = useLocation();
-  const estateId = primaryLocation?.neighborhoodId || user?.primaryLocationId;
+  // Get estateId from multiple sources with fallback
+  const estateId = 
+    primaryLocation?.neighborhoodId || 
+    user?.primaryLocationId || 
+    user?.userNeighborhoods?.find((neighborhood) => neighborhood.isPrimary)?.id;
 
   const [formData, setFormData] = useState<PreRegisterVisitorDto>({
     fullName: '',
