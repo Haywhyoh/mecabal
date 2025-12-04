@@ -6,6 +6,7 @@ import {
   NeighborConnection,
   CONNECTION_TYPES
 } from '../../constants/socialNetworkingData';
+import { connectionStyles, connectionColors, connectionSizes } from '../../styles/connectionStyles';
 
 interface MutualConnectionsDisplayProps {
   currentUserId: string;

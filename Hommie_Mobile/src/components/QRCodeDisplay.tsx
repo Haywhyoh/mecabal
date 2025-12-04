@@ -1,7 +1,6 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Text, Share } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
-import { Share } from 'react-native-share';
 // Note: File download functionality requires additional implementation
 // import * as FileSystem from 'expo-file-system';
 // import * as MediaLibrary from 'expo-media-library';
@@ -24,12 +23,15 @@ export const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
     try {
       // For now, share the QR code value as text
       // In a full implementation, you might want to generate an image first
-      await Share.open({
+      await Share.share({
         message: `QR Code: ${value}`,
         title: 'Share QR Code',
       });
     } catch (error) {
-      console.error('Error sharing QR code:', error);
+      // User cancelled sharing or error occurred
+      if ((error as any)?.message !== 'User did not share') {
+        console.error('Error sharing QR code:', error);
+      }
     }
   };
 
