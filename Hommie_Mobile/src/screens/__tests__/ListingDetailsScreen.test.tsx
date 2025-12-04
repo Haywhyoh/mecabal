@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react-native';
-import ListingDetailsScreen from '../ListingDetailsScreen';
+import ListingDetailsScreen from '../marketplace/ListingDetailsScreen';
 import { Listing } from '../../services/listingsService';
 
 // Mock navigation

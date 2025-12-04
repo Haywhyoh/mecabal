@@ -1,13 +1,13 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
-import MarketplaceScreen from '../screens/MarketplaceScreen';
-import CategoryBrowseScreen from '../screens/CategoryBrowseScreen';
-import ListingDetailsScreen from '../screens/ListingDetailsScreen';
-import CreateListingScreen from '../screens/CreateListingScreen';
-import ServiceProviderProfileScreen from '../screens/ServiceProviderProfileScreen';
-import MyListingsScreen from '../screens/MyListingsScreen';
-import BusinessSearchScreen from '../screens/BusinessSearchScreen';
-import BusinessDetailScreen from '../screens/BusinessDetailScreen';
+import MarketplaceScreen from '../screens/marketplace/MarketplaceScreen';
+import CategoryBrowseScreen from '../screens/marketplace/CategoryBrowseScreen';
+import ListingDetailsScreen from '../screens/marketplace/ListingDetailsScreen';
+import CreateListingScreen from '../screens/marketplace/CreateListingScreen';
+import ServiceProviderProfileScreen from '../screens/business/ServiceProviderProfileScreen';
+import MyListingsScreen from '../screens/marketplace/MyListingsScreen';
+import BusinessSearchScreen from '../screens/business/BusinessSearchScreen';
+import BusinessDetailScreen from '../screens/business/BusinessDetailScreen';
 
 // Define navigation parameter types
 export type MarketplaceStackParamList = {

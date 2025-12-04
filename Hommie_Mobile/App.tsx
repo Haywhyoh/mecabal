@@ -26,62 +26,62 @@ import ProfileSetupScreen from './src/screens/onBoarding/ProfileSetupScreen';
 import EmailRegistrationScreen from './src/screens/onBoarding/EmailRegistrationScreen';
 import EmailVerificationScreen from './src/screens/onBoarding/EmailVerificationScreen';
 import EmailLoginScreen from './src/screens/onBoarding/EmailLoginScreen';
-import HomeScreen from './src/screens/HomeScreen';
-import EventsScreen from './src/screens/EventsScreen';
+import HomeScreen from './src/screens/main/HomeScreen';
+import EventsScreen from './src/screens/events/EventsScreen';
 import { MarketplaceNavigator } from './src/navigation/MarketplaceNavigation';
 import { HelpNavigator } from './src/navigation/HelpNavigation';
 
 // Profile and Community Screens
-import ProfileScreen from './src/screens/ProfileScreen';
-import EditProfileScreen from './src/screens/EditProfileScreen';
-import BusinessProfileScreen from './src/screens/BusinessProfileScreen';
-import EstateManagerScreen from './src/screens/EstateManagerScreen';
-import CulturalProfileScreen from './src/screens/CulturalProfileScreen';
-import NINVerificationScreen from './src/screens/NINVerificationScreen';
-import DocumentUploadScreen from './src/screens/DocumentUploadScreen';
-import BadgeSystemScreen from './src/screens/BadgeSystemScreen';
-import BusinessRegistrationScreen from './src/screens/BusinessRegistrationScreen';
-import EditBusinessProfileScreen from './src/screens/EditBusinessProfileScreen';
-import ProfessionalSkillsScreen from './src/screens/ProfessionalSkillsScreen';
-import LocalBusinessDirectoryScreen from './src/screens/LocalBusinessDirectoryScreen';
-import BusinessDetailScreen from './src/screens/BusinessDetailScreen';
-import BusinessReviewsScreen from './src/screens/BusinessReviewsScreen';
-import WriteReviewScreen from './src/screens/WriteReviewScreen';
-import BusinessAnalyticsScreen from './src/screens/BusinessAnalyticsScreen';
-import BusinessInquiriesScreen from './src/screens/BusinessInquiriesScreen';
-import MyInquiriesScreen from './src/screens/MyInquiriesScreen';
-import AdvancedSearchFiltersScreen from './src/screens/AdvancedSearchFiltersScreen';
-import CommunityActivityScreen from './src/screens/CommunityActivityScreen';
-import NeighborRatingScreen from './src/screens/NeighborRatingScreen';
-import CommunityEngagementScreen from './src/screens/CommunityEngagementScreen';
-import NeighborConnectionsScreen from './src/screens/NeighborConnectionsScreen';
+import ProfileScreen from './src/screens/profile/ProfileScreen';
+import EditProfileScreen from './src/screens/profile/EditProfileScreen';
+import BusinessProfileScreen from './src/screens/business/BusinessProfileScreen';
+import EstateManagerScreen from './src/screens/misc/EstateManagerScreen';
+import CulturalProfileScreen from './src/screens/profile/CulturalProfileScreen';
+import NINVerificationScreen from './src/screens/verification/NINVerificationScreen';
+import DocumentUploadScreen from './src/screens/verification/DocumentUploadScreen';
+import BadgeSystemScreen from './src/screens/misc/BadgeSystemScreen';
+import BusinessRegistrationScreen from './src/screens/business/BusinessRegistrationScreen';
+import EditBusinessProfileScreen from './src/screens/business/EditBusinessProfileScreen';
+import ProfessionalSkillsScreen from './src/screens/profile/ProfessionalSkillsScreen';
+import LocalBusinessDirectoryScreen from './src/screens/business/LocalBusinessDirectoryScreen';
+import BusinessDetailScreen from './src/screens/business/BusinessDetailScreen';
+import BusinessReviewsScreen from './src/screens/business/BusinessReviewsScreen';
+import WriteReviewScreen from './src/screens/business/WriteReviewScreen';
+import BusinessAnalyticsScreen from './src/screens/business/BusinessAnalyticsScreen';
+import BusinessInquiriesScreen from './src/screens/business/BusinessInquiriesScreen';
+import MyInquiriesScreen from './src/screens/misc/MyInquiriesScreen';
+import AdvancedSearchFiltersScreen from './src/screens/search/AdvancedSearchFiltersScreen';
+import CommunityActivityScreen from './src/screens/community/CommunityActivityScreen';
+import NeighborRatingScreen from './src/screens/community/NeighborRatingScreen';
+import CommunityEngagementScreen from './src/screens/community/CommunityEngagementScreen';
+import NeighborConnectionsScreen from './src/screens/community/NeighborConnectionsScreen';
 import RegisterScreen from './src/screens/onBoarding/RegisterScreen';
-import LocationTestScreen from './src/screens/LocationTestScreen';
-import DashboardScreen from './src/screens/DashboardScreen';
-import MoreScreen from './src/screens/MoreScreen';
+import LocationTestScreen from './src/screens/location/LocationTestScreen';
+import DashboardScreen from './src/screens/main/DashboardScreen';
+import MoreScreen from './src/screens/main/MoreScreen';
 
 
 
 // Event Screens
-import CreateEventScreen from './src/screens/CreateEventScreen';
-import EventDetailsScreen from './src/screens/EventDetailsScreen';
-import EventAttendeesScreen from './src/screens/EventAttendeesScreen';
-import CategoryEventsScreen from './src/screens/CategoryEventsScreen';
-import CommunityEndorsementScreen from './src/screens/CommunityEndorsementScreen';
-import EventPaymentScreen from './src/screens/EventPaymentScreen';
+import CreateEventScreen from './src/screens/events/CreateEventScreen';
+import EventDetailsScreen from './src/screens/events/EventDetailsScreen';
+import EventAttendeesScreen from './src/screens/events/EventAttendeesScreen';
+import CategoryEventsScreen from './src/screens/events/CategoryEventsScreen';
+import CommunityEndorsementScreen from './src/screens/community/CommunityEndorsementScreen';
+import EventPaymentScreen from './src/screens/events/EventPaymentScreen';
 
 // Messaging and Notifications
-import NotificationsScreen from './src/screens/NotificationsScreen';
-import MessagingScreen from './src/screens/MessagingScreen';
-import ChatScreen from './src/screens/ChatScreen';
+import NotificationsScreen from './src/screens/misc/NotificationsScreen';
+import MessagingScreen from './src/screens/messaging/MessagingScreen';
+import ChatScreen from './src/screens/messaging/ChatScreen';
 
 // Community Posts
-import CreatePostScreen from './src/screens/CreatePostScreen';
-import PostDetailScreen from './src/screens/PostDetailScreen';
-import { VisitorManagementScreen } from './src/screens/VisitorManagementScreen';
-import { PreRegisterVisitorScreen } from './src/screens/PreRegisterVisitorScreen';
-import { VisitorPassScreen } from './src/screens/VisitorPassScreen';
-import { MyQRCodeScreen } from './src/screens/MyQRCodeScreen';
+import CreatePostScreen from './src/screens/posts/CreatePostScreen';
+import PostDetailScreen from './src/screens/posts/PostDetailScreen';
+import { VisitorManagementScreen } from './src/screens/visitor/VisitorManagementScreen';
+import { PreRegisterVisitorScreen } from './src/screens/visitor/PreRegisterVisitorScreen';
+import { VisitorPassScreen } from './src/screens/visitor/VisitorPassScreen';
+import { MyQRCodeScreen } from './src/screens/profile/MyQRCodeScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();

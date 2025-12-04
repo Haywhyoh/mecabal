@@ -181,12 +181,12 @@ The `CategoryEventsScreen` component exists at `src/screens/CategoryEventsScreen
 
 ```tsx
 // Around line 60-66, add the import
-import CreateEventScreen from './src/screens/CreateEventScreen';
-import EventDetailsScreen from './src/screens/EventDetailsScreen';
-import EventAttendeesScreen from './src/screens/EventAttendeesScreen';
-import CategoryEventsScreen from './src/screens/CategoryEventsScreen'; // ADD THIS LINE
-import CommunityEndorsementScreen from './src/screens/CommunityEndorsementScreen';
-import EventPaymentScreen from './src/screens/EventPaymentScreen';
+import CreateEventScreen from './src/screens/events/CreateEventScreen';
+import EventDetailsScreen from './src/screens/events/EventDetailsScreen';
+import EventAttendeesScreen from './src/screens/events/EventAttendeesScreen';
+import CategoryEventsScreen from './src/screens/events/CategoryEventsScreen'; // ADD THIS LINE
+import CommunityEndorsementScreen from './src/screens/community/CommunityEndorsementScreen';
+import EventPaymentScreen from './src/screens/events/EventPaymentScreen';
 ```
 
 **Step 2:** Register the screen in MainStackNavigator

@@ -10,7 +10,7 @@ import { EventsApi } from '../services/EventsApi';
 import MessagingService from '../services/MessagingService';
 import { FloatingActionButton } from '../components/ui';
 import { useAuth } from '../contexts/AuthContext';
-import { FeedScreen } from '../screens/FeedScreen';
+import { FeedScreen } from '../posts/FeedScreen';
 import { UserAvatar } from '../components/profile';
 import MoreScreen from './MoreScreen';
 

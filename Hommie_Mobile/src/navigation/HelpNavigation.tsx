@@ -1,10 +1,10 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
-import HelpRequestsScreen from '../screens/HelpRequestsScreen';
-import HelpRequestDetailScreen from '../screens/HelpRequestDetailScreen';
-import OfferHelpScreen from '../screens/OfferHelpScreen';
-import CreateHelpRequestScreen from '../screens/CreateHelpPostScreen';
-import MyHelpActivityScreen from '../screens/MyHelpActivityScreen';
+import HelpRequestsScreen from '../screens/help/HelpRequestsScreen';
+import HelpRequestDetailScreen from '../screens/help/HelpRequestDetailScreen';
+import OfferHelpScreen from '../screens/help/OfferHelpScreen';
+import CreateHelpRequestScreen from '../screens/help/CreateHelpPostScreen';
+import MyHelpActivityScreen from '../screens/help/MyHelpActivityScreen';
 
 export type HelpStackParamList = {
   HelpRequests: undefined;
