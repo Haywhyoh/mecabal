@@ -1849,8 +1849,32 @@ export class ApiGatewayController {
     }
   }
 
+  @All('estate/:id/visitor-pass')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Estate visitor pass endpoints - base route' })
+  async proxyEstateVisitorPassBase(@Req() req: Request, @Res() res: Response) {
+    try {
+      const path = req.url.replace(/^\/estate/, '/estate');
+      const result: unknown = await this.apiGatewayService.proxyToLocationService(
+        path,
+        req.method,
+        req.body,
+        req.headers as Record<string, string | string[] | undefined>,
+        req.user,
+      );
+      const statusCode = req.method === 'POST' ? HttpStatus.CREATED : HttpStatus.OK;
+      res.status(statusCode).json(result);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStatus = (error as any)?.status || HttpStatus.INTERNAL_SERVER_ERROR;
+      res.status(errorStatus).json({ error: errorMessage });
+    }
+  }
+
   @All('estate/:id/visitor-pass/*path')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Estate visitor pass endpoints' })
   async proxyEstateVisitorPass(@Req() req: Request, @Res() res: Response) {
     try {
@@ -1871,8 +1895,31 @@ export class ApiGatewayController {
     }
   }
 
+  @All('estate/:id/visitor-logs')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Estate visitor logs endpoints - base route' })
+  async proxyEstateVisitorLogsBase(@Req() req: Request, @Res() res: Response) {
+    try {
+      const path = req.url.replace(/^\/estate/, '/estate');
+      const result: unknown = await this.apiGatewayService.proxyToLocationService(
+        path,
+        req.method,
+        req.body,
+        req.headers as Record<string, string | string[] | undefined>,
+        req.user,
+      );
+      res.status(HttpStatus.OK).json(result);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStatus = (error as any)?.status || HttpStatus.INTERNAL_SERVER_ERROR;
+      res.status(errorStatus).json({ error: errorMessage });
+    }
+  }
+
   @All('estate/:id/visitor-logs/*path')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Estate visitor logs endpoints' })
   async proxyEstateVisitorLogs(@Req() req: Request, @Res() res: Response) {
     try {
@@ -1892,8 +1939,31 @@ export class ApiGatewayController {
     }
   }
 
+  @All('estate/:id/visitor-analytics')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Estate visitor analytics endpoints - base route' })
+  async proxyEstateVisitorAnalyticsBase(@Req() req: Request, @Res() res: Response) {
+    try {
+      const path = req.url.replace(/^\/estate/, '/estate');
+      const result: unknown = await this.apiGatewayService.proxyToLocationService(
+        path,
+        req.method,
+        req.body,
+        req.headers as Record<string, string | string[] | undefined>,
+        req.user,
+      );
+      res.status(HttpStatus.OK).json(result);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStatus = (error as any)?.status || HttpStatus.INTERNAL_SERVER_ERROR;
+      res.status(errorStatus).json({ error: errorMessage });
+    }
+  }
+
   @All('estate/:id/visitor-analytics/*path')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Estate visitor analytics endpoints' })
   async proxyEstateVisitorAnalytics(@Req() req: Request, @Res() res: Response) {
     try {
@@ -1913,8 +1983,32 @@ export class ApiGatewayController {
     }
   }
 
+  @All('estate/:id/alerts')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Estate security alerts endpoints - base route' })
+  async proxyEstateAlertsBase(@Req() req: Request, @Res() res: Response) {
+    try {
+      const path = req.url.replace(/^\/estate/, '/estate');
+      const result: unknown = await this.apiGatewayService.proxyToLocationService(
+        path,
+        req.method,
+        req.body,
+        req.headers as Record<string, string | string[] | undefined>,
+        req.user,
+      );
+      const statusCode = req.method === 'POST' ? HttpStatus.CREATED : HttpStatus.OK;
+      res.status(statusCode).json(result);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStatus = (error as any)?.status || HttpStatus.INTERNAL_SERVER_ERROR;
+      res.status(errorStatus).json({ error: errorMessage });
+    }
+  }
+
   @All('estate/:id/alerts/*path')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Estate security alerts endpoints' })
   async proxyEstateAlerts(@Req() req: Request, @Res() res: Response) {
     try {

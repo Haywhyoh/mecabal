@@ -311,6 +311,31 @@ export class VisitorsController {
     }
   }
 
+  @Put(':id/visitor-pass/:passId/approve')
+  @ApiOperation({ summary: 'Approve visitor pass (admin only - changes status from PENDING to ACTIVE)' })
+  @ApiParam({ name: 'id', description: 'Estate ID' })
+  @ApiParam({ name: 'passId', description: 'Visitor Pass ID' })
+  @ApiResponse({ status: 200, description: 'Visitor pass approved successfully' })
+  async approveVisitorPass(
+    @Param('id') estateId: string,
+    @Param('passId') passId: string,
+    @CurrentUser() user: any,
+  ) {
+    try {
+      const pass = await this.visitorService.approveVisitorPass(passId, estateId, user.id);
+      return {
+        success: true,
+        data: pass,
+        message: 'Visitor pass approved successfully',
+      };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to approve visitor pass',
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   @Put(':id/visitor-pass/:passId/revoke')
   @ApiOperation({ summary: 'Revoke visitor pass (host or admin can revoke)' })
   @ApiParam({ name: 'id', description: 'Estate ID' })

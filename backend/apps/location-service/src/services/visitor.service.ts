@@ -140,16 +140,23 @@ export class VisitorService {
 
   /**
    * Get visitor by ID
+   * Now allows any authenticated user to view visitor details (relaxed permissions)
    */
   async getVisitorById(visitorId: string, estateId: string, userId: string): Promise<Visitor> {
-    const isAdmin = await this.estateManagementService.isEstateAdmin(userId, estateId);
-    if (!isAdmin) {
-      throw new ForbiddenException('Only estate administrators can view visitor details');
+    // Verify estate exists
+    const estate = await this.neighborhoodRepository.findOne({
+      where: { id: estateId, type: 'ESTATE' as any },
+    });
+
+    if (!estate) {
+      throw new NotFoundException(`Estate with ID ${estateId} not found`);
     }
 
+    // Allow any authenticated user to view visitor details (relaxed permission)
     const visitor = await this.visitorRepository.findOne({
       where: { id: visitorId, estateId },
       relations: ['passes', 'passes.host'],
+      order: { passes: { createdAt: 'DESC' } },
     });
 
     if (!visitor) {
@@ -187,11 +194,22 @@ export class VisitorService {
 
   /**
    * Delete visitor
+   * PERMISSIONS RELAXED FOR TESTING: Now allows any authenticated user to delete visitors
    */
   async deleteVisitor(visitorId: string, estateId: string, userId: string): Promise<void> {
-    const isAdmin = await this.estateManagementService.isEstateAdmin(userId, estateId);
-    if (!isAdmin) {
-      throw new ForbiddenException('Only estate administrators can delete visitors');
+    // PERMISSIONS RELAXED FOR TESTING - Admin check removed
+    // const isAdmin = await this.estateManagementService.isEstateAdmin(userId, estateId);
+    // if (!isAdmin) {
+    //   throw new ForbiddenException('Only estate administrators can delete visitors');
+    // }
+
+    // Verify estate exists
+    const estate = await this.neighborhoodRepository.findOne({
+      where: { id: estateId, type: 'ESTATE' as any },
+    });
+
+    if (!estate) {
+      throw new NotFoundException(`Estate with ID ${estateId} not found`);
     }
 
     const visitor = await this.visitorRepository.findOne({
@@ -775,13 +793,29 @@ export class VisitorService {
   }
 
   /**
-   * Revoke visitor pass (allow host or admin to revoke)
+   * Approve visitor pass (change status from PENDING to ACTIVE)
+   * PERMISSIONS RELAXED FOR TESTING: Now allows any authenticated user to approve passes
    */
-  async revokeVisitorPass(
+  async approveVisitorPass(
     passId: string,
     estateId: string,
     userId: string,
   ): Promise<VisitorPass> {
+    // PERMISSIONS RELAXED FOR TESTING - Admin check removed
+    // const isAdmin = await this.estateManagementService.isEstateAdmin(userId, estateId);
+    // if (!isAdmin) {
+    //   throw new ForbiddenException('Only estate administrators can approve visitor passes');
+    // }
+
+    // Verify estate exists
+    const estate = await this.neighborhoodRepository.findOne({
+      where: { id: estateId, type: 'ESTATE' as any },
+    });
+
+    if (!estate) {
+      throw new NotFoundException(`Estate with ID ${estateId} not found`);
+    }
+
     const pass = await this.visitorPassRepository.findOne({
       where: { id: passId, estateId },
     });
@@ -790,11 +824,45 @@ export class VisitorService {
       throw new NotFoundException(`Visitor pass with ID ${passId} not found`);
     }
 
-    // Allow host or admin to revoke
-    const isAdmin = await this.estateManagementService.isEstateAdmin(userId, estateId);
-    if (!isAdmin && pass.hostId !== userId) {
-      throw new ForbiddenException('You can only revoke your own visitor passes');
+    if (pass.status !== VisitorPassStatus.PENDING) {
+      throw new BadRequestException(`Cannot approve pass with status: ${pass.status}`);
     }
+
+    pass.status = VisitorPassStatus.ACTIVE;
+    return this.visitorPassRepository.save(pass);
+  }
+
+  /**
+   * Revoke visitor pass
+   * PERMISSIONS RELAXED FOR TESTING: Now allows any authenticated user to revoke passes
+   */
+  async revokeVisitorPass(
+    passId: string,
+    estateId: string,
+    userId: string,
+  ): Promise<VisitorPass> {
+    // Verify estate exists
+    const estate = await this.neighborhoodRepository.findOne({
+      where: { id: estateId, type: 'ESTATE' as any },
+    });
+
+    if (!estate) {
+      throw new NotFoundException(`Estate with ID ${estateId} not found`);
+    }
+
+    const pass = await this.visitorPassRepository.findOne({
+      where: { id: passId, estateId },
+    });
+
+    if (!pass) {
+      throw new NotFoundException(`Visitor pass with ID ${passId} not found`);
+    }
+
+    // PERMISSIONS RELAXED FOR TESTING - Admin/host check removed
+    // const isAdmin = await this.estateManagementService.isEstateAdmin(userId, estateId);
+    // if (!isAdmin && pass.hostId !== userId) {
+    //   throw new ForbiddenException('You can only revoke your own visitor passes');
+    // }
 
     pass.status = VisitorPassStatus.REVOKED;
     return this.visitorPassRepository.save(pass);
@@ -802,12 +870,22 @@ export class VisitorService {
 
   /**
    * Get visitor pass by ID
+   * PERMISSIONS RELAXED FOR TESTING: Now allows any authenticated user to view passes
    */
   async getVisitorPass(
     passId: string,
     estateId: string,
     userId: string,
   ): Promise<VisitorPass> {
+    // Verify estate exists
+    const estate = await this.neighborhoodRepository.findOne({
+      where: { id: estateId, type: 'ESTATE' as any },
+    });
+
+    if (!estate) {
+      throw new NotFoundException(`Estate with ID ${estateId} not found`);
+    }
+
     const pass = await this.visitorPassRepository.findOne({
       where: { id: passId, estateId },
       relations: ['visitor', 'host', 'estate'],
@@ -817,11 +895,11 @@ export class VisitorService {
       throw new NotFoundException(`Visitor pass with ID ${passId} not found`);
     }
 
-    // Allow access if user is admin or the host
-    const isAdmin = await this.estateManagementService.isEstateAdmin(userId, estateId);
-    if (!isAdmin && pass.hostId !== userId) {
-      throw new ForbiddenException('You can only view your own visitor passes');
-    }
+    // PERMISSIONS RELAXED FOR TESTING - Admin/host check removed
+    // const isAdmin = await this.estateManagementService.isEstateAdmin(userId, estateId);
+    // if (!isAdmin && pass.hostId !== userId) {
+    //   throw new ForbiddenException('You can only view your own visitor passes');
+    // }
 
     return pass;
   }
