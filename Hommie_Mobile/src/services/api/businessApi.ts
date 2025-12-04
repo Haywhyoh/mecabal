@@ -98,6 +98,7 @@ export const businessApi = {
   async deleteBusiness(id: string): Promise<void> {
     await apiClient.delete(`/business/${id}`);
   },
+
 };
 
 export default businessApi;

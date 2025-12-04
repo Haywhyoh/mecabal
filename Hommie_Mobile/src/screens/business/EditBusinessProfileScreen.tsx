@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, TextInput, Modal, FlatList, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, TextInput, Modal, FlatList, Alert, ActivityIndicator, Image, ActionSheetIOS, Platform } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { ScreenHeader } from '../../components/ui';
 import { businessApi } from '../../services/api';
 import { BusinessProfile, ServiceArea, PricingModel, Availability } from '../../services/types/business.types';
+import { BusinessImageUploadService } from '../../services/businessImageUpload';
 import {
   BUSINESS_CATEGORIES,
   SERVICE_AREAS,
@@ -25,12 +26,16 @@ export default function EditBusinessProfileScreen({ route, navigation }: EditBus
   const { business } = route.params;
 
   const [loading, setLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingImageType, setUploadingImageType] = useState<'profile' | 'cover' | null>(null);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showSubcategoryModal, setShowSubcategoryModal] = useState(false);
   const [showServiceAreaModal, setShowServiceAreaModal] = useState(false);
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [showAvailabilityModal, setShowAvailabilityModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  
+  const [businessData, setBusinessData] = useState<BusinessProfile>(business);
 
   const [formData, setFormData] = useState({
     businessName: business.businessName,
@@ -65,10 +70,12 @@ export default function EditBusinessProfileScreen({ route, navigation }: EditBus
       formData.businessAddress !== (business.businessAddress || '') ||
       formData.yearsOfExperience !== business.yearsOfExperience ||
       formData.hasInsurance !== (business.hasInsurance || false) ||
-      JSON.stringify(formData.paymentMethods) !== JSON.stringify(business.paymentMethods || []);
+      JSON.stringify(formData.paymentMethods) !== JSON.stringify(business.paymentMethods || []) ||
+      businessData.profileImageUrl !== business.profileImageUrl ||
+      businessData.coverImageUrl !== business.coverImageUrl;
 
     setHasChanges(changed);
-  }, [formData, business]);
+  }, [formData, business, businessData]);
 
   const getSelectedCategory = () => {
     return BUSINESS_CATEGORIES.find(cat => cat.id === formData.category);
@@ -103,6 +110,95 @@ export default function EditBusinessProfileScreen({ route, navigation }: EditBus
         ? prev.paymentMethods.filter(id => id !== methodId)
         : [...prev.paymentMethods, methodId]
     }));
+  };
+
+  const handleImagePicker = async (type: 'profile' | 'cover') => {
+    try {
+      const options = ['Camera', 'Photo Library', 'Cancel'];
+      let imageUri: string | null = null;
+
+      if (Platform.OS === 'ios') {
+        ActionSheetIOS.showActionSheetWithOptions(
+          {
+            options,
+            cancelButtonIndex: 2,
+          },
+          async (buttonIndex) => {
+            if (buttonIndex === 0) {
+              imageUri = await BusinessImageUploadService.pickImageFromCamera(
+                type === 'cover' ? [3, 1] : [1, 1]
+              );
+            } else if (buttonIndex === 1) {
+              imageUri = await BusinessImageUploadService.pickImageFromLibrary(
+                type === 'cover' ? [3, 1] : [1, 1]
+              );
+            }
+            if (imageUri) {
+              await handleImageUpload(type, imageUri);
+            }
+          }
+        );
+      } else {
+        // Android - show Alert with options
+        Alert.alert(
+          'Select Image',
+          'Choose an option',
+          [
+            { text: 'Camera', onPress: async () => {
+              imageUri = await BusinessImageUploadService.pickImageFromCamera(
+                type === 'cover' ? [3, 1] : [1, 1]
+              );
+              if (imageUri) {
+                await handleImageUpload(type, imageUri);
+              }
+            }},
+            { text: 'Photo Library', onPress: async () => {
+              imageUri = await BusinessImageUploadService.pickImageFromLibrary(
+                type === 'cover' ? [3, 1] : [1, 1]
+              );
+              if (imageUri) {
+                await handleImageUpload(type, imageUri);
+              }
+            }},
+            { text: 'Cancel', style: 'cancel' },
+          ]
+        );
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to pick image');
+    }
+  };
+
+  const handleImageUpload = async (type: 'profile' | 'cover', imageUri: string) => {
+    try {
+      setUploadingImage(true);
+      setUploadingImageType(type);
+
+      let result;
+      if (type === 'profile') {
+        result = await BusinessImageUploadService.uploadProfileImage(business.id, imageUri);
+      } else {
+        result = await BusinessImageUploadService.uploadCoverImage(business.id, imageUri);
+      }
+
+      if (result.success && result.data) {
+        const imageUrl = result.data.profileImageUrl || result.data.coverImageUrl;
+        if (imageUrl) {
+          setBusinessData(prev => ({
+            ...prev,
+            [type === 'profile' ? 'profileImageUrl' : 'coverImageUrl']: imageUrl,
+          }));
+          Alert.alert('Success', `${type === 'profile' ? 'Profile' : 'Cover'} image uploaded successfully!`);
+        }
+      } else {
+        Alert.alert('Upload Failed', result.error || 'Failed to upload image');
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to upload image');
+    } finally {
+      setUploadingImage(false);
+      setUploadingImageType(null);
+    }
   };
 
   const validateForm = (): boolean => {
@@ -474,6 +570,67 @@ export default function EditBusinessProfileScreen({ route, navigation }: EditBus
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.formContent}>
+          {/* Business Images */}
+          <Text style={styles.sectionTitle}>Business Images</Text>
+          
+          {/* Cover Image */}
+          <View style={styles.imageUploadSection}>
+            <Text style={styles.imageLabel}>Cover Image</Text>
+            <TouchableOpacity
+              style={styles.imageUploadButton}
+              onPress={() => handleImagePicker('cover')}
+              disabled={uploadingImage}
+            >
+              {businessData.coverImageUrl ? (
+                <Image source={{ uri: businessData.coverImageUrl }} style={styles.coverImagePreview} />
+              ) : (
+                <View style={styles.imagePlaceholder}>
+                  <MaterialCommunityIcons name="image-plus" size={32} color="#8E8E8E" />
+                  <Text style={styles.imagePlaceholderText}>Add Cover Image</Text>
+                  <Text style={styles.imagePlaceholderSubtext}>1200x400px recommended</Text>
+                </View>
+              )}
+              {(businessData.coverImageUrl || uploadingImageType === 'cover') && (
+                <View style={styles.imageOverlay}>
+                  {uploadingImageType === 'cover' ? (
+                    <ActivityIndicator size="large" color="#FFFFFF" />
+                  ) : (
+                    <MaterialCommunityIcons name="camera" size={24} color="#FFFFFF" />
+                  )}
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          {/* Profile Image */}
+          <View style={styles.imageUploadSection}>
+            <Text style={styles.imageLabel}>Business Logo</Text>
+            <TouchableOpacity
+              style={styles.imageUploadButton}
+              onPress={() => handleImagePicker('profile')}
+              disabled={uploadingImage}
+            >
+              {businessData.profileImageUrl ? (
+                <Image source={{ uri: businessData.profileImageUrl }} style={styles.profileImagePreview} />
+              ) : (
+                <View style={styles.imagePlaceholder}>
+                  <MaterialCommunityIcons name="store" size={32} color="#8E8E8E" />
+                  <Text style={styles.imagePlaceholderText}>Add Logo</Text>
+                  <Text style={styles.imagePlaceholderSubtext}>400x400px recommended</Text>
+                </View>
+              )}
+              {(businessData.profileImageUrl || uploadingImageType === 'profile') && (
+                <View style={styles.imageOverlay}>
+                  {uploadingImageType === 'profile' ? (
+                    <ActivityIndicator size="large" color="#FFFFFF" />
+                  ) : (
+                    <MaterialCommunityIcons name="camera" size={24} color="#FFFFFF" />
+                  )}
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+
           {/* Business Information */}
           <Text style={styles.sectionTitle}>Business Information</Text>
 
@@ -651,16 +808,16 @@ export default function EditBusinessProfileScreen({ route, navigation }: EditBus
             (!hasChanges || loading) && styles.saveButtonDisabled
           ]}
           onPress={handleSave}
-          disabled={!hasChanges || loading}
+          disabled={!hasChanges || loading || uploadingImage}
         >
-          {loading ? (
+          {(loading || uploadingImage) ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
             <Text style={[
               styles.saveButtonText,
-              (!hasChanges || loading) && styles.saveButtonTextDisabled
+              (!hasChanges || loading || uploadingImage) && styles.saveButtonTextDisabled
             ]}>
-              Save Changes
+              {uploadingImage ? 'Uploading...' : 'Save Changes'}
             </Text>
           )}
         </TouchableOpacity>
@@ -911,5 +1068,62 @@ const styles = StyleSheet.create({
     color: '#FF6B35',
     fontWeight: '600',
     marginTop: 2,
+  },
+  imageUploadSection: {
+    marginBottom: 20,
+  },
+  imageLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2C2C2C',
+    marginBottom: 8,
+  },
+  imageUploadButton: {
+    width: '100%',
+    borderRadius: 8,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    backgroundColor: '#F5F5F5',
+    position: 'relative',
+  },
+  coverImagePreview: {
+    width: '100%',
+    height: 150,
+    resizeMode: 'cover',
+  },
+  profileImagePreview: {
+    width: '100%',
+    height: 150,
+    resizeMode: 'contain',
+    backgroundColor: '#FFFFFF',
+  },
+  imagePlaceholder: {
+    width: '100%',
+    height: 150,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+  },
+  imagePlaceholderText: {
+    fontSize: 14,
+    color: '#8E8E8E',
+    marginTop: 8,
+    fontWeight: '500',
+  },
+  imagePlaceholderSubtext: {
+    fontSize: 12,
+    color: '#8E8E8E',
+    marginTop: 4,
+  },
+  imageOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

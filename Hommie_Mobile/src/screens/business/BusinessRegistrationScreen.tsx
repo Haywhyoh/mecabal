@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, TextInput, Modal, FlatList, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, TextInput, Modal, FlatList, Alert, ActivityIndicator, Image, ActionSheetIOS, Platform } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { ScreenHeader } from '../../components/ui';
 import { businessApi } from '../../services/api';
 import { ServiceArea, PricingModel, Availability } from '../../services/types/business.types';
+import { BusinessImageUploadService } from '../../services/businessImageUpload';
 import { 
   BUSINESS_CATEGORIES, 
   SERVICE_AREAS, 
@@ -31,6 +32,8 @@ interface BusinessRegistration {
   licenses: string[];
   hasInsurance: boolean;
   guarantees: string[];
+  profileImageUrl?: string;
+  coverImageUrl?: string;
 }
 
 interface BusinessRegistrationScreenProps {
@@ -40,6 +43,7 @@ interface BusinessRegistrationScreenProps {
 export default function BusinessRegistrationScreen({ navigation }: BusinessRegistrationScreenProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showSubcategoryModal, setShowSubcategoryModal] = useState(false);
   const [showServiceAreaModal, setShowServiceAreaModal] = useState(false);
@@ -65,6 +69,8 @@ export default function BusinessRegistrationScreen({ navigation }: BusinessRegis
     licenses: [],
     hasInsurance: false,
     guarantees: [],
+    profileImageUrl: undefined,
+    coverImageUrl: undefined,
   });
 
   const getSelectedCategory = () => {
@@ -109,6 +115,73 @@ export default function BusinessRegistrationScreen({ navigation }: BusinessRegis
         ? prev.licenses.filter(l => l !== license)
         : [...prev.licenses, license]
     }));
+  };
+
+  const handleImagePicker = async (type: 'profile' | 'cover') => {
+    try {
+      const options = ['Camera', 'Photo Library', 'Cancel'];
+      let imageUri: string | null = null;
+
+      if (Platform.OS === 'ios') {
+        ActionSheetIOS.showActionSheetWithOptions(
+          {
+            options,
+            cancelButtonIndex: 2,
+          },
+          async (buttonIndex) => {
+            if (buttonIndex === 0) {
+              imageUri = await BusinessImageUploadService.pickImageFromCamera(
+                type === 'cover' ? [3, 1] : [1, 1]
+              );
+            } else if (buttonIndex === 1) {
+              imageUri = await BusinessImageUploadService.pickImageFromLibrary(
+                type === 'cover' ? [3, 1] : [1, 1]
+              );
+            }
+            if (imageUri) {
+              // Store image URI temporarily - will upload after business creation
+              setRegistration(prev => ({
+                ...prev,
+                [type === 'profile' ? 'profileImageUrl' : 'coverImageUrl']: imageUri || undefined,
+              }));
+            }
+          }
+        );
+      } else {
+        // Android - show Alert with options
+        Alert.alert(
+          'Select Image',
+          'Choose an option',
+          [
+            { text: 'Camera', onPress: async () => {
+              imageUri = await BusinessImageUploadService.pickImageFromCamera(
+                type === 'cover' ? [3, 1] : [1, 1]
+              );
+              if (imageUri) {
+                setRegistration(prev => ({
+                  ...prev,
+                  [type === 'profile' ? 'profileImageUrl' : 'coverImageUrl']: imageUri || undefined,
+                }));
+              }
+            }},
+            { text: 'Photo Library', onPress: async () => {
+              imageUri = await BusinessImageUploadService.pickImageFromLibrary(
+                type === 'cover' ? [3, 1] : [1, 1]
+              );
+              if (imageUri) {
+                setRegistration(prev => ({
+                  ...prev,
+                  [type === 'profile' ? 'profileImageUrl' : 'coverImageUrl']: imageUri || undefined,
+                }));
+              }
+            }},
+            { text: 'Cancel', style: 'cancel' },
+          ]
+        );
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to pick image');
+    }
   };
 
   const validateStep = (step: number): boolean => {
@@ -176,6 +249,35 @@ export default function BusinessRegistrationScreen({ navigation }: BusinessRegis
 
       console.log('✅ Business registered successfully:', response);
 
+      // Upload images if they were selected
+      if (registration.profileImageUrl || registration.coverImageUrl) {
+        setUploadingImage(true);
+        try {
+          if (registration.profileImageUrl) {
+            const profileResult = await BusinessImageUploadService.uploadProfileImage(
+              response.id,
+              registration.profileImageUrl
+            );
+            if (!profileResult.success) {
+              console.warn('Failed to upload profile image:', profileResult.error);
+            }
+          }
+          if (registration.coverImageUrl) {
+            const coverResult = await BusinessImageUploadService.uploadCoverImage(
+              response.id,
+              registration.coverImageUrl
+            );
+            if (!coverResult.success) {
+              console.warn('Failed to upload cover image:', coverResult.error);
+            }
+          }
+        } catch (error) {
+          console.error('Error uploading images:', error);
+        } finally {
+          setUploadingImage(false);
+        }
+      }
+
       Alert.alert(
         'Registration Successful!',
         `Welcome to MeCabal Business! Your profile "${response.businessName}" has been created.`,
@@ -225,6 +327,61 @@ export default function BusinessRegistrationScreen({ navigation }: BusinessRegis
       <Text style={styles.stepDescription}>
         Tell us about your business to help neighbors find and trust your services.
       </Text>
+
+      {/* Business Images */}
+      <View style={styles.inputGroup}>
+        <Text style={styles.inputLabel}>Business Images (Optional)</Text>
+        
+        {/* Cover Image */}
+        <View style={styles.imageUploadSection}>
+          <Text style={styles.imageLabel}>Cover Image</Text>
+          <TouchableOpacity
+            style={styles.imageUploadButton}
+            onPress={() => handleImagePicker('cover')}
+            disabled={uploadingImage}
+          >
+            {registration.coverImageUrl ? (
+              <Image source={{ uri: registration.coverImageUrl }} style={styles.coverImagePreview} />
+            ) : (
+              <View style={styles.imagePlaceholder}>
+                <MaterialCommunityIcons name="image-plus" size={32} color="#8E8E8E" />
+                <Text style={styles.imagePlaceholderText}>Add Cover Image</Text>
+                <Text style={styles.imagePlaceholderSubtext}>1200x400px recommended</Text>
+              </View>
+            )}
+            {registration.coverImageUrl && (
+              <View style={styles.imageOverlay}>
+                <MaterialCommunityIcons name="camera" size={24} color="#FFFFFF" />
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Profile Image */}
+        <View style={styles.imageUploadSection}>
+          <Text style={styles.imageLabel}>Business Logo</Text>
+          <TouchableOpacity
+            style={styles.imageUploadButton}
+            onPress={() => handleImagePicker('profile')}
+            disabled={uploadingImage}
+          >
+            {registration.profileImageUrl ? (
+              <Image source={{ uri: registration.profileImageUrl }} style={styles.profileImagePreview} />
+            ) : (
+              <View style={styles.imagePlaceholder}>
+                <MaterialCommunityIcons name="store" size={32} color="#8E8E8E" />
+                <Text style={styles.imagePlaceholderText}>Add Logo</Text>
+                <Text style={styles.imagePlaceholderSubtext}>400x400px recommended</Text>
+              </View>
+            )}
+            {registration.profileImageUrl && (
+              <View style={styles.imageOverlay}>
+                <MaterialCommunityIcons name="camera" size={24} color="#FFFFFF" />
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+      </View>
 
       <View style={styles.inputGroup}>
         <Text style={styles.inputLabel}>Business Name *</Text>
@@ -783,6 +940,13 @@ export default function BusinessRegistrationScreen({ navigation }: BusinessRegis
         <Text style={styles.progressText}>Step {currentStep} of 4</Text>
       </View>
 
+      {uploadingImage && (
+        <View style={styles.uploadingOverlay}>
+          <ActivityIndicator size="large" color="#00A651" />
+          <Text style={styles.uploadingText}>Uploading images...</Text>
+        </View>
+      )}
+
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {currentStep === 1 && renderStep1()}
         {currentStep === 2 && renderStep2()}
@@ -818,16 +982,20 @@ export default function BusinessRegistrationScreen({ navigation }: BusinessRegis
               handleSubmitRegistration();
             }
           }}
-          disabled={!validateStep(currentStep) || submitting}
+          disabled={!validateStep(currentStep) || submitting || uploadingImage}
         >
-          {submitting && currentStep === 4 ? (
+          {(submitting || uploadingImage) && currentStep === 4 ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
             <Text style={[
               styles.nextButtonText,
               (!validateStep(currentStep) || submitting) && styles.nextButtonTextDisabled
             ]}>
-              {currentStep === 4 ? (submitting ? 'Submitting...' : 'Submit Registration') : 'Continue'}
+              {currentStep === 4 
+                ? (submitting || uploadingImage) 
+                  ? (uploadingImage ? 'Uploading Images...' : 'Submitting...') 
+                  : 'Submit Registration' 
+                : 'Continue'}
             </Text>
           )}
         </TouchableOpacity>
@@ -1220,5 +1388,80 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#2C2C2C',
     marginBottom: 12,
+  },
+  imageUploadSection: {
+    marginBottom: 20,
+  },
+  imageLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2C2C2C',
+    marginBottom: 8,
+  },
+  imageUploadButton: {
+    width: '100%',
+    borderRadius: 8,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    backgroundColor: '#F5F5F5',
+    position: 'relative',
+  },
+  coverImagePreview: {
+    width: '100%',
+    height: 150,
+    resizeMode: 'cover',
+  },
+  profileImagePreview: {
+    width: '100%',
+    height: 150,
+    resizeMode: 'contain',
+    backgroundColor: '#FFFFFF',
+  },
+  imagePlaceholder: {
+    width: '100%',
+    height: 150,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+  },
+  imagePlaceholderText: {
+    fontSize: 14,
+    color: '#8E8E8E',
+    marginTop: 8,
+    fontWeight: '500',
+  },
+  imagePlaceholderSubtext: {
+    fontSize: 12,
+    color: '#8E8E8E',
+    marginTop: 4,
+  },
+  imageOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    opacity: 0,
+  },
+  uploadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  uploadingText: {
+    color: '#FFFFFF',
+    marginTop: 12,
+    fontSize: 16,
+    fontWeight: '500',
   },
 });
