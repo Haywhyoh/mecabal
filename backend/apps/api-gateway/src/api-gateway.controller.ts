@@ -2285,6 +2285,39 @@ export class ApiGatewayController {
     }
   }
 
+  @All('bank-accounts')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Proxy bank account requests to business service' })
+  async proxyBankAccountsBase(@Req() req: Request, @Res() res: Response) {
+    try {
+      const result: unknown =
+        await this.apiGatewayService.proxyToBusinessService(
+          req.url,
+          req.method,
+          req.body,
+          req.headers as Record<string, string | string[] | undefined>,
+          req.user,
+        );
+
+      let statusCode = HttpStatus.OK;
+      if (req.method === 'POST') {
+        statusCode = HttpStatus.CREATED;
+      } else if (req.method === 'DELETE') {
+        statusCode = HttpStatus.NO_CONTENT;
+      }
+
+      res.status(statusCode).json(result);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error proxying bank account request:', errorMessage);
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: errorMessage });
+    }
+  }
+
   @All('bank-accounts/*path')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
