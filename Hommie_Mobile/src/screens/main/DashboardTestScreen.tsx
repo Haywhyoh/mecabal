@@ -12,10 +12,10 @@ import {
 } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
-import { UserDashboardService, DashboardStats, BookmarkItem } from '../services/userDashboard';
-import { UserProfileService, ProfileCompletionResponse } from '../services/userProfile';
-import ApiConnectionTest from '../services/apiTest';
-import { useProfile } from '../contexts/ProfileContext';
+import { UserDashboardService, DashboardStats, BookmarkItem } from '../../services/userDashboard';
+import { UserProfileService, ProfileCompletionResponse } from '../../services/userProfile';
+import ApiConnectionTest from '../../services/apiTest';
+import { useProfile } from '../../contexts/ProfileContext';
 
 export default function DashboardTestScreen() {
   const navigation = useNavigation();

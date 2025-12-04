@@ -17,8 +17,8 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
-import { verificationService } from '../services/verificationService';
-import { useProfile } from '../contexts/ProfileContext';
+import { verificationService } from '../../services/verificationService';
+import { useProfile } from '../../contexts/ProfileContext';
 
 const { width } = Dimensions.get('window');
 

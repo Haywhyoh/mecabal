@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, Modal, Dimensions } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
-import { contextAwareGoBack } from '../utils/navigationUtils';
+import { contextAwareGoBack } from '../../utils/navigationUtils';
 
 const { width } = Dimensions.get('window');
 

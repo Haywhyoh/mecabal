@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView, Alert, Modal, ActivityIndicator } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
-import { useAuth } from '../contexts/AuthContext';
-import { useProfile } from '../contexts/ProfileContext';
-import { verificationService } from '../services/verificationService';
+import { useAuth } from '../../contexts/AuthContext';
+import { useProfile } from '../../contexts/ProfileContext';
+import { verificationService } from '../../services/verificationService';
 
 interface NINData {
   nin: string;

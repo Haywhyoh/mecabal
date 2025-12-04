@@ -15,10 +15,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import * as Haptics from 'expo-haptics';
 import { colors, typography, spacing, BORDER_RADIUS, shadows } from '../constants';
-import { ScreenHeader } from '../components/ui';
-import { StarRating } from '../components/business';
-import { businessReviewApi } from '../services/api/businessReviewApi';
-import { CreateReviewDto } from '../services/types/review.types';
+import { ScreenHeader } from '../../components/ui';
+import { StarRating } from '../../components/business';
+import { businessReviewApi } from '../../services/api/businessReviewApi';
+import { CreateReviewDto } from '../../services/types/review.types';
 
 interface Props {
   route: {

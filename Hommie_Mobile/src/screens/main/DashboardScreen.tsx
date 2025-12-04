@@ -2,11 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, RefreshControl, Animated } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
-import { contextAwareGoBack } from '../utils/navigationUtils';
-import { useProfile } from '../contexts/ProfileContext';
-import { HapticFeedback } from '../utils/haptics';
-import { Typography } from '../constants/typography';
-import { SkeletonPlaceholder } from '../components/ui';
+import { contextAwareGoBack } from '../../utils/navigationUtils';
+import { useProfile } from '../../contexts/ProfileContext';
+import { HapticFeedback } from '../../utils/haptics';
+import { Typography } from '../../constants/typography';
+import { SkeletonPlaceholder } from '../../components/ui';
 
 export default function DashboardScreen() {
   const navigation = useNavigation();

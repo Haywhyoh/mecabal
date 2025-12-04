@@ -13,9 +13,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
-import { HelpStackParamList } from '../navigation/HelpNavigation';
-import { PostsService } from '../services/postsService';
-import { useAuth } from '../contexts/AuthContext';
+import { HelpStackParamList } from '../../navigation/HelpNavigation';
+import { PostsService } from '../../services/postsService';
+import { useAuth } from '../../contexts/AuthContext';
 
 type MyHelpActivityScreenProps = {
   navigation: StackNavigationProp<HelpStackParamList, 'MyHelpActivity'>;

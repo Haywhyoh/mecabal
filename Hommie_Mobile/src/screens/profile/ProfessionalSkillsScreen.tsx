@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, TextInput, Modal, Alert } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { BUSINESS_CATEGORIES } from '../constants/businessData';
+import { BUSINESS_CATEGORIES } from '../../constants/businessData';
 
 interface Skill {
   id: string;

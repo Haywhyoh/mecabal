@@ -14,11 +14,11 @@ import {
 } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { colors, spacing, typography } from '../constants';
-import { useAuth } from '../contexts/AuthContext';
-import { UserAvatar } from '../components/profile';
-import { HapticFeedback } from '../utils/haptics';
-import { contextAwareGoBack } from '../utils/navigationUtils';
-import MessagingService from '../services/MessagingService';
+import { useAuth } from '../../contexts/AuthContext';
+import { UserAvatar } from '../../components/profile';
+import { HapticFeedback } from '../../utils/haptics';
+import { contextAwareGoBack } from '../../utils/navigationUtils';
+import MessagingService from '../../services/MessagingService';
 
 interface MoreScreenProps {
   navigation?: any;

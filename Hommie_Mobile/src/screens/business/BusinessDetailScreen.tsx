@@ -14,8 +14,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, shadows } from '../constants';
-import { BusinessService, BusinessProfile, BusinessInquiry } from '../services/businessService';
-import { BusinessInquiryForm } from '../components/business';
+import { BusinessService, BusinessProfile, BusinessInquiry } from '../../services/businessService';
+import { BusinessInquiryForm } from '../../components/business';
 
 interface BusinessDetailScreenProps {
   navigation: any;

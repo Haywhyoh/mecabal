@@ -2,11 +2,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, TextInput, Image, Alert, ActivityIndicator, RefreshControl } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
-import { contextAwareGoBack } from '../utils/navigationUtils';
-import { BUSINESS_CATEGORIES, SERVICE_AREAS, formatNairaCurrency } from '../constants/businessData';
-import { NIGERIAN_STATES } from '../constants/nigerianData';
-import { businessSearchApi } from '../services/api';
-import { BusinessProfile } from '../services/types/business.types';
+import { contextAwareGoBack } from '../../utils/navigationUtils';
+import { BUSINESS_CATEGORIES, SERVICE_AREAS, formatNairaCurrency } from '../../constants/businessData';
+import { NIGERIAN_STATES } from '../../constants/nigerianData';
+import { businessSearchApi } from '../../services/api';
+import { BusinessProfile } from '../../services/types/business.types';
 import { SearchFilters } from './AdvancedSearchFiltersScreen';
 
 interface BusinessListing {

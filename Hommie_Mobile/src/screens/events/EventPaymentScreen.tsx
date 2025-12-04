@@ -13,9 +13,9 @@ import {
   Image,
 } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import PaymentService, { PaymentProvider, PaymentMethod, PaymentRequest, PaymentResponse } from '../services/PaymentService';
+import PaymentService, { PaymentProvider, PaymentMethod, PaymentRequest, PaymentResponse } from '../../services/PaymentService';
 import { EventData, demoEvents } from '../data/eventsData';
-import { colors, spacing, typography, shadows } from '../constants';
+import { colors, spacing, typography, shadows } from '../../constants';
 
 interface EventPaymentScreenProps {
   route: {

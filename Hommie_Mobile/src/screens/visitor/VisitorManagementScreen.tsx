@@ -9,12 +9,12 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { visitorApi, VisitorPass } from '../services/api/visitorApi';
-import { VisitorPassCard } from '../components/VisitorPassCard';
-import { useAuth } from '../contexts/AuthContext';
-import { useLocation } from '../contexts/LocationContext';
+import { visitorApi, VisitorPass } from '../../services/api/visitorApi';
+import { VisitorPassCard } from '../../components/VisitorPassCard';
+import { useAuth } from '../../contexts/AuthContext';
+import { useLocation } from '../../contexts/LocationContext';
 import Toast from 'react-native-toast-message';
-import { LoadingState, ErrorState, EmptyState } from '../components/ui';
+import { LoadingState, ErrorState, EmptyState } from '../../components/ui';
 
 export const VisitorManagementScreen: React.FC = () => {
   const navigation = useNavigation();

@@ -11,8 +11,8 @@ import {
 } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
-import { useAuth } from '../contexts/AuthContext';
-import { NINVerificationService, NINVerificationResponse, VerificationStatusResponse, TrustScoreResponse } from '../services/ninVerification';
+import { useAuth } from '../../contexts/AuthContext';
+import { NINVerificationService, NINVerificationResponse, VerificationStatusResponse, TrustScoreResponse } from '../../services/ninVerification';
 
 export default function NINTestScreen() {
   const navigation = useNavigation();

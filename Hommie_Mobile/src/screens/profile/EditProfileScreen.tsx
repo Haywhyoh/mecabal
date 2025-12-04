@@ -14,8 +14,8 @@ import {
 } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
-import { useAuth } from '../contexts/AuthContext';
-import { UserProfileService, UpdateProfileRequest } from '../services/userProfile';
+import { useAuth } from '../../contexts/AuthContext';
+import { UserProfileService, UpdateProfileRequest } from '../../services/userProfile';
 
 export default function EditProfileScreen() {
   const navigation = useNavigation();

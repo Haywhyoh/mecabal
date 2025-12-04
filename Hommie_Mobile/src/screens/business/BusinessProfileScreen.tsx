@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, Image, Alert, ActivityIndicator, RefreshControl } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { BUSINESS_VERIFICATION_LEVELS, formatNairaCurrency, calculateAverageRating } from '../constants/businessData';
-import { ScreenHeader } from '../components/ui';
-import { businessApi } from '../services/api';
-import { BusinessProfile } from '../services/types/business.types';
+import { BUSINESS_VERIFICATION_LEVELS, formatNairaCurrency, calculateAverageRating } from '../../constants/businessData';
+import { ScreenHeader } from '../../components/ui';
+import { businessApi } from '../../services/api';
+import { BusinessProfile } from '../../services/types/business.types';
 
 interface BusinessProfileScreenProps {
   navigation?: any;

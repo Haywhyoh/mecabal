@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, TextInput, Alert, Dimensions } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
-import { safeGoBack } from '../utils/navigationUtils';
+import { safeGoBack } from '../../utils/navigationUtils';
 import { 
   CONNECTION_TYPES,
   TRUSTED_NEIGHBOR_LEVELS,
@@ -11,7 +11,7 @@ import {
   NeighborConnection,
   NeighborProfile,
   ConnectionRecommendation
-} from '../constants/socialNetworkingData';
+} from '../../constants/socialNetworkingData';
 
 const { width } = Dimensions.get('window');
 

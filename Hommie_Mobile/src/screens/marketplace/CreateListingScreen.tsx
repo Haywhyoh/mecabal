@@ -18,8 +18,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import { colors, typography, spacing, shadows, MARKETPLACE_CATEGORIES, NIGERIAN_SERVICE_CATEGORIES } from '../constants';
-import { MediaService } from '../services/mediaService';
-import { ListingsService, CreateListingRequest } from '../services/listingsService';
+import { MediaService } from '../../services/mediaService';
+import { ListingsService, CreateListingRequest } from '../../services/listingsService';
 
 interface CreateListingScreenProps {
   navigation?: any;

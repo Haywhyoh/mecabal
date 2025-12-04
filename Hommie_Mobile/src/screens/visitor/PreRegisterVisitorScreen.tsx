@@ -11,9 +11,9 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { visitorApi, PreRegisterVisitorDto } from '../services/api/visitorApi';
-import { useAuth } from '../contexts/AuthContext';
-import { useLocation } from '../contexts/LocationContext';
+import { visitorApi, PreRegisterVisitorDto } from '../../services/api/visitorApi';
+import { useAuth } from '../../contexts/AuthContext';
+import { useLocation } from '../../contexts/LocationContext';
 import Toast from 'react-native-toast-message';
 import { format } from 'date-fns';
 

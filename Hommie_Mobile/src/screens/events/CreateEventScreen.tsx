@@ -21,10 +21,10 @@ import * as Haptics from 'expo-haptics';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import * as ImagePicker from 'expo-image-picker';
-import { EventsApi, handleApiError, EVENT_CATEGORIES } from '../services/EventsApi';
-import { StatesApi, handleStatesApiError } from '../services/StatesApi';
-import type { CreateEventDto, EventMediaDto } from '../services/EventsApi';
-import type { State } from '../services/StatesApi';
+import { EventsApi, handleApiError, EVENT_CATEGORIES } from '../../services/EventsApi';
+import { StatesApi, handleStatesApiError } from '../../services/StatesApi';
+import type { CreateEventDto, EventMediaDto } from '../../services/EventsApi';
+import type { State } from '../../services/StatesApi';
 import { colors, spacing, typography, shadows } from '../constants';
 
 const { width } = Dimensions.get('window');

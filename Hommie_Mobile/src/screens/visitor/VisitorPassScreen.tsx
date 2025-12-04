@@ -9,13 +9,13 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { visitorApi, VisitorPass } from '../services/api/visitorApi';
-import { QRCodeDisplay } from '../components/QRCodeDisplay';
-import { AccessCodeDisplay } from '../components/AccessCodeDisplay';
-import { useAuth } from '../contexts/AuthContext';
-import { useLocation } from '../contexts/LocationContext';
+import { visitorApi, VisitorPass } from '../../services/api/visitorApi';
+import { QRCodeDisplay } from '../../components/QRCodeDisplay';
+import { AccessCodeDisplay } from '../../components/AccessCodeDisplay';
+import { useAuth } from '../../contexts/AuthContext';
+import { useLocation } from '../../contexts/LocationContext';
 import Toast from 'react-native-toast-message';
-import { LoadingState, ErrorState } from '../components/ui';
+import { LoadingState, ErrorState } from '../../components/ui';
 import { format } from 'date-fns';
 
 export const VisitorPassScreen: React.FC = () => {

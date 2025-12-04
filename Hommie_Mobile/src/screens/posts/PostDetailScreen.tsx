@@ -15,11 +15,11 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { useNavigation, useRoute, NavigationProp } from '@react-navigation/native';
-import { Post } from '../services/postsService';
-import { UserAvatar } from '../components/profile';
-import { PostActionMenu, CommentsList } from '../components/posts';
-import { useAuth } from '../contexts/AuthContext';
-import useFeed from '../hooks/useFeed';
+import { Post } from '../../services/postsService';
+import { UserAvatar } from '../../components/profile';
+import { PostActionMenu, CommentsList } from '../../components/posts';
+import { useAuth } from '../../contexts/AuthContext';
+import useFeed from '../../hooks/useFeed';
 
 interface PostDetailRouteParams {
   postId: string;

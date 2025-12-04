@@ -7,7 +7,7 @@ import {
   CULTURAL_BACKGROUNDS, 
   PROFESSIONAL_TITLES,
   VERIFICATION_BADGES
-} from '../constants/nigerianData';
+} from '../../constants/nigerianData';
 import { useNavigation } from '@react-navigation/native';
 
 interface CulturalProfile {

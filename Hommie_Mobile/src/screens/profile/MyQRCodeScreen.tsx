@@ -5,9 +5,9 @@ import {
   StyleSheet,
   ScrollView,
 } from 'react-native';
-import { visitorApi, UserQRCode } from '../services/api/visitorApi';
-import { QRCodeDisplay } from '../components/QRCodeDisplay';
-import { LoadingState, ErrorState } from '../components/ui';
+import { visitorApi, UserQRCode } from '../../services/api/visitorApi';
+import { QRCodeDisplay } from '../../components/QRCodeDisplay';
+import { LoadingState, ErrorState } from '../../components/ui';
 import Toast from 'react-native-toast-message';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 

@@ -18,11 +18,11 @@ import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-na
 import * as Haptics from 'expo-haptics';
 import * as Calendar from 'expo-calendar';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { EventDetailsSkeleton } from '../components/events';
-import { ErrorView } from '../components/ui';
-import { EventsApi, handleApiError, EVENT_CATEGORIES } from '../services/EventsApi';
-import type { Event } from '../services/EventsApi';
-import { colors, spacing, typography, shadows } from '../constants';
+import { EventDetailsSkeleton } from '../../components/events';
+import { ErrorView } from '../../components/ui';
+import { EventsApi, handleApiError, EVENT_CATEGORIES } from '../../services/EventsApi';
+import type { Event } from '../../services/EventsApi';
+import { colors, spacing, typography, shadows } from '../../constants';
 
 const { width, height } = Dimensions.get('window');
 

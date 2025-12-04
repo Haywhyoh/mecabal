@@ -10,14 +10,14 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import useUnifiedFeed from '../hooks/useUnifiedFeed';
-import { Post } from '../services/postsService';
-import { Event } from '../services/EventsApi';
-import { UnifiedFeedList } from '../components/feed';
-import { PostCreator } from '../components/posts';
-import { SegmentedControl } from '../components/ui';
-import { HelpPostCard } from '../components/posts';
-import { useAuth } from '../contexts/AuthContext';
+import useUnifiedFeed from '../../hooks/useUnifiedFeed';
+import { Post } from '../../services/postsService';
+import { Event } from '../../services/EventsApi';
+import { UnifiedFeedList } from '../../components/feed';
+import { PostCreator } from '../../components/posts';
+import { SegmentedControl } from '../../components/ui';
+import { HelpPostCard } from '../../components/posts';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface FeedScreenProps {
   navigation: any;

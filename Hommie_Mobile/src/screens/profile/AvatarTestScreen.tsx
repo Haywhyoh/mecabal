@@ -10,9 +10,9 @@ import {
 } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
-import { useAuth } from '../contexts/AuthContext';
-import { UserProfile } from '../components/profile';
-import { AvatarUploadService } from '../services/avatarUpload';
+import { useAuth } from '../../contexts/AuthContext';
+import { UserProfile } from '../../components/profile';
+import { AvatarUploadService } from '../../services/avatarUpload';
 
 export default function AvatarTestScreen() {
   const navigation = useNavigation();

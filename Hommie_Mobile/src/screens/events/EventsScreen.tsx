@@ -18,13 +18,13 @@ import {
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { EventCard, EventCardSkeleton } from '../components/events';
-import { ErrorView } from '../components/ui';
-import { EventsCalendarView, EventsMapView } from '../components/events';
-import { EventsApi, handleApiError, EVENT_CATEGORIES } from '../services/EventsApi';
-import type { Event, EventFilterDto } from '../services/EventsApi';
-import { colors, spacing, typography, shadows } from '../constants';
-import { useAuth } from '../contexts/AuthContext';
+import { EventCard, EventCardSkeleton } from '../../components/events';
+import { ErrorView } from '../../components/ui';
+import { EventsCalendarView, EventsMapView } from '../../components/events';
+import { EventsApi, handleApiError, EVENT_CATEGORIES } from '../../services/EventsApi';
+import type { Event, EventFilterDto } from '../../services/EventsApi';
+import { colors, spacing, typography, shadows } from '../../constants';
+import { useAuth } from '../../contexts/AuthContext';
 
 const { width, height } = Dimensions.get('window');
 

@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { UserDashboardService, BookmarkItem } from '../services/userDashboard';
+import { UserDashboardService, BookmarkItem } from '../../services/userDashboard';
 
 type BookmarkType = 'post' | 'listing' | 'event';
 

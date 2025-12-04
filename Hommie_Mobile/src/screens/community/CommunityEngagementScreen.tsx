@@ -10,7 +10,7 @@ import {
   Achievement,
   Badge,
   ContributionLevel
-} from '../constants/gamificationData';
+} from '../../constants/gamificationData';
 
 const { width } = Dimensions.get('window');
 

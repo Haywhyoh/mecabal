@@ -17,9 +17,9 @@ import { SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { colors, typography, spacing, shadows } from '../constants';
-import { MarketplaceListingCard } from '../components/business';
-import { EmptyState } from '../components/ui';
-import { ListingsService } from '../services/listingsService';
+import { MarketplaceListingCard } from '../../components/business';
+import { EmptyState } from '../../components/ui';
+import { ListingsService } from '../../services/listingsService';
 
 interface MyListingsScreenProps {
   navigation?: any;

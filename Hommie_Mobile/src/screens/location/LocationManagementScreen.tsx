@@ -18,10 +18,10 @@ import {
 import MapView, { Marker, Polygon, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { useAuth } from '../contexts/AuthContext';
-import { useLocation } from '../contexts/LocationContext';
-import { HierarchicalLocationSelector, GPSLocationPicker } from '../components/location';
-import { locationApi } from '../services/api/locationApi';
+import { useAuth } from '../../contexts/AuthContext';
+import { useLocation } from '../../contexts/LocationContext';
+import { HierarchicalLocationSelector, GPSLocationPicker } from '../../components/location';
+import { locationApi } from '../../services/api/locationApi';
 import {
   State,
   LGA,
