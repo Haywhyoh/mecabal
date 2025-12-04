@@ -228,3 +228,6 @@ import { EventCard } from '../components/events';
 4. **Scalability**: Easy to add new components to appropriate directories
 5. **Maintainability**: Related components are co-located
 
+
+
+

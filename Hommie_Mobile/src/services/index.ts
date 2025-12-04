@@ -1,8 +1,13 @@
 // MeCabal Services - Main Export File
 // Centralized export for all MeCabal mobile services
 
+// Import supabase and utilities for use in this file (for internal use in MeCabalServices class)
+import supabaseClient from './supabase';
+import { healthCheck, checkNetworkConnection } from './supabase';
+
 // Main Supabase client and configuration
-export { default as supabase, SUPABASE_CONFIG } from './supabase';
+export { default as supabase } from './supabase';
+export { SUPABASE_CONFIG } from './supabase';
 export {
   getStorageUrl,
   getEdgeFunctionUrl,
@@ -40,10 +45,10 @@ export { default as ListingsService } from './listingsService';
 export { default as ListingCategoriesService } from './listingCategoriesService';
 
 // Events services
-export { default as EventsApi, EventsApi as EventsService } from './EventsApi';
+export { default as EventsApi } from './EventsApi';
 
 // States services
-export { default as StatesApi, StatesApi as StatesService } from './StatesApi';
+export { default as StatesApi } from './StatesApi';
 
 // Verification services
 export { default as verificationService } from './verificationService';
@@ -51,9 +56,13 @@ export { default as userProfileService } from './userProfileService';
 
 // Messaging services
 export { default as MessagingService } from './MessagingService';
-export { messagingApi, MessagingApiService } from './api/messagingApi';
-export { webSocketService, WebSocketService } from './WebSocketService';
-export { simpleWebSocketService, SimpleWebSocketService } from './SimpleWebSocketService';
+export { messagingApi } from './api/messagingApi';
+export { default as MessagingApiService } from './api/messagingApi';
+// Export WebSocket services - export instances first, then classes
+export { webSocketService } from './WebSocketService';
+export { default as WebSocketService } from './WebSocketService';
+export { simpleWebSocketService } from './SimpleWebSocketService';
+export { default as SimpleWebSocketService } from './SimpleWebSocketService';
 
 // Type exports for convenience
 export type {
@@ -241,7 +250,7 @@ export class MeCabalServices {
   // Get user's recent activity across all neighborhoods
   private static async getUserRecentActivity(userId: string, limit: number = 10) {
     try {
-      const { data } = await supabase
+      const { data } = await supabaseClient
         .from('posts')
         .select('*, neighborhood:neighborhoods!posts_neighborhood_id_fkey(name)')
         .eq('user_id', userId)
@@ -258,7 +267,7 @@ export class MeCabalServices {
   // Get user's upcoming events
   private static async getUserUpcomingEvents(userId: string, limit: number = 5) {
     try {
-      const { data } = await supabase
+      const { data } = await supabaseClient
         .from('event_rsvps')
         .select(`
           *,

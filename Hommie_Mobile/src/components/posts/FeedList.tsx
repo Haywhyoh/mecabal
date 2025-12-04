@@ -12,7 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Post } from '../../services/postsService';
 import { PostCard } from './PostCard';
-import { EmptyState } from './EmptyState';
+import { EmptyState } from '../ui';
 
 interface FeedListProps {
   posts: Post[];

@@ -11,9 +11,9 @@ import {
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Post } from '../../services/postsService';
 import { Event } from '../../services/EventsApi';
-import { FeedItem } from '../hooks/useUnifiedFeed';
-import PostCard from './PostCard';
-import EventCard from './EventCard';
+import { FeedItem } from '../../hooks/useUnifiedFeed';
+import { PostCard } from '../posts';
+import { EventCard } from '../events';
 import { colors, spacing, typography } from '../../constants';
 
 interface UnifiedFeedListProps {
@@ -70,13 +70,13 @@ const UnifiedFeedList: React.FC<UnifiedFeedListProps> = ({
         <PostCard
           post={post}
           onPress={() => onPostPress(post)}
-          onReact={(reactionType) => onReaction(post.id, reactionType)}
+          onReaction={(postId, reactionType) => onReaction(postId, reactionType)}
           onComment={() => onComment(post.id)}
           onShare={() => onShare(post)}
           onReport={() => onReport(post.id)}
           onEdit={() => onEdit(post)}
           onDelete={() => onDelete(post.id)}
-          currentUserId={currentUserId}
+          isOwner={currentUserId ? post.author.id === currentUserId : false}
         />
       );
     } else if (item.type === 'event') {

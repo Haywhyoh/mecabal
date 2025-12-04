@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { VisitorPass } from '../services/api/visitorApi';
 import { format } from 'date-fns';
 
@@ -225,4 +225,5 @@ const styles = StyleSheet.create({
     color: '#FF0000',
   },
 });
+
 

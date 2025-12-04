@@ -5,7 +5,7 @@ import { Share } from 'react-native-share';
 // Note: File download functionality requires additional implementation
 // import * as FileSystem from 'expo-file-system';
 // import * as MediaLibrary from 'expo-media-library';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 interface QRCodeDisplayProps {
   value: string;

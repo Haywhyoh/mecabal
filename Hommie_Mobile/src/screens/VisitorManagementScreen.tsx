@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { visitorApi, VisitorPass } from '../services/api/visitorApi';
 import { VisitorPassCard } from '../components/VisitorPassCard';
 import { useAuth } from '../contexts/AuthContext';

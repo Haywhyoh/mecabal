@@ -9,7 +9,7 @@ import { visitorApi, UserQRCode } from '../services/api/visitorApi';
 import { QRCodeDisplay } from '../components/QRCodeDisplay';
 import { LoadingState, ErrorState } from '../components/ui';
 import Toast from 'react-native-toast-message';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 export const MyQRCodeScreen: React.FC = () => {
   const [qrData, setQrData] = useState<UserQRCode | null>(null);

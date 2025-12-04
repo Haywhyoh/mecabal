@@ -23,7 +23,7 @@ interface FeedScreenProps {
   navigation: any;
 }
 
-export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
+const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
   const [selectedSegment, setSelectedSegment] = useState('all');
   const [showPostCreator, setShowPostCreator] = useState(false);
   const { user: currentUser } = useAuth();
@@ -161,7 +161,7 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
           <HelpPostCard
             post={post}
             onPress={() => handlePostPress(post)}
-            onReact={handleReaction}
+            onReact={(reactionType: string) => handleReaction(post.id, reactionType)}
             onComment={() => handleComment(post.id)}
             onShare={() => handleShare(post)}
           />

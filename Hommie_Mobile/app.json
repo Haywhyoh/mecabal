@@ -6,7 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/mecabal.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": false,
     "splash": {
       "image": "./assets/mecabal.png",
       "resizeMode": "contain",

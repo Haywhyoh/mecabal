@@ -8,7 +8,7 @@ import {
   Alert,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { visitorApi, VisitorPass } from '../services/api/visitorApi';
 import { QRCodeDisplay } from '../components/QRCodeDisplay';
 import { AccessCodeDisplay } from '../components/AccessCodeDisplay';

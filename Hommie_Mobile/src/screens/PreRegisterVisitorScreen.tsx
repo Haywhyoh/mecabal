@@ -9,7 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { visitorApi, PreRegisterVisitorDto } from '../services/api/visitorApi';
 import { useAuth } from '../contexts/AuthContext';
@@ -469,4 +469,5 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+
 
