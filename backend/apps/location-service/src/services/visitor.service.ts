@@ -36,6 +36,9 @@ export interface GenerateVisitorPassDto {
 
 @Injectable()
 export class VisitorService {
+  private readonly logger = new Logger(VisitorService.name);
+  private transporter: nodemailer.Transporter;
+
   constructor(
     @InjectRepository(Visitor)
     private readonly visitorRepository: Repository<Visitor>,
@@ -47,7 +50,24 @@ export class VisitorService {
     private readonly userRepository: Repository<User>,
     private readonly jwtService: JwtService,
     private readonly estateManagementService: EstateManagementService,
-  ) {}
+  ) {
+    // Initialize email transporter
+    this.transporter = nodemailer.createTransport({
+      host: process.env.EMAIL_HOST,
+      port: Number(process.env.EMAIL_PORT),
+      secure: true,
+      auth: {
+        user: process.env.EMAIL_HOST_USER,
+        pass: process.env.EMAIL_HOST_PASSWORD,
+      },
+      tls: {
+        rejectUnauthorized: false,
+      },
+      connectionTimeout: 60000,
+      greetingTimeout: 30000,
+      socketTimeout: 60000,
+    });
+  }
 
   /**
    * Pre-register a visitor for an estate
@@ -313,7 +333,7 @@ export class VisitorService {
   ): Promise<void> {
     const pass = await this.visitorPassRepository.findOne({
       where: { id: passId, estateId },
-      relations: ['visitor', 'host'],
+      relations: ['visitor', 'host', 'estate'],
     });
 
     if (!pass) {
@@ -334,10 +354,209 @@ export class VisitorService {
     pass.sendMethod = method;
     await this.visitorPassRepository.save(pass);
 
-    // TODO: Integrate with email/SMS service
-    // For now, we'll just update the pass
-    // In production, this should call the notification service
-    // await this.notificationService.sendVisitorCode(pass, method);
+    // Send via email or SMS
+    if (method === SendMethod.EMAIL && pass.visitor.email) {
+      await this.sendVisitorCodeEmail(pass);
+    } else if (method === SendMethod.SMS && pass.visitor.phoneNumber) {
+      // TODO: Integrate with SMS service
+      this.logger.warn('SMS sending not yet implemented');
+    }
+  }
+
+  /**
+   * Send visitor access code via email
+   */
+  private async sendVisitorCodeEmail(pass: VisitorPass): Promise<void> {
+    try {
+      const email = pass.visitor.email;
+      const accessCode = pass.accessCode;
+      const visitorName = pass.visitor.fullName;
+      const hostName = pass.host?.firstName + ' ' + pass.host?.lastName;
+      const estateName = pass.estate?.name || 'the estate';
+
+      const subject = 'Your Visitor Access Code';
+      const htmlContent = this.getVisitorEmailTemplate(
+        visitorName,
+        accessCode,
+        hostName,
+        estateName,
+        pass.expectedArrival,
+        pass.expiresAt,
+      );
+
+      const mailOptions = {
+        from: `MeCabal Community <${process.env.EMAIL_SENDER || 'noreply@mecabal.com'}>`,
+        to: email,
+        subject,
+        html: htmlContent,
+        headers: {
+          'X-MeCabal-Purpose': 'visitor-access-code',
+          'X-MeCabal-Timestamp': new Date().toISOString(),
+        },
+      };
+
+      await this.transporter.sendMail(mailOptions);
+      this.logger.log(`Visitor access code sent to ${email}`);
+    } catch (error) {
+      this.logger.error('Failed to send visitor code email:', error);
+      throw new BadRequestException('Failed to send visitor access code email');
+    }
+  }
+
+  /**
+   * Get email template for visitor access code
+   */
+  private getVisitorEmailTemplate(
+    visitorName: string,
+    accessCode: string,
+    hostName: string,
+    estateName: string,
+    expectedArrival: Date,
+    expiresAt: Date,
+  ): string {
+    const arrivalDate = new Date(expectedArrival).toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    const expiryDate = new Date(expiresAt).toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+          <meta charset="utf-8">
+          <title>MeCabal Visitor Access Code</title>
+          <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+              .container { max-width: 600px; margin: 0 auto; padding: 0; }
+              .header {
+                  background: linear-gradient(135deg, #00A651 0%, #006B3C 100%);
+                  color: white;
+                  padding: 30px 20px;
+                  text-align: center;
+                  border-radius: 8px 8px 0 0;
+              }
+              .header h1 { margin: 0; font-size: 28px; font-weight: 700; }
+              .header p { margin: 10px 0 0 0; font-size: 16px; opacity: 0.9; }
+              .content {
+                  padding: 40px 30px;
+                  background: #ffffff;
+                  border: 1px solid #e0e0e0;
+                  border-top: none;
+              }
+              .access-code {
+                  font-size: 48px;
+                  font-weight: bold;
+                  color: #00A651;
+                  text-align: center;
+                  background: #f8f9fa;
+                  padding: 30px 20px;
+                  margin: 30px 0;
+                  border-radius: 12px;
+                  border: 2px solid #E8F5E8;
+                  letter-spacing: 12px;
+                  font-family: 'Courier New', monospace;
+              }
+              .info-box {
+                  background: #f8f9fa;
+                  border-left: 4px solid #00A651;
+                  padding: 20px;
+                  margin: 20px 0;
+                  border-radius: 4px;
+              }
+              .info-row {
+                  display: flex;
+                  padding: 8px 0;
+              }
+              .info-label {
+                  font-weight: 600;
+                  color: #666;
+                  min-width: 120px;
+              }
+              .info-value {
+                  color: #333;
+              }
+              .footer {
+                  text-align: center;
+                  color: #666;
+                  font-size: 14px;
+                  margin-top: 30px;
+                  padding: 20px;
+                  background: #f8f9fa;
+                  border-radius: 0 0 8px 8px;
+              }
+              .warning {
+                  background: #fff3cd;
+                  border: 1px solid #ffeaa7;
+                  border-radius: 6px;
+                  padding: 15px;
+                  margin: 20px 0;
+                  color: #856404;
+              }
+          </style>
+      </head>
+      <body>
+          <div class="container">
+              <div class="header">
+                  <h1>🏠 MeCabal Visitor Pass</h1>
+                  <p>Your Access Code for ${estateName}</p>
+              </div>
+              <div class="content">
+                  <h2>Hello ${visitorName}! 👋</h2>
+                  <p>You've been invited to visit <strong>${hostName}</strong> at <strong>${estateName}</strong>.</p>
+
+                  <p style="font-size: 18px; font-weight: 600; color: #00A651; margin: 25px 0;">Your Access Code:</p>
+                  <div class="access-code">${accessCode}</div>
+
+                  <div class="info-box">
+                      <div class="info-row">
+                          <span class="info-label">Host:</span>
+                          <span class="info-value">${hostName}</span>
+                      </div>
+                      <div class="info-row">
+                          <span class="info-label">Location:</span>
+                          <span class="info-value">${estateName}</span>
+                      </div>
+                      <div class="info-row">
+                          <span class="info-label">Expected:</span>
+                          <span class="info-value">${arrivalDate}</span>
+                      </div>
+                      <div class="info-row">
+                          <span class="info-label">Expires:</span>
+                          <span class="info-value">${expiryDate}</span>
+                      </div>
+                  </div>
+
+                  <div class="warning">
+                      <strong>⚠️ Important Instructions:</strong><br>
+                      • Present this access code to the security guard at the entrance<br>
+                      • The code is valid until the expiry date shown above<br>
+                      • Keep this code secure and don't share it with others<br>
+                      • If you have any issues, contact your host
+                  </div>
+
+                  <p>Have a pleasant visit! 🎉</p>
+              </div>
+              <div class="footer">
+                  <p><strong>© 2024 MeCabal</strong> • Nigerian-owned • Community-first</p>
+                  <p>Building safer communities across Nigeria</p>
+              </div>
+          </div>
+      </body>
+      </html>
+    `;
   }
 
   /**

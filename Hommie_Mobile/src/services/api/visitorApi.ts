@@ -126,7 +126,10 @@ class VisitorApi {
     estateId: string,
     passId: string,
   ): Promise<VisitorPass> {
-    return apiClient.get<VisitorPass>(`/estate/${estateId}/visitor-pass/${passId}`);
+    const response = await apiClient.get<{ success: boolean; data: VisitorPass }>(
+      `/estate/${estateId}/visitor-pass/${passId}`
+    );
+    return response.data;
   }
 
   /**
