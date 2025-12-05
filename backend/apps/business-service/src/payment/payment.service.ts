@@ -7,7 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindOptionsWhere } from 'typeorm';
 import { Payment, PaymentStatus, PaymentType } from '@app/database/entities/payment.entity';
-import { Booking } from '@app/database/entities/booking.entity';
+import { Booking, PaymentStatus as BookingPaymentStatus } from '@app/database/entities/booking.entity';
 import { PaystackService } from './paystack/paystack.service';
 import { InitializePaymentDto, PaymentFilterDto, RefundPaymentDto } from '../dto/payment.dto';
 import * as crypto from 'crypto';
@@ -39,7 +39,7 @@ export class PaymentService {
         throw new NotFoundException('Booking not found');
       }
 
-      if (booking.paymentStatus === 'paid') {
+      if (booking.paymentStatus === BookingPaymentStatus.PAID) {
         throw new BadRequestException('Booking is already paid');
       }
     }
@@ -117,7 +117,7 @@ export class PaymentService {
 
       // Update booking payment status if applicable
       if (payment.bookingId && payment.booking) {
-        payment.booking.paymentStatus = 'paid';
+        payment.booking.paymentStatus = BookingPaymentStatus.PAID;
         payment.booking.paymentId = payment.id;
         await this.bookingRepo.save(payment.booking);
       }
@@ -198,7 +198,7 @@ export class PaymentService {
 
     // Update booking payment status if applicable
     if (payment.bookingId && payment.booking) {
-      payment.booking.paymentStatus = 'refunded';
+      payment.booking.paymentStatus = BookingPaymentStatus.REFUNDED;
       await this.bookingRepo.save(payment.booking);
     }
 

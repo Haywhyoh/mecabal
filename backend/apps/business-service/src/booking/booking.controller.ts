@@ -52,6 +52,9 @@ export class BookingController {
     @Body() createDto: CreateBookingDto,
   ) {
     const userId = req.user.id || req.user.userId;
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
     const booking = await this.bookingService.create(userId, createDto);
     return {
       success: true,
@@ -68,6 +71,9 @@ export class BookingController {
     @Query() filter: BookingFilterDto,
   ) {
     const userId = req.user.id || req.user.userId;
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
     const result = await this.bookingService.findUserBookings(
       userId,
       filter,
@@ -83,6 +89,9 @@ export class BookingController {
   @ApiResponse({ status: 200, description: 'Reviewable bookings retrieved' })
   async getReviewableBookings(@Request() req: AuthenticatedRequest) {
     const userId = req.user.id || req.user.userId;
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
     const bookings = await this.bookingService.findReviewableBookings(
       userId,
     );
@@ -115,6 +124,9 @@ export class BookingController {
     @Body() updateDto: UpdateBookingStatusDto,
   ) {
     const userId = req.user.id || req.user.userId;
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
     const booking = await this.bookingService.updateStatus(
       id,
       userId,
@@ -138,6 +150,9 @@ export class BookingController {
     @Request() req: AuthenticatedRequest,
   ) {
     const userId = req.user.id || req.user.userId;
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
     await this.bookingService.cancel(id, userId);
     return {
       success: true,

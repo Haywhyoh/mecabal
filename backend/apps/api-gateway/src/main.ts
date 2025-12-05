@@ -23,8 +23,8 @@ async function bootstrap() {
       'https://api.mecabal.com',
       // Development
       'http://localhost:3000',
-      'http://localhost:3001',
-      'http://localhost:3004', // Next.js frontend
+      'http://localhost:3002',
+      'http://localhost:3015', // Next.js frontend
       'http://localhost:8080',
       'http://localhost:8081',
       'http://localhost:19000',

@@ -45,6 +45,9 @@ export class BankAccountController {
     @Body() createDto: CreateBankAccountDto,
   ) {
     const userId = req.user.id || req.user.userId;
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
     const account = await this.bankAccountService.create(
       userId,
       createDto,
@@ -61,6 +64,9 @@ export class BankAccountController {
   @ApiResponse({ status: 200, description: 'Bank accounts retrieved' })
   async findAll(@Request() req: AuthenticatedRequest) {
     const userId = req.user.id || req.user.userId;
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
     const accounts = await this.bankAccountService.findAll(userId);
     return {
       success: true,
@@ -79,6 +85,9 @@ export class BankAccountController {
     @Body() verifyDto: VerifyBankAccountDto,
   ) {
     const userId = req.user.id || req.user.userId;
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
     const account = await this.bankAccountService.verify(
       id,
       userId,
@@ -102,6 +111,9 @@ export class BankAccountController {
     @Request() req: AuthenticatedRequest,
   ) {
     const userId = req.user.id || req.user.userId;
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
     await this.bankAccountService.remove(id, userId);
     return {
       success: true,
@@ -119,6 +131,9 @@ export class BankAccountController {
     @Request() req: AuthenticatedRequest,
   ) {
     const userId = req.user.id || req.user.userId;
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
     const account = await this.bankAccountService.setDefault(id, userId);
     return {
       success: true,

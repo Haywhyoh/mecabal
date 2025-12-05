@@ -42,6 +42,9 @@ export class PaymentController {
     @Body() initializeDto: InitializePaymentDto,
   ) {
     const userId = req.user.id || req.user.userId;
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
     const result = await this.paymentService.initializePayment(
       userId,
       initializeDto,
@@ -74,6 +77,9 @@ export class PaymentController {
     @Query() filter: PaymentFilterDto,
   ) {
     const userId = req.user.id || req.user.userId;
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
     const result = await this.paymentService.findUserPayments(
       userId,
       filter,
@@ -107,6 +113,9 @@ export class PaymentController {
     @Body() refundDto: RefundPaymentDto,
   ) {
     const userId = req.user.id || req.user.userId;
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
     const payment = await this.paymentService.refundPayment(
       id,
       userId,

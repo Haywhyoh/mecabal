@@ -183,6 +183,10 @@ export class BookingService {
       where: { id: booking.businessId },
     });
 
+    if (!business) {
+      throw new NotFoundException('Business not found');
+    }
+
     if (business.userId !== userId && booking.userId !== userId) {
       throw new ForbiddenException('You do not have permission to update this booking');
     }
@@ -197,7 +201,9 @@ export class BookingService {
 
     if (updateDto.status === BookingStatus.CANCELLED) {
       booking.cancelledAt = new Date();
-      booking.cancellationReason = updateDto.cancellationReason;
+      if (updateDto.cancellationReason) {
+        booking.cancellationReason = updateDto.cancellationReason;
+      }
     }
 
     return await this.bookingRepo.save(booking);
@@ -210,6 +216,10 @@ export class BookingService {
     const business = await this.businessRepo.findOne({
       where: { id: booking.businessId },
     });
+
+    if (!business) {
+      throw new NotFoundException('Business not found');
+    }
 
     if (business.userId !== userId && booking.userId !== userId) {
       throw new ForbiddenException('You do not have permission to cancel this booking');
