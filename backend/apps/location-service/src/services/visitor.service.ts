@@ -397,6 +397,11 @@ export class VisitorService {
     try {
       const email = pass.visitor.email;
       const accessCode = pass.accessCode;
+      
+      if (!accessCode) {
+        throw new BadRequestException('Visitor pass does not have an access code');
+      }
+      
       const visitorName = pass.visitor.fullName;
       const hostName = pass.host?.firstName + ' ' + pass.host?.lastName;
       const estateName = pass.estate?.name || 'the estate';
