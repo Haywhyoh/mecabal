@@ -13,6 +13,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { FeedScreen } from '../posts/FeedScreen';
 import { UserAvatar } from '../../components/profile';
 import MoreScreen from './MoreScreen';
+import { SidebarMenu } from '../../components/navigation/SidebarMenu';
 
 const { width } = Dimensions.get('window');
 
@@ -268,108 +269,13 @@ export default function HomeScreen() {
           
           {/* Sidebar Content */}
           <View style={styles.sidebar}>
-            <SafeAreaView style={styles.sidebarContent}>
-              {/* Header */}
-              <View style={styles.sidebarHeader}>
-                <View style={styles.sidebarProfileSection}>
-                  <UserAvatar
-                    user={user}
-                    size="medium"
-                    showBadge={true}
-                  />
-                  <View style={styles.sidebarUserInfo}>
-                    <Text style={styles.sidebarUserName}>
-                      {currentUser.firstName} {currentUser.lastName}
-                    </Text>
-                    <Text style={styles.sidebarUserStatus}>
-                      {user?.isVerified ? 'Verified Neighbor' : 'Active Neighbor'}
-                    </Text>
-                  </View>
-                </View>
-                <TouchableOpacity
-                  style={styles.closeSidebarButton}
-                  onPress={closeSidebar}
-                >
-                  <MaterialCommunityIcons name="close" size={24} color="#8E8E8E" />
-                </TouchableOpacity>
-              </View>
-
-              {/* Menu Items */}
-              <View style={styles.sidebarMenu}>
-                {/* Profile - Links to More Screen */}
-                <TouchableOpacity
-                  style={styles.menuItem}
-                  onPress={() => handleMenuItemPress(() => navigation.navigate('More' as never))}
-                >
-                  <MaterialCommunityIcons name="account" size={24} color="#00A651" />
-                  <Text style={styles.menuItemText}>Profile</Text>
-                  <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E93" />
-                </TouchableOpacity>
-
-                {/* Dashboard - NEW */}
-                <TouchableOpacity
-                  style={styles.menuItem}
-                  onPress={() => handleMenuItemPress(() => navigation.navigate('Dashboard' as never))}
-                >
-                  <MaterialCommunityIcons name="view-dashboard" size={24} color="#0066CC" />
-                  <Text style={styles.menuItemText}>Dashboard</Text>
-                  <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E93" />
-                </TouchableOpacity>
-
-                {/* Events */}
-                <TouchableOpacity
-                  style={styles.menuItem}
-                  onPress={() => handleMenuItemPress(() => navigation.navigate('Events' as never))}
-                >
-                  <MaterialCommunityIcons name="calendar" size={24} color="#7B68EE" />
-                  <Text style={styles.menuItemText}>Events</Text>
-                  <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E93" />
-                </TouchableOpacity>
-
-                {/* Messages - if exists */}
-                <TouchableOpacity
-                  style={styles.menuItem}
-                  onPress={() => handleMenuItemPress(() => navigation.navigate('Messaging' as never))}
-                >
-                  <View style={styles.menuIconContainer}>
-                    <MaterialCommunityIcons name="message" size={24} color="#FF9800" />
-                    {unreadMessagesCount > 0 && (
-                      <View style={styles.menuBadge}>
-                        <Text style={styles.menuBadgeText}>
-                          {unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                  <Text style={styles.menuItemText}>Messages</Text>
-                  <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E93" />
-                </TouchableOpacity>
-
-                {/* Divider */}
-                <View style={styles.menuDivider} />
-
-                {/* More/Settings (links to MoreScreen) */}
-                <TouchableOpacity
-                  style={styles.menuItem}
-                  onPress={() => handleMenuItemPress(() => navigation.navigate('More' as never))}
-                >
-                  <MaterialCommunityIcons name="menu" size={24} color="#8E8E93" />
-                  <Text style={styles.menuItemText}>More</Text>
-                  <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E93" />
-                </TouchableOpacity>
-              </View>
-
-              {/* Footer */}
-              <View style={styles.sidebarFooter}>
-                <TouchableOpacity
-                  style={styles.footerButton}
-                  onPress={() => handleMenuItemPress(() => navigation.navigate('Profile' as never))}
-                >
-                  <MaterialCommunityIcons name="account-circle" size={20} color="#8E8E93" />
-                  <Text style={styles.footerButtonText}>Profile & Settings</Text>
-                </TouchableOpacity>
-              </View>
-            </SafeAreaView>
+            <SidebarMenu
+              navigation={navigation}
+              user={user}
+              unreadMessagesCount={unreadMessagesCount}
+              onClose={closeSidebar}
+              onMenuItemPress={handleMenuItemPress}
+            />
           </View>
         </View>
       </Modal>
@@ -716,73 +622,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#00A651',
     fontWeight: '500',
-  },
-  closeSidebarButton: {
-    padding: 8,
-  },
-  sidebarMenu: {
-    flex: 1,
-    paddingTop: 8,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#F5F5F5',
-  },
-  menuItemText: {
-    fontSize: 16,
-    color: '#2C2C2C',
-    marginLeft: 16,
-    flex: 1,
-  },
-  menuIconContainer: {
-    position: 'relative',
-    width: 24,
-    height: 24,
-    marginRight: 16,
-  },
-  menuBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -8,
-    backgroundColor: '#E74C3C',
-    borderRadius: 10,
-    minWidth: 18,
-    height: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-  },
-  menuBadgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  menuDivider: {
-    height: 0.5,
-    backgroundColor: '#E5E5EA',
-    marginHorizontal: 20,
-    marginVertical: 8,
-  },
-  sidebarFooter: {
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-  },
-  footerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  footerButtonText: {
-    fontSize: 14,
-    color: '#8E8E8E',
-    marginLeft: 12,
   },
 });

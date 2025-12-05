@@ -8,6 +8,8 @@ import {
   SafeAreaView,
   Alert,
   ActivityIndicator,
+  Linking,
+  Modal,
 } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { ScreenHeader } from '../../components/ui';
@@ -32,6 +34,7 @@ export default function BookingDetailsScreen({ route, navigation }: BookingDetai
   const [booking, setBooking] = useState<ServiceBooking | null>(null);
   const [loading, setLoading] = useState(true);
   const [processingPayment, setProcessingPayment] = useState(false);
+  const [paymentReference, setPaymentReference] = useState<string | null>(null);
 
   useEffect(() => {
     loadBooking();
@@ -47,6 +50,59 @@ export default function BookingDetailsScreen({ route, navigation }: BookingDetai
       Alert.alert('Error', error.message || 'Failed to load booking details');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const verifyPayment = async (reference: string) => {
+    try {
+      setProcessingPayment(true);
+      const payment = await paymentApi.verifyPayment(reference);
+      
+      if (payment.status === 'success') {
+        setPaymentReference(null); // Clear reference after successful verification
+        Alert.alert(
+          'Payment Successful!',
+          'Your payment has been confirmed. The booking status will be updated shortly.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                // Reload booking to get updated payment status
+                loadBooking();
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert(
+          'Payment Pending',
+          'Your payment is still being processed. Please wait a moment and try verifying again.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                loadBooking();
+              },
+            },
+          ]
+        );
+      }
+    } catch (error: any) {
+      console.error('Payment verification error:', error);
+      Alert.alert(
+        'Verification Failed',
+        error.message || 'Failed to verify payment. Please check your payment status or contact support.',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              loadBooking();
+            },
+          },
+        ]
+      );
+    } finally {
+      setProcessingPayment(false);
     }
   };
 
@@ -95,9 +151,39 @@ export default function BookingDetailsScreen({ route, navigation }: BookingDetai
     try {
       setProcessingPayment(true);
       
+      // Convert price to number and ensure it's valid
+      // The backend expects amount as a number (not string)
+      // Amount can be in Naira with decimals (e.g., 100.50) or in kobo
+      // If backend expects kobo: multiply by 100 (1 Naira = 100 kobo)
+      // If backend expects Naira: send as-is
+      // Based on Paystack standard, amounts are typically in kobo
+      let paymentAmount: number;
+      
+      if (typeof booking.price === 'number') {
+        paymentAmount = booking.price;
+      } else if (typeof booking.price === 'string') {
+        const priceNum = parseFloat(booking.price);
+        if (isNaN(priceNum) || priceNum <= 0) {
+          throw new Error('Invalid booking price');
+        }
+        paymentAmount = priceNum;
+      } else {
+        throw new Error('Invalid booking price format');
+      }
+
+      if (paymentAmount <= 0) {
+        Alert.alert('Error', 'Payment amount must be greater than 0');
+        return;
+      }
+      
+      // Convert Naira to kobo (Paystack standard: amounts in smallest currency unit)
+      // Multiply by 100: 1 Naira = 100 kobo
+      // This handles decimals: 100.50 Naira = 10050 kobo
+      const amountInKobo = Math.round(paymentAmount * 100);
+      
       // Initialize payment
       const paymentData = {
-        amount: booking.price,
+        amount: amountInKobo, // Amount in kobo (smallest currency unit)
         email: user.email,
         currency: 'NGN',
         type: 'service-booking',
@@ -112,22 +198,69 @@ export default function BookingDetailsScreen({ route, navigation }: BookingDetai
 
       const paymentResponse = await paymentApi.initializePayment(paymentData);
       
-      // For React Native, we'll need to open the payment URL in a WebView
-      // For now, show the authorization URL - in production, use react-native-paystack or WebView
-      Alert.alert(
-        'Payment',
-        `Payment initialized. Reference: ${paymentResponse.reference}\n\nIn production, this would open Paystack payment interface.`,
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              // TODO: Open Paystack payment interface
-              // For now, reload booking to check payment status
-              loadBooking();
+      // Open Paystack payment URL in device browser
+      const canOpen = await Linking.canOpenURL(paymentResponse.authorizationUrl);
+      
+      if (canOpen) {
+        Alert.alert(
+          'Complete Payment',
+          `You will be redirected to Paystack to complete your payment of ${formatNairaCurrency(booking.price)}.\n\nReference: ${paymentResponse.reference}`,
+          [
+            {
+              text: 'Cancel',
+              style: 'cancel',
+              onPress: () => {
+                setProcessingPayment(false);
+              },
             },
-          },
-        ]
-      );
+            {
+              text: 'Continue to Payment',
+              onPress: async () => {
+                try {
+                  // Store payment reference for verification
+                  setPaymentReference(paymentResponse.reference);
+                  
+                  // Open Paystack checkout URL
+                  await Linking.openURL(paymentResponse.authorizationUrl);
+                  
+                  // Show instructions for payment verification
+                  setTimeout(() => {
+                    Alert.alert(
+                      'Payment in Progress',
+                      'After completing payment on Paystack, return to this app and tap "Verify Payment" to confirm your payment.\n\nReference: ' + paymentResponse.reference,
+                      [
+                        {
+                          text: 'I\'ve Completed Payment',
+                          onPress: async () => {
+                            // Verify payment
+                            await verifyPayment(paymentResponse.reference);
+                            setPaymentReference(null);
+                          },
+                        },
+                        {
+                          text: 'Later',
+                          style: 'cancel',
+                          onPress: () => {
+                            setProcessingPayment(false);
+                            loadBooking();
+                          },
+                        },
+                      ]
+                    );
+                  }, 1000);
+                } catch (error) {
+                  console.error('Error opening payment URL:', error);
+                  Alert.alert('Error', 'Failed to open payment page. Please try again.');
+                  setProcessingPayment(false);
+                }
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert('Error', 'Unable to open payment page. Please check your internet connection.');
+        setProcessingPayment(false);
+      }
     } catch (error: any) {
       console.error('Payment initialization error:', error);
       Alert.alert('Error', error.message || 'Failed to initialize payment');
@@ -292,23 +425,36 @@ export default function BookingDetailsScreen({ route, navigation }: BookingDetai
           )}
 
           {booking.paymentStatus === 'pending' && booking.status !== 'cancelled' && (
-            <TouchableOpacity
-              style={[styles.paymentButton, processingPayment && styles.paymentButtonDisabled]}
-              onPress={handleProcessPayment}
-              disabled={processingPayment}
-            >
-              {processingPayment ? (
-                <>
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                  <Text style={styles.paymentButtonText}>Processing...</Text>
-                </>
-              ) : (
-                <>
-                  <MaterialCommunityIcons name="credit-card" size={20} color="#FFFFFF" />
-                  <Text style={styles.paymentButtonText}>Process Payment</Text>
-                </>
+            <>
+              <TouchableOpacity
+                style={[styles.paymentButton, processingPayment && styles.paymentButtonDisabled]}
+                onPress={handleProcessPayment}
+                disabled={processingPayment}
+              >
+                {processingPayment ? (
+                  <>
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <Text style={styles.paymentButtonText}>Processing...</Text>
+                  </>
+                ) : (
+                  <>
+                    <MaterialCommunityIcons name="credit-card" size={20} color="#FFFFFF" />
+                    <Text style={styles.paymentButtonText}>Pay Now</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+              
+              {paymentReference && (
+                <TouchableOpacity
+                  style={styles.verifyButton}
+                  onPress={() => verifyPayment(paymentReference)}
+                  disabled={processingPayment}
+                >
+                  <MaterialCommunityIcons name="check-circle" size={20} color="#00A651" />
+                  <Text style={styles.verifyButtonText}>Verify Payment</Text>
+                </TouchableOpacity>
               )}
-            </TouchableOpacity>
+            </>
           )}
         </View>
       </ScrollView>
@@ -454,6 +600,21 @@ const styles = StyleSheet.create({
   },
   paymentButtonDisabled: {
     opacity: 0.6,
+  },
+  verifyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 8,
+    backgroundColor: '#E8F5E8',
+    marginTop: 12,
+  },
+  verifyButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#00A651',
+    marginLeft: 8,
   },
 });
 

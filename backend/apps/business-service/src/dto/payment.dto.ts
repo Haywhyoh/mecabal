@@ -11,6 +11,7 @@ import {
   IsObject,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import { PaymentType, PaymentStatus } from '@app/database/entities/payment.entity';
 
 export class InitializePaymentDto {
@@ -68,11 +69,13 @@ export class InitializePaymentDto {
 
 export class PaymentFilterDto {
   @ApiPropertyOptional({ example: 1 })
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   page?: number;
 
   @ApiPropertyOptional({ example: 20 })
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   limit?: number;

@@ -10,6 +10,7 @@ import {
   MaxLength,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import { BookingStatus } from '@app/database/entities/booking.entity';
 
 export class CreateBookingDto {
@@ -72,11 +73,13 @@ export class UpdateBookingStatusDto {
 
 export class BookingFilterDto {
   @ApiPropertyOptional({ example: 1 })
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   page?: number;
 
   @ApiPropertyOptional({ example: 20 })
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   limit?: number;
