@@ -46,7 +46,7 @@ export class BusinessServicesService {
 
   async findByBusinessId(businessId: string): Promise<BusinessService[]> {
     return await this.businessServiceRepo.find({
-      where: { businessId, isActive: true },
+      where: { businessId },
       order: { createdAt: 'DESC' },
     });
   }
