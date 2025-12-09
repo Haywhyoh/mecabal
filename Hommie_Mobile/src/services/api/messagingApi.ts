@@ -252,9 +252,13 @@ export class MessagingApiService {
 
   /**
    * Get or create business conversation
+   * @param businessId - Business ID
+   * @param ownerId - Business owner ID (required by backend)
    */
-  async getOrCreateBusinessConversation(businessId: string): Promise<ConversationResponseDto> {
-    const url = `${MESSAGING_ENDPOINTS.BUSINESS_CONVERSATION}/${businessId}`;
+  async getOrCreateBusinessConversation(businessId: string, ownerId?: string): Promise<ConversationResponseDto> {
+    const url = ownerId 
+      ? `${MESSAGING_ENDPOINTS.BUSINESS_CONVERSATION}/${businessId}?ownerId=${ownerId}`
+      : `${MESSAGING_ENDPOINTS.BUSINESS_CONVERSATION}/${businessId}`;
     return await messagingApiClient.get<ConversationResponseDto>(url);
   }
 

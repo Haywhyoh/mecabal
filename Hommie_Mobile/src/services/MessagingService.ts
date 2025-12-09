@@ -1165,11 +1165,13 @@ export class MessagingService extends SimpleEventEmitter {
 
   /**
    * Get or create business conversation
+   * @param businessId - Business ID
+   * @param ownerId - Business owner ID (required by backend)
    */
-  public async getOrCreateBusinessConversation(businessId: string): Promise<Conversation> {
+  public async getOrCreateBusinessConversation(businessId: string, ownerId?: string): Promise<Conversation> {
     if (this.useRealBackend) {
       try {
-        const response = await messagingApi.getOrCreateBusinessConversation(businessId);
+        const response = await messagingApi.getOrCreateBusinessConversation(businessId, ownerId);
         const conversation = this.mapConversationFromBackend(response);
         
         // Update local cache

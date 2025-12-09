@@ -46,7 +46,8 @@ export default function ServiceDetailsScreen({ route, navigation }: ServiceDetai
       const messagingService = MessagingService.getInstance();
       
       // Get or create business conversation
-      const conversation = await messagingService.getOrCreateBusinessConversation(business.id);
+      // Pass business.userId as ownerId (required by backend)
+      const conversation = await messagingService.getOrCreateBusinessConversation(business.id, business.userId);
       
       navigation?.navigate('Chat', {
         conversationId: conversation.id,
