@@ -247,22 +247,48 @@ export class ApiGatewayService {
 
       // Handle specific error cases
       if (error && typeof error === 'object' && 'response' in error) {
-        const response = (
-          error as { response: { status: number; statusText: string } }
-        ).response;
-        const status = response.status;
-        const statusText = response.statusText;
+        const axiosError = error as { 
+          response?: { 
+            status?: number;
+            statusText?: string;
+            data?: any;
+          } 
+        };
+        
+        if (axiosError.response) {
+          const status = axiosError.response.status || 500;
+          const statusText = axiosError.response.statusText || 'Internal Server Error';
+          
+          if (status === 304) {
+            console.log(
+              'Auth service 304 Not Modified received, returning appropriate response',
+            );
+            return { message: 'Not Modified' };
+          }
 
-        if (status === 304) {
-          console.log(
-            'Auth service 304 Not Modified received, returning appropriate response',
+          // Try to extract detailed error message from response data
+          let detailedError = statusText;
+          if (axiosError.response.data) {
+            if (typeof axiosError.response.data === 'string') {
+              detailedError = axiosError.response.data;
+            } else if (axiosError.response.data.message) {
+              detailedError = axiosError.response.data.message;
+            } else if (axiosError.response.data.error) {
+              detailedError = axiosError.response.data.error;
+            } else if (Array.isArray(axiosError.response.data) && axiosError.response.data.length > 0) {
+              // Handle validation errors array
+              detailedError = axiosError.response.data.join(', ');
+            } else {
+              detailedError = JSON.stringify(axiosError.response.data);
+            }
+          }
+
+          const error = new Error(
+            `Auth request failed with status code ${status}: ${detailedError}`,
           );
-          return { message: 'Not Modified' };
+          (error as any).statusCode = status;
+          throw error;
         }
-
-        throw new Error(
-          `Auth request failed with status code ${status}: ${statusText}`,
-        );
       }
 
       throw error;

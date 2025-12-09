@@ -214,11 +214,31 @@ export class ApiGatewayController {
 
       res.status(statusCode).json(result);
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-      res
-        .status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .json({ error: errorMessage });
+      console.error('Error proxying auth request:', error);
+      
+      // Try to extract status code and error message
+      let errorMessage = 'Unknown error';
+      let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
+      
+      if (error && typeof error === 'object') {
+        // Check if error has statusCode property (set by our improved error handling)
+        if ('statusCode' in error && typeof (error as any).statusCode === 'number') {
+          statusCode = (error as any).statusCode;
+        }
+        
+        // Extract error message
+        if (error instanceof Error) {
+          errorMessage = error.message;
+        } else if ('message' in error && typeof (error as any).message === 'string') {
+          errorMessage = (error as any).message;
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
+      res.status(statusCode).json({ 
+        error: errorMessage || 'An error occurred while processing your request',
+      });
     }
   }
 
@@ -1592,12 +1612,53 @@ export class ApiGatewayController {
 
       res.status(statusCode).json(result);
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-      console.error('Error proxying user service request:', errorMessage);
-      res
-        .status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .json({ error: errorMessage });
+      console.error('Error proxying user service request:', error);
+      
+      // Try to extract more detailed error information
+      let errorMessage = 'Unknown error';
+      let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
+      
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { 
+          response?: { 
+            status?: number;
+            statusText?: string;
+            data?: any;
+          } 
+        };
+        
+        if (axiosError.response) {
+          statusCode = axiosError.response.status || HttpStatus.INTERNAL_SERVER_ERROR;
+          
+          // Try to extract error message from response data
+          if (axiosError.response.data) {
+            if (typeof axiosError.response.data === 'string') {
+              errorMessage = axiosError.response.data;
+            } else if (axiosError.response.data.message) {
+              errorMessage = axiosError.response.data.message;
+            } else if (axiosError.response.data.error) {
+              errorMessage = axiosError.response.data.error;
+            } else {
+              errorMessage = JSON.stringify(axiosError.response.data);
+            }
+          } else if (axiosError.response.statusText) {
+            errorMessage = axiosError.response.statusText;
+          }
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message || 'Unknown error';
+      }
+      
+      console.error('Error details:', {
+        statusCode,
+        errorMessage,
+        errorType: error?.constructor?.name,
+      });
+      
+      res.status(statusCode).json({ 
+        error: errorMessage || 'An error occurred while processing your request',
+        statusCode,
+      });
     }
   }
 

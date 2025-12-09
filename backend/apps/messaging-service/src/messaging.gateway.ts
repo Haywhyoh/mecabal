@@ -652,30 +652,40 @@ export class MessagingGateway implements OnGatewayInit, OnGatewayConnection, OnG
 
   private async cleanupExpiredTypingIndicators(): Promise<void> {
     try {
-      // TODO: Implement cleanup of expired typing indicators
-      // This would query the database for expired indicators and clean them up
-      const expiredIndicators = await this.messagingService['typingRepository'].find({
-        where: {
-          expiresAt: new Date() as any, // This will be handled by query builder
-        },
-      });
+      // Clean up expired typing indicators (where expiresAt < now)
+      const now = new Date();
+      const expiredIndicators = await this.messagingService['typingRepository']
+        .createQueryBuilder('indicator')
+        .where('indicator.expiresAt < :now', { now })
+        .getMany();
 
-      for (const indicator of expiredIndicators) {
-        // Broadcast that user stopped typing
-        this.server
-          .to(`conversation:${indicator.conversationId}`)
-          .emit('userTyping', {
-            conversationId: indicator.conversationId,
-            userId: indicator.userId,
-            isTyping: false,
-            timestamp: new Date(),
-          });
+      if (expiredIndicators.length > 0) {
+        for (const indicator of expiredIndicators) {
+          try {
+            // Broadcast that user stopped typing
+            this.server
+              .to(`conversation:${indicator.conversationId}`)
+              .emit('userTyping', {
+                conversationId: indicator.conversationId,
+                userId: indicator.userId,
+                isTyping: false,
+                timestamp: new Date(),
+              });
 
-        // Remove expired indicator
-        await this.messagingService['typingRepository'].remove(indicator);
+            // Remove expired indicator
+            await this.messagingService['typingRepository'].remove(indicator);
+          } catch (indicatorError) {
+            // Log but continue with other indicators
+            this.logger.warn(`Error cleaning up indicator ${indicator.id}:`, indicatorError);
+          }
+        }
       }
     } catch (error) {
-      this.logger.error('Error cleaning up typing indicators:', error);
+      // Don't log request aborted errors - they're expected when clients disconnect
+      if (error && typeof error === 'object' && 'code' in error && error.code === 'ECONNABORTED') {
+        return; // Silently ignore aborted requests
+      }
+      this.logger.error('Error cleaning up expired typing indicators:', error);
     }
   }
 

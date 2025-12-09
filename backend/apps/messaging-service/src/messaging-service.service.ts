@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In, FindManyOptions, FindOptionsWhere } from 'typeorm';
 import { FileUploadService } from '@app/storage';
 import { MediaFile, UploadResult } from '@app/storage';
+import { User } from '@app/database';
 import { 
   Conversation, 
   ConversationType, 
@@ -40,6 +41,8 @@ export class MessagingServiceService {
     private receiptRepository: Repository<MessageReceipt>,
     @InjectRepository(TypingIndicator)
     private typingRepository: Repository<TypingIndicator>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
     private fileUploadService: FileUploadService,
   ) {}
 
@@ -147,6 +150,12 @@ export class MessagingServiceService {
   async createConversation(userId: string, dto: CreateConversationDto): Promise<ConversationResponseDto> {
     const { participantIds, type, title, description, contextType, contextId, isArchived } = dto;
 
+    // Validate that the creator (userId) exists in the database
+    const creator = await this.userRepository.findOne({ where: { id: userId } });
+    if (!creator) {
+      throw new NotFoundException(`User with ID ${userId} not found. Cannot create conversation.`);
+    }
+
     // Validate participants
     if (participantIds.length < 1) {
       throw new BadRequestException('At least one participant is required');
@@ -154,6 +163,17 @@ export class MessagingServiceService {
 
     if (type === ConversationType.DIRECT && participantIds.length !== 1) {
       throw new BadRequestException('Direct conversations must have exactly one other participant');
+    }
+
+    // Validate that all participants exist
+    const participantUsers = await this.userRepository.find({
+      where: { id: In(participantIds) },
+    });
+    
+    if (participantUsers.length !== participantIds.length) {
+      const foundIds = participantUsers.map(p => p.id);
+      const missingIds = participantIds.filter(id => !foundIds.includes(id));
+      throw new NotFoundException(`One or more participants not found: ${missingIds.join(', ')}`);
     }
 
     // Check if direct conversation already exists

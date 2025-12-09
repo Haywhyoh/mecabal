@@ -7,6 +7,7 @@ import {
   Max,
   MaxLength,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateBusinessReviewDto {
@@ -67,12 +68,14 @@ export class RespondToReviewDto {
 
 export class ReviewQueryDto {
   @ApiPropertyOptional({ example: 1 })
+  @Type(() => Number)
   @IsInt()
   @IsOptional()
   @Min(1)
   page?: number = 1;
 
   @ApiPropertyOptional({ example: 20 })
+  @Type(() => Number)
   @IsInt()
   @IsOptional()
   @Min(1)
@@ -80,6 +83,7 @@ export class ReviewQueryDto {
   limit?: number = 20;
 
   @ApiPropertyOptional({ example: 5, description: 'Filter by rating' })
+  @Type(() => Number)
   @IsInt()
   @IsOptional()
   @Min(1)

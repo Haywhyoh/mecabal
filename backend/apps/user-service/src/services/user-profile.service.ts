@@ -28,22 +28,36 @@ export class UserProfileService {
    * Get user profile by ID
    */
   async getUserById(userId: string): Promise<UserResponseDto> {
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
-      relations: [
-        'userNeighborhoods',
-        'userNeighborhoods.neighborhood',
-        'userNeighborhoods.neighborhood.lga',
-        'userNeighborhoods.neighborhood.lga.state',
-        'userNeighborhoods.neighborhood.ward',
-      ],
-    });
+    try {
+      const user = await this.userRepository.findOne({
+        where: { id: userId },
+        relations: [
+          'userNeighborhoods',
+          'userNeighborhoods.neighborhood',
+          'userNeighborhoods.neighborhood.lga',
+          'userNeighborhoods.neighborhood.lga.state',
+          'userNeighborhoods.neighborhood.ward',
+          'primaryLocation',
+          'primaryLocation.state',
+          'primaryLocation.neighborhood',
+        ],
+      });
 
-    if (!user) {
-      throw new NotFoundException(`User with ID ${userId} not found`);
+      if (!user) {
+        throw new NotFoundException(`User with ID ${userId} not found`);
+      }
+
+      return await this.transformUserToResponse(user);
+    } catch (error) {
+      // Log the error for debugging
+      console.error('Error in getUserById:', error);
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException(
+        `Failed to retrieve user profile: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
-
-    return await this.transformUserToResponse(user);
   }
 
   /**
@@ -347,71 +361,96 @@ export class UserProfileService {
    * Transform User entity to UserResponseDto
    */
   private async transformUserToResponse(user: User): Promise<UserResponseDto> {
-    const response = plainToClass(UserResponseDto, user, {
-      excludeExtraneousValues: true,
-    });
+    try {
+      const response = plainToClass(UserResponseDto, user, {
+        excludeExtraneousValues: true,
+      });
 
-    // Initialize userNeighborhoods to ensure it's always defined
-    response.userNeighborhoods = [];
+      // Initialize userNeighborhoods to ensure it's always defined
+      response.userNeighborhoods = [];
 
-    // Add verification level
-    response.verificationLevel = user.getVerificationLevel();
+      // Add verification level
+      try {
+        response.verificationLevel = user.getVerificationLevel();
+      } catch (error) {
+        console.warn('Error getting verification level:', error);
+        response.verificationLevel = 'unverified';
+      }
 
-    // Get primary neighborhood
-    const primaryNeighborhood = user.primaryNeighborhood;
+      // Get primary neighborhood
+      const primaryNeighborhood = user.primaryNeighborhood;
 
-    // Populate estate/state/city from primaryNeighborhood if available
-    if (primaryNeighborhood) {
-      response.estate = primaryNeighborhood.name;
-      response.state = primaryNeighborhood.lga?.state?.name;
-      response.city = primaryNeighborhood.ward?.name || primaryNeighborhood.lga?.name;
-    }
+      // Populate estate/state/city from primaryNeighborhood if available
+      if (primaryNeighborhood) {
+        response.estate = primaryNeighborhood.name;
+        // Safely access nested properties
+        if (primaryNeighborhood.lga?.state) {
+          response.state = primaryNeighborhood.lga.state.name;
+        }
+        response.city = primaryNeighborhood.ward?.name || primaryNeighborhood.lga?.name;
+      }
 
-    // Transform userNeighborhoods to UserEstateDto array
-    if (user.userNeighborhoods && user.userNeighborhoods.length > 0) {
-      const estates = await Promise.all(
-        user.userNeighborhoods.map(async (userNeighborhood) => {
-          const neighborhood = userNeighborhood.neighborhood;
-          if (!neighborhood) return null;
+      // Transform userNeighborhoods to UserEstateDto array
+      if (user.userNeighborhoods && user.userNeighborhoods.length > 0) {
+        try {
+          const estates = await Promise.all(
+            user.userNeighborhoods.map(async (userNeighborhood) => {
+              try {
+                const neighborhood = userNeighborhood.neighborhood;
+                if (!neighborhood) return null;
 
-          // Get member count for this neighborhood
-          const memberCount = await this.userNeighborhoodRepository.count({
-            where: { neighborhoodId: neighborhood.id },
-          });
+                // Get member count for this neighborhood
+                const memberCount = await this.userNeighborhoodRepository.count({
+                  where: { neighborhoodId: neighborhood.id },
+                });
 
-          // Build location string
-          const locationParts = [
-            neighborhood.name,
-            neighborhood.ward?.name,
-            neighborhood.lga?.name,
-            neighborhood.lga?.state?.name,
-          ].filter(Boolean);
-          const location = locationParts.join(', ');
+                // Build location string
+                const locationParts = [
+                  neighborhood.name,
+                  neighborhood.ward?.name,
+                  neighborhood.lga?.name,
+                  neighborhood.lga?.state?.name,
+                ].filter(Boolean);
+                const location = locationParts.join(', ');
 
-          return {
-            id: neighborhood.id,
-            name: neighborhood.name,
-            type: neighborhood.type,
-            location,
-            state: neighborhood.lga?.state?.name,
-            lga: neighborhood.lga?.name,
-            city: neighborhood.ward?.name || neighborhood.lga?.name,
-            isPrimary: userNeighborhood.isPrimary,
-            isVerified: neighborhood.isVerified || false,
-            joinedAt: userNeighborhood.joinedAt,
-            relationshipType: userNeighborhood.relationshipType,
-            verificationMethod: userNeighborhood.verificationMethod,
-            memberCount,
-          } as UserEstateDto;
-        })
+                return {
+                  id: neighborhood.id,
+                  name: neighborhood.name,
+                  type: neighborhood.type,
+                  location,
+                  state: neighborhood.lga?.state?.name,
+                  lga: neighborhood.lga?.name,
+                  city: neighborhood.ward?.name || neighborhood.lga?.name,
+                  isPrimary: userNeighborhood.isPrimary,
+                  isVerified: neighborhood.isVerified || false,
+                  joinedAt: userNeighborhood.joinedAt,
+                  relationshipType: userNeighborhood.relationshipType,
+                  verificationMethod: userNeighborhood.verificationMethod,
+                  memberCount,
+                } as UserEstateDto;
+              } catch (error) {
+                console.warn('Error transforming user neighborhood:', error);
+                return null;
+              }
+            })
+          );
+          // Filter out null values and assign
+          response.userNeighborhoods = estates.filter(
+            (estate): estate is UserEstateDto => estate !== null,
+          );
+        } catch (error) {
+          console.warn('Error transforming user neighborhoods:', error);
+          response.userNeighborhoods = [];
+        }
+      }
+
+      return response;
+    } catch (error) {
+      console.error('Error in transformUserToResponse:', error);
+      throw new BadRequestException(
+        `Failed to transform user data: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
-      // Filter out null values and assign
-      response.userNeighborhoods = estates.filter(
-        (estate): estate is UserEstateDto => estate !== null,
-      );
     }
-
-    return response;
   }
 
   /**

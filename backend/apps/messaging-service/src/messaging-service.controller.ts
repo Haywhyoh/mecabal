@@ -539,25 +539,27 @@ export class MessagingServiceController {
       }
 
       // Verify and decode the JWT token
+      // Use JWT_SECRET (same as auth service) or fallback to JWT_ACCESS_SECRET
+      const jwtSecret = process.env.JWT_SECRET || process.env.JWT_ACCESS_SECRET || 'your-secret-key';
       const payload = this.jwtService.verify(token, {
-        secret: process.env.JWT_ACCESS_SECRET || 'your-secret-key',
+        secret: jwtSecret,
       });
 
       // Extract user ID from token payload
-      const userId = payload.sub || payload.userId;
+      const userId = payload.sub || payload.userId || payload.id;
       if (!userId) {
         throw new UnauthorizedException('No user ID in token');
       }
 
       return userId;
     } catch (error) {
-      // For development, allow mock user ID if JWT verification fails
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('JWT verification failed, using mock user ID for development');
-        return '550e8400-e29b-41d4-a716-446655440000'; // Valid UUID for mock user
+      // Don't use mock user ID - it causes foreign key constraint violations
+      // Instead, throw proper error so the client knows authentication failed
+      if (error instanceof UnauthorizedException) {
+        throw error;
       }
       
-      throw new UnauthorizedException('Invalid token');
+      throw new UnauthorizedException(`Invalid token: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 }
