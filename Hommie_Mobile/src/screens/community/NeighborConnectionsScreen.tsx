@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, TextInput, Alert, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, TextInput, Alert, Dimensions, ActivityIndicator } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import { safeGoBack } from '../../utils/navigationUtils';
@@ -12,6 +12,8 @@ import {
   NeighborProfile,
   ConnectionRecommendation
 } from '../../constants/socialNetworkingData';
+import { ConnectionService } from '../../services/connectionService';
+import type { Connection as ApiConnection, ConnectionRecommendation as ApiConnectionRecommendation } from '../../services/api/connectionApi';
 
 const { width } = Dimensions.get('window');
 
@@ -19,240 +21,72 @@ interface NeighborConnectionsScreenProps {
   userId?: string;
 }
 
-export default function NeighborConnectionsScreen({ userId = 'user_123' }: NeighborConnectionsScreenProps) {
+const connectionService = new ConnectionService();
+
+export default function NeighborConnectionsScreen({ userId }: NeighborConnectionsScreenProps) {
   const navigation = useNavigation();
   const [activeTab, setActiveTab] = useState<'connections' | 'discover' | 'requests'>('connections');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock data - in real app, this would come from API
-  const [myConnections] = useState<NeighborConnection[]>([
-    {
-      id: '1',
-      fromUserId: userId,
-      toUserId: 'neighbor_001',
-      connectionType: 'trusted',
-      status: 'accepted',
-      initiatedBy: userId,
-      createdAt: '2024-01-15',
-      acceptedAt: '2024-01-15',
-      metadata: {
-        howTheyMet: 'Estate security meeting',
-        sharedInterests: ['Estate Security', 'Emergency Response'],
-        mutualConnections: 5,
-        proximityLevel: 'same_building'
-      }
-    },
-    {
-      id: '2',
-      fromUserId: 'neighbor_002',
-      toUserId: userId,
-      connectionType: 'connect',
-      status: 'accepted',
-      initiatedBy: 'neighbor_002',
-      createdAt: '2024-02-10',
-      acceptedAt: '2024-02-10',
-      metadata: {
-        howTheyMet: 'Community event',
-        sharedInterests: ['Event Planning', 'Family Activities'],
-        mutualConnections: 3,
-        proximityLevel: 'same_estate'
-      }
-    },
-    {
-      id: '3',
-      fromUserId: userId,
-      toUserId: 'neighbor_003',
-      connectionType: 'follow',
-      status: 'accepted',
-      initiatedBy: userId,
-      createdAt: '2024-03-05',
-      acceptedAt: '2024-03-05',
-      metadata: {
-        sharedInterests: ['Local Business', 'Professional Networking'],
-        mutualConnections: 2,
-        proximityLevel: 'nearby_estate'
-      }
-    }
-  ]);
+  // Real API data
+  const [myConnections, setMyConnections] = useState<ApiConnection[]>([]);
+  const [neighborProfiles, setNeighborProfiles] = useState<NeighborProfile[]>([]);
+  const [connectionRequests, setConnectionRequests] = useState<ApiConnection[]>([]);
+  const [recommendations, setRecommendations] = useState<ApiConnectionRecommendation[]>([]);
 
-  const [neighborProfiles] = useState<NeighborProfile[]>([
-    {
-      id: 'neighbor_001',
-      firstName: 'Adebayo',
-      lastName: 'Ogundimu',
-      displayName: 'Adebayo O.',
-      estate: 'Victoria Island Estate',
-      building: 'Block A',
-      apartment: 'Flat 5',
-      joinedDate: '2024-01-10',
-      isVerified: true,
-      verificationLevel: 'enhanced',
-      trustScore: 85,
-      connectionStats: {
-        totalConnections: 23,
-        trustedConnections: 8,
-        mutualConnections: 5,
-        followerCount: 12,
-        followingCount: 15
-      },
-      badges: ['safety_champion', 'verified_neighbor', 'estate_committee'],
-      interests: ['Estate Security', 'Emergency Response', 'Community Service'],
-      bio: 'Estate security coordinator and emergency response volunteer. Always ready to help neighbors.',
-      lastSeen: '2 hours ago',
-      privacySettings: {
-        allowConnections: true,
-        requireApproval: true,
-        showLocation: true,
-        showActivity: true,
-        showMutualConnections: true
-      }
-    },
-    {
-      id: 'neighbor_002',
-      firstName: 'Sarah',
-      lastName: 'Adamu',
-      displayName: 'Sarah A.',
-      estate: 'Victoria Island Estate',
-      building: 'Block B',
-      apartment: 'Flat 12',
-      joinedDate: '2024-02-01',
-      isVerified: true,
-      verificationLevel: 'premium',
-      trustScore: 78,
-      connectionStats: {
-        totalConnections: 18,
-        trustedConnections: 6,
-        mutualConnections: 3,
-        followerCount: 20,
-        followingCount: 12
-      },
-      badges: ['helpful_neighbor', 'verified_neighbor', 'top_contributor'],
-      interests: ['Event Planning', 'Family Activities', 'Nigerian Cuisine'],
-      bio: 'Event organizer and mother of two. Love bringing the community together!',
-      lastSeen: '1 day ago',
-      privacySettings: {
-        allowConnections: true,
-        requireApproval: false,
-        showLocation: true,
-        showActivity: true,
-        showMutualConnections: true
-      }
-    },
-    {
-      id: 'neighbor_003',
-      firstName: 'Emeka',
-      lastName: 'Okoro',
-      displayName: 'Emeka K.',
-      estate: 'Lekki Gardens',
-      joinedDate: '2024-03-01',
-      isVerified: true,
-      verificationLevel: 'basic',
-      trustScore: 65,
-      connectionStats: {
-        totalConnections: 12,
-        trustedConnections: 3,
-        mutualConnections: 2,
-        followerCount: 8,
-        followingCount: 15
-      },
-      badges: ['business_verified', 'verified_neighbor'],
-      interests: ['Local Business', 'Professional Networking', 'Tech Industry'],
-      bio: 'Tech entrepreneur and local business owner. Open to professional networking.',
-      lastSeen: '3 days ago',
-      privacySettings: {
-        allowConnections: true,
-        requireApproval: true,
-        showLocation: false,
-        showActivity: true,
-        showMutualConnections: false
-      }
-    }
-  ]);
+  // Fetch data on mount and when tab changes
+  useEffect(() => {
+    loadData();
+  }, [activeTab, selectedFilter]);
 
-  const [connectionRequests] = useState<NeighborConnection[]>([
-    {
-      id: 'req_1',
-      fromUserId: 'neighbor_004',
-      toUserId: userId,
-      connectionType: 'connect',
-      status: 'pending',
-      initiatedBy: 'neighbor_004',
-      createdAt: '1 day ago',
-      metadata: {
-        howTheyMet: 'New neighbor introduction',
-        sharedInterests: ['Home Improvement', 'Gardening'],
-        mutualConnections: 1,
-        proximityLevel: 'same_building'
-      }
-    },
-    {
-      id: 'req_2',
-      fromUserId: 'neighbor_005',
-      toUserId: userId,
-      connectionType: 'trusted',
-      status: 'pending',
-      initiatedBy: 'neighbor_005',
-      createdAt: '2 days ago',
-      metadata: {
-        howTheyMet: 'Emergency response volunteer',
-        sharedInterests: ['Emergency Response', 'Safety Advocacy'],
-        mutualConnections: 3,
-        proximityLevel: 'same_estate'
-      }
-    }
-  ]);
-
-  const [recommendations] = useState<ConnectionRecommendation[]>([
-    {
-      id: 'rec_1',
-      neighbor: {
-        id: 'neighbor_006',
-        firstName: 'Fatima',
-        lastName: 'Mohammed',
-        displayName: 'Fatima M.',
-        estate: 'Victoria Island Estate',
-        building: 'Block C',
-        joinedDate: '2024-01-20',
-        isVerified: true,
-        verificationLevel: 'enhanced',
-        trustScore: 82,
-        connectionStats: {
-          totalConnections: 25,
-          trustedConnections: 10,
-          mutualConnections: 4,
-          followerCount: 18,
-          followingCount: 22
-        },
-        badges: ['helpful_neighbor', 'safety_champion'],
-        interests: ['Estate Security', 'Community Service', 'Family Activities'],
-        lastSeen: '1 hour ago',
-        privacySettings: {
-          allowConnections: true,
-          requireApproval: true,
-          showLocation: true,
-          showActivity: true,
-          showMutualConnections: true
+  const loadData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      if (activeTab === 'connections') {
+        const filter: any = {};
+        if (selectedFilter !== 'all') {
+          filter.connectionType = selectedFilter;
         }
-      },
-      recommendationScore: 85,
-      reasons: [
-        { type: 'proximity', description: 'Lives in the same estate', strength: 30 },
-        { type: 'mutual_connections', description: 'You have 4 mutual connections', strength: 25 },
-        { type: 'shared_interests', description: 'Shares your interest in estate security', strength: 20 },
-        { type: 'safety_network', description: 'Important for your safety network', strength: 10 }
-      ],
-      mutualConnections: [neighborProfiles[0], neighborProfiles[1]],
-      sharedInterests: ['Estate Security', 'Community Service'],
-      proximityInfo: {
-        distance: 0.2,
-        location: 'Block C',
-        sameBuilding: false,
-        sameEstate: true
+        if (searchQuery) {
+          filter.search = searchQuery;
+        }
+        const response = await connectionService.getConnections(filter);
+        setMyConnections(response.data);
+        // Extract neighbor profiles from connections
+        const profiles = response.data.map(conn => conn.neighbor);
+        setNeighborProfiles(profiles);
+      } else if (activeTab === 'requests') {
+        const requests = await connectionService.getConnectionRequests();
+        setConnectionRequests(requests.incoming);
+        // Extract neighbor profiles from requests
+        const profiles = requests.incoming.map(conn => conn.neighbor);
+        setNeighborProfiles(profiles);
+      } else if (activeTab === 'discover') {
+        const filter: any = {};
+        if (searchQuery) {
+          filter.search = searchQuery;
+        }
+        const response = await connectionService.discoverNeighbors(filter);
+        // For discover tab, we show recommendations
+        const recs = await connectionService.getRecommendations(10);
+        setRecommendations(recs);
+        // Extract neighbor profiles from recommendations
+        const profiles = recs.map(rec => rec.neighbor);
+        setNeighborProfiles(profiles);
       }
+    } catch (err) {
+      console.error('Error loading connections data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load data');
+      Alert.alert('Error', err instanceof Error ? err.message : 'Failed to load connections');
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
 
   const getConnectionsByType = (type: string) => {
     if (type === 'all') return myConnections;
@@ -260,7 +94,35 @@ export default function NeighborConnectionsScreen({ userId = 'user_123' }: Neigh
   };
 
   const getNeighborProfile = (neighborId: string): NeighborProfile | undefined => {
-    return neighborProfiles.find(profile => profile.id === neighborId);
+    const apiProfile = neighborProfiles.find(profile => profile.id === neighborId);
+    if (!apiProfile) return undefined;
+    // Convert API profile to NeighborProfile format
+    return {
+      id: apiProfile.id,
+      firstName: apiProfile.firstName,
+      lastName: apiProfile.lastName,
+      displayName: apiProfile.displayName || `${apiProfile.firstName} ${apiProfile.lastName}`,
+      profileImage: apiProfile.profilePicture,
+      estate: apiProfile.estate || '',
+      building: apiProfile.building,
+      apartment: apiProfile.apartment,
+      joinedDate: '', // Not available from API
+      isVerified: apiProfile.isVerified,
+      verificationLevel: apiProfile.verificationLevel as 'basic' | 'enhanced' | 'premium',
+      trustScore: apiProfile.trustScore,
+      connectionStats: apiProfile.connectionStats,
+      badges: apiProfile.badges,
+      interests: apiProfile.interests,
+      bio: apiProfile.bio,
+      lastSeen: apiProfile.lastSeen || '',
+      privacySettings: {
+        allowConnections: true,
+        requireApproval: true,
+        showLocation: true,
+        showActivity: true,
+        showMutualConnections: true,
+      },
+    };
   };
 
   const getTrustLevel = (trustScore: number): string => {
@@ -271,7 +133,7 @@ export default function NeighborConnectionsScreen({ userId = 'user_123' }: Neigh
     return 'new_neighbor';
   };
 
-  const handleConnectionAction = (action: 'accept' | 'reject' | 'block', connectionId: string) => {
+  const handleConnectionAction = async (action: 'accept' | 'reject' | 'block', connectionId: string) => {
     Alert.alert(
       `${action.charAt(0).toUpperCase() + action.slice(1)} Connection`,
       `Are you sure you want to ${action} this connection request?`,
@@ -279,15 +141,34 @@ export default function NeighborConnectionsScreen({ userId = 'user_123' }: Neigh
         { text: 'Cancel', style: 'cancel' },
         {
           text: action.charAt(0).toUpperCase() + action.slice(1),
-          onPress: () => {
-            Alert.alert('Success', `Connection request ${action}ed successfully.`);
+          onPress: async () => {
+            try {
+              setLoading(true);
+              if (action === 'accept') {
+                await connectionService.acceptConnection(connectionId);
+                Alert.alert('Success', 'Connection request accepted successfully.');
+              } else if (action === 'reject') {
+                await connectionService.rejectConnection(connectionId);
+                Alert.alert('Success', 'Connection request rejected.');
+              } else if (action === 'block') {
+                await connectionService.removeConnection(connectionId);
+                Alert.alert('Success', 'Connection removed.');
+              }
+              // Reload data
+              await loadData();
+            } catch (err) {
+              console.error('Error performing connection action:', err);
+              Alert.alert('Error', err instanceof Error ? err.message : 'Failed to perform action');
+            } finally {
+              setLoading(false);
+            }
           }
         }
       ]
     );
   };
 
-  const handleSendConnectionRequest = (neighborId: string, connectionType: string) => {
+  const handleSendConnectionRequest = async (neighborId: string, connectionType: string) => {
     const neighbor = getNeighborProfile(neighborId);
     Alert.alert(
       'Send Connection Request',
@@ -296,17 +177,34 @@ export default function NeighborConnectionsScreen({ userId = 'user_123' }: Neigh
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Send',
-          onPress: () => {
-            Alert.alert('Request Sent', `Your ${connectionType} request has been sent to ${neighbor?.displayName}.`);
+          onPress: async () => {
+            try {
+              setLoading(true);
+              await connectionService.sendConnectionRequest(
+                neighborId,
+                connectionType as any,
+                {}
+              );
+              Alert.alert('Request Sent', `Your ${connectionType} request has been sent to ${neighbor?.displayName}.`);
+              // Reload data
+              await loadData();
+            } catch (err) {
+              console.error('Error sending connection request:', err);
+              Alert.alert('Error', err instanceof Error ? err.message : 'Failed to send request');
+            } finally {
+              setLoading(false);
+            }
           }
         }
       ]
     );
   };
 
-  const renderConnectionItem = (connection: NeighborConnection) => {
+  const renderConnectionItem = (connection: ApiConnection) => {
+    // Get current user ID from auth if available
+    const currentUserId = userId || connection.fromUserId; // Fallback logic
     const neighbor = getNeighborProfile(
-      connection.fromUserId === userId ? connection.toUserId : connection.fromUserId
+      connection.fromUserId === currentUserId ? connection.toUserId : connection.fromUserId
     );
     if (!neighbor) return null;
 
@@ -344,7 +242,11 @@ export default function NeighborConnectionsScreen({ userId = 'user_123' }: Neigh
                 </Text>
               </View>
               
-              <Text style={styles.connectionDate}>Since {connection.acceptedAt || connection.createdAt}</Text>
+              <Text style={styles.connectionDate}>
+                Since {connection.acceptedAt 
+                  ? new Date(connection.acceptedAt).toLocaleDateString() 
+                  : new Date(connection.createdAt).toLocaleDateString()}
+              </Text>
             </View>
             
             <View style={styles.neighborMeta}>
@@ -371,17 +273,17 @@ export default function NeighborConnectionsScreen({ userId = 'user_123' }: Neigh
           </View>
         </View>
         
-        {connection.metadata?.sharedInterests && connection.metadata.sharedInterests.length > 0 && (
+        {neighbor.interests && neighbor.interests.length > 0 && (
           <View style={styles.sharedInterests}>
-            <Text style={styles.sharedInterestsLabel}>Shared interests:</Text>
+            <Text style={styles.sharedInterestsLabel}>Interests:</Text>
             <View style={styles.interestTags}>
-              {connection.metadata.sharedInterests.slice(0, 3).map((interest, index) => (
+              {neighbor.interests.slice(0, 3).map((interest, index) => (
                 <View key={index} style={styles.interestTag}>
                   <Text style={styles.interestTagText}>{interest}</Text>
                 </View>
               ))}
-              {connection.metadata.sharedInterests.length > 3 && (
-                <Text style={styles.moreInterests}>+{connection.metadata.sharedInterests.length - 3} more</Text>
+              {neighbor.interests.length > 3 && (
+                <Text style={styles.moreInterests}>+{neighbor.interests.length - 3} more</Text>
               )}
             </View>
           </View>
@@ -390,7 +292,7 @@ export default function NeighborConnectionsScreen({ userId = 'user_123' }: Neigh
     );
   };
 
-  const renderConnectionRequest = (request: NeighborConnection) => {
+  const renderConnectionRequest = (request: ApiConnection) => {
     const neighbor = getNeighborProfile(request.fromUserId);
     if (!neighbor) return null;
 
@@ -417,12 +319,14 @@ export default function NeighborConnectionsScreen({ userId = 'user_123' }: Neigh
             
             <View style={styles.requestMeta}>
               <MaterialCommunityIcons name="clock" size={12} color="#8E8E8E" />
-              <Text style={styles.requestTime}>{request.createdAt}</Text>
-              {request.metadata?.mutualConnections && (
+              <Text style={styles.requestTime}>
+                {new Date(request.createdAt).toLocaleDateString()}
+              </Text>
+              {request.mutualConnections !== undefined && request.mutualConnections > 0 && (
                 <>
                   <Text style={styles.metaDivider}>•</Text>
                   <Text style={styles.mutualConnections}>
-                    {request.metadata.mutualConnections} mutual connections
+                    {request.mutualConnections} mutual connection{request.mutualConnections > 1 ? 's' : ''}
                   </Text>
                 </>
               )}
@@ -449,8 +353,10 @@ export default function NeighborConnectionsScreen({ userId = 'user_123' }: Neigh
     );
   };
 
-  const renderRecommendation = (recommendation: ConnectionRecommendation) => {
-    const { neighbor } = recommendation;
+  const renderRecommendation = (recommendation: ApiConnectionRecommendation) => {
+    const { neighbor: apiNeighbor } = recommendation;
+    const neighbor = getNeighborProfile(apiNeighbor.id);
+    if (!neighbor) return null;
 
     return (
       <View key={recommendation.id} style={styles.recommendationItem}>
@@ -484,7 +390,7 @@ export default function NeighborConnectionsScreen({ userId = 'user_123' }: Neigh
             <Text style={styles.recommendationScore}>{recommendation.recommendationScore}% match</Text>
             <TouchableOpacity 
               style={styles.connectButton}
-              onPress={() => handleSendConnectionRequest(neighbor.id, 'connect')}
+              onPress={() => handleSendConnectionRequest(apiNeighbor.id, 'connect')}
             >
               <MaterialCommunityIcons name="account-plus" size={16} color="#FFFFFF" />
               <Text style={styles.connectButtonText}>Connect</Text>
@@ -492,7 +398,7 @@ export default function NeighborConnectionsScreen({ userId = 'user_123' }: Neigh
           </View>
         </View>
         
-        {recommendation.sharedInterests.length > 0 && (
+        {recommendation.sharedInterests && recommendation.sharedInterests.length > 0 && (
           <View style={styles.sharedInterests}>
             <Text style={styles.sharedInterestsLabel}>Shared interests:</Text>
             <View style={styles.interestTags}>
@@ -716,9 +622,28 @@ export default function NeighborConnectionsScreen({ userId = 'user_123' }: Neigh
       </View>
 
       {/* Tab Content */}
-      {activeTab === 'connections' && renderConnectionsTab()}
-      {activeTab === 'discover' && renderDiscoverTab()}
-      {activeTab === 'requests' && renderRequestsTab()}
+      {loading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#00A651" />
+          <Text style={styles.loadingText}>Loading...</Text>
+        </View>
+      )}
+      {!loading && error && (
+        <View style={styles.errorContainer}>
+          <MaterialCommunityIcons name="alert-circle" size={48} color="#E74C3C" />
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={loadData}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      {!loading && !error && (
+        <>
+          {activeTab === 'connections' && renderConnectionsTab()}
+          {activeTab === 'discover' && renderDiscoverTab()}
+          {activeTab === 'requests' && renderRequestsTab()}
+        </>
+      )}
     </SafeAreaView>
   );
 }
@@ -1192,5 +1117,40 @@ const styles = StyleSheet.create({
     color: '#8E8E8E',
     textAlign: 'center',
     lineHeight: 20,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#8E8E8E',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  errorText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#E74C3C',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#00A651',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 16,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

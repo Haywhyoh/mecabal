@@ -1,4 +1,4 @@
-import { 
+import type { 
   NeighborProfile, 
   NeighborConnection, 
   MutualConnection, 
@@ -9,11 +9,69 @@ import {
   TrustLevel,
   ConnectionRequest,
   ConnectionStrengthLevel,
+} from '../types/connectionTypes';
+import { 
   CONNECTION_STRENGTH_THRESHOLDS,
   TRUST_SCORE_LEVELS
 } from '../types/connectionTypes';
+import { 
+  connectionApi,
+} from './api/connectionApi';
+import type {
+  Connection as ApiConnection,
+  ConnectionFilter,
+  PaginatedConnections,
+  ConnectionRecommendation,
+  CreateConnectionRequest,
+  NeighborProfile as ApiNeighborProfile,
+} from './api/connectionApi';
 
 export class ConnectionService {
+  // API Methods - Instance methods for API calls
+  async getConnections(filter?: ConnectionFilter): Promise<PaginatedConnections> {
+    return connectionApi.getConnections(filter);
+  }
+
+  async getConnectionRequests(): Promise<{ incoming: ApiConnection[]; outgoing: ApiConnection[] }> {
+    return connectionApi.getConnectionRequests();
+  }
+
+  async getRecommendations(limit: number = 10): Promise<ConnectionRecommendation[]> {
+    return connectionApi.getRecommendations(limit);
+  }
+
+  async sendConnectionRequest(
+    toUserId: string,
+    connectionType: 'connect' | 'follow' | 'trusted' | 'neighbor' | 'colleague' | 'family',
+    metadata?: Record<string, any>
+  ): Promise<ApiConnection> {
+    const request: CreateConnectionRequest = {
+      toUserId,
+      connectionType,
+      metadata,
+    };
+    return connectionApi.sendConnectionRequest(request);
+  }
+
+  async acceptConnection(connectionId: string): Promise<ApiConnection> {
+    return connectionApi.acceptConnection(connectionId);
+  }
+
+  async rejectConnection(connectionId: string): Promise<void> {
+    return connectionApi.rejectConnection(connectionId);
+  }
+
+  async removeConnection(connectionId: string): Promise<void> {
+    return connectionApi.removeConnection(connectionId);
+  }
+
+  async discoverNeighbors(filter?: ConnectionFilter): Promise<PaginatedConnections> {
+    return connectionApi.discoverNeighbors(filter);
+  }
+
+  async getMutualConnections(userId: string): Promise<ApiNeighborProfile[]> {
+    return connectionApi.getMutualConnections(userId);
+  }
   
   // Trust Level Calculations
   static getTrustLevel(trustScore: number): TrustLevel {

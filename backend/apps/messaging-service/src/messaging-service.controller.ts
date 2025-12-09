@@ -103,7 +103,7 @@ export class MessagingServiceController {
     @Req() req: any,
     @Param('id') conversationId: string,
   ): Promise<ConversationResponseDto> {
-    const userId = req.user?.id || 'mock-user-id';
+    const userId = this.extractUserIdFromRequest(req);
     return this.messagingServiceService.getConversation(conversationId, userId);
   }
 
@@ -120,7 +120,7 @@ export class MessagingServiceController {
     @Req() req: any,
     @Body() dto: CreateConversationDto,
   ): Promise<ConversationResponseDto> {
-    const userId = req.user?.id || 'mock-user-id';
+    const userId = this.extractUserIdFromRequest(req);
     return this.messagingServiceService.createConversation(userId, dto);
   }
 
@@ -134,7 +134,7 @@ export class MessagingServiceController {
     @Req() req: any,
     @Param('id') conversationId: string,
   ): Promise<{ success: boolean }> {
-    const userId = req.user?.id || 'mock-user-id';
+    const userId = this.extractUserIdFromRequest(req);
     return this.messagingServiceService.archiveConversation(conversationId, userId);
   }
 
@@ -147,7 +147,7 @@ export class MessagingServiceController {
     @Req() req: any,
     @Param('id') conversationId: string,
   ): Promise<{ success: boolean }> {
-    const userId = req.user?.id || 'mock-user-id';
+    const userId = this.extractUserIdFromRequest(req);
     return this.messagingServiceService.pinConversation(conversationId, userId);
   }
 
@@ -171,7 +171,7 @@ export class MessagingServiceController {
     @Param('id') conversationId: string,
     @Query() query: GetMessagesDto,
   ): Promise<PaginatedResponseDto<MessageResponseDto>> {
-    const userId = req.user?.id || 'mock-user-id';
+    const userId = this.extractUserIdFromRequest(req);
     return this.messagingServiceService.getMessages(conversationId, userId, query);
   }
 
@@ -189,7 +189,7 @@ export class MessagingServiceController {
     @Req() req: any,
     @Body() dto: SendMessageDto,
   ): Promise<MessageResponseDto> {
-    const userId = req.user?.id || 'mock-user-id';
+    const userId = this.extractUserIdFromRequest(req);
     return this.messagingServiceService.sendMessage(userId, dto);
   }
 
@@ -209,7 +209,7 @@ export class MessagingServiceController {
     @Param('id') messageId: string,
     @Body() dto: UpdateMessageDto,
   ): Promise<MessageResponseDto> {
-    const userId = req.user?.id || 'mock-user-id';
+    const userId = this.extractUserIdFromRequest(req);
     return this.messagingServiceService.editMessage(messageId, userId, dto.content);
   }
 
@@ -224,7 +224,7 @@ export class MessagingServiceController {
     @Req() req: any,
     @Param('id') messageId: string,
   ): Promise<{ success: boolean }> {
-    const userId = req.user?.id || 'mock-user-id';
+    const userId = this.extractUserIdFromRequest(req);
     return this.messagingServiceService.deleteMessage(messageId, userId);
   }
 
@@ -240,7 +240,7 @@ export class MessagingServiceController {
     @Param('id') conversationId: string,
     @Body() dto: MarkAsReadDto,
   ): Promise<{ success: boolean }> {
-    const userId = req.user?.id || 'mock-user-id';
+    const userId = this.extractUserIdFromRequest(req);
     return this.messagingServiceService.markAsRead(conversationId, userId, dto.messageId);
   }
 
@@ -255,7 +255,7 @@ export class MessagingServiceController {
     @Req() req: any,
     @Body() dto: TypingIndicatorDto,
   ): Promise<{ success: boolean }> {
-    const userId = req.user?.id || 'mock-user-id';
+    const userId = this.extractUserIdFromRequest(req);
     return this.messagingServiceService.updateTypingIndicator(userId, dto);
   }
 
@@ -275,7 +275,7 @@ export class MessagingServiceController {
     @Param('eventId') eventId: string,
     @Query('organizerId') organizerId: string,
   ): Promise<ConversationResponseDto> {
-    const userId = req.user?.id || 'mock-user-id';
+    const userId = this.extractUserIdFromRequest(req);
     return this.messagingServiceService.createConversation(userId, {
       type: 'direct' as any,
       participantIds: [organizerId],
@@ -297,9 +297,16 @@ export class MessagingServiceController {
   async getOrCreateBusinessConversation(
     @Req() req: any,
     @Param('businessId') businessId: string,
-    @Query('ownerId') ownerId: string,
+    @Query('ownerId') ownerId?: string,
   ): Promise<ConversationResponseDto> {
-    const userId = req.user?.id || 'mock-user-id';
+    const userId = this.extractUserIdFromRequest(req);
+    
+    // If ownerId is not provided, we need to fetch it from the business service
+    // For now, we'll require it to be provided, but we should fetch it from business service
+    if (!ownerId) {
+      throw new UnauthorizedException('Business owner ID is required. Please provide ownerId query parameter.');
+    }
+    
     return this.messagingServiceService.createConversation(userId, {
       type: 'direct' as any,
       participantIds: [ownerId],
@@ -340,7 +347,7 @@ export class MessagingServiceController {
     @UploadedFile() file: Express.Multer.File,
     @Req() req: any,
   ) {
-    const userId = req.user?.id || 'mock-user-id';
+    const userId = this.extractUserIdFromRequest(req);
     
     if (!file) {
       return {
@@ -400,7 +407,7 @@ export class MessagingServiceController {
     @UploadedFiles() files: Express.Multer.File[],
     @Req() req: any,
   ) {
-    const userId = req.user?.id || 'mock-user-id';
+    const userId = this.extractUserIdFromRequest(req);
     
     if (!files || files.length === 0) {
       return {
@@ -446,7 +453,7 @@ export class MessagingServiceController {
     @Param('fileKey') fileKey: string,
     @Req() req: any,
   ) {
-    const userId = req.user?.id || 'mock-user-id';
+    const userId = this.extractUserIdFromRequest(req);
     
     const deleted = await this.messagingServiceService.deleteAttachment(fileKey, userId);
     

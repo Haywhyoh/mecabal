@@ -30,6 +30,18 @@ export type {
   UserQRCode,
 } from './visitorApi';
 
+// Export connection services
+export { connectionApi } from './connectionApi';
+export type {
+  Connection,
+  NeighborProfile,
+  ConnectionRequest,
+  ConnectionRecommendation,
+  ConnectionFilter,
+  PaginatedConnections,
+  CreateConnectionRequest,
+} from './connectionApi';
+
 // Export types
 export * from '../types/business.types';
 export * from '../types/review.types';

@@ -66,6 +66,7 @@ import {
   Booking,
   Payment,
   BankAccount,
+  Connection,
 } from './entities';
 // Import messaging entities from the messaging service
 import { Conversation } from '../../../apps/messaging-service/src/entities/conversation.entity';
@@ -147,6 +148,7 @@ import { TypingIndicator } from '../../../apps/messaging-service/src/entities/ty
           Booking,
           Payment,
           BankAccount,
+          Connection,
           // Messaging entities
           Conversation,
           ConversationParticipant,
@@ -233,6 +235,7 @@ import { TypingIndicator } from '../../../apps/messaging-service/src/entities/ty
       Booking,
       Payment,
       BankAccount,
+      Connection,
       // Messaging entities
       Conversation,
       ConversationParticipant,

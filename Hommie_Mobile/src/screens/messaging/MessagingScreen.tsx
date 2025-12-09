@@ -228,9 +228,8 @@ const MessagingScreen: React.FC = () => {
     } catch (err) {
       console.error('Failed to load conversations:', err);
       setError('Failed to load conversations. Please try again.');
-      // Fallback to cached conversations
-      const cachedConversations = messagingService.getConversations();
-      setConversations(Array.isArray(cachedConversations) ? cachedConversations : []);
+      // Fallback to empty array - conversations will be loaded when connection is restored
+      setConversations([]);
     } finally {
       setLoading(false);
     }

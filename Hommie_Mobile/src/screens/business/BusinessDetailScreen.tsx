@@ -113,7 +113,11 @@ export default function BusinessDetailScreen({ navigation, route }: BusinessDeta
           <View style={styles.statItem}>
             <Ionicons name="star" size={20} color={colors.accent.warmGold} />
             <Text style={styles.statText}>
-              {(typeof business.rating === 'number' ? business.rating : 0).toFixed(1)} ({business.reviewCount || 0} reviews)
+              {business.reviewCount > 0 && typeof business.rating === 'number' && business.rating > 0
+                ? `${business.rating.toFixed(1)} (${business.reviewCount} reviews)`
+                : business.reviewCount > 0
+                ? `No rating yet (${business.reviewCount} reviews)`
+                : 'No reviews yet'}
             </Text>
           </View>
           <View style={styles.statItem}>

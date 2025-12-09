@@ -39,11 +39,29 @@ export default function ServiceDetailsScreen({ route, navigation }: ServiceDetai
     navigation?.navigate('BookService', { service, business });
   };
 
-  const handleMessageProvider = () => {
-    navigation?.navigate('Chat', {
-      conversationId: `business-${business.id}`,
-      recipientName: business.businessName,
-    });
+  const handleMessageProvider = async () => {
+    try {
+      setLoading(true);
+      const MessagingService = (await import('../../services/MessagingService')).default;
+      const messagingService = MessagingService.getInstance();
+      
+      // Get or create business conversation
+      const conversation = await messagingService.getOrCreateBusinessConversation(business.id);
+      
+      navigation?.navigate('Chat', {
+        conversationId: conversation.id,
+        conversationType: conversation.type,
+        conversationTitle: business.businessName,
+      });
+    } catch (error: any) {
+      console.error('Error creating business conversation:', error);
+      Alert.alert(
+        'Error',
+        error.message || 'Failed to start conversation. Please try again.'
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleViewProvider = () => {
@@ -57,6 +75,19 @@ export default function ServiceDetailsScreen({ route, navigation }: ServiceDetai
         navigation={navigation}
       />
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Business Cover Image Banner */}
+        {business.coverImageUrl ? (
+          <Image
+            source={{ uri: business.coverImageUrl }}
+            style={styles.coverImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={styles.coverImagePlaceholder}>
+            <MaterialCommunityIcons name="store" size={48} color="#8E8E93" />
+          </View>
+        )}
+
         {/* Service Header */}
         <View style={styles.headerSection}>
           <Text style={styles.serviceName}>{service.serviceName}</Text>
@@ -98,7 +129,11 @@ export default function ServiceDetailsScreen({ route, navigation }: ServiceDetai
               <View style={styles.ratingRow}>
                 <MaterialCommunityIcons name="star" size={16} color="#FFC107" />
                 <Text style={styles.ratingText}>
-                  {(typeof business.rating === 'number' ? business.rating : 0).toFixed(1)} ({business.reviewCount || 0} reviews)
+                  {business.reviewCount > 0 && typeof business.rating === 'number' && business.rating > 0
+                    ? `${business.rating.toFixed(1)} (${business.reviewCount} reviews)`
+                    : business.reviewCount > 0
+                    ? `No rating yet (${business.reviewCount} reviews)`
+                    : 'No reviews yet'}
                 </Text>
               </View>
               {business.completedJobs > 0 && (
@@ -224,6 +259,18 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  coverImage: {
+    width: '100%',
+    height: 200,
+    backgroundColor: '#E0E0E0',
+  },
+  coverImagePlaceholder: {
+    width: '100%',
+    height: 200,
+    backgroundColor: '#E0E0E0',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerSection: {
     backgroundColor: '#FFFFFF',
