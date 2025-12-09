@@ -62,7 +62,16 @@ export default function BusinessProfileScreen({ navigation }: BusinessProfileScr
   };
 
   const handleViewReviews = () => {
-    Alert.alert('View Reviews', 'Navigate to reviews and ratings screen');
+    if (businessProfile) {
+      navigation?.navigate('BusinessReviews', {
+        businessId: businessProfile.id,
+        businessName: businessProfile.businessName,
+      });
+    }
+  };
+
+  const handleViewBookings = () => {
+    navigation?.navigate('BusinessBookings');
   };
 
   const handleBusinessSettings = () => {
@@ -313,6 +322,24 @@ export default function BusinessProfileScreen({ navigation }: BusinessProfileScr
           <Text style={styles.cardTitle}>Manage Your Business</Text>
           
           <TouchableOpacity style={styles.actionItem} onPress={handleManageServices}>
+            <MaterialCommunityIcons name="wrench" size={24} color="#00A651" />
+            <View style={styles.actionContent}>
+              <Text style={styles.actionTitle}>Manage Services</Text>
+              <Text style={styles.actionDesc}>Add, edit, or remove services</Text>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E8E" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.actionItem} onPress={handleViewBookings}>
+            <MaterialCommunityIcons name="clipboard-text" size={24} color="#00A651" />
+            <View style={styles.actionContent}>
+              <Text style={styles.actionTitle}>Orders & Bookings</Text>
+              <Text style={styles.actionDesc}>View and manage customer orders and bookings</Text>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E8E" />
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.actionItem} onPress={() => navigation?.navigate('BusinessInquiries')}>
             <MaterialCommunityIcons name="message-text" size={24} color="#00A651" />
             <View style={styles.actionContent}>
               <Text style={styles.actionTitle}>Customer Inquiries</Text>

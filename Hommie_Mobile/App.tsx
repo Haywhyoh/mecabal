@@ -49,6 +49,7 @@ import BusinessReviewsScreen from './src/screens/business/BusinessReviewsScreen'
 import WriteReviewScreen from './src/screens/business/WriteReviewScreen';
 import BusinessAnalyticsScreen from './src/screens/business/BusinessAnalyticsScreen';
 import BusinessInquiriesScreen from './src/screens/business/BusinessInquiriesScreen';
+import BusinessBookingsScreen from './src/screens/business/BusinessBookingsScreen';
 import MyInquiriesScreen from './src/screens/misc/MyInquiriesScreen';
 import AdvancedSearchFiltersScreen from './src/screens/search/AdvancedSearchFiltersScreen';
 import CommunityActivityScreen from './src/screens/community/CommunityActivityScreen';
@@ -245,6 +246,7 @@ function MainStackNavigator() {
       <Stack.Screen name="WriteReview" component={WriteReviewScreen} />
       <Stack.Screen name="BusinessAnalytics" component={BusinessAnalyticsScreen} />
       <Stack.Screen name="BusinessInquiries" component={BusinessInquiriesScreen} />
+      <Stack.Screen name="BusinessBookings" component={BusinessBookingsScreen} />
       <Stack.Screen name="MyInquiries" component={MyInquiriesScreen} />
       <Stack.Screen name="AdvancedSearchFilters" component={AdvancedSearchFiltersScreen} />
       <Stack.Screen name="ManageServices" component={ManageServicesScreen} />

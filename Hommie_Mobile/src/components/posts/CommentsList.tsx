@@ -33,6 +33,7 @@ export const CommentsList: React.FC<CommentsListProps> = ({
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showCommentCreator, setShowCommentCreator] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
   const { user: currentUser } = useAuth();
@@ -51,11 +52,14 @@ export const CommentsList: React.FC<CommentsListProps> = ({
       const limit = 20;
       const response = await postsService.getComments(postId, pageNum, limit);
 
+      // Filter to only show top-level comments (no parentCommentId)
+      const topLevelComments = response.data.filter(comment => !comment.parentCommentId);
+
       if (refresh || pageNum === 1) {
-        setComments(response.data);
+        setComments(topLevelComments);
         setPage(1);
       } else {
-        setComments(prev => [...prev, ...response.data]);
+        setComments(prev => [...prev, ...topLevelComments]);
         setPage(pageNum);
       }
 
@@ -74,10 +78,30 @@ export const CommentsList: React.FC<CommentsListProps> = ({
     loadComments(1, true);
   }, [postId]); // Only depend on postId, not the functions
 
-  const handleCommentCreated = (newComment: Comment) => {
-    // Add new comment to the beginning of the list
-    setComments(prev => [newComment, ...prev]);
+  const handleCommentCreated = async (newComment: Comment) => {
+    // If it's a reply, add it to the parent comment's replies array
+    if (newComment.parentCommentId) {
+      setComments(prev =>
+        prev.map(comment => {
+          if (comment.id === newComment.parentCommentId) {
+            return {
+              ...comment,
+              replies: [...(comment.replies || []), newComment],
+            };
+          }
+          return comment;
+        })
+      );
+      setReplyingTo(null);
+    } else {
+      // Add new top-level comment to the beginning of the list
+      setComments(prev => [newComment, ...prev]);
+    }
+    
     onCommentAdded?.();
+    
+    // Always refresh to get the latest data from backend
+    await loadComments(1, true);
   };
 
   const handleLoadMore = () => {
@@ -112,23 +136,21 @@ export const CommentsList: React.FC<CommentsListProps> = ({
     );
   };
 
-  const renderComment = ({ item }: { item: Comment }) => {
-    // Null check for item and author
-    if (!item || !item.author) {
-      console.warn('Invalid comment item:', item);
+  const renderReply = (reply: Comment, level: number = 1) => {
+    if (!reply || !reply.author) {
       return null;
     }
 
     return (
-      <View style={styles.commentItem}>
+      <View key={reply.id} style={[styles.replyItem, level > 1 && styles.nestedReply]}>
         <UserAvatar
           user={{
-            id: item.author.id,
+            id: reply.author.id,
             phoneNumber: '',
-            firstName: item.author.firstName || '',
-            lastName: item.author.lastName || '',
-            profilePictureUrl: item.author.profilePicture,
-            isVerified: item.author.isVerified || false,
+            firstName: reply.author.firstName || '',
+            lastName: reply.author.lastName || '',
+            profilePictureUrl: reply.author.profilePicture,
+            isVerified: reply.author.isVerified || false,
             phoneVerified: false,
             identityVerified: false,
             addressVerified: false,
@@ -138,66 +160,178 @@ export const CommentsList: React.FC<CommentsListProps> = ({
             updatedAt: '',
           }}
           size="small"
-          showBadge={item.author.isVerified}
+          showBadge={reply.author.isVerified}
         />
         <View style={styles.commentContent}>
           <View style={styles.commentHeader}>
             <Text style={styles.commentAuthor}>
-              {item.author.firstName} {item.author.lastName}
+              {reply.author.firstName} {reply.author.lastName}
             </Text>
             <Text style={styles.commentTime}>
-              {formatTimeAgo(item.createdAt)}
+              {formatTimeAgo(reply.createdAt)}
             </Text>
           </View>
-          <Text style={styles.commentText}>{item.content}</Text>
+          <Text style={styles.commentText}>{reply.content}</Text>
 
-        {/* Media attachments */}
-        {item.media && item.media.length > 0 && (
-          <View style={styles.commentMediaContainer}>
-            {item.media.map((media, index) => (
-              <View key={index} style={styles.commentMediaItem}>
-                {media.type === 'image' ? (
-                  <Image
-                    source={{ uri: media.url }}
-                    style={styles.commentMediaImage}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <VideoView
-                    player={useVideoPlayer(media.url)}
-                    style={styles.commentMediaVideo}
-                    allowsFullscreen
-                    allowsPictureInPicture
-                  />
-                )}
-                {media.caption && (
-                  <Text style={styles.commentMediaCaption}>{media.caption}</Text>
-                )}
-              </View>
-            ))}
-          </View>
-        )}
+          {/* Media attachments */}
+          {reply.media && reply.media.length > 0 && (
+            <View style={styles.commentMediaContainer}>
+              {reply.media.map((media, index) => (
+                <View key={index} style={styles.commentMediaItem}>
+                  {media.type === 'image' ? (
+                    <Image
+                      source={{ uri: media.url }}
+                      style={styles.commentMediaImage}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <VideoView
+                      player={useVideoPlayer(media.url)}
+                      style={styles.commentMediaVideo}
+                      allowsFullscreen
+                      allowsPictureInPicture
+                    />
+                  )}
+                  {media.caption && (
+                    <Text style={styles.commentMediaCaption}>{media.caption}</Text>
+                  )}
+                </View>
+              ))}
+            </View>
+          )}
 
-        <View style={styles.commentActions}>
-          <TouchableOpacity style={styles.commentAction}>
-            <Ionicons
-              name={item.userLiked ? 'heart' : 'heart-outline'}
-              size={16}
-              color={item.userLiked ? '#00A651' : '#8E8E8E'}
-            />
-            {item.likesCount > 0 && (
-              <Text style={[styles.commentActionText, item.userLiked && styles.commentActionTextActive]}>
-                {item.likesCount}
-              </Text>
+          <View style={styles.commentActions}>
+            <TouchableOpacity style={styles.commentAction}>
+              <Ionicons
+                name={reply.userLiked ? 'heart' : 'heart-outline'}
+                size={16}
+                color={reply.userLiked ? '#00A651' : '#8E8E8E'}
+              />
+              {reply.likesCount > 0 && (
+                <Text style={[styles.commentActionText, reply.userLiked && styles.commentActionTextActive]}>
+                  {reply.likesCount}
+                </Text>
+              )}
+            </TouchableOpacity>
+            {level < 3 && (
+              <TouchableOpacity 
+                style={styles.commentAction}
+                onPress={() => {
+                  setReplyingTo(reply.id);
+                  setShowCommentCreator(true);
+                }}
+              >
+                <Ionicons name="chatbubble-outline" size={16} color="#8E8E8E" />
+                <Text style={styles.commentActionText}>Reply</Text>
+              </TouchableOpacity>
             )}
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.commentAction}>
-            <Ionicons name="chatbubble-outline" size={16} color="#8E8E8E" />
-            <Text style={styles.commentActionText}>Reply</Text>
-          </TouchableOpacity>
+          </View>
         </View>
       </View>
-    </View>
+    );
+  };
+
+  const renderComment = ({ item }: { item: Comment }) => {
+    // Null check for item and author
+    if (!item || !item.author) {
+      console.warn('Invalid comment item:', item);
+      return null;
+    }
+
+    return (
+      <View key={item.id}>
+        <View style={styles.commentItem}>
+          <UserAvatar
+            user={{
+              id: item.author.id,
+              phoneNumber: '',
+              firstName: item.author.firstName || '',
+              lastName: item.author.lastName || '',
+              profilePictureUrl: item.author.profilePicture,
+              isVerified: item.author.isVerified || false,
+              phoneVerified: false,
+              identityVerified: false,
+              addressVerified: false,
+              preferredLanguage: 'en',
+              verificationLevel: 0,
+              createdAt: '',
+              updatedAt: '',
+            }}
+            size="small"
+            showBadge={item.author.isVerified}
+          />
+          <View style={styles.commentContent}>
+            <View style={styles.commentHeader}>
+              <Text style={styles.commentAuthor}>
+                {item.author.firstName} {item.author.lastName}
+              </Text>
+              <Text style={styles.commentTime}>
+                {formatTimeAgo(item.createdAt)}
+              </Text>
+            </View>
+            <Text style={styles.commentText}>{item.content}</Text>
+
+            {/* Media attachments */}
+            {item.media && item.media.length > 0 && (
+              <View style={styles.commentMediaContainer}>
+                {item.media.map((media, index) => (
+                  <View key={index} style={styles.commentMediaItem}>
+                    {media.type === 'image' ? (
+                      <Image
+                        source={{ uri: media.url }}
+                        style={styles.commentMediaImage}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <VideoView
+                        player={useVideoPlayer(media.url)}
+                        style={styles.commentMediaVideo}
+                        allowsFullscreen
+                        allowsPictureInPicture
+                      />
+                    )}
+                    {media.caption && (
+                      <Text style={styles.commentMediaCaption}>{media.caption}</Text>
+                    )}
+                  </View>
+                ))}
+              </View>
+            )}
+
+            <View style={styles.commentActions}>
+              <TouchableOpacity style={styles.commentAction}>
+                <Ionicons
+                  name={item.userLiked ? 'heart' : 'heart-outline'}
+                  size={16}
+                  color={item.userLiked ? '#00A651' : '#8E8E8E'}
+                />
+                {item.likesCount > 0 && (
+                  <Text style={[styles.commentActionText, item.userLiked && styles.commentActionTextActive]}>
+                    {item.likesCount}
+                  </Text>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.commentAction}
+                onPress={() => {
+                  setReplyingTo(item.id);
+                  setShowCommentCreator(true);
+                }}
+              >
+                <Ionicons name="chatbubble-outline" size={16} color="#8E8E8E" />
+                <Text style={styles.commentActionText}>Reply</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
+        {/* Render Replies */}
+        {item.replies && item.replies.length > 0 && (
+          <View style={styles.repliesContainer}>
+            {item.replies.map((reply) => renderReply(reply, 1))}
+          </View>
+        )}
+      </View>
     );
   };
 
@@ -276,10 +410,14 @@ export const CommentsList: React.FC<CommentsListProps> = ({
       {/* Comment Creator Modal */}
       <CommentCreator
         visible={showCommentCreator}
-        onClose={() => setShowCommentCreator(false)}
+        onClose={() => {
+          setShowCommentCreator(false);
+          setReplyingTo(null);
+        }}
         onCommentCreated={handleCommentCreated}
         postId={postId}
-        placeholder="What's your thought on this post?"
+        parentCommentId={replyingTo || undefined}
+        placeholder={replyingTo ? "Write a reply..." : "What's your thought on this post?"}
         autoFocus={true}
       />
     </View>
@@ -401,6 +539,25 @@ const styles = StyleSheet.create({
     color: '#7f8c8d',
     marginTop: 4,
     fontStyle: 'italic',
+  },
+  repliesContainer: {
+    marginLeft: 52, // Align with comment content (avatar width + margin)
+    paddingLeft: 16,
+    borderLeftWidth: 2,
+    borderLeftColor: '#E1E8ED',
+  },
+  replyItem: {
+    flexDirection: 'row',
+    paddingVertical: 12,
+    paddingRight: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  nestedReply: {
+    marginLeft: 16,
+    paddingLeft: 16,
+    borderLeftWidth: 1,
+    borderLeftColor: '#E1E8ED',
   },
   commentsHeaderContainer: {
     paddingVertical: 12,

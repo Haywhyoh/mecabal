@@ -60,6 +60,13 @@ const menuItems: MenuItem[] = [
     screen: 'BusinessProfile',
   },
   {
+    id: 'orders',
+    label: 'Orders',
+    icon: 'clipboard-text',
+    color: '#00A651',
+    screen: 'BusinessBookings',
+  },
+  {
     id: 'marketplace',
     label: 'Marketplace',
     icon: 'shopping',
