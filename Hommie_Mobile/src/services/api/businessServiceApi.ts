@@ -116,12 +116,11 @@ export const businessServiceApi = {
         try {
           const services = await this.getBusinessServices(business.id);
           for (const service of services) {
-            if (service.isActive) {
-              servicesWithBusinesses.push({
-                ...service,
-                business,
-              });
-            }
+            // Include all services (active and inactive) to match web app
+            servicesWithBusinesses.push({
+              ...service,
+              business,
+            });
           }
         } catch (error) {
           console.error(`Failed to fetch services for business ${business.id}:`, error);
@@ -165,12 +164,11 @@ export const businessServiceApi = {
         try {
           const services = await this.getBusinessServices(business.id);
           for (const service of services) {
-            if (service.isActive) {
-              servicesWithBusinesses.push({
-                ...service,
-                business,
-              });
-            }
+            // Include all services (active and inactive) to match web app
+            servicesWithBusinesses.push({
+              ...service,
+              business,
+            });
           }
         } catch (error) {
           console.error(`Failed to fetch services for business ${business.id}:`, error);

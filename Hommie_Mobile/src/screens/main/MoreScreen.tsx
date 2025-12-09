@@ -569,6 +569,16 @@ const MoreScreen: React.FC<MoreScreenProps> = ({ navigation }) => {
                   <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E93" />
                 </TouchableOpacity>
 
+                {/* Orders */}
+                <TouchableOpacity
+                  style={styles.sidebarMenuItem}
+                  onPress={() => handleMenuItemPress(() => navigation?.navigate('BusinessBookings' as never))}
+                >
+                  <MaterialCommunityIcons name="clipboard-text" size={24} color="#00A651" />
+                  <Text style={styles.sidebarMenuItemText}>Orders</Text>
+                  <MaterialCommunityIcons name="chevron-right" size={20} color="#8E8E93" />
+                </TouchableOpacity>
+
                 {/* Marketplace */}
                 <TouchableOpacity
                   style={styles.sidebarMenuItem}

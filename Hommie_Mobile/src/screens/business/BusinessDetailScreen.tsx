@@ -61,8 +61,8 @@ export default function BusinessDetailScreen({ navigation, route }: BusinessDeta
     try {
       setLoadingServices(true);
       const servicesData = await businessServiceApi.getBusinessServices(businessId);
-      // Only show active services
-      setServices(servicesData.filter(service => service.isActive));
+      // Show all services (active and inactive) to match web app
+      setServices(servicesData);
     } catch (error: any) {
       console.error('Error fetching business services:', error);
       // Don't show alert for services, just log the error
