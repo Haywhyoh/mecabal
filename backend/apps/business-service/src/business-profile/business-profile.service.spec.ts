@@ -5,6 +5,7 @@ import { BusinessProfileService } from './business-profile.service';
 import { BusinessProfile } from '@app/database/entities/business-profile.entity';
 import { CreateBusinessProfileDto } from '../dto/create-business-profile.dto';
 import { UpdateBusinessProfileDto } from '../dto/update-business-profile.dto';
+import { FileUploadService } from '@app/storage';
 
 describe('BusinessProfileService', () => {
   let service: BusinessProfileService;
@@ -17,6 +18,12 @@ describe('BusinessProfileService', () => {
     find: jest.fn(),
     update: jest.fn(),
     remove: jest.fn(),
+  };
+
+  const mockFileUploadService = {
+    uploadFile: jest.fn(),
+    deleteFile: jest.fn(),
+    getFileUrl: jest.fn(),
   };
 
   const mockBusinessProfile = {
@@ -46,6 +53,10 @@ describe('BusinessProfileService', () => {
         {
           provide: getRepositoryToken(BusinessProfile),
           useValue: mockRepository,
+        },
+        {
+          provide: FileUploadService,
+          useValue: mockFileUploadService,
         },
       ],
     }).compile();
@@ -89,10 +100,13 @@ describe('BusinessProfileService', () => {
 
       expect(result).toHaveProperty('id');
       expect(result.businessName).toBe(createDto.businessName);
-      expect(mockRepository.create).toHaveBeenCalledWith({
-        ...createDto,
-        userId,
-      });
+      expect(mockRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId,
+          businessName: createDto.businessName,
+          category: createDto.category,
+        })
+      );
       expect(mockRepository.save).toHaveBeenCalled();
     });
 

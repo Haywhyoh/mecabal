@@ -1073,6 +1073,14 @@ export class ApiGatewayController {
     }
   }
 
+  @All('business/:businessId/bookings')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Proxy business bookings requests to business service' })
+  async proxyBusinessBookings(@Req() req: Request, @Res() res: Response) {
+    return this.proxyBusinessRequest(req, res);
+  }
+
   @All('business/:id/status')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -1444,12 +1452,22 @@ export class ApiGatewayController {
   private async proxyBusinessRequest(req: Request, res: Response) {
     try {
       // Transform the URL to remove /business prefix for the business service
+      // BUT keep /business prefix for bookings and reviews routes since the controllers expect it
       let businessPath = req.url;
       if (businessPath.startsWith('/business')) {
-        businessPath = businessPath.replace('/business', '');
-        // If the path is empty after removing /business, set it to /
-        if (businessPath === '') {
-          businessPath = '/';
+        // Check if this is a bookings or reviews route - if so, keep the /business prefix
+        const bookingsPattern = /^\/business\/[^/]+\/bookings/;
+        const reviewsPattern = /^\/business\/[^/]+\/reviews/;
+        if (bookingsPattern.test(businessPath) || reviewsPattern.test(businessPath)) {
+          // Keep the full path including /business for bookings and reviews
+          businessPath = businessPath;
+        } else {
+          // For other routes, strip /business prefix
+          businessPath = businessPath.replace('/business', '');
+          // If the path is empty after removing /business, set it to /
+          if (businessPath === '') {
+            businessPath = '/';
+          }
         }
       }
 

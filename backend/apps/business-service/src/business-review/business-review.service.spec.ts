@@ -4,12 +4,14 @@ import { Repository } from 'typeorm';
 import { BusinessReviewService } from './business-review.service';
 import { BusinessReview } from '@app/database/entities/business-review.entity';
 import { BusinessProfile } from '@app/database/entities/business-profile.entity';
+import { Booking } from '@app/database/entities/booking.entity';
 import { CreateBusinessReviewDto } from '../dto/create-review.dto';
 
 describe('BusinessReviewService', () => {
   let service: BusinessReviewService;
   let reviewRepository: Repository<BusinessReview>;
   let businessRepository: Repository<BusinessProfile>;
+  let bookingRepository: Repository<Booking>;
 
   const mockReviewRepository = {
     create: jest.fn(),
@@ -23,6 +25,12 @@ describe('BusinessReviewService', () => {
   const mockBusinessRepository = {
     findOne: jest.fn(),
     update: jest.fn(),
+  };
+
+  const mockBookingRepository = {
+    findOne: jest.fn(),
+    update: jest.fn(),
+    save: jest.fn(),
   };
 
   const mockBusiness = {
@@ -56,6 +64,10 @@ describe('BusinessReviewService', () => {
         {
           provide: getRepositoryToken(BusinessProfile),
           useValue: mockBusinessRepository,
+        },
+        {
+          provide: getRepositoryToken(Booking),
+          useValue: mockBookingRepository,
         },
       ],
     }).compile();
