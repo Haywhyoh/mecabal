@@ -7,7 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindOptionsWhere } from 'typeorm';
 import { Payment, PaymentStatus, PaymentType } from '@app/database/entities/payment.entity';
-import { Booking, PaymentStatus as BookingPaymentStatus } from '@app/database/entities/booking.entity';
+import { Booking, BookingStatus, PaymentStatus as BookingPaymentStatus } from '@app/database/entities/booking.entity';
 import { PaystackService } from './paystack/paystack.service';
 import { InitializePaymentDto, PaymentFilterDto, RefundPaymentDto } from '../dto/payment.dto';
 import * as crypto from 'crypto';
@@ -115,10 +115,14 @@ export class PaymentService {
       payment.status = PaymentStatus.SUCCESS;
       payment.paidAt = new Date(paystackResponse.data.paid_at || paystackResponse.data.paidAt);
 
-      // Update booking payment status if applicable
+      // Update booking payment status and status if applicable
       if (payment.bookingId && payment.booking) {
         payment.booking.paymentStatus = BookingPaymentStatus.PAID;
         payment.booking.paymentId = payment.id;
+        // Automatically confirm booking when payment is successful
+        if (payment.booking.status === BookingStatus.PENDING) {
+          payment.booking.status = BookingStatus.CONFIRMED;
+        }
         await this.bookingRepo.save(payment.booking);
       }
     } else {

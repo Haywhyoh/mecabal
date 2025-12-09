@@ -7,7 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindOptionsWhere } from 'typeorm';
 import { Payment, PaymentStatus, PaymentType } from '@app/database/entities/payment.entity';
-import { Booking } from '@app/database/entities/booking.entity';
+import { Booking, BookingStatus } from '@app/database/entities/booking.entity';
 import { PaystackService } from './paystack/paystack.service';
 import { InitializePaymentDto, PaymentFilterDto, RefundPaymentDto } from './dto/payment.dto';
 import * as crypto from 'crypto';
@@ -86,9 +86,13 @@ export class PaymentService {
   }
 
   async verifyPayment(reference: string): Promise<Payment> {
-    // Find payment by reference
+    // Find payment by reference or paystackReference
+    // Paystack may return either our MCB_ reference or their own reference
     const payment = await this.paymentRepo.findOne({
-      where: { reference },
+      where: [
+        { reference },
+        { paystackReference: reference },
+      ],
       relations: ['booking'],
     });
 
@@ -106,10 +110,14 @@ export class PaymentService {
       payment.status = PaymentStatus.SUCCESS;
       payment.paidAt = new Date(paystackResponse.data.paid_at || paystackResponse.data.paidAt);
 
-      // Update booking payment status if applicable
+      // Update booking payment status and status if applicable
       if (payment.bookingId && payment.booking) {
         payment.booking.paymentStatus = 'paid';
         payment.booking.paymentId = payment.id;
+        // Automatically confirm booking when payment is successful
+        if (payment.booking.status === BookingStatus.PENDING) {
+          payment.booking.status = BookingStatus.CONFIRMED;
+        }
         await this.bookingRepo.save(payment.booking);
       }
     } else {
