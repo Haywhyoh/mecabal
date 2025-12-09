@@ -29,7 +29,7 @@ import { JwtAuthGuard } from '@app/auth/guards/jwt-auth.guard';
 
 interface AuthenticatedRequest extends ExpressRequest {
   user: {
-    userId: string;
+    id: string;
     email: string;
   };
 }
@@ -52,7 +52,7 @@ export class BusinessReviewController {
   ) {
     const review = await this.reviewService.create(
       businessId,
-      req.user.userId,
+      req.user.id,
       createDto,
     );
     return {
@@ -101,7 +101,7 @@ export class BusinessReviewController {
   ) {
     const review = await this.reviewService.update(
       reviewId,
-      req.user.userId,
+      req.user.id,
       updateDto,
     );
     return {
@@ -122,7 +122,7 @@ export class BusinessReviewController {
   ) {
     const review = await this.reviewService.respondToReview(
       reviewId,
-      req.user.userId,
+      req.user.id,
       respondDto,
     );
     return {
@@ -138,6 +138,6 @@ export class BusinessReviewController {
   @ApiResponse({ status: 204, description: 'Review deleted successfully' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   async delete(@Param('reviewId') reviewId: string, @Request() req: AuthenticatedRequest) {
-    await this.reviewService.delete(reviewId, req.user.userId);
+    await this.reviewService.delete(reviewId, req.user.id);
   }
 }
