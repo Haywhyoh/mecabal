@@ -492,5 +492,7 @@ export class RefreshTokenDto {
     description: 'Refresh token to exchange for new access token',
     example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
   })
+  @IsNotEmpty({ message: 'Refresh token is required' })
+  @IsString({ message: 'Refresh token must be a string' })
   refreshToken: string;
 }

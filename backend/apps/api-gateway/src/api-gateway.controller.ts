@@ -1794,12 +1794,31 @@ export class ApiGatewayController {
 
       res.status(statusCode).json(result);
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-      console.error('Error proxying messaging service request:', errorMessage);
-      res
-        .status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .json({ error: errorMessage });
+      console.error('Error proxying messaging service request:', error);
+      
+      // Try to extract status code and error message
+      let errorMessage = 'Unknown error';
+      let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
+      
+      if (error && typeof error === 'object') {
+        // Check if error has statusCode property (set by our improved error handling)
+        if ('statusCode' in error && typeof (error as any).statusCode === 'number') {
+          statusCode = (error as any).statusCode;
+        }
+        
+        // Extract error message
+        if (error instanceof Error) {
+          errorMessage = error.message;
+        } else if ('message' in error && typeof (error as any).message === 'string') {
+          errorMessage = (error as any).message;
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
+      res.status(statusCode).json({ 
+        error: errorMessage || 'An error occurred while processing your request',
+      });
     }
   }
 

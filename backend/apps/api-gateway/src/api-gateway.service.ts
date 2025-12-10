@@ -854,7 +854,9 @@ export class ApiGatewayService {
     user?: any,
   ) {
     try {
-      const url = `${this.messagingServiceUrl}${path}`;
+      // Remove /messaging prefix from path before forwarding to messaging service
+      const cleanPath = path.replace(/^\/messaging/, '');
+      const url = `${this.messagingServiceUrl}${cleanPath}`;
 
       console.log('🌐 API Gateway - Proxying to messaging service:');
       console.log('  - URL:', url);
@@ -905,16 +907,48 @@ export class ApiGatewayService {
         error instanceof Error ? error.message : 'Unknown error';
       console.error(`Error proxying to messaging service: ${errorMessage}`);
 
-      if (error && typeof error === 'object' && 'response' in error) {
-        const response = (
-          error as { response: { status: number; statusText: string } }
-        ).response;
-        const status = response.status;
-        const statusText = response.statusText;
+      // Handle connection errors (service not running)
+      if (error && typeof error === 'object' && 'code' in error) {
+        const errorCode = (error as { code: string }).code;
+        if (errorCode === 'ECONNREFUSED' || errorCode === 'ETIMEDOUT') {
+          throw new Error(
+            `Messaging service is not available. Please ensure the messaging service is running on ${this.messagingServiceUrl}`,
+          );
+        }
+      }
 
-        throw new Error(
-          `Messaging request failed with status code ${status}: ${statusText}`,
-        );
+      // Handle HTTP response errors
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { 
+          response?: { 
+            status?: number;
+            statusText?: string;
+            data?: any;
+          } 
+        };
+        
+        if (axiosError.response) {
+          const status = axiosError.response.status || 500;
+          const statusText = axiosError.response.statusText || 'Internal Server Error';
+          
+          // Try to extract detailed error message
+          let detailedError = statusText;
+          if (axiosError.response.data) {
+            if (typeof axiosError.response.data === 'string') {
+              detailedError = axiosError.response.data;
+            } else if (axiosError.response.data.message) {
+              detailedError = axiosError.response.data.message;
+            } else if (axiosError.response.data.error) {
+              detailedError = axiosError.response.data.error;
+            }
+          }
+
+          const err = new Error(
+            `Messaging request failed with status code ${status}: ${detailedError}`,
+          );
+          (err as any).statusCode = status;
+          throw err;
+        }
       }
 
       throw error;
