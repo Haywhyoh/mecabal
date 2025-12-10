@@ -676,7 +676,7 @@ export class MessagingGateway implements OnGatewayInit, OnGatewayConnection, OnG
             await this.messagingService['typingRepository'].remove(indicator);
           } catch (indicatorError) {
             // Log but continue with other indicators
-            this.logger.warn(`Error cleaning up indicator ${indicator.id}:`, indicatorError);
+            this.logger.warn(`Error cleaning up indicator for user ${indicator.userId} in conversation ${indicator.conversationId}:`, indicatorError);
           }
         }
       }

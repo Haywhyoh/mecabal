@@ -46,3 +46,4 @@ echo.
 REM Start gateway in current terminal (this will block)
 yarn run start:gateway
 
+

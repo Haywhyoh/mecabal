@@ -127,9 +127,13 @@ export class ConnectionsService {
           .filter((un) => un.neighborhoodId === filterDto.neighborhoodId)
           .map((un) => un.userId);
       } else if (filterDto.estateId) {
-        // Filter by estate (assuming estate is stored in neighborhood or user location)
+        // Filter by estate (estates are neighborhoods, so filter by neighborhood id or parent)
         filteredUserIds = userNeighborhoods
-          .filter((un) => un.neighborhood?.estateId === filterDto.estateId)
+          .filter(
+            (un) =>
+              un.neighborhood?.id === filterDto.estateId ||
+              un.neighborhood?.parentNeighborhoodId === filterDto.estateId,
+          )
           .map((un) => un.userId);
       } else if (filterDto.lgaId) {
         filteredUserIds = userNeighborhoods
@@ -466,8 +470,11 @@ export class ConnectionsService {
         (un) => un.neighborhoodId === filterDto.neighborhoodId,
       );
     } else if (filterDto.estateId) {
+      // Filter by estate (estates are neighborhoods, so filter by neighborhood id or parent)
       userNeighborhoods = userNeighborhoods.filter(
-        (un) => un.neighborhood?.estateId === filterDto.estateId,
+        (un) =>
+          un.neighborhood?.id === filterDto.estateId ||
+          un.neighborhood?.parentNeighborhoodId === filterDto.estateId,
       );
     } else if (filterDto.lgaId) {
       userNeighborhoods = userNeighborhoods.filter(
@@ -631,14 +638,14 @@ export class ConnectionsService {
       firstName: user.firstName || '',
       lastName: user.lastName || '',
       displayName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-      profilePicture: user.profilePicture || undefined,
+      profilePicture: user.profilePictureUrl || undefined,
       estate: userNeighborhood?.neighborhood?.name || undefined,
       building: undefined, // TODO: Add building info if available
       apartment: undefined, // TODO: Add apartment info if available
-      isVerified: user.isEmailVerified || user.isPhoneVerified || false,
+      isVerified: user.isEmailVerified || user.phoneVerified || false,
       verificationLevel: user.isEmailVerified
         ? 'enhanced'
-        : user.isPhoneVerified
+        : user.phoneVerified
           ? 'basic'
           : 'none',
       trustScore: user.trustScore || 0,
@@ -683,4 +690,5 @@ export class ConnectionsService {
     return reasons;
   }
 }
+
 

@@ -103,6 +103,8 @@ describe('BusinessReviewService', () => {
 
       mockBusinessRepository.findOne.mockResolvedValue(mockBusiness);
       mockReviewRepository.findOne.mockResolvedValue(null);
+      mockReviewRepository.find.mockResolvedValue([]); // For getReviewStats
+      mockBusinessRepository.update.mockResolvedValue({ affected: 1 }); // For updateBusinessRating
       mockReviewRepository.create.mockReturnValue({
         businessId,
         userId,
@@ -158,6 +160,7 @@ describe('BusinessReviewService', () => {
       const createDto = { rating: 5 } as CreateBusinessReviewDto;
 
       mockBusinessRepository.findOne.mockResolvedValue(mockBusiness);
+      mockReviewRepository.findOne.mockResolvedValue(null); // No existing review
 
       await expect(service.create(businessId, userId, createDto)).rejects.toThrow(
         'You cannot review your own business',
@@ -275,6 +278,8 @@ describe('BusinessReviewService', () => {
       };
 
       mockReviewRepository.findOne.mockResolvedValue(mockReview);
+      mockReviewRepository.find.mockResolvedValue([mockReview]); // For getReviewStats
+      mockBusinessRepository.update.mockResolvedValue({ affected: 1 }); // For updateBusinessRating
       mockReviewRepository.save.mockResolvedValue({
         ...mockReview,
         ...updateDto,
@@ -306,6 +311,8 @@ describe('BusinessReviewService', () => {
       const userId = 'user-123';
 
       mockReviewRepository.findOne.mockResolvedValue(mockReview);
+      mockReviewRepository.find.mockResolvedValue([]); // For getReviewStats after deletion
+      mockBusinessRepository.update.mockResolvedValue({ affected: 1 }); // For updateBusinessRating
       mockReviewRepository.remove.mockResolvedValue(mockReview);
 
       await service.delete(reviewId, userId);

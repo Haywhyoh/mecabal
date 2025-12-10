@@ -18,6 +18,7 @@ describe('BusinessProfileService', () => {
     find: jest.fn(),
     update: jest.fn(),
     remove: jest.fn(),
+    increment: jest.fn(),
   };
 
   const mockFileUploadService = {
@@ -132,7 +133,7 @@ describe('BusinessProfileService', () => {
       expect(result).toEqual(mockBusinessProfile);
       expect(mockRepository.findOne).toHaveBeenCalledWith({
         where: { id: businessId },
-        relations: ['user', 'licenses', 'services', 'reviews', 'inquiries'],
+        relations: ['user', 'licenses', 'services', 'reviews'],
       });
     });
 
@@ -156,17 +157,17 @@ describe('BusinessProfileService', () => {
       expect(result).toEqual(mockBusinessProfile);
       expect(mockRepository.findOne).toHaveBeenCalledWith({
         where: { userId },
-        relations: ['user', 'licenses', 'services', 'reviews', 'inquiries'],
+        relations: ['licenses', 'services'],
       });
     });
 
-    it('should throw NotFoundException if business not found', async () => {
+    it('should return null if business not found', async () => {
       const userId = 'non-existent';
       mockRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.findByUserId(userId)).rejects.toThrow(
-        'Business profile not found',
-      );
+      const result = await service.findByUserId(userId);
+
+      expect(result).toBeNull();
     });
   });
 
@@ -200,7 +201,7 @@ describe('BusinessProfileService', () => {
       mockRepository.findOne.mockResolvedValue(mockBusinessProfile);
 
       await expect(service.update(businessId, userId, updateDto)).rejects.toThrow(
-        'You do not own this business',
+        'You do not have permission to update this business',
       );
     });
   });
@@ -241,21 +242,16 @@ describe('BusinessProfileService', () => {
   describe('incrementCompletedJobs', () => {
     it('should increment completed jobs count', async () => {
       const businessId = 'business-123';
-      const currentJobs = 5;
 
-      mockRepository.findOne.mockResolvedValue({
-        ...mockBusinessProfile,
-        completedJobs: currentJobs,
-      });
-      mockRepository.save.mockResolvedValue({
-        ...mockBusinessProfile,
-        completedJobs: currentJobs + 1,
-      });
+      mockRepository.increment.mockResolvedValue({ affected: 1 });
 
-      const result = await service.incrementCompletedJobs(businessId);
+      await service.incrementCompletedJobs(businessId);
 
-      expect(result.completedJobs).toBe(currentJobs + 1);
-      expect(mockRepository.save).toHaveBeenCalled();
+      expect(mockRepository.increment).toHaveBeenCalledWith(
+        { id: businessId },
+        'completedJobs',
+        1
+      );
     });
   });
 });
