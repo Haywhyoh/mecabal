@@ -108,25 +108,25 @@ jobs:
         echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
         echo "timestamp=$(date +%s)" >> $GITHUB_OUTPUT
 
-    - name: Build and push optimized backend image
+    - name: Build and push backend image
       run: |
         # Force lowercase for Docker registry (required by Docker)
         REGISTRY_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
         REGISTRY=ghcr.io/${REGISTRY_OWNER}/mecabal-backend
         SHA_TAG=${{ steps.meta.outputs.sha_short }}
 
-        # Build and push single optimized image with all services
-        echo "Building and pushing optimized backend image..."
+        # Build and push single image with all services (PM2 managed)
+        echo "Building and pushing backend image with PM2..."
         docker build \
           --no-cache \
           --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
           --build-arg VCS_REF=${{ github.sha }} \
           -t $REGISTRY:latest \
           -t $REGISTRY:$SHA_TAG \
-          -f Dockerfile.optimized .
-        
+          -f Dockerfile .
+
         echo "✓ Image built successfully"
-        
+
         # Push images
         docker push $REGISTRY:latest
         docker push $REGISTRY:$SHA_TAG
