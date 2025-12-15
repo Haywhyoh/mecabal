@@ -75,7 +75,9 @@ chmod +x scripts/verify-estate-search.sh
 
 ## If Docker Image Needs Rebuilding
 
-If the image in the registry has old code, rebuild it:
+The pull message "Some service image(s) must be built from source" means the registry image is outdated.
+
+### Option 1: Rebuild on Build Server/CI (Recommended)
 
 **On Build Server:**
 ```bash
@@ -89,6 +91,31 @@ chmod +x scripts/rebuild-and-push-image.sh
 docker-compose -f docker-compose.production.yml pull backend
 docker-compose -f docker-compose.production.yml up -d backend
 ```
+
+### Option 2: Build Directly on Production (Quick Fix)
+
+If you can't rebuild on CI, build directly on production:
+
+```bash
+cd /path/to/mecabal/backend
+
+# Fix any container conflicts first
+chmod +x scripts/fix-container-conflict.sh
+./scripts/fix-container-conflict.sh
+
+# Build the image from current code
+docker-compose -f docker-compose.production.yml build backend
+
+# Start the container
+docker-compose -f docker-compose.production.yml up -d backend
+
+# Verify it has new code
+docker exec mecabal-backend grep -q "Method not implemented yet" /app/dist/apps/auth-service/main.js && \
+  echo "❌ Still has old code" || \
+  echo "✅ Has new code!"
+```
+
+**Note:** This builds on production which uses server resources, but it works if CI isn't available.
 
 ## Manual Alternative
 
