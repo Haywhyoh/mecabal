@@ -1223,7 +1223,9 @@ export class ApiGatewayController {
   @ApiOperation({ summary: 'Get cultural profile reference data' })
   async proxyCulturalProfileReferenceData(@Req() req: Request, @Res() res: Response) {
     try {
+      console.log('🎯 Cultural profile reference-data route matched');
       const originalUrl = req.url;
+      console.log('📡 Proxying to user service:', originalUrl);
       const result: unknown =
         await this.apiGatewayService.proxyToUserService(
           originalUrl,
@@ -1232,11 +1234,12 @@ export class ApiGatewayController {
           req.headers as Record<string, string | string[] | undefined>,
           req.user,
         );
+      console.log('✅ Reference data retrieved successfully');
       res.status(HttpStatus.OK).json(result);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
-      console.error('Error proxying cultural profile reference data:', errorMessage);
+      console.error('❌ Error proxying cultural profile reference data:', errorMessage);
       res
         .status(HttpStatus.INTERNAL_SERVER_ERROR)
         .json({ error: errorMessage });
@@ -1248,8 +1251,10 @@ export class ApiGatewayController {
   @ApiOperation({ summary: 'Proxy cultural profile requests' })
   async proxyCulturalProfileRequest(@Req() req: Request, @Res() res: Response) {
     try {
+      console.log('🎯 Cultural profile wildcard route matched:', req.url);
       // Rewrite path to include /cultural-profile prefix for user service
       const originalUrl = req.url;
+      console.log('📡 Proxying to user service:', originalUrl);
       const result: unknown =
         await this.apiGatewayService.proxyToUserService(
           originalUrl,
@@ -1266,11 +1271,12 @@ export class ApiGatewayController {
         statusCode = HttpStatus.NO_CONTENT;
       }
 
+      console.log('✅ Cultural profile request proxied successfully');
       res.status(statusCode).json(result);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
-      console.error('Error proxying cultural profile request:', errorMessage);
+      console.error('❌ Error proxying cultural profile request:', errorMessage);
       res
         .status(HttpStatus.INTERNAL_SERVER_ERROR)
         .json({ error: errorMessage });
