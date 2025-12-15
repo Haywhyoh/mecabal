@@ -94,6 +94,25 @@ docker-compose -f docker-compose.production.yml up -d backend
 
 ### Option 2: Build Directly on Production (TEMPORARY FIX ONLY)
 
+**⚠️ IMPORTANT:** If you see "❌ OLD CODE" after building, the source code on the server is outdated!
+
+Use this comprehensive script that ensures latest code:
+
+```bash
+cd ~/mecabal/backend
+chmod +x scripts/build-and-verify-on-production.sh
+./scripts/build-and-verify-on-production.sh
+```
+
+This script will:
+1. ✅ Pull latest code from git
+2. ✅ Verify source code has searchEstates implementation
+3. ✅ Build image with --no-cache
+4. ✅ Verify built image has new code
+5. ✅ Start container and verify it's running correctly
+
+**OR manually:**
+
 ⚠️ **This is a temporary workaround. You should set up GitHub Actions to build automatically.**
 
 If CI isn't set up yet, build directly on production:
