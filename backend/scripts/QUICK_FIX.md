@@ -92,9 +92,11 @@ docker-compose -f docker-compose.production.yml pull backend
 docker-compose -f docker-compose.production.yml up -d backend
 ```
 
-### Option 2: Build Directly on Production (Quick Fix)
+### Option 2: Build Directly on Production (TEMPORARY FIX ONLY)
 
-If you can't rebuild on CI, build directly on production:
+⚠️ **This is a temporary workaround. You should set up GitHub Actions to build automatically.**
+
+If CI isn't set up yet, build directly on production:
 
 ```bash
 cd /path/to/mecabal/backend
@@ -115,7 +117,7 @@ docker exec mecabal-backend grep -q "Method not implemented yet" /app/dist/apps/
   echo "✅ Has new code!"
 ```
 
-**Note:** This builds on production which uses server resources, but it works if CI isn't available.
+**⚠️ Important:** After fixing this, set up GitHub Actions workflow (see `PROPER_BUILD_WORKFLOW.md`) so future builds happen automatically on CI, not on production.
 
 ## Manual Alternative
 

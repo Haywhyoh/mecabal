@@ -117,12 +117,37 @@ jobs:
 
         # Build and push single optimized image with all services
         echo "Building and pushing optimized backend image..."
-        docker build -t $REGISTRY:latest -t $REGISTRY:$SHA_TAG -f Dockerfile.optimized .
+        # Use --no-cache for source code layer to ensure latest code is included
+        # This prevents using cached layers with old "Method not implemented" code
+        docker build \
+          --no-cache \
+          --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+          --build-arg VCS_REF=${{ github.sha }} \
+          -t $REGISTRY:latest \
+          -t $REGISTRY:$SHA_TAG \
+          -f Dockerfile.optimized .
+        
+        echo "✓ Image built successfully"
+        
+        # CRITICAL: Verify the built image contains new code (not old "Method not implemented")
+        echo "Verifying built image contains new code..."
+        if docker run --rm --entrypoint sh $REGISTRY:latest \
+          -c "grep -q 'Method not implemented yet' /app/dist/apps/auth-service/main.js 2>/dev/null"; then
+          echo "❌ ERROR: Built image still contains 'Method not implemented yet'"
+          echo "The build may have used cached layers with old code"
+          echo "This should not happen with --no-cache flag"
+          exit 1
+        else
+          echo "✅ Verified: Built image contains new code (no 'Method not implemented' found)"
+        fi
+        
+        # Push images
         docker push $REGISTRY:latest
         docker push $REGISTRY:$SHA_TAG
 
         echo "✓ Image pushed successfully: $REGISTRY:latest"
         echo "✓ Image tagged with: $SHA_TAG"
+        echo "✓ Image verified to contain new code"
 
   deploy-staging:
     name: Deploy to Staging
