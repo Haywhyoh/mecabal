@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ScrollView, Alert, Animated } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../../constants';
 import { contextAwareGoBack } from '../../utils/navigationUtils';
 import { MeCabalLocation, MeCabalAuth } from '../../services';
@@ -11,7 +12,7 @@ const LOCATION_OPTIONS = [
     id: 'gps',
     title: 'Auto-detect',
     subtitle: 'Fastest and most accurate',
-    icon: 'location.fill',
+    icon: 'location' as keyof typeof Ionicons.glyphMap,
     color: COLORS.primary,
     recommended: true,
   },
@@ -19,26 +20,14 @@ const LOCATION_OPTIONS = [
     id: 'map',
     title: 'Pick on Map',
     subtitle: 'Select location visually',
-    icon: 'map.fill',
+    icon: 'map' as keyof typeof Ionicons.glyphMap,
     color: COLORS.secondary,
-    recommended: false,
-  },
-  {
-    id: 'landmark',
-    title: 'Nearby Landmark',
-    subtitle: 'Find me by a landmark',
-    icon: 'building.2.fill',
-    color: COLORS.orange,
     recommended: false,
   },
 ];
 
 export default function LocationSetupScreen({ navigation, route }: any) {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
-  const [showLandmarks, setShowLandmarks] = useState(false);
-  const [selectedLandmark, setSelectedLandmark] = useState<any>(null);
-  const [landmarks, setLandmarks] = useState<any[]>([]);
-  const [landmarksLoading, setLandmarksLoading] = useState(false);
 
   const { register, setUser } = useAuth();
 
@@ -144,72 +133,9 @@ export default function LocationSetupScreen({ navigation, route }: any) {
       handleGPSLocation();
     } else if (optionId === 'map') {
       handleMapLocation();
-    } else if (optionId === 'landmark') {
-      loadNearbyLandmarks();
     }
   };
 
-  const loadNearbyLandmarks = async () => {
-    setShowLandmarks(true);
-    setLandmarksLoading(true);
-    
-    try {
-      // Try to get user's current location first to find nearby landmarks
-      const location = await MeCabalLocation.getCurrentLocation();
-      
-      // Comprehensive null safety checks
-      if (location && typeof location === 'object' && location.success === true && 
-          location.data && typeof location.data === 'object' && 
-          typeof location.data.latitude === 'number' && typeof location.data.longitude === 'number') {
-        
-        // Use real coordinates to find landmarks
-        const landmarkResult = await MeCabalLocation.discoverNearbyLandmarks(
-          location.data.latitude,
-          location.data.longitude
-        );
-        
-        if (landmarkResult && landmarkResult.success && landmarkResult.data?.landmarks && Array.isArray(landmarkResult.data.landmarks)) {
-          setLandmarks(landmarkResult.data.landmarks.map((landmark: any) => ({
-            id: landmark.id || String(Math.random()),
-            name: landmark.name || 'Unknown Landmark',
-            type: landmark.type || 'Location',
-            distance: `${landmark.distance || 0} km`
-          })));
-        } else {
-          // Fallback to default landmarks if discovery fails
-          console.warn('Landmark discovery failed, using fallback landmarks:', landmarkResult?.error);
-          setLandmarks([
-            { id: 1, name: 'Ikeja City Mall', type: 'Shopping Center', distance: '0.2 km' },
-            { id: 2, name: 'St. Mary\'s Catholic Church', type: 'Church', distance: '0.5 km' },
-            { id: 3, name: 'Ikeja Grammar School', type: 'School', distance: '0.8 km' },
-            { id: 4, name: 'Ikeja Market', type: 'Market', distance: '1.0 km' },
-            { id: 5, name: 'Allen Avenue', type: 'Major Road', distance: '0.3 km' },
-          ]);
-        }
-      } else {
-        // Fallback to default landmarks if location access fails
-        setLandmarks([
-          { id: 1, name: 'Ikeja City Mall', type: 'Shopping Center', distance: '0.2 km' },
-          { id: 2, name: 'St. Mary\'s Catholic Church', type: 'Church', distance: '0.5 km' },
-          { id: 3, name: 'Ikeja Grammar School', type: 'School', distance: '0.8 km' },
-          { id: 4, name: 'Ikeja Market', type: 'Market', distance: '1.0 km' },
-          { id: 5, name: 'Allen Avenue', type: 'Major Road', distance: '0.3 km' },
-        ]);
-      }
-    } catch (error) {
-      console.error('Error loading landmarks:', error);
-      // Use fallback landmarks
-      setLandmarks([
-        { id: 1, name: 'Ikeja City Mall', type: 'Shopping Center', distance: '0.2 km' },
-        { id: 2, name: 'St. Mary\'s Catholic Church', type: 'Church', distance: '0.5 km' },
-        { id: 3, name: 'Ikeja Grammar School', type: 'School', distance: '0.8 km' },
-        { id: 4, name: 'Ikeja Market', type: 'Market', distance: '1.0 km' },
-        { id: 5, name: 'Allen Avenue', type: 'Major Road', distance: '0.3 km' },
-      ]);
-    } finally {
-      setLandmarksLoading(false);
-    }
-  };
 
   const handleGPSLocation = async () => {
     Alert.alert(
@@ -251,20 +177,20 @@ export default function LocationSetupScreen({ navigation, route }: any) {
               } else {
                 Alert.alert(
                   'Location Not Recognized',
-                  `We detected your location (${location.data.address || 'coordinates found'}) but couldn't match it to a registered neighborhood.\n\nWould you like to try selecting a landmark nearby?`,
+                  `We detected your location (${location.data.address || 'coordinates found'}) but couldn't match it to a registered neighborhood.\n\nPlease try selecting your location on the map instead.`,
                   [
-                    { text: 'Try Landmark', onPress: () => setSelectedOption('landmark') },
-                    { text: 'Manual Entry', onPress: () => handleManualAddress() }
+                    { text: 'Use Map', onPress: () => handleMapLocation() },
+                    { text: 'Cancel', style: 'cancel' }
                   ]
                 );
               }
             } else {
               Alert.alert(
                 'Location Error', 
-                (location && location.error) || 'Unable to get your current location. Please try again or select a landmark.',
+                (location && location.error) || 'Unable to get your current location. Please try selecting your location on the map instead.',
                 [
-                  { text: 'Try Again', onPress: () => handleGPSLocation() },
-                  { text: 'Use Landmark', onPress: () => setSelectedOption('landmark') }
+                  { text: 'Use Map', onPress: () => handleMapLocation() },
+                  { text: 'Try Again', onPress: () => handleGPSLocation(), style: 'cancel' }
                 ]
               );
             }
@@ -272,8 +198,8 @@ export default function LocationSetupScreen({ navigation, route }: any) {
             console.error('Location error:', error);
             Alert.alert(
               'Location Error', 
-              'Failed to access your location. Please try selecting a landmark instead.',
-              [{ text: 'OK', onPress: () => setSelectedOption('landmark') }]
+              'Failed to access your location. Please try selecting your location on the map instead.',
+              [{ text: 'Use Map', onPress: () => handleMapLocation() }]
             );
           }
         }}
@@ -323,74 +249,6 @@ export default function LocationSetupScreen({ navigation, route }: any) {
     });
   };
 
-  const handleLandmarkSelect = async (landmark: any) => {
-    setSelectedLandmark(landmark);
-    setShowLandmarks(false);
-    
-    try {
-      // Verify landmark-based location
-      const verification = await MeCabalLocation.verifyLandmarkLocation(
-        route.params?.userId || 'temp-user',
-        landmark.name,
-        landmark.type
-      );
-      
-      if (verification.verified && verification.neighborhood) {
-        Alert.alert(
-          'Location Verified!',
-          `Welcome to ${verification.neighborhood.name}! Your location has been verified based on ${landmark.name}.`,
-          [{ text: 'Continue', onPress: () => completeLocationSetup({
-            state: (verification.neighborhood as any)?.state || '',
-            city: (verification.neighborhood as any)?.city || '',
-            estate: verification.neighborhood?.name || '',
-            landmark: landmark.name,
-            latitude: landmark.latitude,
-            longitude: landmark.longitude
-          }) }]
-        );
-      } else {
-        Alert.alert(
-          'Location Not Found',
-          'We couldn\'t verify your location based on this landmark. Please try another landmark or enter your address manually.',
-          [{ text: 'OK' }]
-        );
-      }
-    } catch (error) {
-      console.error('Landmark verification error:', error);
-      Alert.alert('Verification Error', 'Failed to verify your location. Please try again.');
-    }
-  };
-
-  const handleContinue = () => {
-    if (selectedOption === 'landmark' && selectedLandmark) {
-      // TODO: Save landmark selection and proceed
-      Alert.alert('Location Set', `You've selected ${selectedLandmark.name}. Welcome to MeCabal!`, [
-        { text: 'Continue', onPress: () => completeLocationSetup({
-          landmark: selectedLandmark.name,
-          latitude: selectedLandmark.latitude,
-          longitude: selectedLandmark.longitude,
-          address: selectedLandmark.address
-        }) }
-      ]);
-    } else if (selectedOption === 'gps') {
-      // GPS already handled
-    } else if (selectedOption === 'map') {
-      // Map already handled
-    }
-  };
-
-  const handleManualAddress = () => {
-    Alert.alert(
-      'Manual Address',
-      'Enter your address manually. If your estate/compound doesn\'t exist, we\'ll create a pending place for review.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Continue', onPress: () => completeLocationSetup({
-          address: 'Manual entry - pending verification'
-        }) }
-      ]
-    );
-  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -446,7 +304,7 @@ export default function LocationSetupScreen({ navigation, route }: any) {
                       styles.optionIconContainer,
                       option.recommended && styles.optionIconContainerRecommended
                     ]}>
-                      <Text style={styles.optionIcon}>{option.icon}</Text>
+                      <Ionicons name={option.icon} size={24} color={option.color} />
                     </View>
                     <View style={styles.optionInfo}>
                       <View style={styles.optionHeader}>
@@ -475,90 +333,9 @@ export default function LocationSetupScreen({ navigation, route }: any) {
             ))}
           </View>
 
-          {/* Landmarks List */}
-          {showLandmarks && (
-            <View style={styles.landmarksSection}>
-              <Text style={styles.landmarksTitle}>Choose a landmark nearby</Text>
-              
-              {landmarksLoading ? (
-                <View style={styles.loadingContainer}>
-                  <Text style={styles.loadingText}>Finding landmarks near you...</Text>
-                </View>
-              ) : landmarks.length > 0 ? (
-                <View style={styles.landmarksList}>
-                  {landmarks.map((landmark) => (
-                    <TouchableOpacity
-                      key={landmark.id}
-                      style={[
-                        styles.landmarkItem,
-                        selectedLandmark?.id === landmark.id && styles.landmarkItemSelected
-                      ]}
-                      onPress={() => {
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        handleLandmarkSelect(landmark);
-                      }}
-                      accessibilityLabel={`${landmark.name}, ${landmark.type}`}
-                      accessibilityHint={`${landmark.distance} away`}
-                      accessibilityRole="button"
-                    >
-                      <View style={styles.landmarkIcon}>
-                        <Text style={styles.landmarkIconText}>📍</Text>
-                      </View>
-                      <View style={styles.landmarkInfo}>
-                        <Text style={styles.landmarkName}>{landmark.name}</Text>
-                        <Text style={styles.landmarkType}>{landmark.type}</Text>
-                      </View>
-                      <Text style={styles.landmarkDistance}>{landmark.distance}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              ) : (
-                <View style={styles.noLandmarksContainer}>
-                  <Text style={styles.noLandmarksText}>No landmarks found nearby</Text>
-                </View>
-              )}
-
-              <TouchableOpacity 
-                style={styles.manualAddressButton} 
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  handleManualAddress();
-                }}
-                accessibilityLabel="Enter address manually"
-                accessibilityRole="button"
-              >
-                <Text style={styles.manualAddressText}>Enter address manually</Text>
-              </TouchableOpacity>
-            </View>
-          )}
         </View>
       </View>
 
-      {/* Fixed Bottom Continue Button */}
-      {selectedOption && (
-        <View style={styles.bottomButtonContainer}>
-          <TouchableOpacity 
-            style={[
-              styles.continueButton,
-              selectedOption === 'landmark' && !selectedLandmark && styles.continueButtonDisabled
-            ]} 
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              handleContinue();
-            }}
-            disabled={selectedOption === 'landmark' && !selectedLandmark}
-            accessibilityLabel="Continue with location setup"
-            accessibilityRole="button"
-          >
-            <Text style={[
-              styles.continueButtonText,
-              selectedOption === 'landmark' && !selectedLandmark && styles.continueButtonTextDisabled
-            ]}>
-              Continue
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
     </SafeAreaView>
   );
 }
@@ -650,10 +427,6 @@ const styles = StyleSheet.create({
   optionIconContainerRecommended: {
     backgroundColor: COLORS.primary + '20',
   },
-  optionIcon: {
-    fontSize: 20,
-    color: COLORS.primary,
-  },
   optionInfo: {
     flex: 1,
   },
@@ -693,75 +466,6 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: 14,
     fontWeight: '600',
-  },
-  landmarksSection: {
-    marginBottom: 32,
-  },
-  landmarksTitle: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginBottom: 16,
-  },
-  landmarksList: {
-    gap: 8,
-  },
-  landmarkItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.white,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#E5E5E5',
-    height: 56,
-  },
-  landmarkItemSelected: {
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.lightGreen,
-  },
-  landmarkIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F5F5F5',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  landmarkIconText: {
-    fontSize: 16,
-  },
-  landmarkInfo: {
-    flex: 1,
-  },
-  landmarkName: {
-    fontSize: 17,
-    fontWeight: '500',
-    color: COLORS.text,
-    marginBottom: 2,
-  },
-  landmarkType: {
-    fontSize: 15,
-    color: COLORS.textSecondary,
-    fontWeight: '400',
-  },
-  landmarkDistance: {
-    fontSize: 15,
-    color: COLORS.primary,
-    fontWeight: '500',
-  },
-  manualAddressButton: {
-    alignItems: 'center',
-    paddingVertical: 16,
-    marginTop: 16,
-  },
-  manualAddressText: {
-    fontSize: 17,
-    color: COLORS.primary,
-    fontWeight: '500',
-    textDecorationLine: 'underline',
   },
   bottomButtonContainer: {
     paddingHorizontal: 16,

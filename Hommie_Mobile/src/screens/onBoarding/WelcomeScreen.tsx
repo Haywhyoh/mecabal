@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,340 +8,213 @@ import {
   SafeAreaView,
   Animated,
 } from 'react-native';
-import { COLORS, SPACING, TYPOGRAPHY } from '../../constants';
+import { LinearGradient } from 'expo-linear-gradient';
+import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../../constants';
 import SocialButton from '../../components/SocialButton';
-// import { GoogleSignInButton } from '../../components'; // Commented out for Expo Go
 import { useAuth } from '../../contexts/AuthContext';
-import { safeGoBack } from '../../utils/navigationUtils';
 import * as Haptics from 'expo-haptics';
 
 export default function WelcomeScreen({ navigation, route }: any) {
   const onSocialLoginSuccess = route.params?.onSocialLoginSuccess;
   const onLoginSuccess = route.params?.onLoginSuccess;
-  const initialMode = route.params?.mode || 'signup'; // 'signup' or 'login'
-  
-  const [mode, setMode] = useState(initialMode);
   const { signInWithGoogle, isLoading } = useAuth();
   
   // Animation values
-  const slideAnim = useRef(new Animated.Value(50)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const buttonsSlideAnim = useRef(new Animated.Value(30)).current;
-  const buttonsFadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
 
   useEffect(() => {
-    // Slide-in animation with spring physics
     Animated.parallel([
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 100,
-        friction: 8,
-      }),
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 300,
+        duration: 400,
         useNativeDriver: true,
       }),
-      Animated.spring(buttonsSlideAnim, {
+      Animated.spring(slideAnim, {
         toValue: 0,
         useNativeDriver: true,
         tension: 80,
         friction: 8,
-        delay: 100,
-      }),
-      Animated.timing(buttonsFadeAnim, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-        delay: 100,
       }),
     ]).start();
   }, []);
-  
-  const isSignupMode = mode === 'signup';
-  const isLoginMode = mode === 'login';
-
-  const handleJoinCommunity = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    // Navigate directly to phone verification with default language (English)
-    navigation.navigate('PhoneVerification', { language: 'en', isSignup: true });
-  };
-
-  // Signup handlers
-  const handleGoogleSignUp = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    console.log('Google sign-up pressed');
-    
-    try {
-      const success = await signInWithGoogle();
-      if (success) {
-        console.log('✅ Google sign-up successful');
-        if (onSocialLoginSuccess) {
-          onSocialLoginSuccess();
-        } else {
-          // Navigate to main app or next screen
-          navigation.navigate('MainApp');
-        }
-      }
-    } catch (error) {
-      console.error('❌ Google sign-up failed:', error);
-    }
-  };
-
-  const handleAppleSignUp = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    console.log('Apple sign-up pressed');
-    navigation.navigate('PhoneVerification', { language: 'en', signupMethod: 'apple', isSignup: true });
-  };
 
   const handleEmailSignUp = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    console.log('Email sign-up pressed');
     navigation.navigate('EmailRegistration');
   };
 
-  // Login handlers
-  const handleGoogleLogin = async () => {
+  const handlePhoneSignUp = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    console.log('Google login pressed');
-    
+    navigation.navigate('PhoneVerification', { language: 'en', isSignup: true });
+  };
+
+  const handleGoogleSignUp = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
       const success = await signInWithGoogle();
       if (success) {
-        console.log('✅ Google login successful');
-        if (onLoginSuccess) {
-          onLoginSuccess();
+        if (onSocialLoginSuccess) {
+          onSocialLoginSuccess();
         } else {
-          // Navigate to main app or next screen
           navigation.navigate('MainApp');
         }
       }
     } catch (error) {
-      console.error('❌ Google login failed:', error);
+      console.error('Google sign-up failed:', error);
     }
   };
 
-  const handleEmailLogin = () => {
+  const handleSignIn = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    console.log('Email login pressed');
     navigation.navigate('EmailLogin', { onLoginSuccess, onSocialLoginSuccess });
   };
 
-  // Mode switching
-  const switchToLogin = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setMode('login');
-  };
-  const switchToSignup = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setMode('signup');
-  };
-
-  const handleInviteCode = () => {
-    navigation.navigate('InvitationCode');
-  };
-
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="white" />
-      
-      <View style={styles.content}>
-        <Animated.View style={[styles.header, {
-          transform: [{ translateY: slideAnim }],
-          opacity: fadeAnim,
-        }]}>
-          <Text style={styles.appName}>MeCabal</Text>
-          <Text style={styles.tagline}>
-            {isSignupMode ? 'Join MeCabal' : 'Welcome back to your neighborhood'}
-          </Text>
-        </Animated.View>
-
-        <Animated.View style={[styles.authOptions, {
-          transform: [{ translateY: buttonsSlideAnim }],
-          opacity: buttonsFadeAnim,
-        }]}>
-          <View style={styles.socialButtons}>
-            {isSignupMode ? (
-              <>
-                {/* Google Sign-In commented out for Expo Go */}
-                {/* <GoogleSignInButton
-                  buttonText="Continue with Google"
-                  onSuccess={handleGoogleSignUp}
-                  size="large"
-                  variant="default"
-                  disabled={isLoading}
-                />
-
-                <View style={styles.separator}>
-                  <View style={styles.separatorLine} />
-                  <Text style={styles.separatorText}>OR</Text>
-                  <View style={styles.separatorLine} />
-                </View> */}
-
-                <SocialButton
-                  provider="apple"
-                  text="Continue with Apple"
-                  onPress={handleAppleSignUp}
-                  variant="welcome"
-                />
-                <SocialButton
-                  provider="email"
-                  text="Continue with Email"
-                  onPress={handleEmailSignUp}
-                  variant="welcome"
-                />
-                <SocialButton
-                  provider="phone"
-                  text="Continue with Phone"
-                  onPress={handleJoinCommunity}
-                  variant="welcome"
-                />
-              </>
-            ) : (
-              <>
-                {/* Google Sign-In commented out for Expo Go */}
-                {/* <GoogleSignInButton
-                  buttonText="Sign in with Google"
-                  onSuccess={handleGoogleLogin}
-                  size="large"
-                  variant="default"
-                  disabled={isLoading}
-                />
-
-                <View style={styles.separator}>
-                  <View style={styles.separatorLine} />
-                  <Text style={styles.separatorText}>OR</Text>
-                  <View style={styles.separatorLine} />
-                </View> */}
-
-                <SocialButton
-                  provider="email"
-                  text="Sign in with Email"
-                  onPress={handleEmailLogin}
-                  variant="login"
-                />
-              </>
-            )}
-          </View>
-
-          <View style={styles.modeToggleSection}>
-            <Text style={styles.modePrompt}>
-              {isSignupMode ? 'Already have an account?' : "Don't have an account?"}
+    <LinearGradient
+      colors={['#f0fdf4', '#ffffff']}
+      style={styles.container}
+    >
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+        
+        <View style={styles.content}>
+          <Animated.View style={[styles.header, {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+          }]}>
+            <Text style={styles.title}>Welcome to MeCabal</Text>
+            <Text style={styles.subtitle}>
+              Join your neighborhood community and connect with neighbors
             </Text>
-            <TouchableOpacity 
-              onPress={isSignupMode ? switchToLogin : switchToSignup}
-              accessibilityLabel={isSignupMode ? 'Switch to sign in mode' : 'Switch to sign up mode'}
-              accessibilityHint={isSignupMode ? 'Tap to sign in with existing account' : 'Tap to create new account'}
-              accessibilityRole="button"
+          </Animated.View>
+
+          <Animated.View style={[styles.buttonContainer, {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+          }]}>
+            <TouchableOpacity
+              style={styles.primaryButton}
+              onPress={handleEmailSignUp}
+              activeOpacity={0.8}
             >
-              <Text style={styles.modeLink}>
-                {isSignupMode ? 'Sign In' : 'Sign Up'}
+              <Text style={styles.primaryButtonText}>Continue with Email</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={handlePhoneSignUp}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.secondaryButtonText}>Continue with Phone</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={handleGoogleSignUp}
+              disabled={isLoading}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.secondaryButtonText}>
+                {isLoading ? 'Loading...' : 'Continue with Google'}
               </Text>
             </TouchableOpacity>
-          </View>
-        </Animated.View>
+          </Animated.View>
 
-        <View style={styles.footer}>
-          <TouchableOpacity 
-            style={styles.languageSelector}
-            accessibilityLabel="Language selector"
-            accessibilityHint="Tap to change language"
-            accessibilityRole="button"
-          >
-            <Text style={styles.languageText}>EN (NG)</Text>
-            <Text style={styles.chevron}>▼</Text>
-          </TouchableOpacity>
+          <Animated.View style={[styles.footer, {
+            opacity: fadeAnim,
+          }]}>
+            <Text style={styles.footerText}>
+              Already have an account?{' '}
+              <Text style={styles.footerLink} onPress={handleSignIn}>
+                Sign in
+              </Text>
+            </Text>
+          </Animated.View>
         </View>
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.white,
+  },
+  safeArea: {
+    flex: 1,
   },
   content: {
     flex: 1,
     paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.xl,
+    paddingTop: SPACING['3xl'],
     paddingBottom: SPACING.xl,
-    justifyContent: 'space-between',
+    justifyContent: 'center',
   },
   header: {
-    alignItems: 'flex-start',
-    marginTop: SPACING.xl,
+    alignItems: 'center',
+    marginBottom: SPACING['3xl'],
   },
-  appName: {
-    fontSize: 32,
-    fontWeight: '400',
-    color: COLORS.primary,
-    marginBottom: SPACING.sm,
-    fontStyle: 'italic',
-  },
-  tagline: {
-    fontSize: 34,
+  title: {
+    fontSize: 36,
     fontWeight: '700',
     color: COLORS.text.dark,
-    lineHeight: 41,
+    textAlign: 'center',
+    marginBottom: SPACING.md,
   },
-  authOptions: {
+  subtitle: {
+    fontSize: TYPOGRAPHY.fontSizes.lg,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 24,
+    paddingHorizontal: SPACING.md,
+  },
+  buttonContainer: {
+    gap: SPACING.md,
     marginBottom: SPACING.xl,
   },
-  socialButtons: {
-    marginBottom: SPACING.lg,
-  },
-  separator: {
-    flexDirection: 'row',
+  primaryButton: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+    borderRadius: BORDER_RADIUS.lg,
     alignItems: 'center',
-    marginVertical: SPACING.md,
-  },
-  separatorLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: COLORS.neutral.lightGray,
-  },
-  separatorText: {
-    marginHorizontal: SPACING.md,
-    fontSize: TYPOGRAPHY.fontSizes.sm,
-    color: COLORS.text.secondary,
-    fontWeight: '500',
-  },
-  modeToggleSection: {
-    flexDirection: 'row',
     justifyContent: 'center',
+    minHeight: 56,
+    ...SHADOWS.medium,
+  },
+  primaryButtonText: {
+    color: COLORS.white,
+    fontSize: TYPOGRAPHY.fontSizes.lg,
+    fontWeight: '600',
+  },
+  secondaryButton: {
+    backgroundColor: COLORS.white,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+    borderRadius: BORDER_RADIUS.lg,
     alignItems: 'center',
-    marginTop: SPACING.md,
+    justifyContent: 'center',
+    minHeight: 56,
   },
-  modePrompt: {
-    color: COLORS.text.secondary,
-    fontSize: TYPOGRAPHY.fontSizes.sm,
-    marginRight: SPACING.xs,
-  },
-  modeLink: {
-    color: COLORS.primary,
-    fontSize: 17, // 17pt as specified
-    fontWeight: '600', // Semibold
-    textDecorationLine: 'underline',
+  secondaryButtonText: {
+    color: COLORS.text.dark,
+    fontSize: TYPOGRAPHY.fontSizes.lg,
+    fontWeight: '600',
   },
   footer: {
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
     alignItems: 'center',
+    marginTop: SPACING.xl,
   },
-  languageSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  languageText: {
-    color: COLORS.text.secondary,
+  footerText: {
     fontSize: TYPOGRAPHY.fontSizes.sm,
-    marginRight: SPACING.xs,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
   },
-  chevron: {
-    color: COLORS.text.secondary,
-    fontSize: TYPOGRAPHY.fontSizes.xs,
+  footerLink: {
+    color: COLORS.primary,
+    fontWeight: '600',
   },
 });

@@ -16,11 +16,10 @@ import { logEnvironment, validateEnvironment } from './src/config/environment';
 import WelcomeScreen from './src/screens/onBoarding/WelcomeScreen';
 import { OAuthCallbackScreen } from './src/screens/auth';
 
-import WelcomeHeroScreen from './src/screens/onBoarding/WelcomeHeroScreen';
 import PhoneVerificationScreen from './src/screens/onBoarding/PhoneVerificationScreen';
 import OTPVerificationScreen from './src/screens/onBoarding/OTPVerificationScreen';
 import LocationSetupScreen from './src/screens/onBoarding/LocationSetupScreen';
-import LocationSetupScreenNew from './src/screens/onBoarding/LocationSetupScreenNew';
+import MapPickerScreen from './src/screens/onBoarding/MapPickerScreen';
 import EstateSelectionScreen from './src/screens/onBoarding/EstateSelectionScreen';
 import ProfileSetupScreen from './src/screens/onBoarding/ProfileSetupScreen';
 import EmailRegistrationScreen from './src/screens/onBoarding/EmailRegistrationScreen';
@@ -355,14 +354,14 @@ function AppContent() {
         {isAuthenticated ? (
           <MainStackNavigator />
         ) : (
-          <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="WelcomeHero">
-            {/* NEW ONBOARDING FLOW */}
+          <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Welcome">
+            {/* SIMPLIFIED ONBOARDING FLOW */}
             
-            {/* Welcome Screen - First screen with Join/Login options */}
+            {/* Welcome Screen - First screen with Email/Phone/Google options */}
             <Stack.Screen 
-              name="WelcomeHero" 
-              component={WelcomeHeroScreen}
-             
+              name="Welcome" 
+              component={WelcomeScreen}
+              initialParams={{ onLoginSuccess: handleLoginSuccess, onSocialLoginSuccess: handleSocialLoginSuccess }}
             />
             
             {/* Email Registration Flow - For new users choosing email */}
@@ -398,11 +397,17 @@ function AppContent() {
               component={OTPVerificationScreen}
             />
             
-            {/* Location Setup with multiple options - NEW DESIGN */}
+            {/* Location Setup with auto-detect and map picker */}
             <Stack.Screen 
               name="LocationSetup" 
-              component={LocationSetupScreenNew}
+              component={LocationSetupScreen}
               initialParams={{ onSetupComplete: handleLoginSuccess }}
+            />
+            
+            {/* Map Picker Screen */}
+            <Stack.Screen 
+              name="MapPicker" 
+              component={MapPickerScreen}
             />
             
             {/* Estate Selection Screen - NEW */}
@@ -415,12 +420,6 @@ function AppContent() {
             <Stack.Screen 
               name="ProfileSetup" 
               component={ProfileSetupScreen}
-            />
-            
-            <Stack.Screen 
-              name="Welcome" 
-              component={WelcomeScreen}
-              initialParams={{ onLoginSuccess: handleLoginSuccess, onSocialLoginSuccess: handleSocialLoginSuccess }}
             />
             
             {/* OAuth Callback Screen */}

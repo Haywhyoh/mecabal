@@ -107,17 +107,6 @@ export default function PhoneVerificationScreen({ navigation, route }: any) {
     }
   };
 
-  const handleSkip = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Alert.alert(
-      'Skip Phone Verification?',
-      'Phone verification helps keep our community safe. You can still proceed, but some features may be limited.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Skip', onPress: () => navigation.navigate('LocationSetup', { language, phoneNumber: '', isSignup: true, userDetails, userId, existingUser }) }
-      ]
-    );
-  };
 
   const handleMethodSelect = (method: 'sms' | 'whatsapp') => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -147,14 +136,7 @@ export default function PhoneVerificationScreen({ navigation, route }: any) {
         }]}>
           Verify your phone
         </Animated.Text>
-        <TouchableOpacity 
-          style={styles.skipButton}
-          onPress={handleSkip}
-          accessibilityLabel="Skip phone verification"
-          accessibilityRole="button"
-        >
-          <Text style={styles.skipText}>Skip</Text>
-        </TouchableOpacity>
+        <View style={styles.skipButton} />
       </View>
       
       <KeyboardAvoidingView 
@@ -368,16 +350,8 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
   skipButton: {
-    padding: 8,
     minWidth: 44,
     minHeight: 44,
-    justifyContent: 'center',
-    alignItems: 'flex-end',
-  },
-  skipText: {
-    fontSize: 17,
-    color: COLORS.primary,
-    fontWeight: '400',
   },
   titleContainer: {
     marginBottom: 32,
