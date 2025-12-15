@@ -8,6 +8,7 @@ import { ListingsService } from '../../services/listingsService';
 import { DataService } from '../../services/data';
 import { EventsApi } from '../../services/EventsApi';
 import MessagingService from '../../services/MessagingService';
+import { ConnectionService } from '../../services/connectionService';
 import { FloatingActionButton } from '../../components/ui';
 import { useAuth } from '../../contexts/AuthContext';
 import { FeedScreen } from '../posts/FeedScreen';
@@ -22,6 +23,7 @@ export default function HomeScreen() {
   const [sidebarVisible, setSidebarVisible] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
+  const [pendingConnectionRequests, setPendingConnectionRequests] = useState(0);
   const [searchResults, setSearchResults] = useState({
     posts: [],
     events: [],
@@ -32,6 +34,7 @@ export default function HomeScreen() {
   const { user } = useAuth();
 
   const notificationService = NotificationService.getInstance();
+  const connectionService = new ConnectionService();
 
   // Subscribe to notification updates
   useEffect(() => {
@@ -74,13 +77,34 @@ export default function HomeScreen() {
     };
   }, []);
 
+  // Fetch connection requests count
+  useEffect(() => {
+    const fetchConnectionRequests = async () => {
+      try {
+        const requests = await connectionService.getConnectionRequests();
+        setPendingConnectionRequests(requests.incoming.length);
+      } catch (error) {
+        console.error('Failed to fetch connection requests:', error);
+        setPendingConnectionRequests(0);
+      }
+    };
+
+    fetchConnectionRequests();
+    
+    // Refresh when screen comes into focus
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchConnectionRequests();
+    });
+
+    return unsubscribe;
+  }, [navigation]);
+
   // Get user data from authentication context
   const currentUser = {
     firstName: user?.firstName || 'User',
     lastName: user?.lastName || '',
     profileImage: user?.profilePictureUrl || null,
     hasBusinessProfile: true, // TODO: Get from user profile
-    pendingConnectionRequests: 3, // TODO: Get from API
   };
 
   const handleProfilePress = () => {
@@ -138,29 +162,7 @@ export default function HomeScreen() {
   };
 
   const handleAddNeighbor = () => {
-    // Navigate to social features screen
-    Alert.alert(
-      'Connect with Neighbors',
-      'Build your community network',
-      [
-        {
-          text: 'Find Neighbors',
-          onPress: () => navigation.navigate('NeighborConnections' as never, { initialTab: 'discover' })
-        },
-        {
-          text: 'My Connections',
-          onPress: () => navigation.navigate('NeighborConnections' as never, { initialTab: 'connections' })
-        },
-        {
-          text: 'Connection Requests',
-          onPress: () => navigation.navigate('NeighborConnections' as never, { initialTab: 'requests' })
-        },
-        {
-          text: 'Cancel',
-          style: 'cancel'
-        }
-      ]
-    );
+    navigation.navigate('NeighborConnections' as never);
   };
 
 
@@ -220,10 +222,10 @@ export default function HomeScreen() {
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <MaterialCommunityIcons name="account-plus" size={24} color="#2C2C2C" />
-              {currentUser.pendingConnectionRequests > 0 && (
+              {pendingConnectionRequests > 0 && (
                 <View style={styles.notificationBadge}>
                   <Text style={styles.notificationText}>
-                    {currentUser.pendingConnectionRequests > 9 ? '9+' : currentUser.pendingConnectionRequests}
+                    {pendingConnectionRequests > 9 ? '9+' : pendingConnectionRequests}
                   </Text>
                 </View>
               )}

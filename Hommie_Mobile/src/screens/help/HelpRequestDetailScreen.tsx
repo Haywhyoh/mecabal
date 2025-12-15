@@ -16,6 +16,7 @@ import { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { HelpStackParamList } from '../../navigation/HelpNavigation';
 import { PostsService } from '../../services/postsService';
+import { helpOfferService, type HelpOffer } from '../../services/helpOfferService';
 import { useAuth } from '../../contexts/AuthContext';
 
 type HelpRequestDetailScreenProps = {
@@ -33,14 +34,16 @@ export const HelpRequestDetailScreen: React.FC<HelpRequestDetailScreenProps> = (
   const [request, setRequest] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [helpOffers, setHelpOffers] = useState<HelpOffer[]>([]);
+  const [processingOffer, setProcessingOffer] = useState<string | null>(null);
 
   const loadRequestDetails = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await postsService.getPostById(requestId);
+      const post = await postsService.getPostById(requestId);
       
-      if (response.success && response.data) {
-        setRequest(response.data);
+      if (post) {
+        setRequest(post);
       } else {
         Alert.alert('Error', 'Help request not found');
         navigation.goBack();
@@ -63,6 +66,24 @@ export const HelpRequestDetailScreen: React.FC<HelpRequestDetailScreenProps> = (
   useEffect(() => {
     loadRequestDetails();
   }, [loadRequestDetails]);
+
+  // Fetch help offers (only for the requester)
+  useEffect(() => {
+    const loadHelpOffers = async () => {
+      if (!request || user?.id !== request.author?.id) return;
+      
+      try {
+        const offers = await helpOfferService.getOffersByPost(requestId);
+        setHelpOffers(offers);
+      } catch (error) {
+        console.error('Error loading help offers:', error);
+      }
+    };
+    
+    if (request) {
+      loadHelpOffers();
+    }
+  }, [request, requestId, user?.id]);
 
   const handleOfferHelp = () => {
     navigation.navigate('OfferHelp', { requestId });
@@ -105,7 +126,7 @@ export const HelpRequestDetailScreen: React.FC<HelpRequestDetailScreenProps> = (
     if (!request) return null;
 
     const categoryInfo = getCategoryInfo(request.helpCategory);
-    const isOwner = user?.id === request.authorId;
+    const isOwner = user?.id === request.author?.id;
 
     return (
       <View style={styles.header}>
@@ -236,10 +257,162 @@ export const HelpRequestDetailScreen: React.FC<HelpRequestDetailScreenProps> = (
     );
   };
 
+  const handleAcceptOffer = async (offerId: string) => {
+    try {
+      setProcessingOffer(offerId);
+      await helpOfferService.acceptOffer(offerId);
+      // Reload offers
+      const offers = await helpOfferService.getOffersByPost(requestId);
+      setHelpOffers(offers);
+      Alert.alert('Success', 'Help offer accepted!');
+    } catch (error) {
+      console.error('Error accepting offer:', error);
+      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to accept offer');
+    } finally {
+      setProcessingOffer(null);
+    }
+  };
+
+  const handleRejectOffer = async (offerId: string) => {
+    try {
+      setProcessingOffer(offerId);
+      await helpOfferService.rejectOffer(offerId);
+      // Reload offers
+      const offers = await helpOfferService.getOffersByPost(requestId);
+      setHelpOffers(offers);
+      Alert.alert('Success', 'Help offer rejected');
+    } catch (error) {
+      console.error('Error rejecting offer:', error);
+      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to reject offer');
+    } finally {
+      setProcessingOffer(null);
+    }
+  };
+
+  const renderHelpOffers = () => {
+    if (!request || user?.id !== request.author?.id || helpOffers.length === 0) {
+      return null;
+    }
+
+    return (
+      <View style={styles.actionsSection}>
+        <Text style={styles.sectionTitle}>
+          People Who Want to Help ({helpOffers.length})
+        </Text>
+        {helpOffers.map((offer) => {
+          const isProcessing = processingOffer === offer.id;
+          const isPending = offer.status === 'pending';
+          const isAccepted = offer.status === 'accepted';
+          const isRejected = offer.status === 'rejected';
+
+          return (
+            <View key={offer.id} style={styles.helpOfferCard}>
+              <View style={styles.helpOfferHeader}>
+                <View style={styles.helpOfferAvatar}>
+                  <Text style={styles.helpOfferInitial}>
+                    {offer.user?.firstName?.charAt(0) || 'U'}
+                  </Text>
+                </View>
+                <View style={styles.helpOfferInfo}>
+                  <Text style={styles.helpOfferName}>
+                    {offer.user?.firstName} {offer.user?.lastName}
+                  </Text>
+                  <Text style={styles.helpOfferTime}>
+                    {formatDate(offer.createdAt)}
+                  </Text>
+                </View>
+                {offer.contactMethod && (
+                  <View style={styles.contactMethodBadge}>
+                    <Ionicons
+                      name={
+                        offer.contactMethod === 'phone'
+                          ? 'call-outline'
+                          : offer.contactMethod === 'meet'
+                          ? 'location-outline'
+                          : 'chatbubble-outline'
+                      }
+                      size={14}
+                      color="#00A651"
+                    />
+                  </View>
+                )}
+                {isAccepted && (
+                  <View style={[styles.statusBadge, { backgroundColor: '#00A65120' }]}>
+                    <Text style={[styles.statusBadgeText, { color: '#00A651' }]}>Accepted</Text>
+                  </View>
+                )}
+                {isRejected && (
+                  <View style={[styles.statusBadge, { backgroundColor: '#FF3B3020' }]}>
+                    <Text style={[styles.statusBadgeText, { color: '#FF3B30' }]}>Rejected</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={styles.helpOfferMessage} numberOfLines={3}>
+                {offer.message}
+              </Text>
+              {(offer.availability || offer.estimatedTime) && (
+                <View style={styles.helpOfferMeta}>
+                  {offer.availability && (
+                    <View style={styles.helpOfferMetaItem}>
+                      <Ionicons name="time-outline" size={14} color="#666666" />
+                      <Text style={styles.helpOfferMetaText}>
+                        {offer.availability}
+                      </Text>
+                    </View>
+                  )}
+                  {offer.estimatedTime && (
+                    <View style={styles.helpOfferMetaItem}>
+                      <Ionicons name="hourglass-outline" size={14} color="#666666" />
+                      <Text style={styles.helpOfferMetaText}>
+                        {offer.estimatedTime}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              )}
+              {isPending && (
+                <View style={styles.helpOfferActions}>
+                  <TouchableOpacity
+                    style={[styles.acceptButton, isProcessing && styles.buttonDisabled]}
+                    onPress={() => handleAcceptOffer(offer.id)}
+                    disabled={isProcessing}
+                  >
+                    {isProcessing ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <>
+                        <Ionicons name="checkmark-circle" size={16} color="#FFFFFF" />
+                        <Text style={styles.acceptButtonText}>Accept</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.rejectButton, isProcessing && styles.buttonDisabled]}
+                    onPress={() => handleRejectOffer(offer.id)}
+                    disabled={isProcessing}
+                  >
+                    {isProcessing ? (
+                      <ActivityIndicator size="small" color="#FF3B30" />
+                    ) : (
+                      <>
+                        <Ionicons name="close-circle" size={16} color="#FF3B30" />
+                        <Text style={styles.rejectButtonText}>Reject</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          );
+        })}
+      </View>
+    );
+  };
+
   const renderActions = () => {
     if (!request) return null;
 
-    const isOwner = user?.id === request.authorId;
+    const isOwner = user?.id === request.author?.id;
 
     if (isOwner) {
       return (
@@ -309,6 +482,7 @@ export const HelpRequestDetailScreen: React.FC<HelpRequestDetailScreenProps> = (
       >
         {renderHeader()}
         {renderRequestDetails()}
+        {renderHelpOffers()}
         {renderActions()}
       </ScrollView>
     </SafeAreaView>
@@ -506,6 +680,121 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
+  },
+  helpOfferCard: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+  },
+  helpOfferHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  helpOfferAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#00A651',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  helpOfferInitial: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  helpOfferInfo: {
+    flex: 1,
+  },
+  helpOfferName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1C1C1E',
+  },
+  helpOfferTime: {
+    fontSize: 12,
+    color: '#666666',
+    marginTop: 2,
+  },
+  contactMethodBadge: {
+    padding: 4,
+  },
+  helpOfferMessage: {
+    fontSize: 14,
+    color: '#1C1C1E',
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  helpOfferMeta: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  helpOfferMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  helpOfferMetaText: {
+    fontSize: 12,
+    color: '#666666',
+    marginLeft: 4,
+  },
+  helpOfferActions: {
+    flexDirection: 'row',
+    marginTop: 12,
+    gap: 12,
+  },
+  acceptButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#00A651',
+    paddingVertical: 10,
+    borderRadius: 8,
+    gap: 6,
+  },
+  acceptButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  rejectButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#FF3B30',
+    paddingVertical: 10,
+    borderRadius: 8,
+    gap: 6,
+  },
+  rejectButtonText: {
+    color: '#FF3B30',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: 8,
+  },
+  statusBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
   },
 });
 

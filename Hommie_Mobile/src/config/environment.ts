@@ -145,6 +145,15 @@ export const API_ENDPOINTS = {
     BUSINESS_CONVERSATION: '/messaging/conversations/business',
     HEALTH: '/messaging/health',
   },
+  HELP_OFFERS: {
+    CREATE: '/social/help-offers',
+    GET_BY_POST: '/social/help-offers/post',
+    GET_MY_OFFERS: '/social/help-offers/my-offers',
+    GET_BY_ID: '/social/help-offers',
+    ACCEPT: '/social/help-offers',
+    REJECT: '/social/help-offers',
+    CANCEL: '/social/help-offers',
+  },
 } as const;
 
 export default ENV;

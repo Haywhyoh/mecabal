@@ -17,6 +17,7 @@ import { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { HelpStackParamList } from '../../navigation/HelpNavigation';
 import { PostsService } from '../../services/postsService';
+import { helpOfferService } from '../../services/helpOfferService';
 import { useAuth } from '../../contexts/AuthContext';
 
 type OfferHelpScreenProps = {
@@ -46,10 +47,10 @@ export const OfferHelpScreen: React.FC<OfferHelpScreenProps> = ({
   const loadRequestDetails = async () => {
     try {
       setLoading(true);
-      const response = await postsService.getPostById(requestId);
+      const post = await postsService.getPostById(requestId);
       
-      if (response.success && response.data) {
-        setRequest(response.data);
+      if (post) {
+        setRequest(post);
       } else {
         Alert.alert('Error', 'Help request not found');
         navigation.goBack();
@@ -77,35 +78,28 @@ export const OfferHelpScreen: React.FC<OfferHelpScreenProps> = ({
     try {
       setSubmitting(true);
       
-      // Create a comment/response to the help request
-      const response = await postsService.createComment({
+      // Create a help offer
+      await helpOfferService.createOffer({
         postId: requestId,
-        content: message.trim(),
-        metadata: {
-          helpOffer: true,
-          contactMethod,
-          availability: availability.trim() || undefined,
-          estimatedTime: estimatedTime.trim() || undefined,
-        },
+        message: message.trim(),
+        contactMethod,
+        availability: availability.trim() || undefined,
+        estimatedTime: estimatedTime.trim() || undefined,
       });
 
-      if (response.success) {
-        Alert.alert(
-          'Help Offered!',
-          'Your offer to help has been sent. The requester will be notified and can contact you.',
-          [
-            {
-              text: 'OK',
-              onPress: () => navigation.goBack(),
-            },
-          ]
-        );
-      } else {
-        Alert.alert('Error', 'Failed to send your help offer. Please try again.');
-      }
+      Alert.alert(
+        'Help Offered!',
+        'Your offer to help has been sent. The requester will be notified and can contact you.',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.goBack(),
+          },
+        ]
+      );
     } catch (error) {
       console.error('Error offering help:', error);
-      Alert.alert('Error', 'Failed to send your help offer. Please try again.');
+      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to send your help offer. Please try again.');
     } finally {
       setSubmitting(false);
     }

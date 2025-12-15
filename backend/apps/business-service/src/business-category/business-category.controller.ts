@@ -24,9 +24,17 @@ export class BusinessCategoryController {
 
   @Get()
   @ApiOperation({ summary: 'Get all business categories' })
+  @ApiQuery({ name: 'includeCounts', required: false, type: Boolean, description: 'Include service counts per category' })
   @ApiResponse({ status: 200, description: 'Categories retrieved successfully' })
-  async findAll() {
-    const categories = await this.categoryService.findAll();
+  async findAll(@Query('includeCounts') includeCounts?: boolean) {
+    let categories;
+
+    if (includeCounts === true || includeCounts === 'true') {
+      categories = await this.categoryService.findAllWithServiceCounts();
+    } else {
+      categories = await this.categoryService.findAll();
+    }
+
     return {
       success: true,
       data: categories,

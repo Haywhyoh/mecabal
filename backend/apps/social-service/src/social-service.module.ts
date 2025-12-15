@@ -10,6 +10,7 @@ import { ModerationModule } from './moderation/moderation.module';
 import { CategoriesModule } from './categories/categories.module';
 import { MediaModule } from './media/media.module';
 import { ConnectionsModule } from './connections/connections.module';
+import { HelpOffersModule } from './help-offers/help-offers.module';
 import { DatabaseModule } from '@app/database';
 import { AuthModule } from '@app/auth';
 import { StorageModule } from '@app/storage';
@@ -29,6 +30,7 @@ import { StorageModule } from '@app/storage';
     CategoriesModule,
     MediaModule,
     ConnectionsModule,
+    HelpOffersModule,
   ],
   controllers: [SocialServiceController],
   providers: [SocialServiceService],

@@ -10,6 +10,7 @@ import { CommentsModule } from './comments/comments.module';
 import { ReactionsModule } from './reactions/reactions.module';
 import { CategoriesModule } from './categories/categories.module';
 import { ConnectionsModule } from './connections/connections.module';
+import { HelpOffersModule } from './help-offers/help-offers.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { ConnectionsModule } from './connections/connections.module';
     ReactionsModule,
     CategoriesModule,
     ConnectionsModule,
+    HelpOffersModule,
   ],
   controllers: [SocialServiceController],
   providers: [SocialServiceService],

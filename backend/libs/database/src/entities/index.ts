@@ -31,6 +31,7 @@ export { PostReaction } from './post-reaction.entity';
 export { PostComment } from './post-comment.entity';
 export { CommentMedia } from './comment-media.entity';
 export { Connection, ConnectionType, ConnectionStatus } from './connection.entity';
+export { HelpOffer, HelpOfferStatus, ContactMethod } from './help-offer.entity';
 
 // Marketplace & Listings Entities
 export { ListingCategory } from './listing-category.entity';

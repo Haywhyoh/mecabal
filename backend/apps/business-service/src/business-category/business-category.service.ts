@@ -33,4 +33,27 @@ export class BusinessCategoryService {
       .orderBy('category.name', 'ASC')
       .getMany();
   }
+
+  async findAllWithServiceCounts(): Promise<Array<BusinessCategory & { serviceCount: number }>> {
+    const categories = await this.findAll();
+
+    const categoriesWithCounts = await Promise.all(
+      categories.map(async (category) => {
+        const result = await this.categoryRepo
+          .createQueryBuilder('category')
+          .leftJoin('business_profiles', 'profile', 'profile.category = :categoryId AND profile.isActive = true', { categoryId: category.id })
+          .leftJoin('business_services', 'service', 'service.businessId = profile.id')
+          .where('category.id = :categoryId', { categoryId: category.id })
+          .select('COUNT(DISTINCT service.id)', 'count')
+          .getRawOne();
+
+        return {
+          ...category,
+          serviceCount: parseInt(result?.count) || 0,
+        };
+      })
+    );
+
+    return categoriesWithCounts;
+  }
 }
