@@ -41,6 +41,6 @@ async function bootstrap() {
     ],
   });
 
-  await app.listen(process.env.PORT ?? 3007);
+  await app.listen(process.env.NOTIFICATION_SERVICE_PORT ?? 3007);
 }
 void bootstrap();
