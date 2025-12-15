@@ -17,6 +17,17 @@ COMPOSE_FILE="docker-compose.production.yml"
 CONTAINER_NAME="mecabal-backend"
 BACKUP_DIR="./backups"
 
+# Detect docker-compose command (V1 vs V2)
+if command -v docker-compose &> /dev/null; then
+    DOCKER_COMPOSE="docker-compose"
+elif docker compose version &> /dev/null; then
+    DOCKER_COMPOSE="docker compose"
+else
+    echo -e "${RED}✗${NC} Neither 'docker-compose' nor 'docker compose' found!"
+    echo "Please install Docker Compose"
+    exit 1
+fi
+
 echo -e "${BLUE}================================================${NC}"
 echo -e "${BLUE}  MeCabal Backend Deployment Script${NC}"
 echo -e "${BLUE}================================================${NC}"
