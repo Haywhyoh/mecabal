@@ -386,6 +386,23 @@ export class ConnectionsService {
     });
     connectedUserIds.add(userId);
 
+    // Get pending connections (both incoming and outgoing)
+    const pendingConnections = await this.connectionRepository.find({
+      where: [
+        { fromUserId: userId, status: ConnectionStatus.PENDING },
+        { toUserId: userId, status: ConnectionStatus.PENDING },
+      ],
+    });
+
+    // Add pending connection user IDs to the exclusion set
+    pendingConnections.forEach((conn) => {
+      if (conn.fromUserId === userId) {
+        connectedUserIds.add(conn.toUserId);
+      } else {
+        connectedUserIds.add(conn.fromUserId);
+      }
+    });
+
     // Find users in same neighborhood/estate/LGA
     const neighbors = await this.userNeighborhoodRepository.find({
       where: {

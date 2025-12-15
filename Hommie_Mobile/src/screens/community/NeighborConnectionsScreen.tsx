@@ -36,6 +36,7 @@ export default function NeighborConnectionsScreen({ userId }: NeighborConnection
   const [myConnections, setMyConnections] = useState<ApiConnection[]>([]);
   const [neighborProfiles, setNeighborProfiles] = useState<NeighborProfile[]>([]);
   const [connectionRequests, setConnectionRequests] = useState<ApiConnection[]>([]);
+  const [sentRequests, setSentRequests] = useState<ApiConnection[]>([]);
   const [recommendations, setRecommendations] = useState<ApiConnectionRecommendation[]>([]);
 
   // Fetch data on mount and when tab changes
@@ -63,9 +64,11 @@ export default function NeighborConnectionsScreen({ userId }: NeighborConnection
       } else if (activeTab === 'requests') {
         const requests = await connectionService.getConnectionRequests();
         setConnectionRequests(requests.incoming);
-        // Extract neighbor profiles from requests
-        const profiles = requests.incoming.map(conn => conn.neighbor);
-        setNeighborProfiles(profiles);
+        setSentRequests(requests.outgoing);
+        // Extract neighbor profiles from both incoming and outgoing requests
+        const incomingProfiles = requests.incoming.map(conn => conn.neighbor);
+        const outgoingProfiles = requests.outgoing.map(conn => conn.neighbor);
+        setNeighborProfiles([...incomingProfiles, ...outgoingProfiles]);
       } else if (activeTab === 'discover') {
         const filter: any = {};
         if (searchQuery) {
@@ -353,6 +356,58 @@ export default function NeighborConnectionsScreen({ userId }: NeighborConnection
     );
   };
 
+  const renderSentRequest = (request: ApiConnection) => {
+    const neighbor = getNeighborProfile(request.toUserId);
+    if (!neighbor) return null;
+
+    const connectionTypeInfo = CONNECTION_TYPES.find(type => type.id === request.connectionType);
+
+    return (
+      <View key={request.id} style={styles.requestItem}>
+        <View style={styles.requestHeader}>
+          <View style={styles.neighborAvatar}>
+            <Text style={styles.avatarText}>{neighbor.firstName.charAt(0)}{neighbor.lastName.charAt(0)}</Text>
+          </View>
+          
+          <View style={styles.requestInfo}>
+            <View style={styles.nameSection}>
+              <Text style={styles.neighborName}>{neighbor.displayName}</Text>
+              {neighbor.isVerified && (
+                <MaterialCommunityIcons name="check-decagram" size={16} color="#00A651" />
+              )}
+            </View>
+            
+            <Text style={styles.requestText}>
+              You sent a {connectionTypeInfo?.name.toLowerCase()} request
+            </Text>
+            
+            <View style={styles.requestMeta}>
+              <MaterialCommunityIcons name="clock" size={12} color="#8E8E8E" />
+              <Text style={styles.requestTime}>
+                {new Date(request.createdAt).toLocaleDateString()}
+              </Text>
+              {request.mutualConnections !== undefined && request.mutualConnections > 0 && (
+                <>
+                  <Text style={styles.metaDivider}>•</Text>
+                  <Text style={styles.mutualConnections}>
+                    {request.mutualConnections} mutual connection{request.mutualConnections > 1 ? 's' : ''}
+                  </Text>
+                </>
+              )}
+            </View>
+          </View>
+        </View>
+        
+        <View style={styles.requestActions}>
+          <View style={[styles.statusBadge, { backgroundColor: '#FFA50020' }]}>
+            <MaterialCommunityIcons name="clock-outline" size={14} color="#FFA500" />
+            <Text style={[styles.statusBadgeText, { color: '#FFA500' }]}>Pending</Text>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
   const renderRecommendation = (recommendation: ApiConnectionRecommendation) => {
     const { neighbor: apiNeighbor } = recommendation;
     const neighbor = getNeighborProfile(apiNeighbor.id);
@@ -541,16 +596,20 @@ export default function NeighborConnectionsScreen({ userId }: NeighborConnection
 
       {/* Sent Requests */}
       <View style={styles.sentRequestsSection}>
-        <Text style={styles.sectionTitle}>Sent Requests</Text>
+        <Text style={styles.sectionTitle}>Sent Requests ({sentRequests.length})</Text>
         <Text style={styles.sectionSubtitle}>Requests you've sent to neighbors</Text>
         
-        <View style={styles.emptyState}>
-          <MaterialCommunityIcons name="account-clock-outline" size={48} color="#8E8E8E" />
-          <Text style={styles.emptyTitle}>No Sent Requests</Text>
-          <Text style={styles.emptySubtitle}>
-            Connection requests you send will be tracked here.
-          </Text>
-        </View>
+        {sentRequests.length > 0 ? (
+          sentRequests.map(renderSentRequest)
+        ) : (
+          <View style={styles.emptyState}>
+            <MaterialCommunityIcons name="account-clock-outline" size={48} color="#8E8E8E" />
+            <Text style={styles.emptyTitle}>No Sent Requests</Text>
+            <Text style={styles.emptySubtitle}>
+              Connection requests you send will be tracked here.
+            </Text>
+          </View>
+        )}
       </View>
     </ScrollView>
   );
@@ -1090,6 +1149,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  statusBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 4,
   },
   sentRequestsSection: {
     paddingHorizontal: 16,
