@@ -1217,6 +1217,32 @@ export class ApiGatewayController {
   }
 
   // Cultural profile endpoints - make accessible without /users prefix for registration flow
+  // Specific route for reference-data must come before wildcard route
+  @Get('cultural-profile/reference-data')
+  @Public() // Make public for registration flow
+  @ApiOperation({ summary: 'Get cultural profile reference data' })
+  async proxyCulturalProfileReferenceData(@Req() req: Request, @Res() res: Response) {
+    try {
+      const originalUrl = req.url;
+      const result: unknown =
+        await this.apiGatewayService.proxyToUserService(
+          originalUrl,
+          req.method,
+          req.body,
+          req.headers as Record<string, string | string[] | undefined>,
+          req.user,
+        );
+      res.status(HttpStatus.OK).json(result);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error proxying cultural profile reference data:', errorMessage);
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: errorMessage });
+    }
+  }
+
   @All('cultural-profile/*path')
   @Public() // Make public for registration flow
   @ApiOperation({ summary: 'Proxy cultural profile requests' })
