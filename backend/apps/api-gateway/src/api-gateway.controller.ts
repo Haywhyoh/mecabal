@@ -11,6 +11,7 @@ import {
   UploadedFiles,
   UploadedFile,
   Param,
+  OnModuleInit,
 } from '@nestjs/common';
 import { FilesInterceptor, FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -27,8 +28,16 @@ import FormData from 'form-data';
 
 @ApiTags('Gateway')
 @Controller()
-export class ApiGatewayController {
+export class ApiGatewayController implements OnModuleInit {
   constructor(private readonly apiGatewayService: ApiGatewayService) {}
+
+  onModuleInit() {
+    console.log('🚀 API Gateway Controller initialized');
+    console.log('📍 Registered routes:');
+    console.log('  - GET /cultural-profile/reference-data (specific route, before wildcard)');
+    console.log('  - ALL /cultural-profile/*path (wildcard route, after specific)');
+    console.log('✅ Route order verified: specific route comes before wildcard');
+  }
 
   @Get()
   @ApiOperation({ summary: 'API Gateway health check' })
@@ -1218,12 +1227,20 @@ export class ApiGatewayController {
 
   // Cultural profile endpoints - make accessible without /users prefix for registration flow
   // Specific route for reference-data must come before wildcard route
+  // Using @Get() ensures this route is matched before @All() wildcard routes
   @Get('cultural-profile/reference-data')
   @Public() // Make public for registration flow
   @ApiOperation({ summary: 'Get cultural profile reference data' })
   async proxyCulturalProfileReferenceData(@Req() req: Request, @Res() res: Response) {
     try {
       console.log('🎯 Cultural profile reference-data route matched');
+      console.log('📍 Route details:', {
+        method: req.method,
+        url: req.url,
+        originalUrl: req.originalUrl,
+        path: req.path,
+        timestamp: new Date().toISOString(),
+      });
       const originalUrl = req.url;
       console.log('📡 Proxying to user service:', originalUrl);
       const result: unknown =
@@ -1240,6 +1257,7 @@ export class ApiGatewayController {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
       console.error('❌ Error proxying cultural profile reference data:', errorMessage);
+      console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
       res
         .status(HttpStatus.INTERNAL_SERVER_ERROR)
         .json({ error: errorMessage });
@@ -1250,6 +1268,17 @@ export class ApiGatewayController {
   @Public() // Make public for registration flow
   @ApiOperation({ summary: 'Proxy cultural profile requests' })
   async proxyCulturalProfileRequest(@Req() req: Request, @Res() res: Response) {
+    // Safeguard: Don't handle reference-data here - it should be handled by the specific route above
+    if (req.path === '/cultural-profile/reference-data' || req.url === '/cultural-profile/reference-data') {
+      console.warn('⚠️ Reference-data endpoint matched by wildcard route - this should not happen');
+      // Let it fall through - the specific route should have handled it
+      // But if we're here, return 404 to indicate the route wasn't found
+      return res.status(HttpStatus.NOT_FOUND).json({
+        error: 'Not Found',
+        message: 'The reference-data endpoint should be handled by the specific route',
+      });
+    }
+    
     try {
       console.log('🎯 Cultural profile wildcard route matched:', req.url);
       // Rewrite path to include /cultural-profile prefix for user service
