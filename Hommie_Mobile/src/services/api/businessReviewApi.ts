@@ -37,10 +37,26 @@ export const businessReviewApi = {
     businessId: string,
     query: ReviewQueryDto = {}
   ): Promise<ReviewListResponse> {
-    const response = await apiClient.get<ReviewListResponse>(
+    const response = await apiClient.get<any>(
       `/business/${businessId}/reviews`,
       { params: query }
     );
+    
+    // Handle both 'meta' and 'pagination' response structures
+    if (response.meta && !response.pagination) {
+      return {
+        success: response.success ?? true,
+        data: response.data || [],
+        pagination: {
+          page: response.meta.page || 1,
+          limit: response.meta.limit || 20,
+          total: response.meta.total || 0,
+          totalPages: response.meta.totalPages || 1,
+        },
+      };
+    }
+    
+    // If already in correct format, return as-is
     return response;
   },
 

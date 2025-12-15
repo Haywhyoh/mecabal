@@ -46,7 +46,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
       { label: 'Service Quality', value: review.serviceQuality },
       { label: 'Professionalism', value: review.professionalism },
       { label: 'Value for Money', value: review.valueForMoney },
-    ].filter(rating => rating.value);
+    ].filter(rating => rating.value != null && rating.value > 0);
 
     if (ratings.length === 0) return null;
 
@@ -56,7 +56,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
           <View key={index} style={styles.detailRating}>
             <Text style={styles.detailLabel}>{rating.label}</Text>
             <View style={styles.detailRatingStars}>
-              {renderStars(rating.value!, 14)}
+              {renderStars(rating.value || 0, 14)}
             </View>
           </View>
         ))}
@@ -65,7 +65,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
   };
 
   const renderBusinessResponse = () => {
-    if (!review.businessResponse) return null;
+    if (!review.businessResponse || !review.businessResponse.trim()) return null;
 
     return (
       <View style={styles.businessResponse}>
@@ -110,12 +110,13 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
         <View style={styles.reviewerInfo}>
           <View style={styles.reviewerAvatar}>
             <Text style={styles.reviewerInitials}>
-              {review.user?.firstName?.[0]}{review.user?.lastName?.[0]}
+              {review.user?.firstName?.[0] || 'U'}{review.user?.lastName?.[0] || ''}
             </Text>
           </View>
           <View style={styles.reviewerDetails}>
             <Text style={styles.reviewerName}>
-              {review.user?.firstName} {review.user?.lastName}
+              {review.user?.firstName || ''} {review.user?.lastName || ''}
+              {!review.user?.firstName && !review.user?.lastName && 'Anonymous User'}
             </Text>
             <Text style={styles.reviewDate}>
               {formatDate(review.createdAt)}

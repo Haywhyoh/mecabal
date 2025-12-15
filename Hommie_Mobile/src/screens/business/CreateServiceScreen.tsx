@@ -9,11 +9,14 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  Modal,
+  FlatList,
 } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { ScreenHeader } from '../../components/ui';
 import { businessServiceApi } from '../../services/api';
 import { CreateBusinessServiceDto } from '../../services/types/business.types';
+import { NIGERIAN_SERVICE_CATEGORIES } from '../../constants';
 
 interface CreateServiceScreenProps {
   route: {
@@ -27,9 +30,11 @@ interface CreateServiceScreenProps {
 export default function CreateServiceScreen({ route, navigation }: CreateServiceScreenProps) {
   const { businessId } = route.params;
   const [loading, setLoading] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [formData, setFormData] = useState<CreateBusinessServiceDto>({
     serviceName: '',
     description: '',
+    category: undefined,
     priceMin: undefined,
     priceMax: undefined,
     duration: '',
@@ -80,6 +85,20 @@ export default function CreateServiceScreen({ route, navigation }: CreateService
               placeholder="e.g., Plumbing Repair"
               placeholderTextColor="#8E8E8E"
             />
+          </View>
+
+          {/* Category */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Category</Text>
+            <TouchableOpacity
+              style={styles.categoryPicker}
+              onPress={() => setShowCategoryModal(true)}
+            >
+              <Text style={[styles.categoryPickerText, !formData.category && styles.categoryPickerPlaceholder]}>
+                {formData.category || 'Select a category'}
+              </Text>
+              <MaterialCommunityIcons name="chevron-down" size={20} color="#8E8E8E" />
+            </TouchableOpacity>
           </View>
 
           {/* Description */}
@@ -187,6 +206,57 @@ export default function CreateServiceScreen({ route, navigation }: CreateService
           )}
         </TouchableOpacity>
       </View>
+
+      {/* Category Selection Modal */}
+      <Modal
+        visible={showCategoryModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowCategoryModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Category</Text>
+              <TouchableOpacity
+                onPress={() => setShowCategoryModal(false)}
+                style={styles.modalCloseButton}
+              >
+                <MaterialCommunityIcons name="close" size={24} color="#2C2C2C" />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={NIGERIAN_SERVICE_CATEGORIES}
+              keyExtractor={(item, index) => `${item}-${index}`}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.categoryItem,
+                    formData.category === item && styles.categoryItemSelected,
+                  ]}
+                  onPress={() => {
+                    setFormData({ ...formData, category: item });
+                    setShowCategoryModal(false);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.categoryItemText,
+                      formData.category === item && styles.categoryItemTextSelected,
+                    ]}
+                  >
+                    {item}
+                  </Text>
+                  {formData.category === item && (
+                    <MaterialCommunityIcons name="check" size={20} color="#00A651" />
+                  )}
+                </TouchableOpacity>
+              )}
+              style={styles.categoryList}
+            />
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -292,6 +362,78 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  categoryPicker: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  categoryPickerText: {
+    fontSize: 16,
+    color: '#2C2C2C',
+    flex: 1,
+  },
+  categoryPickerPlaceholder: {
+    color: '#8E8E8E',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '80%',
+    paddingBottom: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#2C2C2C',
+  },
+  modalCloseButton: {
+    padding: 4,
+  },
+  categoryList: {
+    maxHeight: 400,
+  },
+  categoryItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  categoryItemSelected: {
+    backgroundColor: '#F0F9F4',
+  },
+  categoryItemText: {
+    fontSize: 16,
+    color: '#2C2C2C',
+    flex: 1,
+  },
+  categoryItemTextSelected: {
+    color: '#00A651',
+    fontWeight: '600',
   },
 });
 
