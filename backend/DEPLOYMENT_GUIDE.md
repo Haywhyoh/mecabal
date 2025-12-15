@@ -10,7 +10,8 @@ Your production backend runs inside a Docker container using **multi-stage build
 
 ## Current Architecture
 
-- **Docker Image**: Built from `Dockerfile.optimized`
+- **Docker Image**: Built from `Dockerfile`
+- **Docker Compose**: `docker-compose.production.yml`
 - **Container Name**: `mecabal-backend`
 - **Process Manager**: PM2 (via `ecosystem.config.js`)
 - **All 10 microservices** run inside one container on different ports
@@ -73,7 +74,7 @@ docker compose -f docker-compose.production.yml up -d
 docker compose logs -f backend
 ```
 
-### Option 3: Using GitHub Container Registry (For Production CD/CI)
+### Option 3: Using GitHub Container Registry (For Production CI/CD)
 
 If you want to use a registry-based deployment:
 
@@ -82,7 +83,7 @@ If you want to use a registry-based deployment:
 cd mecabal/backend
 
 # Build and tag image
-docker build -f Dockerfile.optimized -t ghcr.io/haywhyoh/mecabal-backend:latest .
+docker build -f Dockerfile -t ghcr.io/haywhyoh/mecabal-backend:latest .
 
 # Push to registry
 docker push ghcr.io/haywhyoh/mecabal-backend:latest
@@ -223,7 +224,7 @@ docker compose -f docker-compose.production.yml up -d
 ### Must rebuild container if changed:
 - Any `.ts` files (source code)
 - `package.json` / `package-lock.json` (dependencies)
-- `Dockerfile.optimized` (build configuration)
+- `Dockerfile` (build configuration)
 - `libs/**` (shared libraries)
 
 ### Can update without rebuild:

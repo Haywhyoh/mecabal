@@ -204,6 +204,7 @@ echo ""
 # Step 5: Build new image
 info "Step 5: Building new Docker image..."
 echo "This may take 2-5 minutes..."
+echo "Building from Dockerfile with PM2 configuration..."
 
 BUILD_CMD="docker compose -f $COMPOSE_FILE build backend"
 if [ "$NO_CACHE" = true ]; then
