@@ -33,6 +33,67 @@ The estate search implementation is **correctly implemented** in the source code
    - ✅ Frontend API client handles both array and object responses
    - ✅ Response format is compatible (direct array return)
 
+## Critical Issue: Docker Image May Contain Old Code
+
+**IMPORTANT:** The deployment log showed:
+```
+Some service image(s) must be built from source by running:
+    docker-compose build backend
+```
+
+This indicates the Docker image in the registry may not contain the latest code with the `searchEstates` implementation.
+
+### Step 0: Verify Docker Image Contains New Code
+
+**FIRST, verify if the current Docker image has the new code:**
+
+```bash
+cd /path/to/mecabal/backend
+chmod +x scripts/verify-docker-image-code.sh
+./scripts/verify-docker-image-code.sh
+```
+
+This script will:
+- Check if the compiled code in the Docker image contains "Method not implemented yet"
+- Verify if `searchEstates` method exists in the compiled code
+- Tell you if the image needs to be rebuilt
+
+**If the image contains old code, you MUST rebuild it before fixing the port conflict.**
+
+### Step 0.5: Rebuild Docker Image (If Needed)
+
+If the verification shows the image contains old code:
+
+**On Build Server (GitHub Actions or CI/CD):**
+```bash
+cd /path/to/mecabal/backend
+chmod +x scripts/rebuild-and-push-image.sh
+./scripts/rebuild-and-push-image.sh
+```
+
+**Or manually:**
+```bash
+# Build the image
+docker build -f Dockerfile.optimized -t ghcr.io/haywhyoh/mecabal-backend:latest .
+
+# Verify it contains new code (check for "Method not implemented")
+docker run --rm ghcr.io/haywhyoh/mecabal-backend:latest \
+  grep -q "Method not implemented yet" /app/dist/apps/auth-service/main.js && \
+  echo "❌ Image still has old code!" || echo "✅ Image has new code"
+
+# Push to registry
+docker push ghcr.io/haywhyoh/mecabal-backend:latest
+```
+
+**Then on Production Server:**
+```bash
+# Pull the new image
+docker-compose -f docker-compose.production.yml pull backend
+
+# Verify the new image
+./scripts/verify-docker-image-code.sh
+```
+
 ## Fix Steps
 
 ### Step 1: Fix Port Conflict
