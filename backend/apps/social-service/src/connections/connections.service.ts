@@ -41,22 +41,32 @@ export class ConnectionsService {
     createConnectionDto: CreateConnectionDto,
     userId: string,
   ): Promise<ConnectionResponseDto> {
+    console.log('🟢 [ConnectionsService] createConnectionRequest called');
+    console.log('🟢 [ConnectionsService] DTO:', JSON.stringify(createConnectionDto, null, 2));
+    console.log('🟢 [ConnectionsService] userId:', userId);
+    
     const { toUserId, connectionType, metadata } = createConnectionDto;
+    console.log('🟢 [ConnectionsService] Extracted values - toUserId:', toUserId, 'connectionType:', connectionType, 'metadata:', metadata);
 
     // Prevent self-connection
     if (userId === toUserId) {
+      console.log('❌ [ConnectionsService] Self-connection attempt blocked');
       throw new BadRequestException('Cannot connect with yourself');
     }
 
     // Check if target user exists
+    console.log('🟢 [ConnectionsService] Checking if target user exists:', toUserId);
     const targetUser = await this.userRepository.findOne({
       where: { id: toUserId },
     });
     if (!targetUser) {
+      console.log('❌ [ConnectionsService] Target user not found:', toUserId);
       throw new NotFoundException('User not found');
     }
+    console.log('✅ [ConnectionsService] Target user found:', targetUser.id);
 
     // Check if connection already exists
+    console.log('🟢 [ConnectionsService] Checking for existing connection');
     const existingConnection = await this.connectionRepository.findOne({
       where: [
         { fromUserId: userId, toUserId },
@@ -65,6 +75,7 @@ export class ConnectionsService {
     });
 
     if (existingConnection) {
+      console.log('🟢 [ConnectionsService] Existing connection found:', existingConnection.id, 'status:', existingConnection.status);
       if (existingConnection.status === ConnectionStatus.BLOCKED) {
         throw new ForbiddenException('Connection is blocked');
       }
@@ -72,11 +83,23 @@ export class ConnectionsService {
         throw new BadRequestException('Connection already exists');
       }
       if (existingConnection.status === ConnectionStatus.PENDING) {
-        throw new BadRequestException('Connection request already pending');
+        console.log('🟡 [ConnectionsService] Returning existing pending connection');
+        // Reload with relations to format response
+        const connectionWithRelations = await this.connectionRepository.findOne({
+          where: { id: existingConnection.id },
+          relations: ['fromUser', 'toUser'],
+        });
+        if (!connectionWithRelations) {
+          throw new NotFoundException('Connection not found');
+        }
+        return this.formatConnectionResponse(connectionWithRelations, userId);
       }
+    } else {
+      console.log('✅ [ConnectionsService] No existing connection found');
     }
 
     // Create connection request
+    console.log('🟢 [ConnectionsService] Creating connection request');
     const connection = this.connectionRepository.create({
       fromUserId: userId,
       toUserId,
@@ -85,15 +108,39 @@ export class ConnectionsService {
       initiatedBy: userId,
       metadata,
     });
+    console.log('🟢 [ConnectionsService] Connection entity created:', connection.id);
 
     const savedConnection = await this.connectionRepository.save(connection);
-    return this.formatConnectionResponse(savedConnection, userId);
+    console.log('✅ [ConnectionsService] Connection saved:', savedConnection.id);
+    
+    // Reload connection with relations for formatting
+    console.log('🟢 [ConnectionsService] Reloading connection with relations');
+    const connectionWithRelations = await this.connectionRepository.findOne({
+      where: { id: savedConnection.id },
+      relations: ['fromUser', 'toUser'],
+    });
+
+    if (!connectionWithRelations) {
+      console.log('❌ [ConnectionsService] Connection not found after creation');
+      throw new NotFoundException('Connection not found after creation');
+    }
+    console.log('✅ [ConnectionsService] Connection reloaded with relations');
+    console.log('🟢 [ConnectionsService] fromUser loaded:', !!connectionWithRelations.fromUser);
+    console.log('🟢 [ConnectionsService] toUser loaded:', !!connectionWithRelations.toUser);
+
+    console.log('🟢 [ConnectionsService] Formatting connection response');
+    const result = await this.formatConnectionResponse(connectionWithRelations, userId);
+    console.log('✅ [ConnectionsService] Connection response formatted successfully');
+    return result;
   }
 
   async getConnections(
     filterDto: ConnectionFilterDto,
     userId: string,
   ): Promise<PaginatedConnectionsDto> {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/2b86e3fe-f024-4873-83ef-99098887c58e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'connections.service.ts:93',message:'getConnections service entry',data:{userId,filterDto},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'E'})}).catch(()=>{});
+    // #endregion
     const queryBuilder = this.connectionRepository
       .createQueryBuilder('connection')
       .leftJoinAndSelect('connection.fromUser', 'fromUser')
@@ -182,10 +229,15 @@ export class ConnectionsService {
 
     const connections = await queryBuilder.getMany();
 
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/2b86e3fe-f024-4873-83ef-99098887c58e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'connections.service.ts:186',message:'Before formatting connections',data:{connectionsCount:connections.length,total},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'E'})}).catch(()=>{});
+    // #endregion
     const formattedConnections = await Promise.all(
       connections.map((conn) => this.formatConnectionResponse(conn, userId)),
     );
-
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/2b86e3fe-f024-4873-83ef-99098887c58e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'connections.service.ts:191',message:'Before return',data:{formattedCount:formattedConnections.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'E'})}).catch(()=>{});
+    // #endregion
     return {
       data: formattedConnections,
       total,
@@ -587,16 +639,49 @@ export class ConnectionsService {
     connection: Connection,
     currentUserId: string,
   ): Promise<ConnectionResponseDto> {
-    const neighbor =
+    console.log('🟡 [formatConnectionResponse] Called with connection:', connection.id);
+    console.log('🟡 [formatConnectionResponse] currentUserId:', currentUserId);
+    console.log('🟡 [formatConnectionResponse] fromUserId:', connection.fromUserId);
+    console.log('🟡 [formatConnectionResponse] toUserId:', connection.toUserId);
+    console.log('🟡 [formatConnectionResponse] fromUser loaded:', !!connection.fromUser);
+    console.log('🟡 [formatConnectionResponse] toUser loaded:', !!connection.toUser);
+    
+    let neighbor: User | null =
       connection.fromUserId === currentUserId
-        ? connection.toUser
-        : connection.fromUser;
+        ? connection.toUser || null
+        : connection.fromUser || null;
 
+    console.log('🟡 [formatConnectionResponse] Initial neighbor:', neighbor ? neighbor.id : 'null');
+
+    // If relations weren't loaded, fetch the user
+    if (!neighbor) {
+      console.log('🟡 [formatConnectionResponse] Neighbor not loaded, fetching from DB');
+      const neighborId =
+        connection.fromUserId === currentUserId
+          ? connection.toUserId
+          : connection.fromUserId;
+      console.log('🟡 [formatConnectionResponse] Fetching neighbor with ID:', neighborId);
+      neighbor = await this.userRepository.findOne({
+        where: { id: neighborId },
+      });
+      if (!neighbor) {
+        console.log('❌ [formatConnectionResponse] Neighbor user not found in DB:', neighborId);
+        throw new NotFoundException('Neighbor user not found');
+      }
+      console.log('✅ [formatConnectionResponse] Neighbor fetched from DB:', neighbor.id);
+    }
+
+    // At this point, neighbor is guaranteed to be non-null
+    console.log('🟡 [formatConnectionResponse] Formatting neighbor profile for:', neighbor.id);
     const neighborProfile = await this.formatNeighborProfile(neighbor);
+    console.log('✅ [formatConnectionResponse] Neighbor profile formatted');
+    
+    console.log('🟡 [formatConnectionResponse] Getting mutual connections count');
     const mutualCount = await this.getMutualConnectionsCount(
       currentUserId,
       neighbor.id,
     );
+    console.log('✅ [formatConnectionResponse] Mutual connections count:', mutualCount);
 
     return {
       id: connection.id,

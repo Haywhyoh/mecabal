@@ -9,6 +9,7 @@ import { MediaModule } from './media/media.module';
 import { CommentsModule } from './comments/comments.module';
 import { ReactionsModule } from './reactions/reactions.module';
 import { CategoriesModule } from './categories/categories.module';
+import { ConnectionsModule } from './connections/connections.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { CategoriesModule } from './categories/categories.module';
     CommentsModule,
     ReactionsModule,
     CategoriesModule,
+    ConnectionsModule,
   ],
   controllers: [SocialServiceController],
   providers: [SocialServiceService],

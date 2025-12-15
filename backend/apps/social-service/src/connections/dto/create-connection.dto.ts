@@ -22,7 +22,9 @@ export class CreateConnectionDto {
     enum: ConnectionType,
     example: ConnectionType.CONNECT,
   })
-  @IsEnum(ConnectionType)
+  @IsEnum(['connect', 'follow', 'trusted', 'neighbor', 'colleague', 'family'], {
+    message: 'connectionType must be one of: connect, follow, trusted, neighbor, colleague, family',
+  })
   connectionType: ConnectionType;
 
   @ApiPropertyOptional({
@@ -37,6 +39,7 @@ export class CreateConnectionDto {
   @IsObject()
   metadata?: Record<string, any>;
 }
+
 
 
 

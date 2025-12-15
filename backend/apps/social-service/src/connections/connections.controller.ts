@@ -61,10 +61,26 @@ export class ConnectionsController {
     @Body() createConnectionDto: CreateConnectionDto,
     @Request() req: AuthenticatedRequest,
   ): Promise<ConnectionResponseDto> {
-    return this.connectionsService.createConnectionRequest(
-      createConnectionDto,
-      req.user.id,
-    );
+    console.log('🔵 [ConnectionsController] createConnectionRequest called');
+    console.log('🔵 [ConnectionsController] Request body:', JSON.stringify(createConnectionDto, null, 2));
+    console.log('🔵 [ConnectionsController] User ID:', req.user?.id);
+    console.log('🔵 [ConnectionsController] DTO type:', typeof createConnectionDto);
+    console.log('🔵 [ConnectionsController] connectionType value:', createConnectionDto.connectionType);
+    console.log('🔵 [ConnectionsController] connectionType type:', typeof createConnectionDto.connectionType);
+    
+    try {
+      const result = await this.connectionsService.createConnectionRequest(
+        createConnectionDto,
+        req.user.id,
+      );
+      console.log('✅ [ConnectionsController] Connection request created successfully');
+      return result;
+    } catch (error) {
+      console.error('❌ [ConnectionsController] Error creating connection request:', error);
+      console.error('❌ [ConnectionsController] Error message:', error?.message);
+      console.error('❌ [ConnectionsController] Error stack:', error?.stack);
+      throw error;
+    }
   }
 
   @Get()
@@ -78,7 +94,21 @@ export class ConnectionsController {
     @Query() filterDto: ConnectionFilterDto,
     @Request() req: AuthenticatedRequest,
   ): Promise<PaginatedConnectionsDto> {
-    return this.connectionsService.getConnections(filterDto, req.user.id);
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/2b86e3fe-f024-4873-83ef-99098887c58e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'connections.controller.ts:77',message:'getConnections endpoint hit',data:{userId:req.user?.id,url:req.url,method:req.method,filterDto},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'D'})}).catch(()=>{});
+    // #endregion
+    try {
+      const result = await this.connectionsService.getConnections(filterDto, req.user.id);
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/2b86e3fe-f024-4873-83ef-99098887c58e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'connections.controller.ts:85',message:'getConnections success',data:{resultCount:result.data.length,total:result.total},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
+      return result;
+    } catch (error) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/2b86e3fe-f024-4873-83ef-99098887c58e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'connections.controller.ts:90',message:'getConnections error',data:{errorMessage:error instanceof Error ? error.message : 'Unknown',errorType:error?.constructor?.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
+      throw error;
+    }
   }
 
   @Get('requests')
@@ -126,6 +156,9 @@ export class ConnectionsController {
     @Query() filterDto: ConnectionFilterDto,
     @Request() req: AuthenticatedRequest,
   ): Promise<PaginatedConnectionsDto> {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/2b86e3fe-f024-4873-83ef-99098887c58e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'connections.controller.ts:118',message:'discoverNeighbors endpoint hit',data:{userId:req.user?.id,url:req.url,method:req.method},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+    // #endregion
     return this.connectionsService.discoverNeighbors(filterDto, req.user.id);
   }
 

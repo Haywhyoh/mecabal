@@ -500,10 +500,19 @@ export class ApiGatewayController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   async proxySocialWildcard(@Req() req: Request, @Res() res: Response) {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/2b86e3fe-f024-4873-83ef-99098887c58e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-gateway.controller.ts:502',message:'proxySocialWildcard entry',data:{originalUrl:req.url,method:req.method,pathParam:(req as any).params?.path},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     // Strip /social prefix from the URL
     const originalUrl = req.url;
     const pathWithoutPrefix = originalUrl.replace(/^\/social/, '');
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/2b86e3fe-f024-4873-83ef-99098887c58e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-gateway.controller.ts:506',message:'Path transformation',data:{originalUrl,pathWithoutPrefix,regexMatch:originalUrl.match(/^\/social/)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     req.url = pathWithoutPrefix;
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/2b86e3fe-f024-4873-83ef-99098887c58e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-gateway.controller.ts:508',message:'Before proxySocialRequest',data:{transformedUrl:req.url},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     return this.proxySocialRequest(req, res);
   }
 
@@ -1273,6 +1282,9 @@ export class ApiGatewayController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   private async proxySocialRequest(req: Request, res: Response) {
     try {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/2b86e3fe-f024-4873-83ef-99098887c58e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-gateway.controller.ts:1274',message:'proxySocialRequest entry',data:{url:req.url,method:req.method,originalUrl:req.originalUrl},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
       console.log('🌐 API Gateway - Proxying social service request:', req.url, req.method);
       
       // Log request body details for POST requests (especially for post creation)
@@ -1301,6 +1313,9 @@ export class ApiGatewayController {
         }
       }
 
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/2b86e3fe-f024-4873-83ef-99098887c58e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-gateway.controller.ts:1304',message:'Before proxyToSocialService call',data:{path:req.url,method:req.method,hasUser:!!req.user},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
       const result: unknown = await this.apiGatewayService.proxyToSocialService(
         req.url,
         req.method,
@@ -1308,6 +1323,9 @@ export class ApiGatewayController {
         req.headers as Record<string, string | string[] | undefined>,
         req.user as any,
       );
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/2b86e3fe-f024-4873-83ef-99098887c58e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-gateway.controller.ts:1310',message:'After proxyToSocialService call',data:{hasResult:!!result,resultType:result?.constructor?.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
 
       // Set appropriate status code based on method
       let statusCode = HttpStatus.OK;

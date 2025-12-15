@@ -66,8 +66,14 @@ export class ApiGatewayService {
     headers?: Record<string, string | string[] | undefined>,
     user?: any,
   ) {
+    const url = `${this.socialServiceUrl}${path}`;
     try {
-      const url = `${this.socialServiceUrl}${path}`;
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/2b86e3fe-f024-4873-83ef-99098887c58e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-gateway.service.ts:62',message:'proxyToSocialService entry',data:{path,method,socialServiceUrl:this.socialServiceUrl},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/2b86e3fe-f024-4873-83ef-99098887c58e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-gateway.service.ts:70',message:'Full URL constructed',data:{url,path,socialServiceUrl:this.socialServiceUrl},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
 
       console.log('🌐 API Gateway - Proxying to social service:');
       console.log('  - URL:', url);
@@ -152,10 +158,17 @@ export class ApiGatewayService {
         return { message: 'Not Modified' };
       }
 
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/2b86e3fe-f024-4873-83ef-99098887c58e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-gateway.service.ts:155',message:'proxyToSocialService success',data:{status:response.status,statusText:response.statusText,hasData:!!response.data,url},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
       return response.data as unknown;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
+      const errorObj = error as any;
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/2b86e3fe-f024-4873-83ef-99098887c58e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-gateway.service.ts:156',message:'proxyToSocialService error',data:{errorMessage,hasResponse:errorObj?.response!==undefined,status:errorObj?.response?.status,statusText:errorObj?.response?.statusText,responseData:errorObj?.response?.data,url,errorType:error?.constructor?.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
       console.error(`Error proxying to social service: ${errorMessage}`);
 
       // Handle specific error cases
