@@ -67,6 +67,7 @@ import {
   Payment,
   BankAccount,
   Connection,
+  HelpOffer,
 } from './entities';
 // Import messaging entities from the messaging service
 import { Conversation } from '../../../apps/messaging-service/src/entities/conversation.entity';
@@ -149,6 +150,7 @@ import { TypingIndicator } from '../../../apps/messaging-service/src/entities/ty
           Payment,
           BankAccount,
           Connection,
+          HelpOffer,
           // Messaging entities
           Conversation,
           ConversationParticipant,
@@ -236,6 +238,7 @@ import { TypingIndicator } from '../../../apps/messaging-service/src/entities/ty
       Payment,
       BankAccount,
       Connection,
+      HelpOffer,
       // Messaging entities
       Conversation,
       ConversationParticipant,

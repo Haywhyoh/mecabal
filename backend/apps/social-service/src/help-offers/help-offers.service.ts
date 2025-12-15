@@ -61,7 +61,15 @@ export class HelpOffersService {
     }
 
     // Check if user is trying to offer help on their own post
-    if (post.userId === userId) {
+    const postOwnerId = String(post.userId).trim();
+    const currentUserId = String(userId).trim();
+    
+    console.log('🟢 [HelpOffersService] Comparing user IDs:');
+    console.log('🟢 [HelpOffersService] post.userId:', postOwnerId, 'type:', typeof post.userId);
+    console.log('🟢 [HelpOffersService] userId:', currentUserId, 'type:', typeof userId);
+    console.log('🟢 [HelpOffersService] Are they equal?', postOwnerId === currentUserId);
+    
+    if (postOwnerId === currentUserId) {
       console.error('❌ [HelpOffersService] User trying to offer help on own post');
       throw new BadRequestException('Cannot offer help on your own post');
     }

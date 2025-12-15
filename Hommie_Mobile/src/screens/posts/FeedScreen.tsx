@@ -130,6 +130,15 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
     refreshFeed();
   }, [refreshFeed]);
 
+  const handleOfferHelp = useCallback((postId: string) => {
+    // Navigate to OfferHelp screen in HelpNavigator
+    // HelpNavigator is nested under the "Help" tab in MainStackNavigator
+    navigation.navigate('Help' as never, {
+      screen: 'OfferHelp',
+      params: { requestId: postId },
+    } as never);
+  }, [navigation]);
+
 
   // Handle segment change
   const handleSegmentChange = useCallback((segmentId: string) => {
@@ -164,13 +173,14 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
             onReact={(reactionType: string) => handleReaction(post.id, reactionType)}
             onComment={() => handleComment(post.id)}
             onShare={() => handleShare(post)}
+            onRespond={() => handleOfferHelp(post.id)}
           />
         );
       }
     }
     // Return null here - UnifiedFeedList will render the default cards
     return null;
-  }, [handlePostPress, handleReaction, handleComment, handleShare]);
+  }, [handlePostPress, handleReaction, handleComment, handleShare, handleOfferHelp]);
 
   return (
     <SafeAreaView style={styles.container}>

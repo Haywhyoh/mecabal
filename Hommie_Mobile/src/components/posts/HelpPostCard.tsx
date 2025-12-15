@@ -224,10 +224,13 @@ export const HelpPostCard: React.FC<HelpPostCardProps> = ({
             <Text style={styles.actionCount}>{post.engagement.reactionsCount}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionButton} onPress={onComment}>
-            <Ionicons name="chatbubble-outline" size={20} color="#8E8E8E" />
-            <Text style={styles.actionCount}>{post.engagement.commentsCount}</Text>
-          </TouchableOpacity>
+          {/* Hide comment button for help posts - help offers replace comments */}
+          {post.postType !== 'help' && (
+            <TouchableOpacity style={styles.actionButton} onPress={onComment}>
+              <Ionicons name="chatbubble-outline" size={20} color="#8E8E8E" />
+              <Text style={styles.actionCount}>{post.engagement.commentsCount}</Text>
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity style={styles.actionButton} onPress={onShare}>
             <Ionicons name="share-outline" size={20} color="#8E8E8E" />
