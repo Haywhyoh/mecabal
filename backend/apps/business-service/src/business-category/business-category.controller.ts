@@ -26,10 +26,16 @@ export class BusinessCategoryController {
   @ApiOperation({ summary: 'Get all business categories' })
   @ApiQuery({ name: 'includeCounts', required: false, type: Boolean, description: 'Include service counts per category' })
   @ApiResponse({ status: 200, description: 'Categories retrieved successfully' })
-  async findAll(@Query('includeCounts') includeCounts?: boolean) {
+  async findAll(@Query('includeCounts') includeCounts?: string | boolean) {
     let categories;
 
-    if (includeCounts === true || includeCounts === 'true') {
+    // Handle both string and boolean values from query parameters
+    const shouldIncludeCounts = 
+      includeCounts === true || 
+      includeCounts === 'true' || 
+      includeCounts === '1';
+
+    if (shouldIncludeCounts) {
       categories = await this.categoryService.findAllWithServiceCounts();
     } else {
       categories = await this.categoryService.findAll();
