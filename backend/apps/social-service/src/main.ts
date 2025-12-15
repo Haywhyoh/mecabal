@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, BadRequestException } from '@nestjs/common';
 import { SimpleSocialServiceModule } from './simple-social-service.module';
 
 async function bootstrap() {
@@ -49,6 +49,23 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+      exceptionFactory: (errors) => {
+        const messages = errors.map((error) => {
+          const constraints = error.constraints || {};
+          return Object.values(constraints).join(', ');
+        });
+        const errorMessage = messages.join('; ');
+        console.error('❌ [ValidationPipe] Validation errors:', JSON.stringify(errors, null, 2));
+        console.error('❌ [ValidationPipe] Error message:', errorMessage);
+        return new BadRequestException({
+          message: 'Validation failed',
+          errors: errors,
+          errorMessage: errorMessage,
+        });
+      },
     }),
   );
 

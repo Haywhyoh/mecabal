@@ -44,11 +44,28 @@ export class HelpOffersController {
     @Body() createHelpOfferDto: CreateHelpOfferDto,
     @Request() req: any,
   ): Promise<HelpOfferResponseDto> {
-    return this.helpOffersService.createHelpOffer(
-      createHelpOfferDto.postId,
-      req.user.id,
-      createHelpOfferDto,
-    );
+    console.log('🔵 [HelpOffersController] createHelpOffer called');
+    console.log('🔵 [HelpOffersController] Request body:', JSON.stringify(createHelpOfferDto, null, 2));
+    console.log('🔵 [HelpOffersController] User ID:', req.user?.id);
+    console.log('🔵 [HelpOffersController] DTO type:', typeof createHelpOfferDto);
+    console.log('🔵 [HelpOffersController] postId:', createHelpOfferDto.postId);
+    console.log('🔵 [HelpOffersController] message:', createHelpOfferDto.message);
+    console.log('🔵 [HelpOffersController] contactMethod:', createHelpOfferDto.contactMethod);
+    
+    try {
+      const result = await this.helpOffersService.createHelpOffer(
+        createHelpOfferDto.postId,
+        req.user.id,
+        createHelpOfferDto,
+      );
+      console.log('✅ [HelpOffersController] Help offer created successfully');
+      return result;
+    } catch (error) {
+      console.error('❌ [HelpOffersController] Error creating help offer:', error.constructor.name);
+      console.error('❌ [HelpOffersController] Error message:', error.message);
+      console.error('❌ [HelpOffersController] Error stack:', error.stack);
+      throw error;
+    }
   }
 
   @Get('post/:postId')

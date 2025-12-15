@@ -37,40 +37,58 @@ export class HelpOffersService {
     userId: string,
     createHelpOfferDto: CreateHelpOfferDto,
   ): Promise<HelpOfferResponseDto> {
+    console.log('🟢 [HelpOffersService] createHelpOffer called');
+    console.log('🟢 [HelpOffersService] postId:', postId);
+    console.log('🟢 [HelpOffersService] userId:', userId);
+    console.log('🟢 [HelpOffersService] DTO:', JSON.stringify(createHelpOfferDto, null, 2));
+    
     // Validate post exists and is a help request
+    console.log('🟢 [HelpOffersService] Checking if post exists:', postId);
     const post = await this.postRepository.findOne({
       where: { id: postId },
       relations: ['user'],
     });
 
     if (!post) {
+      console.error('❌ [HelpOffersService] Post not found:', postId);
       throw new NotFoundException('Post not found');
     }
+    console.log('✅ [HelpOffersService] Post found:', post.id, 'postType:', post.postType);
 
     if (post.postType !== 'help') {
+      console.error('❌ [HelpOffersService] Post is not a help request. postType:', post.postType);
       throw new BadRequestException('Can only offer help on help request posts');
     }
 
     // Check if user is trying to offer help on their own post
     if (post.userId === userId) {
+      console.error('❌ [HelpOffersService] User trying to offer help on own post');
       throw new BadRequestException('Cannot offer help on your own post');
     }
+    console.log('✅ [HelpOffersService] User is not the post owner');
 
     // Check for duplicate offer
+    console.log('🟢 [HelpOffersService] Checking for existing offer');
     const existingOffer = await this.helpOfferRepository.findOne({
       where: { postId, userId },
     });
 
     if (existingOffer) {
+      console.log('🟢 [HelpOffersService] Existing offer found:', existingOffer.id, 'status:', existingOffer.status);
       if (existingOffer.status === HelpOfferStatus.CANCELLED) {
         // Allow recreating if previously cancelled
+        console.log('🟡 [HelpOffersService] Removing cancelled offer');
         await this.helpOfferRepository.remove(existingOffer);
       } else {
+        console.error('❌ [HelpOffersService] Duplicate offer exists');
         throw new BadRequestException('You have already offered help for this post');
       }
+    } else {
+      console.log('✅ [HelpOffersService] No existing offer found');
     }
 
     // Create help offer
+    console.log('🟢 [HelpOffersService] Creating help offer entity');
     const helpOffer = this.helpOfferRepository.create({
       postId,
       userId,
@@ -80,19 +98,26 @@ export class HelpOffersService {
       estimatedTime: createHelpOfferDto.estimatedTime,
       status: HelpOfferStatus.PENDING,
     });
+    console.log('🟢 [HelpOffersService] Help offer entity created:', helpOffer.id);
 
+    console.log('🟢 [HelpOffersService] Saving help offer to database');
     const savedOffer = await this.helpOfferRepository.save(helpOffer);
+    console.log('✅ [HelpOffersService] Help offer saved:', savedOffer.id);
 
     // Fetch with relations for response
+    console.log('🟢 [HelpOffersService] Reloading offer with relations');
     const offerWithRelations = await this.helpOfferRepository.findOne({
       where: { id: savedOffer.id },
       relations: ['user', 'post'],
     });
 
     if (!offerWithRelations) {
+      console.error('❌ [HelpOffersService] Offer not found after creation:', savedOffer.id);
       throw new NotFoundException('Help offer not found after creation');
     }
+    console.log('✅ [HelpOffersService] Offer reloaded with relations');
 
+    console.log('✅ [HelpOffersService] Returning formatted response');
     return this.mapToResponseDto(offerWithRelations);
   }
 
