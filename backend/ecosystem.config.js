@@ -111,6 +111,7 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         PORT: 3007,
+        NOTIFICATION_SERVICE_PORT: 3007,
       },
       max_memory_restart: '200M',
       error_file: 'logs/notification-service-error.log',
