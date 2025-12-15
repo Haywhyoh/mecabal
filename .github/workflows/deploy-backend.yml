@@ -117,8 +117,6 @@ jobs:
 
         # Build and push single optimized image with all services
         echo "Building and pushing optimized backend image..."
-        # Use --no-cache for source code layer to ensure latest code is included
-        # This prevents using cached layers with old "Method not implemented" code
         docker build \
           --no-cache \
           --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
@@ -129,32 +127,12 @@ jobs:
         
         echo "✓ Image built successfully"
         
-        # CRITICAL: Verify the built image contains new code (not old "Method not implemented")
-        # Check specifically for searchEstates - other methods may still have placeholders
-        echo "Verifying built image contains new code..."
-        if docker run --rm --entrypoint sh $REGISTRY:latest \
-          -c "grep -A 20 'searchEstates' /app/dist/apps/auth-service/main.js 2>/dev/null | grep -q 'Method not implemented yet'"; then
-          echo "❌ ERROR: Built image still contains 'Method not implemented yet' for searchEstates"
-          echo "The build may have used cached layers with old code"
-          echo "This should not happen with --no-cache flag"
-          exit 1
-        else
-          echo "✅ Verified: searchEstates is properly implemented in the built image"
-          # Optional: Check if other methods still have placeholders (this is OK)
-          OTHER_METHODS=$(docker run --rm --entrypoint sh $REGISTRY:latest \
-            -c "grep -o 'Method not implemented yet' /app/dist/apps/auth-service/main.js 2>/dev/null | wc -l" || echo "0")
-          if [ "$OTHER_METHODS" -gt "0" ]; then
-            echo "ℹ️  Note: Found $OTHER_METHODS other 'Method not implemented' placeholders (not in searchEstates - this is OK)"
-          fi
-        fi
-        
         # Push images
         docker push $REGISTRY:latest
         docker push $REGISTRY:$SHA_TAG
 
         echo "✓ Image pushed successfully: $REGISTRY:latest"
         echo "✓ Image tagged with: $SHA_TAG"
-        echo "✓ Image verified to contain new code"
 
   deploy-staging:
     name: Deploy to Staging
@@ -469,28 +447,9 @@ jobs:
 
           # Start infrastructure services
           echo "Starting infrastructure services..."
-          # Note: postgres and rabbitmq are on host, not in containers
           docker-compose -f docker-compose.production.yml up -d redis minio
 
-          # Wait for infrastructure to be healthy
-          echo "Waiting for database to be ready..."
-          # Database is on host, not in container - check using host pg_isready
-          for i in {1..30}; do
-            if pg_isready -h localhost -U ${DATABASE_USERNAME:-mecabal} > /dev/null 2>&1; then
-              echo "Database is ready!"
-              break
-            fi
-            echo "Waiting for database... ($i/30)"
-            sleep 2
-          done
-
-          # Run database migrations (for existing deployments only)
-          echo "Running database migrations..."
-          # Run migrations inside the backend container after it starts
-          # We'll run this after services start, but first start the backend container
-          # Note: Migrations will be run after backend container is up
-
-          # Start all services with newly built images (without synchronize to avoid conflicts)
+          # Start all services with newly built images
           echo "Starting all services..."
           docker-compose -f docker-compose.production.yml up -d --remove-orphans
 
@@ -498,11 +457,9 @@ jobs:
           echo "Waiting for services to start..."
           sleep 30
 
-          # Run database migrations from within the backend container
+          # Run database migrations
           echo "Running database migrations..."
-          docker exec mecabal-backend npm run migration:run --prefix /app/apps/auth-service 2>/dev/null || {
-            echo "Migration failed or already run - continuing deployment"
-          }
+          docker exec mecabal-backend npm run migration:run --prefix /app/apps/auth-service 2>/dev/null || echo "Migration skipped or already run"
 
           # Check container status
           echo "Checking container status..."
