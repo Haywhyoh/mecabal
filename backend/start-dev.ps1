@@ -50,3 +50,5 @@ Write-Host "Starting API Gateway..." -ForegroundColor Green
 yarn run start:gateway
 
 
+
+
