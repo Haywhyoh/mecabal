@@ -205,7 +205,7 @@ echo ""
 
 # Step 4: Stop current container
 info "Step 4: Stopping current container..."
-docker compose -f "$COMPOSE_FILE" down || {
+$DOCKER_COMPOSE -f "$COMPOSE_FILE" down || {
     warning "Failed to stop with docker-compose, trying direct stop..."
     docker stop $CONTAINER_NAME 2>/dev/null || true
     docker rm $CONTAINER_NAME 2>/dev/null || true
