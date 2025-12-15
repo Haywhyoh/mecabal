@@ -1,4 +1,5 @@
 # Multi-stage Dockerfile for MeCabal NestJS Backend
+# All services run in one container using PM2
 
 # Stage 1: Base
 FROM node:22-alpine AS base
@@ -27,12 +28,12 @@ RUN npx nest build api-gateway && \
     npx nest build location-service && \
     npx nest build business-service
 
-# Stage 4: Runner
+# Stage 4: Runner (All services using PM2)
 FROM node:22-alpine AS runner
 WORKDIR /app
 
-# Install curl for health checks
-RUN apk add --no-cache curl
+# Install curl for health checks and dumb-init for proper signal handling
+RUN apk add --no-cache curl dumb-init
 
 # Create app user
 RUN addgroup --system --gid 1001 nodejs
@@ -51,19 +52,26 @@ COPY --from=builder /app/libs/database/src/entities ./libs/database/src/entities
 COPY --from=builder /app/libs/database/src/seeds ./libs/database/src/seeds
 COPY --from=builder /app/scripts ./scripts
 
-# Install production dependencies and dev dependencies needed for migrations
-RUN npm ci --production && npm install typeorm ts-node tsconfig-paths dotenv @types/node typescript
+# Copy PM2 ecosystem configuration
+COPY ecosystem.config.js ./ecosystem.config.js
 
-# Change ownership
-RUN chown -R nestjs:nodejs /app
+# Install production dependencies, PM2, and migration tools
+RUN npm ci --production && \
+    npm install pm2 typeorm ts-node tsconfig-paths dotenv @types/node typescript && \
+    npm cache clean --force
+
+# Create logs directory
+RUN mkdir -p logs && chown -R nestjs:nodejs /app
+
 USER nestjs
 
-# Expose port
-EXPOSE 3000
+# Expose all service ports
+EXPOSE 3000 3001 3002 3003 3004 3005 3006 3007 3008 3009
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node dist/apps/api-gateway/main.js --health || exit 1
+# Health check (check if PM2 is running and api-gateway is responding)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:3000/health || exit 1
 
-# Default command (can be overridden)
-CMD ["node", "dist/apps/api-gateway/main.js"]
+# Use dumb-init to handle signals properly and start all services with PM2
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["npx", "pm2-runtime", "start", "ecosystem.config.js"]

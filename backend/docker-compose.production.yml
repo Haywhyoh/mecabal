@@ -60,7 +60,7 @@ services:
   backend:
     build:
       context: .
-      dockerfile: Dockerfile.optimized
+      dockerfile: Dockerfile
     image: mecabal-backend:latest
     container_name: mecabal-backend
     restart: unless-stopped
