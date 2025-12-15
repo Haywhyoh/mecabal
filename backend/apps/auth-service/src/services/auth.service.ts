@@ -1741,6 +1741,8 @@ export class AuthService {
     limit?: number;
   }): Promise<Neighborhood[]> {
     try {
+      this.logger.log(`Searching estates with filters: ${JSON.stringify(filters)}`);
+
       const query = this.neighborhoodRepository
         .createQueryBuilder('neighborhood')
         .leftJoinAndSelect('neighborhood.lga', 'lga')
@@ -1770,10 +1772,31 @@ export class AuthService {
         query.limit(50); // Default limit
       }
 
-      return query.getMany();
+      const estates = await query.getMany();
+      this.logger.log(`Found ${estates.length} estates matching criteria`);
+      
+      return estates;
     } catch (error) {
-      this.logger.error('Estate search error:', error);
-      throw new BadRequestException('Failed to search estates');
+      this.logger.error('Estate search error:', {
+        error: error?.message,
+        stack: error?.stack,
+        filters,
+      });
+      
+      // If it's already a BadRequestException, re-throw it
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      
+      // For database errors, provide more context
+      if (error?.code === '23505' || error?.message?.includes('duplicate')) {
+        throw new BadRequestException('Database constraint violation during estate search');
+      }
+      
+      // For other errors, throw with more context
+      throw new BadRequestException(
+        `Failed to search estates: ${error?.message || 'Unknown error'}`,
+      );
     }
   }
 

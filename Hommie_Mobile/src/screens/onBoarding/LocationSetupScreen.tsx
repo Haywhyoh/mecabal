@@ -1,10 +1,13 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ScrollView, Alert, Animated } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ScrollView, Alert, Animated, TextInput, Modal, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../../constants';
 import { contextAwareGoBack } from '../../utils/navigationUtils';
 import { MeCabalLocation, MeCabalAuth } from '../../services';
 import { useAuth } from '../../contexts/AuthContext';
+import { useLocation } from '../../contexts/LocationContext';
+import { locationApi } from '../../services/api/locationApi';
+import type { State, LGA } from '../../types/location.types';
 import * as Haptics from 'expo-haptics';
 
 const LOCATION_OPTIONS = [
@@ -28,8 +31,18 @@ const LOCATION_OPTIONS = [
 
 export default function LocationSetupScreen({ navigation, route }: any) {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [states, setStates] = useState<State[]>([]);
+  const [lgas, setLGAs] = useState<LGA[]>([]);
+  const [selectedStateId, setSelectedStateId] = useState<string>('');
+  const [selectedLgaId, setSelectedLgaId] = useState<string>('');
+  const [cityTown, setCityTown] = useState<string>('');
+  const [coordinates, setCoordinates] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [isLoadingStates, setIsLoadingStates] = useState(false);
+  const [showStateModal, setShowStateModal] = useState(false);
+  const [showLGAModal, setShowLGAModal] = useState(false);
 
   const { register, setUser } = useAuth();
+  const { setSelectedState, setSelectedLGA, setCurrentCoordinates } = useLocation();
 
   // Animation values
   const scaleAnimations = useRef<{ [key: string]: Animated.Value }>({}).current;
@@ -50,58 +63,121 @@ export default function LocationSetupScreen({ navigation, route }: any) {
   const userId = route.params?.userId;
   const userDetails = route.params?.userDetails;
 
-  // Function to complete location setup and authenticate user
-  const completeLocationSetup = async (locationData?: {
-    state?: string;
-    city?: string;
-    estate?: string;
-    location?: string;
-    landmark?: string;
-    address?: string;
-    latitude?: number;
-    longitude?: number;
-  }) => {
+  // Load states on mount
+  useEffect(() => {
+    loadStates();
+  }, []);
+
+  // Load LGAs when state changes
+  useEffect(() => {
+    if (selectedStateId) {
+      loadLGAs(selectedStateId);
+    } else {
+      setLGAs([]);
+      setSelectedLgaId('');
+    }
+  }, [selectedStateId]);
+
+  const loadStates = async () => {
     try {
-      // Save location data to backend if provided
-      if (locationData) {
-        console.log('Saving location data for authenticated user');
+      setIsLoadingStates(true);
+      const statesData = await locationApi.getStates();
+      setStates(statesData);
+    } catch (error) {
+      console.error('Error loading states:', error);
+      Alert.alert('Error', 'Failed to load states. Please try again.');
+    } finally {
+      setIsLoadingStates(false);
+    }
+  };
 
-        // First test if JWT authentication works with a simpler endpoint
-        console.log('Testing JWT authentication with /auth/me endpoint...');
-        const testAuthResult = await MeCabalAuth.getCurrentUser();
-        console.log('Auth test result:', testAuthResult ? 'Success' : 'Failed');
+  const loadLGAs = async (stateId: string) => {
+    try {
+      const lgasData = await locationApi.getLGAsByState(stateId);
+      setLGAs(lgasData);
+    } catch (error) {
+      console.error('Error loading LGAs:', error);
+      Alert.alert('Error', 'Failed to load LGAs. Please try again.');
+    }
+  };
 
-        const locationResult = await MeCabalAuth.setupLocation({
-          ...locationData,
-          completeRegistration: true
-        });
-
-        if (!locationResult.success) {
-          Alert.alert('Error', locationResult.error || 'Failed to save location');
-          return;
+  // Reverse geocode coordinates to get state/LGA
+  const reverseGeocodeLocation = async (latitude: number, longitude: number) => {
+    try {
+      const result = await locationApi.reverseGeocode({ latitude, longitude });
+      if (result.success && result.data) {
+        const { state, lga, city } = result.data;
+        
+        // Find matching state
+        if (state) {
+          const matchingState = states.find(s => 
+            s.name.toLowerCase() === state.toLowerCase() ||
+            state.toLowerCase().includes(s.name.toLowerCase())
+          );
+          if (matchingState) {
+            setSelectedStateId(matchingState.id);
+            setSelectedState(matchingState);
+            
+            // Load LGAs and find matching LGA
+            const lgasData = await locationApi.getLGAsByState(matchingState.id);
+            setLGAs(lgasData);
+            
+            if (lga) {
+              const matchingLGA = lgasData.find((l: LGA) =>
+                l.name.toLowerCase().includes(lga.toLowerCase()) ||
+                lga.toLowerCase().includes(l.name.toLowerCase())
+              );
+              if (matchingLGA) {
+                setSelectedLgaId(matchingLGA.id);
+                setSelectedLGA(matchingLGA);
+              }
+            }
+          }
         }
-
-        console.log('Location saved successfully to backend');
-      }
-
-      if (userDetails) {
-        // Now set user as fully authenticated after location setup is complete
-        setUser(userDetails);
-        console.log('✅ Location setup completed - user now fully authenticated:', userDetails.id);
-      } else if (onSetupComplete) {
-        // Fallback to callback if no userDetails
-        onSetupComplete();
-      } else {
-        // Fallback: navigate to main app
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'MainTabs' }],
-        });
+        
+        if (city) {
+          setCityTown(city);
+        }
       }
     } catch (error) {
-      console.error('Failed to complete authentication:', error);
-      Alert.alert('Error', 'Failed to complete setup. Please try again.');
+      console.error('Reverse geocoding error:', error);
     }
+  };
+
+  // Navigate to EstateSelection with location data
+  const navigateToEstateSelection = () => {
+    if (!selectedStateId || !selectedLgaId) {
+      Alert.alert('Incomplete Location', 'Please select both state and LGA to continue.');
+      return;
+    }
+
+    const selectedStateObj = states.find(s => s.id === selectedStateId);
+    const selectedLgaObj = lgas.find(l => l.id === selectedLgaId);
+
+    // Set in LocationContext for EstateSelectionScreen to use
+    if (selectedStateObj) {
+      setSelectedState(selectedStateObj);
+    }
+    if (selectedLgaObj) {
+      setSelectedLGA(selectedLgaObj);
+    }
+    if (coordinates) {
+      setCurrentCoordinates(coordinates);
+    }
+
+    // Navigate to EstateSelection with location data
+    navigation.navigate('EstateSelection', {
+      locationData: {
+        stateId: selectedStateId,
+        stateName: selectedStateObj?.name,
+        lgaId: selectedLgaId,
+        lgaName: selectedLgaObj?.name,
+        cityTown: cityTown,
+        coordinates: coordinates,
+        userId: userId,
+        userDetails: userDetails,
+      },
+    });
   };
 
   const handleOptionSelect = (optionId: string) => {
@@ -153,37 +229,24 @@ export default function LocationSetupScreen({ navigation, route }: any) {
                 location.data && typeof location.data === 'object' && 
                 typeof location.data.latitude === 'number' && typeof location.data.longitude === 'number') {
               
-              // Verify location with Supabase
-              const verification = await MeCabalLocation.verifyLocation(
-                route.params?.userId || 'temp-user',
-                location.data.latitude,
-                location.data.longitude,
-                location.data.address
-              );
+              const lat = location.data.latitude;
+              const lng = location.data.longitude;
               
-              if (verification && verification.verified && verification.neighborhood) {
-                Alert.alert(
-                  'Location Verified!',
-                  `Welcome to ${verification.neighborhood.name}!\n\nAddress: ${location.data?.address || 'Location detected'}\nAccuracy: ${Math.round(location.data?.accuracy || 0)}m`,
-                  [{ text: 'Continue', onPress: () => completeLocationSetup({
-                    state: (verification.neighborhood as any)?.state || '',
-                    city: (verification.neighborhood as any)?.city || '',
-                    estate: verification.neighborhood?.name || '',
-                    latitude: location.data?.latitude,
-                    longitude: location.data?.longitude,
-                    address: location.data?.address
-                  }) }]
-                );
-              } else {
-                Alert.alert(
-                  'Location Not Recognized',
-                  `We detected your location (${location.data.address || 'coordinates found'}) but couldn't match it to a registered neighborhood.\n\nPlease try selecting your location on the map instead.`,
-                  [
-                    { text: 'Use Map', onPress: () => handleMapLocation() },
-                    { text: 'Cancel', style: 'cancel' }
-                  ]
-                );
-              }
+              // Store coordinates
+              setCoordinates({ latitude: lat, longitude: lng });
+              setCurrentCoordinates({ latitude: lat, longitude: lng });
+              
+              // Reverse geocode to get state/LGA
+              await reverseGeocodeLocation(lat, lng);
+              
+              // Show confirmation with state/LGA selection
+              Alert.alert(
+                'Location Detected',
+                `We found your location: ${location.data?.address || 'Coordinates detected'}\n\nPlease confirm your state and LGA below, then continue to select your estate.`,
+                [{ text: 'Continue', onPress: () => {
+                  // User will select state/LGA in the UI, then click continue button
+                }}]
+              );
             } else {
               Alert.alert(
                 'Location Error', 
@@ -210,41 +273,23 @@ export default function LocationSetupScreen({ navigation, route }: any) {
   const handleMapLocation = () => {
     navigation.navigate('MapPicker', {
       userId: route.params?.userId,
-      onLocationSelected: (result: any) => {
-        if (result.verified) {
-          Alert.alert(
-            'Location Confirmed!',
-            `Welcome to ${result.neighborhood.name}! You're now part of this MeCabal community.`,
-            [
-              {
-                text: 'Continue',
-                onPress: () => completeLocationSetup({
-                  state: result.neighborhood.state,
-                  city: result.neighborhood.city,
-                  estate: result.neighborhood.name,
-                  latitude: result.latitude,
-                  longitude: result.longitude,
-                  address: result.address
-                })
-              }
-            ]
-          );
-        } else {
-          Alert.alert(
-            'Location Selected',
-            'Your location has been set, but it\'s not in a registered community yet. You can still use MeCabal with limited community features.',
-            [
-              {
-                text: 'Continue',
-                onPress: () => completeLocationSetup({
-                  latitude: result.latitude,
-                  longitude: result.longitude,
-                  address: result.address
-                })
-              }
-            ]
-          );
-        }
+      onLocationSelected: async (result: any) => {
+        const lat = result.latitude;
+        const lng = result.longitude;
+        
+        // Store coordinates
+        setCoordinates({ latitude: lat, longitude: lng });
+        setCurrentCoordinates({ latitude: lat, longitude: lng });
+        
+        // Reverse geocode to get state/LGA
+        await reverseGeocodeLocation(lat, lng);
+        
+        // Show confirmation
+        Alert.alert(
+          'Location Selected',
+          `Location: ${result.address || 'Coordinates selected'}\n\nPlease confirm your state and LGA below, then continue to select your estate.`,
+          [{ text: 'Continue' }]
+        );
       }
     });
   };
@@ -333,8 +378,163 @@ export default function LocationSetupScreen({ navigation, route }: any) {
             ))}
           </View>
 
+          {/* State/LGA Selection - Show after location is detected */}
+          {(selectedOption === 'gps' || selectedOption === 'map') && coordinates && (
+            <View style={styles.locationFormSection}>
+              <Text style={styles.formSectionTitle}>Confirm Your Location</Text>
+              
+              {/* State Selection */}
+              <View style={styles.formField}>
+                <Text style={styles.formLabel}>State *</Text>
+                {isLoadingStates ? (
+                  <Text style={styles.loadingText}>Loading states...</Text>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.selectButton}
+                    onPress={() => setShowStateModal(true)}
+                  >
+                    <Text style={[styles.selectButtonText, !selectedStateId && styles.selectButtonPlaceholder]}>
+                      {selectedStateId
+                        ? states.find(s => s.id === selectedStateId)?.name
+                        : 'Select your state'}
+                    </Text>
+                    <Ionicons name="chevron-down" size={20} color={COLORS.textSecondary} />
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* LGA Selection */}
+              {selectedStateId && (
+                <View style={styles.formField}>
+                  <Text style={styles.formLabel}>LGA (Local Government Area) *</Text>
+                  {lgas.length === 0 ? (
+                    <Text style={styles.loadingText}>Loading LGAs...</Text>
+                  ) : (
+                    <TouchableOpacity
+                      style={styles.selectButton}
+                      onPress={() => setShowLGAModal(true)}
+                    >
+                      <Text style={[styles.selectButtonText, !selectedLgaId && styles.selectButtonPlaceholder]}>
+                        {selectedLgaId
+                          ? lgas.find(l => l.id === selectedLgaId)?.name
+                          : 'Select your LGA'}
+                      </Text>
+                      <Ionicons name="chevron-down" size={20} color={COLORS.textSecondary} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+
+              {/* City/Town (Optional) */}
+              {selectedStateId && selectedLgaId && (
+                <View style={styles.formField}>
+                  <Text style={styles.formLabel}>City/Town (Optional)</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Enter city or town"
+                    value={cityTown}
+                    onChangeText={setCityTown}
+                    placeholderTextColor={COLORS.textSecondary}
+                  />
+                </View>
+              )}
+
+              {/* Continue Button */}
+              {selectedStateId && selectedLgaId && (
+                <TouchableOpacity
+                  style={styles.continueButton}
+                  onPress={navigateToEstateSelection}
+                >
+                  <Text style={styles.continueButtonText}>Continue to Estate Selection</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+
         </View>
       </View>
+
+      {/* State Selection Modal */}
+      <Modal visible={showStateModal} animationType="slide" presentationStyle="pageSheet">
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowStateModal(false)}>
+              <Text style={styles.modalCancelText}>Cancel</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Select State</Text>
+            <TouchableOpacity onPress={() => setShowStateModal(false)}>
+              <Text style={styles.modalDoneText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+          <FlatList
+            data={states}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={[
+                  styles.modalItem,
+                  selectedStateId === item.id && styles.modalItemSelected,
+                ]}
+                onPress={() => {
+                  setSelectedStateId(item.id);
+                  const stateObj = states.find(s => s.id === item.id);
+                  if (stateObj) {
+                    setSelectedState(stateObj);
+                  }
+                  setShowStateModal(false);
+                }}
+              >
+                <Text style={styles.modalItemText}>{item.name}</Text>
+                {selectedStateId === item.id && (
+                  <Ionicons name="checkmark" size={20} color={COLORS.primary} />
+                )}
+              </TouchableOpacity>
+            )}
+          />
+        </SafeAreaView>
+      </Modal>
+
+      {/* LGA Selection Modal */}
+      <Modal visible={showLGAModal} animationType="slide" presentationStyle="pageSheet">
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowLGAModal(false)}>
+              <Text style={styles.modalCancelText}>Cancel</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Select LGA</Text>
+            <TouchableOpacity onPress={() => setShowLGAModal(false)}>
+              <Text style={styles.modalDoneText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+          <FlatList
+            data={lgas}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={[
+                  styles.modalItem,
+                  selectedLgaId === item.id && styles.modalItemSelected,
+                ]}
+                onPress={() => {
+                  setSelectedLgaId(item.id);
+                  const lgaObj = lgas.find(l => l.id === item.id);
+                  if (lgaObj) {
+                    setSelectedLGA(lgaObj);
+                  }
+                  setShowLGAModal(false);
+                }}
+              >
+                <Text style={styles.modalItemText}>
+                  {item.name} {item.type === 'LCDA' ? '(LCDA)' : ''}
+                </Text>
+                {selectedLgaId === item.id && (
+                  <Ionicons name="checkmark" size={20} color={COLORS.primary} />
+                )}
+              </TouchableOpacity>
+            )}
+          />
+        </SafeAreaView>
+      </Modal>
 
     </SafeAreaView>
   );
@@ -512,5 +712,103 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     textAlign: 'center',
     fontWeight: '400',
+  },
+  locationFormSection: {
+    marginTop: 24,
+    padding: 16,
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+  },
+  formSectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 16,
+  },
+  formField: {
+    marginBottom: 16,
+  },
+  formLabel: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: COLORS.text,
+    marginBottom: 8,
+  },
+  selectButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+    borderRadius: 8,
+    minHeight: 48,
+  },
+  selectButtonText: {
+    fontSize: 16,
+    color: COLORS.text,
+    flex: 1,
+  },
+  selectButtonPlaceholder: {
+    color: COLORS.textSecondary,
+  },
+  textInput: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+    borderRadius: 8,
+    fontSize: 16,
+    color: COLORS.text,
+    minHeight: 48,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: COLORS.white,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5E5',
+  },
+  modalCancelText: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  modalDoneText: {
+    fontSize: 16,
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
+  modalItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F5F5F5',
+  },
+  modalItemSelected: {
+    backgroundColor: COLORS.lightGreen,
+  },
+  modalItemText: {
+    fontSize: 16,
+    color: COLORS.text,
+    flex: 1,
   },
 });

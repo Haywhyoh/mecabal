@@ -2328,6 +2328,29 @@ export class ApiGatewayController {
     }
   }
 
+  @Post('location/reverse-geocode')
+  @ApiOperation({ summary: 'Reverse geocode coordinates to location information' })
+  @ApiResponse({ status: 200, description: 'Location information retrieved successfully' })
+  async reverseGeocode(@Req() req: Request, @Res() res: Response) {
+    try {
+      const result: unknown = await this.apiGatewayService.proxyToLocationService(
+        '/geocoding/reverse-geocode',
+        'POST',
+        req.body,
+        req.headers as Record<string, string | string[] | undefined>,
+        req.user,
+      );
+      res.status(HttpStatus.OK).json(result);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error reverse geocoding:', errorMessage);
+      res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: errorMessage });
+    }
+  }
+
   // Catch-all route for location service
   @All('location/*path')
   @ApiOperation({ summary: 'Proxy all location service requests' })

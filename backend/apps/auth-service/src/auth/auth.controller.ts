@@ -11,6 +11,9 @@ import {
   Req,
   Res,
   Query,
+  Logger,
+  BadRequestException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -69,6 +72,8 @@ import { Repository } from 'typeorm';
 @Controller('auth')
 @UseGuards(ThrottlerGuard) // Rate limiting
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(
     private readonly authService: AuthService,
     private readonly emailOtpService: EmailOtpService,
@@ -977,18 +982,71 @@ export class AuthController {
     status: 200,
     description: 'Gated estates retrieved successfully',
   })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid query parameters',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error',
+  })
   async searchEstates(
     @Query('query') query?: string,
     @Query('stateId') stateId?: string,
     @Query('lgaId') lgaId?: string,
     @Query('limit') limit?: number,
   ) {
-    return this.authService.searchEstates({
-      query,
-      stateId,
-      lgaId,
-      limit: limit ? parseInt(limit.toString(), 10) : undefined,
-    });
+    try {
+      this.logger.log(`Search estates request: query=${query}, stateId=${stateId}, lgaId=${lgaId}, limit=${limit}`);
+
+      // Validate limit parameter
+      let parsedLimit: number | undefined;
+      if (limit !== undefined) {
+        parsedLimit = parseInt(limit.toString(), 10);
+        if (isNaN(parsedLimit) || parsedLimit < 1 || parsedLimit > 100) {
+          throw new BadRequestException('Limit must be a number between 1 and 100');
+        }
+      }
+
+      // Validate UUID format for stateId and lgaId if provided
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (stateId && !uuidRegex.test(stateId)) {
+        throw new BadRequestException('Invalid stateId format. Expected UUID.');
+      }
+      if (lgaId && !uuidRegex.test(lgaId)) {
+        throw new BadRequestException('Invalid lgaId format. Expected UUID.');
+      }
+
+      // Validate query string length
+      if (query && query.trim().length > 100) {
+        throw new BadRequestException('Query string must be 100 characters or less');
+      }
+
+      // Call service method
+      const estates = await this.authService.searchEstates({
+        query: query?.trim(),
+        stateId,
+        lgaId,
+        limit: parsedLimit,
+      });
+
+      this.logger.log(`Search estates completed: found ${estates.length} estates`);
+
+      // Return the estates array - NestJS will serialize it automatically
+      return estates;
+    } catch (error) {
+      this.logger.error('Error in searchEstates:', error);
+
+      // If it's already a NestJS HTTP exception, re-throw it
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+
+      // For other errors, throw InternalServerErrorException
+      throw new InternalServerErrorException(
+        error?.message || 'Failed to search estates. Please try again later.',
+      );
+    }
   }
 
   @Get('location/states')
