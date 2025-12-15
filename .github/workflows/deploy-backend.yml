@@ -154,7 +154,12 @@ jobs:
           export COMPOSE_HTTP_TIMEOUT=300
 
           # Create backup tag for rollback
-          docker-compose -f docker-compose.production.yml exec -T postgres pg_dump -U $DATABASE_USERNAME $DATABASE_NAME > backup_staging_$(date +%Y%m%d_%H%M%S).sql || echo "Backup skipped (first deployment)"
+          # Database is on host, not in container - use host pg_dump
+          # Load database environment variables first
+          if [ -f .env ]; then
+            export $(cat .env | grep -E "^DATABASE_[A-Z_]+=" | xargs)
+          fi
+          pg_dump -h localhost -U ${DATABASE_USERNAME:-mecabal} ${DATABASE_NAME:-mecabal_staging} > backup_staging_$(date +%Y%m%d_%H%M%S).sql 2>/dev/null || echo "Backup skipped (first deployment)"
 
           # Pull latest code
           git pull origin develop
@@ -228,8 +233,7 @@ jobs:
           # Stop existing containers gracefully
           docker-compose -f docker-compose.production.yml down --timeout 30
 
-          # Run database migrations
-          docker-compose -f docker-compose.production.yml run --rm api-gateway npm run migration:run || echo "Migration skipped or failed"
+          # Run database migrations (will be done after backend container starts)
 
           # Start new containers
           docker-compose -f docker-compose.production.yml up -d
@@ -237,6 +241,10 @@ jobs:
           # Wait for services to be healthy
           echo "Waiting for services to start..."
           sleep 45
+
+          # Run database migrations from within the backend container
+          echo "Running database migrations..."
+          docker exec mecabal-backend npm run migration:run --prefix /app/apps/auth-service 2>/dev/null || echo "Migration skipped or failed"
 
           # Run comprehensive health checks for all 10 services (all running in one container now)
           echo "Running health checks..."
@@ -312,7 +320,8 @@ jobs:
           fi
 
           # Create backup (skip if database doesn't exist yet)
-          docker-compose -f docker-compose.production.yml exec -T postgres pg_dump -U ${DATABASE_USERNAME:-mecabal} ${DATABASE_NAME:-mecabal_prod} > $BACKUP_FILE 2>/dev/null || echo "Skipping backup (first deployment or database not ready)"
+          # Database is on host, not in container - use host pg_dump
+          pg_dump -h localhost -U ${DATABASE_USERNAME:-mecabal} ${DATABASE_NAME:-mecabal_prod} > $BACKUP_FILE 2>/dev/null || echo "Skipping backup (first deployment or database not ready)"
 
           # Keep only last 7 backups
           ls -t backup_production_*.sql | tail -n +8 | xargs -r rm
@@ -428,12 +437,14 @@ jobs:
 
           # Start infrastructure services
           echo "Starting infrastructure services..."
-          docker-compose -f docker-compose.production.yml up -d postgres redis rabbitmq minio
+          # Note: postgres and rabbitmq are on host, not in containers
+          docker-compose -f docker-compose.production.yml up -d redis minio
 
           # Wait for infrastructure to be healthy
           echo "Waiting for database to be ready..."
+          # Database is on host, not in container - check using host pg_isready
           for i in {1..30}; do
-            if docker-compose -f docker-compose.production.yml exec -T postgres pg_isready -U ${DATABASE_USERNAME:-mecabal} > /dev/null 2>&1; then
+            if pg_isready -h localhost -U ${DATABASE_USERNAME:-mecabal} > /dev/null 2>&1; then
               echo "Database is ready!"
               break
             fi
@@ -443,10 +454,9 @@ jobs:
 
           # Run database migrations (for existing deployments only)
           echo "Running database migrations..."
-          docker-compose -f docker-compose.production.yml run --rm -e DATABASE_SYNCHRONIZE=false auth-service npm run migration:run || {
-            echo "Migration failed! Check logs for details"
-            # Don't exit on migration failure - allow deployment to continue
-          }
+          # Run migrations inside the backend container after it starts
+          # We'll run this after services start, but first start the backend container
+          # Note: Migrations will be run after backend container is up
 
           # Start all services with newly built images (without synchronize to avoid conflicts)
           echo "Starting all services..."
@@ -455,6 +465,12 @@ jobs:
           # Wait for services to start
           echo "Waiting for services to start..."
           sleep 30
+
+          # Run database migrations from within the backend container
+          echo "Running database migrations..."
+          docker exec mecabal-backend npm run migration:run --prefix /app/apps/auth-service 2>/dev/null || {
+            echo "Migration failed or already run - continuing deployment"
+          }
 
           # Check container status
           echo "Checking container status..."
