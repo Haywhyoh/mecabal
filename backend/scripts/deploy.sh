@@ -57,10 +57,12 @@ if [ ! -f "$COMPOSE_FILE" ]; then
     exit 1
 fi
 
-if [ ! -f "Dockerfile.optimized" ]; then
-    error "Dockerfile.optimized not found!"
+if [ ! -f "Dockerfile" ]; then
+    error "Dockerfile not found!"
     exit 1
 fi
+
+info "Using: $DOCKER_COMPOSE"
 
 # Parse command line arguments
 SKIP_PULL=false
