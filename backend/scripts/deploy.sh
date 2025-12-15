@@ -219,10 +219,11 @@ info "Step 5: Building new Docker image..."
 echo "This may take 2-5 minutes..."
 echo "Building from Dockerfile with PM2 configuration..."
 
-BUILD_CMD="docker compose -f $COMPOSE_FILE build backend"
 if [ "$NO_CACHE" = true ]; then
-    BUILD_CMD="$BUILD_CMD --no-cache"
     info "Building with --no-cache (clean rebuild)"
+    BUILD_CMD="$DOCKER_COMPOSE -f $COMPOSE_FILE build --no-cache backend"
+else
+    BUILD_CMD="$DOCKER_COMPOSE -f $COMPOSE_FILE build backend"
 fi
 
 if $BUILD_CMD; then
@@ -231,7 +232,7 @@ else
     error "Docker build failed!"
     echo ""
     error "Attempting to restore previous container..."
-    docker compose -f "$COMPOSE_FILE" up -d || {
+    $DOCKER_COMPOSE -f "$COMPOSE_FILE" up -d || {
         error "Could not restore previous container!"
         error "Manual intervention required"
         exit 1
@@ -243,7 +244,7 @@ echo ""
 
 # Step 6: Start new container
 info "Step 6: Starting new container..."
-docker compose -f "$COMPOSE_FILE" up -d || {
+$DOCKER_COMPOSE -f "$COMPOSE_FILE" up -d || {
     error "Failed to start container!"
     exit 1
 }
@@ -263,7 +264,7 @@ info "Step 8: Verifying deployment..."
 # Check if container is running
 if ! docker ps --filter "name=$CONTAINER_NAME" --format "{{.ID}}" | grep -q .; then
     error "Container is not running!"
-    docker compose logs backend --tail 50
+    $DOCKER_COMPOSE logs backend --tail 50
     exit 1
 fi
 success "Container is running"
@@ -288,7 +289,7 @@ else
     echo
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
         error "Deployment verification failed"
-        info "Check logs with: docker compose logs backend"
+        info "Check logs with: $DOCKER_COMPOSE logs backend"
         exit 1
     fi
 fi
@@ -306,7 +307,7 @@ fi
 # Show recent logs
 echo ""
 info "Recent logs:"
-docker compose logs backend --tail 20
+$DOCKER_COMPOSE logs backend --tail 20
 
 # Final status
 echo ""
@@ -323,7 +324,7 @@ echo ""
 success "All services deployed and running"
 echo ""
 info "Monitor logs with:"
-echo "  docker compose -f $COMPOSE_FILE logs -f backend"
+echo "  $DOCKER_COMPOSE -f $COMPOSE_FILE logs -f backend"
 echo ""
 info "Check PM2 status:"
 echo "  docker exec $CONTAINER_NAME npx pm2 list"

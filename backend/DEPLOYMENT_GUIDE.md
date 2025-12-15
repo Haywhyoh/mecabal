@@ -33,20 +33,31 @@ cd ~/mecabal/backend
 git pull origin main
 
 # Stop and remove old container
+# Use 'docker-compose' (V1) or 'docker compose' (V2) depending on your installation
+docker-compose -f docker-compose.production.yml down
+# OR
 docker compose -f docker-compose.production.yml down
 
 # Rebuild the image (this compiles your TypeScript code)
+docker-compose -f docker-compose.production.yml build --no-cache backend
+# OR
 docker compose -f docker-compose.production.yml build --no-cache backend
 
 # Start the new container
+docker-compose -f docker-compose.production.yml up -d
+# OR
 docker compose -f docker-compose.production.yml up -d
 
 # Verify all services are running
 docker exec mecabal-backend npx pm2 list
 
 # Check logs
+docker-compose logs -f backend
+# OR
 docker compose logs -f backend
 ```
+
+**Note**: The deployment script (`./scripts/deploy.sh`) automatically detects which version you have installed.
 
 ### Option 2: Full Clean Rebuild (For Major Changes)
 
@@ -59,19 +70,19 @@ cd ~/mecabal/backend
 git pull origin main
 
 # Stop everything
-docker compose -f docker-compose.production.yml down
+docker-compose -f docker-compose.production.yml down
 
 # Remove old images to force fresh build
 docker rmi mecabal-backend:latest
 
 # Clean rebuild
-docker compose -f docker-compose.production.yml build --no-cache
+docker-compose -f docker-compose.production.yml build --no-cache
 
 # Start services
-docker compose -f docker-compose.production.yml up -d
+docker-compose -f docker-compose.production.yml up -d
 
 # Monitor startup
-docker compose logs -f backend
+docker-compose logs -f backend
 ```
 
 ### Option 3: Using GitHub Container Registry (For Production CI/CD)
@@ -96,7 +107,7 @@ docker pull ghcr.io/haywhyoh/mecabal-backend:latest
 # (Remove the build: section)
 
 # Restart with new image
-docker compose -f docker-compose.production.yml up -d
+docker-compose -f docker-compose.production.yml up -d
 ```
 
 ## What NOT to Do
@@ -249,10 +260,12 @@ docker exec mecabal-backend npx pm2 restart all --update-env
 
 **Fastest deployment workflow:**
 1. `git pull`
-2. `docker compose -f docker-compose.production.yml down`
-3. `docker compose -f docker-compose.production.yml build backend`
-4. `docker compose -f docker-compose.production.yml up -d`
+2. `docker-compose -f docker-compose.production.yml down`
+3. `docker-compose -f docker-compose.production.yml build backend`
+4. `docker-compose -f docker-compose.production.yml up -d`
 5. Verify services are running
+
+**Or use the automated script:** `./scripts/deploy.sh`
 
 **Expected downtime:** 2-5 minutes (depending on build speed)
 
