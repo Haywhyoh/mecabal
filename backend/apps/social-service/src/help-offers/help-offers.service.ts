@@ -179,6 +179,22 @@ export class HelpOffersService {
     return this.mapToResponseDto(offer);
   }
 
+  async getUserOfferForPost(
+    postId: string,
+    userId: string,
+  ): Promise<HelpOfferResponseDto | null> {
+    const offer = await this.helpOfferRepository.findOne({
+      where: { postId, userId },
+      relations: ['user', 'post'],
+    });
+
+    if (!offer) {
+      return null;
+    }
+
+    return this.mapToResponseDto(offer);
+  }
+
   async acceptHelpOffer(
     offerId: string,
     requesterUserId: string,

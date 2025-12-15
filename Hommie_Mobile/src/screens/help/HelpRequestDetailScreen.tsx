@@ -36,6 +36,7 @@ export const HelpRequestDetailScreen: React.FC<HelpRequestDetailScreenProps> = (
   const [refreshing, setRefreshing] = useState(false);
   const [helpOffers, setHelpOffers] = useState<HelpOffer[]>([]);
   const [processingOffer, setProcessingOffer] = useState<string | null>(null);
+  const [myOffer, setMyOffer] = useState<HelpOffer | null>(null);
 
   const loadRequestDetails = useCallback(async () => {
     try {
@@ -60,8 +61,18 @@ export const HelpRequestDetailScreen: React.FC<HelpRequestDetailScreenProps> = (
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadRequestDetails();
+    // Reload my offer if user is not the owner
+    if (user?.id) {
+      try {
+        const offer = await helpOfferService.getMyOfferForPost(requestId);
+        setMyOffer(offer);
+      } catch (error) {
+        console.error('Error loading my offer on refresh:', error);
+        setMyOffer(null);
+      }
+    }
     setRefreshing(false);
-  }, [loadRequestDetails]);
+  }, [loadRequestDetails, user?.id, requestId]);
 
   useEffect(() => {
     loadRequestDetails();
@@ -82,6 +93,25 @@ export const HelpRequestDetailScreen: React.FC<HelpRequestDetailScreenProps> = (
     
     if (request) {
       loadHelpOffers();
+    }
+  }, [request, requestId, user?.id]);
+
+  // Fetch user's own offer (only if user is NOT the owner)
+  useEffect(() => {
+    const loadMyOffer = async () => {
+      if (!request || !user?.id || user?.id === request.author?.id) return;
+      
+      try {
+        const offer = await helpOfferService.getMyOfferForPost(requestId);
+        setMyOffer(offer);
+      } catch (error) {
+        console.error('Error loading my offer:', error);
+        setMyOffer(null);
+      }
+    };
+    
+    if (request) {
+      loadMyOffer();
     }
   }, [request, requestId, user?.id]);
 
@@ -257,6 +287,129 @@ export const HelpRequestDetailScreen: React.FC<HelpRequestDetailScreenProps> = (
     );
   };
 
+  const renderMyApplication = () => {
+    if (!myOffer || !user?.id) return null;
+
+    const getStatusColor = (status: string) => {
+      switch (status) {
+        case 'pending': return '#FFC107';
+        case 'accepted': return '#00A651';
+        case 'rejected': return '#DC3545';
+        case 'completed': return '#6C757D';
+        case 'cancelled': return '#6C757D';
+        default: return '#6C757D';
+      }
+    };
+
+    const getStatusLabel = (status: string) => {
+      switch (status) {
+        case 'pending': return 'Pending';
+        case 'accepted': return 'Accepted';
+        case 'rejected': return 'Rejected';
+        case 'completed': return 'Completed';
+        case 'cancelled': return 'Cancelled';
+        default: return status;
+      }
+    };
+
+    const handleCancelOffer = async () => {
+      Alert.alert(
+        'Cancel Application',
+        'Are you sure you want to cancel your help offer?',
+        [
+          { text: 'No', style: 'cancel' },
+          {
+            text: 'Yes, Cancel',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await helpOfferService.cancelOffer(myOffer.id);
+                setMyOffer(null);
+                Alert.alert('Success', 'Your application has been cancelled.');
+              } catch (error) {
+                console.error('Error cancelling offer:', error);
+                Alert.alert('Error', error instanceof Error ? error.message : 'Failed to cancel application');
+              }
+            },
+          },
+        ]
+      );
+    };
+
+    return (
+      <View style={styles.myApplicationSection}>
+        <View style={styles.myApplicationHeader}>
+          <Text style={styles.sectionTitle}>My Application</Text>
+          <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor(myOffer.status)}20` }]}>
+            <Text style={[styles.statusBadgeText, { color: getStatusColor(myOffer.status) }]}>
+              {getStatusLabel(myOffer.status)}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.myApplicationCard}>
+          <Text style={styles.myApplicationMessage}>{myOffer.message}</Text>
+
+          <View style={styles.myApplicationMeta}>
+            <View style={styles.myApplicationMetaItem}>
+              <Ionicons
+                name={
+                  myOffer.contactMethod === 'phone'
+                    ? 'call-outline'
+                    : myOffer.contactMethod === 'meet'
+                    ? 'location-outline'
+                    : 'chatbubble-outline'
+                }
+                size={16}
+                color="#666666"
+              />
+              <Text style={styles.myApplicationMetaText}>
+                {myOffer.contactMethod === 'phone'
+                  ? 'Phone'
+                  : myOffer.contactMethod === 'meet'
+                  ? 'Meet in Person'
+                  : 'Message'}
+              </Text>
+            </View>
+
+            {myOffer.availability && (
+              <View style={styles.myApplicationMetaItem}>
+                <Ionicons name="time-outline" size={16} color="#666666" />
+                <Text style={styles.myApplicationMetaText}>{myOffer.availability}</Text>
+              </View>
+            )}
+
+            {myOffer.estimatedTime && (
+              <View style={styles.myApplicationMetaItem}>
+                <Ionicons name="hourglass-outline" size={16} color="#666666" />
+                <Text style={styles.myApplicationMetaText}>{myOffer.estimatedTime}</Text>
+              </View>
+            )}
+          </View>
+
+          {myOffer.status === 'pending' && (
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={handleCancelOffer}
+            >
+              <Ionicons name="close-circle-outline" size={16} color="#DC3545" />
+              <Text style={styles.cancelButtonText}>Cancel Application</Text>
+            </TouchableOpacity>
+          )}
+
+          {myOffer.status === 'accepted' && (
+            <View style={styles.acceptedInfo}>
+              <Ionicons name="checkmark-circle" size={20} color="#00A651" />
+              <Text style={styles.acceptedText}>
+                Your offer was accepted! The requester will contact you soon.
+              </Text>
+            </View>
+          )}
+        </View>
+      </View>
+    );
+  };
+
   const handleAcceptOffer = async (offerId: string) => {
     try {
       setProcessingOffer(offerId);
@@ -425,6 +578,24 @@ export const HelpRequestDetailScreen: React.FC<HelpRequestDetailScreenProps> = (
       );
     }
 
+    // If user has already applied, show different message
+    if (myOffer) {
+      return (
+        <View style={styles.actionsSection}>
+          <TouchableOpacity 
+            style={[styles.offerHelpButton, styles.offerHelpButtonApplied]} 
+            onPress={() => {
+              // Scroll to my application section (it will be rendered above)
+              // For now, just show a message
+            }}
+          >
+            <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
+            <Text style={styles.offerHelpText}>View My Application</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
     return (
       <View style={styles.actionsSection}>
         <TouchableOpacity style={styles.offerHelpButton} onPress={handleOfferHelp}>
@@ -482,6 +653,7 @@ export const HelpRequestDetailScreen: React.FC<HelpRequestDetailScreenProps> = (
       >
         {renderHeader()}
         {renderRequestDetails()}
+        {renderMyApplication()}
         {renderHelpOffers()}
         {renderActions()}
       </ScrollView>
@@ -675,11 +847,85 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
   },
+  offerHelpButtonApplied: {
+    backgroundColor: '#6C757D',
+  },
   offerHelpText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
+  },
+  myApplicationSection: {
+    backgroundColor: '#FFFFFF',
+    marginTop: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  myApplicationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  myApplicationCard: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+  },
+  myApplicationMessage: {
+    fontSize: 14,
+    color: '#1C1C1E',
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  myApplicationMeta: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 12,
+  },
+  myApplicationMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  myApplicationMetaText: {
+    fontSize: 12,
+    color: '#666666',
+  },
+  cancelButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: '#DC3545',
+    borderRadius: 8,
+    gap: 6,
+  },
+  cancelButtonText: {
+    color: '#DC3545',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  acceptedInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: '#00A65120',
+    borderRadius: 8,
+    gap: 8,
+  },
+  acceptedText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#00A651',
+    lineHeight: 20,
   },
   helpOfferCard: {
     backgroundColor: '#F8F9FA',

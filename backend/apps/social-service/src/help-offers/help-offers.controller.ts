@@ -85,6 +85,23 @@ export class HelpOffersController {
     return this.helpOffersService.getHelpOffersByPost(postId, req.user.id);
   }
 
+  @Get('post/:postId/my-offer')
+  @ApiOperation({ summary: 'Get current user\'s help offer for a specific post' })
+  @ApiResponse({
+    status: 200,
+    description: 'User help offer retrieved successfully',
+    type: HelpOfferResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'Post not found or no offer exists' })
+  async getMyOfferForPost(
+    @Param('postId') postId: string,
+    @Request() req: any,
+  ): Promise<HelpOfferResponseDto | null> {
+    const offer = await this.helpOffersService.getUserOfferForPost(postId, req.user.id);
+    // Return null if no offer exists (frontend handles this)
+    return offer;
+  }
+
   @Get('my-offers')
   @ApiOperation({ summary: 'Get current user\'s help offers' })
   @ApiResponse({

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, Ima
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BUSINESS_VERIFICATION_LEVELS, formatNairaCurrency, calculateAverageRating } from '../../constants/businessData';
 import { ScreenHeader } from '../../components/ui';
-import { businessApi } from '../../services/api';
+import { businessApi, businessReviewApi } from '../../services/api';
 import { BusinessProfile } from '../../services/types/business.types';
 
 interface BusinessProfileScreenProps {
@@ -16,11 +16,25 @@ export default function BusinessProfileScreen({ navigation }: BusinessProfileScr
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [reviewStats, setReviewStats] = useState<any>(null);
 
   // Load business profile on mount
   useEffect(() => {
     loadBusinessProfile();
   }, []);
+
+  // Load review stats when profile is loaded
+  useEffect(() => {
+    if (businessProfile?.id) {
+      businessReviewApi.getReviewStats(businessProfile.id)
+        .then(stats => {
+          setReviewStats(stats);
+        })
+        .catch(error => {
+          console.error('Failed to fetch review stats:', error);
+        });
+    }
+  }, [businessProfile?.id]);
 
   const loadBusinessProfile = async () => {
     try {
@@ -198,16 +212,24 @@ export default function BusinessProfileScreen({ navigation }: BusinessProfileScr
         {/* Cover & Profile Section */}
         <View style={styles.profileSection}>
           <View style={styles.coverImage}>
-            <View style={styles.coverPlaceholder}>
-              <MaterialCommunityIcons name="image" size={32} color="#8E8E8E" />
-              <Text style={styles.coverText}>Add Cover Photo</Text>
-            </View>
+            {businessProfile.coverImageUrl ? (
+              <Image
+                source={{ uri: businessProfile.coverImageUrl }}
+                style={styles.coverImageFull}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.coverPlaceholder}>
+                <MaterialCommunityIcons name="image" size={32} color="#8E8E8E" />
+                <Text style={styles.coverText}>Add Cover Photo</Text>
+              </View>
+            )}
           </View>
           
           <View style={styles.profileInfo}>
             <View style={styles.profileImageContainer}>
-              {businessProfile.profileImage ? (
-                <Image source={{ uri: businessProfile.profileImage }} style={styles.profileImage} />
+              {businessProfile.profileImageUrl ? (
+                <Image source={{ uri: businessProfile.profileImageUrl }} style={styles.profileImage} />
               ) : (
                 <View style={styles.profileImagePlaceholder}>
                   <MaterialCommunityIcons name="store" size={32} color="#8E8E8E" />
@@ -236,8 +258,12 @@ export default function BusinessProfileScreen({ navigation }: BusinessProfileScr
               
               <View style={styles.ratingContainer}>
                 <MaterialCommunityIcons name="star" size={16} color="#FFC107" />
-                <Text style={styles.rating}>{businessProfile.rating}</Text>
-                <Text style={styles.reviewCount}>({businessProfile.reviewCount} reviews)</Text>
+                <Text style={styles.rating}>
+                  {reviewStats?.averageRating?.toFixed(1) || businessProfile.rating}
+                </Text>
+                <Text style={styles.reviewCount}>
+                  ({reviewStats?.totalReviews || businessProfile.reviewCount} reviews)
+                </Text>
               </View>
             </View>
           </View>
@@ -271,14 +297,14 @@ export default function BusinessProfileScreen({ navigation }: BusinessProfileScr
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <MaterialCommunityIcons name="clock-outline" size={20} color="#0066CC" />
-            <Text style={styles.statNumber}>{businessProfile.responseTime}</Text>
+            <Text style={styles.statNumber}>~{businessProfile.responseTime}h</Text>
             <Text style={styles.statLabel}>Response Time</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <MaterialCommunityIcons name="repeat" size={20} color="#FF6B35" />
-            <Text style={styles.statNumber}>89%</Text>
-            <Text style={styles.statLabel}>Repeat Customers</Text>
+            <MaterialCommunityIcons name="briefcase-check" size={20} color="#00A651" />
+            <Text style={styles.statNumber}>{businessProfile.completedJobs}</Text>
+            <Text style={styles.statLabel}>Completed Jobs</Text>
           </View>
         </View>
 
@@ -388,6 +414,10 @@ const styles = StyleSheet.create({
   coverImage: {
     height: 120,
     backgroundColor: '#F5F5F5',
+  },
+  coverImageFull: {
+    width: '100%',
+    height: '100%',
   },
   coverPlaceholder: {
     flex: 1,

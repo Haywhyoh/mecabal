@@ -115,6 +115,27 @@ class HelpOfferService {
   }
 
   /**
+   * Get current user's help offer for a specific post
+   */
+  async getMyOfferForPost(postId: string): Promise<HelpOffer | null> {
+    try {
+      const response = await apiClient.get<HelpOffer | null>(
+        `${API_ENDPOINTS.HELP_OFFERS.GET_BY_POST}/${postId}/my-offer`,
+      );
+      return response;
+    } catch (error: any) {
+      // If 404, user hasn't applied - return null
+      if (error.response?.status === 404) {
+        return null;
+      }
+      console.error('Error fetching my offer for post:', error);
+      throw new Error(
+        error.response?.data?.message || 'Failed to fetch my offer',
+      );
+    }
+  }
+
+  /**
    * Accept a help offer (post owner only)
    */
   async acceptOffer(offerId: string): Promise<HelpOffer> {

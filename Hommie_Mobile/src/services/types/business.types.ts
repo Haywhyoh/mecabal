@@ -179,6 +179,7 @@ export interface BusinessService {
 export interface CreateBusinessServiceDto {
   serviceName: string;
   description?: string;
+  category?: string;
   priceMin?: number;
   priceMax?: number;
   duration?: string;

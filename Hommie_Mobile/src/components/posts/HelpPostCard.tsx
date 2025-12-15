@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Post } from '../../services/postsService';
 import { UserAvatar } from '../profile';
+import { helpOfferService, type HelpOffer } from '../../services/helpOfferService';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface HelpPostCardProps {
   post: Post;
@@ -34,7 +36,30 @@ export const HelpPostCard: React.FC<HelpPostCardProps> = ({
   onRespond,
   showActions = true,
 }) => {
+  const { user } = useAuth();
   const [isLiked, setIsLiked] = useState(post.engagement.userReaction === 'like');
+  const [myOffer, setMyOffer] = useState<HelpOffer | null>(null);
+  const [loadingOffer, setLoadingOffer] = useState(false);
+
+  // Fetch user's offer for this post if it's a help post
+  useEffect(() => {
+    const fetchMyOffer = async () => {
+      if (post.postType !== 'help' || !user?.id) return;
+      
+      try {
+        setLoadingOffer(true);
+        const offer = await helpOfferService.getMyOfferForPost(post.id);
+        setMyOffer(offer);
+      } catch (error) {
+        console.error('Error fetching my offer:', error);
+        setMyOffer(null);
+      } finally {
+        setLoadingOffer(false);
+      }
+    };
+
+    fetchMyOffer();
+  }, [post.id, post.postType, user?.id]);
 
   const getHelpIcon = () => {
     switch (post.helpCategory) {
@@ -48,6 +73,19 @@ export const HelpPostCard: React.FC<HelpPostCardProps> = ({
   };
 
   const getActionButtonText = () => {
+    // If user has already applied, show status
+    if (myOffer) {
+      switch (myOffer.status) {
+        case 'pending': return 'Applied';
+        case 'accepted': return 'Accepted';
+        case 'rejected': return 'Rejected';
+        case 'completed': return 'Completed';
+        case 'cancelled': return 'Cancelled';
+        default: return 'Applied';
+      }
+    }
+    
+    // Default text based on category
     switch (post.helpCategory) {
       case 'errand': return 'I Can Help';
       case 'task': return 'I Can Do This';
@@ -119,8 +157,11 @@ export const HelpPostCard: React.FC<HelpPostCardProps> = ({
   };
 
   const handleRespond = () => {
-    if (onRespond) {
-      onRespond();
+    // If user has already applied, navigate to detail screen to view their application
+    if (myOffer) {
+      onPress(); // Navigate to detail screen
+    } else if (onRespond) {
+      onRespond(); // Navigate to OfferHelpScreen
     } else {
       // Default action - navigate to comments or contact
       onComment();
@@ -236,8 +277,20 @@ export const HelpPostCard: React.FC<HelpPostCardProps> = ({
             <Ionicons name="share-outline" size={20} color="#8E8E8E" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.respondButton} onPress={handleRespond}>
-            <Ionicons name="hand-right-outline" size={16} color="#FFFFFF" />
+          <TouchableOpacity 
+            style={[
+              styles.respondButton,
+              myOffer && styles.respondButtonApplied,
+              myOffer?.status === 'accepted' && styles.respondButtonAccepted,
+              myOffer?.status === 'rejected' && styles.respondButtonRejected,
+            ]} 
+            onPress={handleRespond}
+          >
+            <Ionicons 
+              name={myOffer ? (myOffer.status === 'accepted' ? "checkmark-circle" : "checkmark-outline") : "hand-right-outline"} 
+              size={16} 
+              color={myOffer ? (myOffer.status === 'accepted' ? "#FFFFFF" : "#FFFFFF") : "#FFFFFF"} 
+            />
             <Text style={styles.respondText}>{getActionButtonText()}</Text>
           </TouchableOpacity>
         </View>
@@ -372,6 +425,15 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     marginLeft: 'auto',
+  },
+  respondButtonApplied: {
+    backgroundColor: '#6C757D',
+  },
+  respondButtonAccepted: {
+    backgroundColor: '#00A651',
+  },
+  respondButtonRejected: {
+    backgroundColor: '#DC3545',
   },
   respondText: {
     color: '#FFFFFF',
