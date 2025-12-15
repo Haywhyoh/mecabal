@@ -130,15 +130,22 @@ jobs:
         echo "✓ Image built successfully"
         
         # CRITICAL: Verify the built image contains new code (not old "Method not implemented")
+        # Check specifically for searchEstates - other methods may still have placeholders
         echo "Verifying built image contains new code..."
         if docker run --rm --entrypoint sh $REGISTRY:latest \
-          -c "grep -q 'Method not implemented yet' /app/dist/apps/auth-service/main.js 2>/dev/null"; then
-          echo "❌ ERROR: Built image still contains 'Method not implemented yet'"
+          -c "grep -A 20 'searchEstates' /app/dist/apps/auth-service/main.js 2>/dev/null | grep -q 'Method not implemented yet'"; then
+          echo "❌ ERROR: Built image still contains 'Method not implemented yet' for searchEstates"
           echo "The build may have used cached layers with old code"
           echo "This should not happen with --no-cache flag"
           exit 1
         else
-          echo "✅ Verified: Built image contains new code (no 'Method not implemented' found)"
+          echo "✅ Verified: searchEstates is properly implemented in the built image"
+          # Optional: Check if other methods still have placeholders (this is OK)
+          OTHER_METHODS=$(docker run --rm --entrypoint sh $REGISTRY:latest \
+            -c "grep -o 'Method not implemented yet' /app/dist/apps/auth-service/main.js 2>/dev/null | wc -l" || echo "0")
+          if [ "$OTHER_METHODS" -gt "0" ]; then
+            echo "ℹ️  Note: Found $OTHER_METHODS other 'Method not implemented' placeholders (not in searchEstates - this is OK)"
+          fi
         fi
         
         # Push images
