@@ -67,3 +67,7 @@ echo "      docker-compose -f docker-compose.production.yml build backend"
 echo "      docker-compose -f docker-compose.production.yml up -d backend"
 echo ""
 
+
+
+
+

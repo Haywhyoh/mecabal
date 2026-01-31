@@ -129,3 +129,7 @@ echo "Next: Test the estate search endpoint"
 echo "  ./scripts/verify-estate-search.sh"
 echo ""
 
+
+
+
+

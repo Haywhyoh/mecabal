@@ -106,3 +106,7 @@ else
     echo "Please manually check if port 3000 is free before restarting services."
 fi
 
+
+
+
+

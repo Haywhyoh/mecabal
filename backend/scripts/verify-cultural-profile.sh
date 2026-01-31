@@ -58,3 +58,7 @@ echo ""
 echo "To test locally, run:"
 echo "  API_URL=http://localhost:3000 ./scripts/verify-cultural-profile.sh"
 
+
+
+
+

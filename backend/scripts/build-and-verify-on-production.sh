@@ -151,3 +151,7 @@ echo "You can test the estate search endpoint:"
 echo "  curl 'http://localhost:3001/auth/location/estates?query=test&limit=10'"
 echo ""
 
+
+
+
+

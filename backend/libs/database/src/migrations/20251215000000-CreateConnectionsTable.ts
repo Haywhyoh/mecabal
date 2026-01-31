@@ -108,3 +108,7 @@ export class CreateConnectionsTable20251215000000 implements MigrationInterface 
   }
 }
 
+
+
+
+
