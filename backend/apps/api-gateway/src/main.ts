@@ -11,7 +11,8 @@ async function bootstrap() {
   });
 
   // Configure body parser to handle file uploads (10MB limit)
-  app.use(require('express').json({ limit: '10mb' }));
+  // Also parse text/plain as JSON since some clients may not set Content-Type correctly
+  app.use(require('express').json({ limit: '10mb', type: ['application/json', 'text/plain'] }));
   app.use(require('express').urlencoded({ limit: '10mb', extended: true }));
 
   // Enable CORS for production and development

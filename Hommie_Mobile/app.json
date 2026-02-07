@@ -33,7 +33,46 @@
       "expo-secure-store",
       "expo-sqlite",
       "expo-video",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow MeCabal to use your location to find nearby communities and services.",
+          "locationWhenInUsePermission": "Allow MeCabal to use your location to find nearby communities and services."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow MeCabal to access your camera to take photos and videos."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow MeCabal to access your photos to share in posts and listings.",
+          "cameraPermission": "Allow MeCabal to access your camera to take photos."
+        }
+      ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Allow MeCabal to access your calendar to add community events."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/mecabal.png",
+          "color": "#00A651"
+        }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Allow MeCabal to access your microphone for audio messages."
+        }
+      ]
     ]
   }
 }

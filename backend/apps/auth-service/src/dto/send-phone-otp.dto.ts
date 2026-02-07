@@ -57,7 +57,22 @@ export class VerifyPhoneOtpDto {
     description: 'Purpose of the OTP verification',
     enum: ['registration', 'login', 'password_reset'],
     example: 'registration',
+    required: false,
+    default: 'registration',
   })
+  @IsOptional()
   @IsEnum(['registration', 'login', 'password_reset'])
-  purpose: 'registration' | 'login' | 'password_reset';
+  purpose?: 'registration' | 'login' | 'password_reset';
+
+  @ApiProperty({
+    description: 'Device information for token generation',
+    required: false,
+  })
+  @IsOptional()
+  deviceInfo?: {
+    deviceId?: string;
+    deviceType?: string;
+    ipAddress?: string;
+    userAgent?: string;
+  };
 }

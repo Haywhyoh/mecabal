@@ -68,13 +68,7 @@ export class ApiGatewayService {
   ) {
     const url = `${this.socialServiceUrl}${path}`;
     try {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/2b86e3fe-f024-4873-83ef-99098887c58e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-gateway.service.ts:62',message:'proxyToSocialService entry',data:{path,method,socialServiceUrl:this.socialServiceUrl},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/2b86e3fe-f024-4873-83ef-99098887c58e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-gateway.service.ts:70',message:'Full URL constructed',data:{url,path,socialServiceUrl:this.socialServiceUrl},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
-
+     
       console.log('🌐 API Gateway - Proxying to social service:');
       console.log('  - URL:', url);
       console.log('  - Method:', method);
@@ -208,18 +202,27 @@ export class ApiGatewayService {
       console.log('🌐 API Gateway - Proxying to auth service:');
       console.log('  - URL:', url);
       console.log('  - Method:', method);
+      console.log('  - Data:', JSON.stringify(data));
+      console.log('  - Data type:', typeof data);
       console.log('  - Headers:', Object.keys(headers || {}));
 
+      const {
+        'content-length': _contentLength,
+        host: _host,
+        'transfer-encoding': _transferEncoding,
+        'content-type': _contentType,
+        ...forwardHeaders
+      } = (headers || {}) as Record<string, string>;
+      
       const config = {
         headers: {
           'Content-Type': 'application/json',
-          // Add cache-busting headers to prevent 304 responses
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           Pragma: 'no-cache',
           Expires: '0',
-          ...headers,
+          ...forwardHeaders,
         },
-        timeout: 30000, // 30 seconds timeout for auth requests
+        timeout: 30000,
       };
 
       let response;

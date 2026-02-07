@@ -1269,28 +1269,8 @@ export class AuthController {
     description: 'Too many verification attempts. Please try again later.',
   })
   async verifyPhoneOTP(
-    @Body()
-    body: {
-      phoneNumber: string;
-      otpCode: string;
-      purpose?: 'registration' | 'login' | 'password_reset';
-      deviceInfo?: {
-        deviceId?: string;
-        deviceType?: string;
-        ipAddress?: string;
-        userAgent?: string;
-      };
-    },
+    @Body() body: VerifyPhoneOtpDto,
   ) {
-    // Validate that this is a phone number (Nigerian format check)
-    if (!body.phoneNumber || !body.phoneNumber.includes('+234')) {
-      return {
-        success: false,
-        verified: false,
-        error: 'Invalid phone number format. Expected Nigerian phone number.',
-        method: 'phone',
-      };
-    }
 
     // Add debug logging
     console.log('🔍 Phone OTP Verification Request:', {

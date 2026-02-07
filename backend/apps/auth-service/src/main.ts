@@ -43,6 +43,14 @@ async function bootstrap() {
     ],
   });
 
+  // Debug: log raw request body before validation
+  app.use((req: any, _res: any, next: any) => {
+    if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
+      console.log(`📥 [${req.method}] ${req.url} - Body:`, JSON.stringify(req.body), '- Content-Type:', req.headers['content-type']);
+    }
+    next();
+  });
+
   // Global validation pipe
   app.useGlobalPipes(
     new ValidationPipe({
