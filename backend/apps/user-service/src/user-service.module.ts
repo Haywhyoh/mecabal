@@ -1,8 +1,4 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { ScheduleModule } from '@nestjs/schedule';
-import { EventEmitterModule } from '@nestjs/event-emitter';
-import { JwtModule } from '@nestjs/jwt';
 import { DatabaseModule } from '@app/database';
 import { AuthModule } from '@app/auth';
 import { StorageModule } from '@app/storage';
@@ -40,19 +36,9 @@ import { SeederService } from '@app/database';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-      envFilePath: '.env',
-    }),
-    ScheduleModule.forRoot(), // For CRON jobs
-    EventEmitterModule.forRoot(), // For event handling
-    DatabaseModule, // Database configuration
-    AuthModule, // For JWT guards
-    StorageModule, // For file uploads
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || 'default-secret',
-      signOptions: { expiresIn: '24h' },
-    }),
+    DatabaseModule,
+    AuthModule,
+    StorageModule,
   ],
   controllers: [UserServiceController, UserProfileController, UserDashboardController, NinVerificationController, TrustScoreController, BadgeController, DocumentController, AuditTrailController, VerificationIntegrationController, PointsController, AchievementsController, BadgesController, LeaderboardController, GamificationController, CulturalProfileController],
   providers: [

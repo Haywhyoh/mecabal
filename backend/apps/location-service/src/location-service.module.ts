@@ -1,12 +1,11 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule } from '@nestjs/config';
-import { 
-  State, 
-  LocalGovernmentArea, 
-  Ward, 
-  Neighborhood, 
-  Landmark, 
+import {
+  State,
+  LocalGovernmentArea,
+  Ward,
+  Neighborhood,
+  Landmark,
   User,
   UserLocation,
   Visitor,
@@ -14,10 +13,8 @@ import {
   VisitorAlert
 } from '@app/database/entities';
 import { DatabaseModule } from '@app/database';
+import { AuthModule } from '@app/auth';
 import { GoogleMapsService } from '@app/common/services/google-maps.service';
-import { JwtModule } from '@nestjs/jwt';
-import { PassportModule } from '@nestjs/passport';
-import { JwtStrategy } from '@app/auth/strategies/jwt.strategy';
 
 // Controllers
 import { LocationServiceController } from './location-service.controller';
@@ -55,10 +52,7 @@ import { UserLocationRepository } from './repositories/user-location.repository'
 @Module({
   imports: [
     DatabaseModule,
-    ConfigModule.forRoot({
-      isGlobal: true,
-    }),
-    PassportModule.register({ defaultStrategy: 'jwt' }),
+    AuthModule,
     TypeOrmModule.forFeature([
       State,
       LocalGovernmentArea,
@@ -71,10 +65,6 @@ import { UserLocationRepository } from './repositories/user-location.repository'
       VisitorPass,
       VisitorAlert,
     ]),
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || 'visitor-pass-secret',
-      signOptions: { expiresIn: '24h' },
-    }),
   ],
   controllers: [
     LocationServiceController,
@@ -107,7 +97,6 @@ import { UserLocationRepository } from './repositories/user-location.repository'
     LandmarkRepository,
     UserLocationRepository,
     GoogleMapsService,
-    JwtStrategy,
   ],
   exports: [
     StatesService,

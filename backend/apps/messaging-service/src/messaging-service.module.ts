@@ -1,7 +1,5 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { JwtModule } from '@nestjs/jwt';
-import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DatabaseModule } from '@app/database';
 import { StorageModule } from '@app/storage';
 import { MessagingServiceController } from './messaging-service.controller';
@@ -19,10 +17,7 @@ import { User } from '@app/database';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-    }),
-    DatabaseModule, // Main database connection
+    DatabaseModule,
     TypeOrmModule.forFeature([
       Conversation,
       ConversationParticipant,
@@ -31,14 +26,6 @@ import { User } from '@app/database';
       TypingIndicator,
       User,
     ]),
-    JwtModule.registerAsync({
-      imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET') || configService.get<string>('JWT_ACCESS_SECRET') || 'your-secret-key',
-        signOptions: { expiresIn: '1h' },
-      }),
-      inject: [ConfigService],
-    }),
     StorageModule,
   ],
   controllers: [MessagingServiceController],

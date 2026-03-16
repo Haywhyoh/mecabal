@@ -1,6 +1,4 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule } from '@nestjs/config';
 import { SocialServiceController } from './social-service.controller';
 import { SocialServiceService } from './social-service.service';
 import { PostsModule } from './posts/posts.module';
@@ -17,9 +15,6 @@ import { StorageModule } from '@app/storage';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-    }),
     DatabaseModule,
     AuthModule,
     StorageModule,

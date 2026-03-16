@@ -1,9 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { JwtModule } from '@nestjs/jwt';
-import { PassportModule } from '@nestjs/passport';
-import { JwtStrategy } from '@app/auth/strategies/jwt.strategy';
 import { BusinessServiceController } from './business-service.controller';
 import { BusinessServiceService } from './business-service.service';
 import { DatabaseModule } from '@app/database/database.module';
@@ -34,15 +30,6 @@ import {
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-      envFilePath: '.env',
-    }),
-    PassportModule.register({ defaultStrategy: 'jwt' }),
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || 'your-secret-key',
-      signOptions: { expiresIn: '1h' },
-    }),
     DatabaseModule,
     AuthModule,
     // Import specific route modules before BusinessProfileModule to ensure
@@ -72,7 +59,7 @@ import {
     ]),
   ],
   controllers: [BusinessServiceController],
-  providers: [BusinessServiceService, JwtStrategy],
+  providers: [BusinessServiceService],
   exports: [BusinessServiceService],
 })
 export class BusinessServiceModule {}

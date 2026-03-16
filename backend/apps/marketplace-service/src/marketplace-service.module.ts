@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
 import { MarketplaceServiceController } from './marketplace-service.controller';
 import { MarketplaceServiceService } from './marketplace-service.service';
 import { ListingsModule } from './listings/listings.module';
@@ -14,9 +13,6 @@ import { AuthModule } from '@app/auth';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-    }),
     DatabaseModule,
     AuthModule,
     ListingsModule,

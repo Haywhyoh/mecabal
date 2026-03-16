@@ -1,10 +1,7 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ThrottlerModule } from '@nestjs/throttler';
-import { PassportModule } from '@nestjs/passport';
 import { AuthModule } from '@app/auth';
+import { DatabaseModule } from '@app/database';
 import { AuthController } from './auth/auth.controller';
 
 // Import entities
@@ -14,21 +11,10 @@ import {
   EmailOtp,
   UserSession,
   Role,
-  UserNeighborhood,
-  Post,
-  PostCategory,
-  PostMedia,
-  PostReaction,
-  PostComment,
   State,
-  LocalGovernmentArea,
-  Ward,
-  Neighborhood,
-  Landmark,
   UserLocation,
-  UserLanguage,
-  UserPrivacySettings,
-  NigerianLanguage,
+  Neighborhood,
+  UserNeighborhood,
   CulturalBackground,
   ProfessionalCategory,
 } from '@app/database/entities';
@@ -43,68 +29,8 @@ import { TermiiService } from './services/termii.service';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-    }),
-    ThrottlerModule.forRoot([
-      {
-        ttl: 60000, // 1 minute
-        limit: 10, // 10 requests per minute
-      },
-    ]),
-    PassportModule.register({ defaultStrategy: 'jwt' }),
+    DatabaseModule,
     AuthModule,
-    TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get('DATABASE_HOST', 'localhost'),
-        port: configService.get('DATABASE_PORT', 5432),
-        username: configService.get('DATABASE_USERNAME', 'MeCabal_user'),
-        password: configService.get('DATABASE_PASSWORD', 'MeCabal_password'),
-        database: configService.get('DATABASE_NAME', 'MeCabal_dev'),
-        entities: [
-          User,
-          OtpVerification,
-          EmailOtp,
-          UserSession,
-          Role,
-          UserNeighborhood,
-          Post,
-          PostCategory,
-          PostMedia,
-          PostReaction,
-          PostComment,
-          State,
-          LocalGovernmentArea,
-          Ward,
-          Neighborhood,
-          Landmark,
-          UserLocation,
-          UserLanguage,
-          UserPrivacySettings,
-          NigerianLanguage,
-          CulturalBackground,
-          ProfessionalCategory,
-        ],
-        synchronize: false, // Disabled to prevent automatic schema changes
-        logging: configService.get('NODE_ENV') === 'development',
-        ssl: configService.get('DATABASE_SSL') === 'true' ? {
-          rejectUnauthorized: false,
-        } : false,
-      }),
-      inject: [ConfigService],
-    }),
-    JwtModule.registerAsync({
-      imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        secret: configService.get('JWT_SECRET'),
-        signOptions: {
-          expiresIn: configService.get('JWT_EXPIRES_IN', '24h'),
-        },
-      }),
-      inject: [ConfigService],
-    }),
     TypeOrmModule.forFeature([
       User,
       OtpVerification,
