@@ -62,4 +62,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "dist/apps/monolith/main"]
+CMD ["node", "dist/apps/monolith/apps/monolith/src/main.js"]

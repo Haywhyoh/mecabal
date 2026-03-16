@@ -238,7 +238,7 @@ export class NigerianCarrierService {
     };
 
     return (
-      messages[language]?.[carrierName as keyof typeof messages.en] ||
+      (messages as Record<string, Record<string, string>>)[language]?.[carrierName] ||
       messages.en[carrierName as keyof typeof messages.en] ||
       'Standard SMS verification will be used for your number.'
     );

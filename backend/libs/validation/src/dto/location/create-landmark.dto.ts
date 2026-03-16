@@ -1,5 +1,15 @@
-import { IsString, IsEnum, IsUUID, IsOptional, IsObject, IsNumber } from 'class-validator';
-import { LandmarkType } from '../../../database/src/entities';
+import { IsString, IsEnum, IsUUID, IsOptional, IsNumber } from 'class-validator';
+import { Type } from 'class-transformer';
+import { ValidateNested } from 'class-validator';
+import { LandmarkType } from '@app/database/entities';
+
+class LocationDto {
+  @IsNumber()
+  latitude: number;
+
+  @IsNumber()
+  longitude: number;
+}
 
 export class CreateLandmarkDto {
   @IsString()
@@ -11,14 +21,9 @@ export class CreateLandmarkDto {
   @IsUUID()
   neighborhoodId: string;
 
-  @IsObject()
-  location: {
-    @IsNumber()
-    latitude: number;
-
-    @IsNumber()
-    longitude: number;
-  };
+  @ValidateNested()
+  @Type(() => LocationDto)
+  location: LocationDto;
 
   @IsOptional()
   @IsString()

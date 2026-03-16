@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { DataSource } from 'typeorm';
 import { Conversation } from '../../../../apps/messaging-service/src/entities/conversation.entity';
 import { ConversationParticipant } from '../../../../apps/messaging-service/src/entities/conversation-participant.entity';

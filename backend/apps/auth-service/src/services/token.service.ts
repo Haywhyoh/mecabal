@@ -74,14 +74,14 @@ export class TokenService {
     };
 
     // Access token (15 minutes)
-    const accessToken = this.jwtService.sign(payload, {
+    const accessToken = this.jwtService.sign(payload as unknown as Record<string, unknown>, {
       secret: this.configService.get<string>('JWT_SECRET'),
       expiresIn: this.configService.get<string>('JWT_ACCESS_EXPIRES_IN', '15m'),
     });
 
     // Refresh token (7 days)
     const refreshToken = this.jwtService.sign(
-      { ...payload, type: 'refresh' },
+      { ...payload, type: 'refresh' } as unknown as Record<string, unknown>,
       {
         secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
         expiresIn: this.configService.get<string>(

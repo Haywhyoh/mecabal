@@ -4,6 +4,29 @@
     "declaration": false,
     "outDir": "../../dist/apps/monolith"
   },
-  "include": ["src/**/*", "../../apps/*/src/**/*", "../../libs/*/src/**/*"],
-  "exclude": ["node_modules", "dist", "test", "**/*spec.ts"]
+  "include": [
+    "src/**/*",
+    "../../apps/*/src/**/*.ts",
+    "../../libs/*/src/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.spec.ts",
+    "**/*.e2e-spec.ts",
+    "**/*spec.ts",
+    "**/test/**",
+    "../../apps/*/src/**/*.spec.ts",
+    "../../apps/*/src/**/*.e2e-spec.ts",
+    "../../apps/*/src/**/test/**",
+    "../../libs/*/src/**/*.spec.ts",
+    "../../apps/auth-service/src/main.ts",
+    "../../apps/user-service/src/main.ts",
+    "../../apps/social-service/src/main.ts",
+    "../../apps/messaging-service/src/main.ts",
+    "../../apps/marketplace-service/src/main.ts",
+    "../../apps/events-service/src/main.ts",
+    "../../apps/location-service/src/main.ts",
+    "../../apps/business-service/src/main.ts"
+  ]
 }

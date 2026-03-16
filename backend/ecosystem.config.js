@@ -2,7 +2,7 @@ module.exports = {
   apps: [
     {
       name: 'mecabal-backend',
-      script: 'dist/apps/monolith/main.js',
+      script: 'dist/apps/monolith/apps/monolith/src/main.js',
       instances: 1,
       exec_mode: 'fork',
       env: {
