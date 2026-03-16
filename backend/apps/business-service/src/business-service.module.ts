@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { BusinessServiceController } from './business-service.controller';
 import { BusinessServiceService } from './business-service.service';
 import { DatabaseModule } from '@app/database/database.module';
 import { AuthModule } from '@app/auth';
@@ -58,7 +57,7 @@ import {
       BankAccount,
     ]),
   ],
-  controllers: [BusinessServiceController],
+  controllers: [],
   providers: [BusinessServiceService],
   exports: [BusinessServiceService],
 })

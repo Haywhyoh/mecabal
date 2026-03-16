@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { DatabaseModule } from '@app/database';
 import { AuthModule } from '@app/auth';
 import { StorageModule } from '@app/storage';
-import { UserServiceController } from './user-service.controller';
 import { UserProfileController } from './controllers/user-profile.controller';
 import { UserDashboardController } from './controllers/user-dashboard.controller';
 import { NinVerificationController } from './controllers/nin-verification.controller';
@@ -40,7 +39,7 @@ import { SeederService } from '@app/database';
     AuthModule,
     StorageModule,
   ],
-  controllers: [UserServiceController, UserProfileController, UserDashboardController, NinVerificationController, TrustScoreController, BadgeController, DocumentController, AuditTrailController, VerificationIntegrationController, PointsController, AchievementsController, BadgesController, LeaderboardController, GamificationController, CulturalProfileController],
+  controllers: [UserProfileController, UserDashboardController, NinVerificationController, TrustScoreController, BadgeController, DocumentController, AuditTrailController, VerificationIntegrationController, PointsController, AchievementsController, BadgesController, LeaderboardController, GamificationController, CulturalProfileController],
   providers: [
     UserProfileService,
     UserStatisticsService,

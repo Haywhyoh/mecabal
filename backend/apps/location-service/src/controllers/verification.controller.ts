@@ -29,7 +29,7 @@ import {
 } from '../dto/verification.dto';
 
 @ApiTags('Location Verification')
-@Controller('verification')
+@Controller('location/verification')
 export class VerificationController {
   constructor(
     private readonly verificationService: LocationVerificationService,

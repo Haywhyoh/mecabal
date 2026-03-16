@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { SocialServiceController } from './social-service.controller';
 import { SocialServiceService } from './social-service.service';
 import { PostsModule } from './posts/posts.module';
 import { ReactionsModule } from './reactions/reactions.module';
@@ -27,7 +26,7 @@ import { StorageModule } from '@app/storage';
     ConnectionsModule,
     HelpOffersModule,
   ],
-  controllers: [SocialServiceController],
+  controllers: [],
   providers: [SocialServiceService],
 })
 export class SocialServiceModule {}

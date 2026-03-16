@@ -16,7 +16,7 @@ import { BusinessCategoryService } from './business-category.service';
 import { JwtAuthGuard } from '@app/auth/guards/jwt-auth.guard';
 
 @ApiTags('Business Categories')
-@Controller('categories')
+@Controller('business-categories')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class BusinessCategoryController {

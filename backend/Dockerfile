@@ -1,5 +1,5 @@
 # Multi-stage Dockerfile for MeCabal NestJS Backend
-# All services run in one container using PM2
+# Single monolith application
 
 # Stage 1: Base
 FROM node:22-alpine AS base
@@ -16,19 +16,10 @@ FROM base AS builder
 COPY . .
 COPY --from=deps /app/node_modules ./node_modules
 
-# Build all applications and libraries
-RUN npx nest build api-gateway && \
-    npx nest build auth-service && \
-    npx nest build user-service && \
-    npx nest build social-service && \
-    npx nest build messaging-service && \
-    npx nest build marketplace-service && \
-    npx nest build events-service && \
-    npx nest build notification-service && \
-    npx nest build location-service && \
-    npx nest build business-service
+# Build the monolith application
+RUN npx nest build monolith
 
-# Stage 4: Runner (All services using PM2)
+# Stage 4: Runner
 FROM node:22-alpine AS runner
 WORKDIR /app
 
@@ -52,12 +43,9 @@ COPY --from=builder /app/libs/database/src/entities ./libs/database/src/entities
 COPY --from=builder /app/libs/database/src/seeds ./libs/database/src/seeds
 COPY --from=builder /app/scripts ./scripts
 
-# Copy PM2 ecosystem configuration
-COPY ecosystem.config.js ./ecosystem.config.js
-
-# Install production dependencies, PM2, and migration tools
+# Install production dependencies and migration tools
 RUN npm ci --production && \
-    npm install pm2 typeorm ts-node tsconfig-paths dotenv @types/node typescript && \
+    npm install typeorm ts-node tsconfig-paths dotenv @types/node typescript && \
     npm cache clean --force
 
 # Create logs directory
@@ -65,13 +53,13 @@ RUN mkdir -p logs && chown -R nestjs:nodejs /app
 
 USER nestjs
 
-# Expose all service ports
-EXPOSE 3000 3001 3002 3003 3004 3005 3006 3007 3008 3009
+# Expose application port
+EXPOSE 3000
 
-# Health check (check if PM2 is running and api-gateway is responding)
+# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD curl -f http://localhost:3000/health || exit 1
 
-# Use dumb-init to handle signals properly and start all services with PM2
+# Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["npx", "pm2-runtime", "start", "ecosystem.config.js"]
+CMD ["node", "dist/apps/monolith/main"]

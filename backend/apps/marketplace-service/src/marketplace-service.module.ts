@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { MarketplaceServiceController } from './marketplace-service.controller';
 import { MarketplaceServiceService } from './marketplace-service.service';
 import { ListingsModule } from './listings/listings.module';
 import { ListingCategoriesModule } from './listing-categories/listing-categories.module';
@@ -23,7 +22,7 @@ import { AuthModule } from '@app/auth';
     AppCacheModule,
     RateLimitingModule,
   ],
-  controllers: [MarketplaceServiceController],
+  controllers: [],
   providers: [MarketplaceServiceService],
 })
 export class MarketplaceServiceModule {}

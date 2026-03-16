@@ -33,7 +33,7 @@ import { JwtAuthGuard, CurrentUser } from '@app/auth';
 import { User } from '@app/database/entities';
 
 @ApiTags('Events')
-@Controller()
+@Controller('events')
 export class EventsServiceController {
   constructor(private readonly eventsService: EventsServiceService) {}
 

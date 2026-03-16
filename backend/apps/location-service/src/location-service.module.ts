@@ -17,7 +17,6 @@ import { AuthModule } from '@app/auth';
 import { GoogleMapsService } from '@app/common/services/google-maps.service';
 
 // Controllers
-import { LocationServiceController } from './location-service.controller';
 import { StatesController } from './controllers/states.controller';
 import { LgasController } from './controllers/lgas.controller';
 import { WardsController } from './controllers/wards.controller';
@@ -67,7 +66,6 @@ import { UserLocationRepository } from './repositories/user-location.repository'
     ]),
   ],
   controllers: [
-    LocationServiceController,
     StatesController,
     LgasController,
     WardsController,

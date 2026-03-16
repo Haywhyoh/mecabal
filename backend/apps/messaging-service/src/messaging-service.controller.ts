@@ -45,7 +45,7 @@ import {
 
 @ApiBearerAuth()
 @ApiTags('messaging')
-@Controller()
+@Controller('messaging')
 export class MessagingServiceController {
   constructor(
     private readonly messagingServiceService: MessagingServiceService,
