@@ -35,18 +35,18 @@ jobs:
     defaults:
       run:
         working-directory: ./backend
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-    
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
         cache-dependency-path: backend/package-lock.json
-    
+
     - name: Install dependencies
       run: npm ci
 
@@ -66,7 +66,7 @@ jobs:
       continue-on-error: true
 
   build-and-push:
-    name: Build and Push Docker Images
+    name: Build and Push Docker Image
     runs-on: ubuntu-latest
     needs: test
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
@@ -92,7 +92,7 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
-    - name: Build applications
+    - name: Build application
       run: npm run build
 
     - name: Log in to GitHub Container Registry
@@ -115,8 +115,7 @@ jobs:
         REGISTRY=ghcr.io/${REGISTRY_OWNER}/mecabal-backend
         SHA_TAG=${{ steps.meta.outputs.sha_short }}
 
-        # Build and push single image with all services (PM2 managed)
-        echo "Building and pushing backend image with PM2..."
+        echo "Building and pushing monolith backend image..."
         docker build \
           --no-cache \
           --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
@@ -125,14 +124,14 @@ jobs:
           -t $REGISTRY:$SHA_TAG \
           -f Dockerfile .
 
-        echo "✓ Image built successfully"
+        echo "Image built successfully"
 
         # Push images
         docker push $REGISTRY:latest
         docker push $REGISTRY:$SHA_TAG
 
-        echo "✓ Image pushed successfully: $REGISTRY:latest"
-        echo "✓ Image tagged with: $SHA_TAG"
+        echo "Image pushed: $REGISTRY:latest"
+        echo "Image tagged: $SHA_TAG"
 
   deploy-staging:
     name: Deploy to Staging
@@ -164,8 +163,6 @@ jobs:
           export COMPOSE_HTTP_TIMEOUT=300
 
           # Create backup tag for rollback
-          # Database is on host, not in container - use host pg_dump
-          # Load database environment variables first
           if [ -f .env ]; then
             export $(cat .env | grep -E "^DATABASE_[A-Z_]+=" | xargs)
           fi
@@ -176,23 +173,22 @@ jobs:
 
           # Update environment variables from secrets (only if secret is set)
           if [ -n "${{ secrets.STAGING_ENV }}" ]; then
-            # Decode to temp file first to validate before overwriting
             if echo "${{ secrets.STAGING_ENV }}" | base64 -d > .env.tmp 2>/dev/null && [ -s .env.tmp ]; then
               mv .env.tmp .env
-              echo "✓ Environment variables updated from GitHub secrets"
+              echo "Environment variables updated from GitHub secrets"
             else
               rm -f .env.tmp
-              echo "✗ ERROR: Failed to decode STAGING_ENV secret (invalid base64)"
-              echo "⚠ Using existing .env file"
+              echo "ERROR: Failed to decode STAGING_ENV secret"
+              echo "Using existing .env file"
               if [ ! -f .env ]; then
-                echo "✗ ERROR: .env file does not exist and STAGING_ENV secret decode failed"
+                echo "ERROR: .env file does not exist and STAGING_ENV secret decode failed"
                 exit 1
               fi
             fi
           else
-            echo "⚠ STAGING_ENV secret not set - using existing .env file"
+            echo "STAGING_ENV secret not set - using existing .env file"
             if [ ! -f .env ]; then
-              echo "✗ ERROR: .env file does not exist and STAGING_ENV secret is not set"
+              echo "ERROR: .env file does not exist and STAGING_ENV secret is not set"
               exit 1
             fi
           fi
@@ -200,42 +196,38 @@ jobs:
           # Ensure Docker config directory exists
           mkdir -p ~/.docker
 
-          # Login to GitHub Container Registry and persist credentials
-          # Using GH_PAT (Personal Access Token) for better persistence
-          # This stores credentials in ~/.docker/config.json for future use
+          # Login to GitHub Container Registry
           echo "Authenticating with GitHub Container Registry..."
-
-          # Add timeout to prevent hanging
           if timeout 60 bash -c "echo '$GH_PAT' | docker login ghcr.io -u '$GH_ACTOR' --password-stdin"; then
-            echo "✓ Successfully authenticated with GitHub Container Registry"
-            echo "✓ Credentials saved to ~/.docker/config.json (persistent)"
+            echo "Successfully authenticated with GitHub Container Registry"
           else
             LOGIN_EXIT_CODE=$?
             if [ $LOGIN_EXIT_CODE -eq 124 ]; then
-              echo "✗ Docker login timed out after 60 seconds"
+              echo "Docker login timed out after 60 seconds"
             else
-              echo "✗ Failed to authenticate with GitHub Container Registry (exit code: $LOGIN_EXIT_CODE)"
+              echo "Failed to authenticate (exit code: $LOGIN_EXIT_CODE)"
             fi
 
-            # Try to check if we're already logged in
-            if docker pull ghcr.io/haywhyoh/mecabal-api-gateway:latest >/dev/null 2>&1; then
-              echo "⚠ Login failed but credentials appear to be cached - continuing..."
+            # Check if credentials are cached
+            REGISTRY_OWNER=$(echo "$GH_ACTOR" | tr '[:upper:]' '[:lower:]')
+            if docker pull ghcr.io/${REGISTRY_OWNER}/mecabal-backend:latest >/dev/null 2>&1; then
+              echo "Login failed but credentials appear cached - continuing..."
             else
-              echo "✗ Cannot proceed without valid credentials"
+              echo "Cannot proceed without valid credentials"
               exit 1
             fi
           fi
 
           # Pull latest Docker images
-          echo "Pulling latest Docker images from registry..."
+          echo "Pulling latest Docker images..."
           if timeout 600 docker-compose -f docker-compose.production.yml pull; then
-            echo "✓ Successfully pulled all Docker images"
+            echo "Successfully pulled all Docker images"
           else
             PULL_EXIT_CODE=$?
             if [ $PULL_EXIT_CODE -eq 124 ]; then
-              echo "✗ Docker pull timed out after 10 minutes"
+              echo "Docker pull timed out after 10 minutes"
             else
-              echo "⚠ Docker pull failed (exit code: $PULL_EXIT_CODE)"
+              echo "Docker pull failed (exit code: $PULL_EXIT_CODE)"
             fi
             echo "Continuing with deployment using cached images..."
           fi
@@ -243,42 +235,38 @@ jobs:
           # Stop existing containers gracefully
           docker-compose -f docker-compose.production.yml down --timeout 30
 
-          # Run database migrations (will be done after backend container starts)
-
           # Start new containers
           docker-compose -f docker-compose.production.yml up -d
 
           # Wait for services to be healthy
-          echo "Waiting for services to start..."
-          sleep 45
+          echo "Waiting for backend to start..."
+          sleep 30
 
-          # Run database migrations from within the backend container
+          # Run database migrations
           echo "Running database migrations..."
-          docker exec mecabal-backend npm run migration:run --prefix /app/apps/auth-service 2>/dev/null || echo "Migration skipped or failed"
+          docker exec mecabal-backend npm run migration:run 2>/dev/null || echo "Migration skipped or failed"
 
-          # Run comprehensive health checks for all 10 services (all running in one container now)
+          # Health check with retries
           echo "Running health checks..."
-          HEALTH_CHECK_FAILED=0
-
-          for PORT in 3000 3001 3002 3003 3004 3005 3006 3007 3008 3009; do
-            if curl -f -s http://localhost:$PORT/health > /dev/null 2>&1; then
-              echo "✓ Service on port $PORT is healthy"
+          for ATTEMPT in {1..3}; do
+            echo "Health check attempt $ATTEMPT/3..."
+            if curl -f -s http://localhost:3000/health > /dev/null 2>&1; then
+              echo "Backend is healthy!"
+              break
             else
-              echo "✗ Service on port $PORT failed"
-              HEALTH_CHECK_FAILED=1
+              if [ $ATTEMPT -lt 3 ]; then
+                echo "Not ready yet, waiting 15 seconds..."
+                sleep 15
+              else
+                echo "WARNING: Backend health check failed after 3 attempts"
+                echo "Checking container logs..."
+                docker logs mecabal-backend --tail 100 || true
+                exit 1
+              fi
             fi
           done
 
-          if [ $HEALTH_CHECK_FAILED -eq 1 ]; then
-            echo "Some services failed health checks - checking PM2 status..."
-            docker exec mecabal-backend npx pm2 status || true
-            docker logs mecabal-backend --tail 100 || true
-            exit 1
-          fi
-
-          echo "✓ All services are healthy!"
-
-          # Clean up old images and containers to save space and free memory
+          # Clean up old images and containers to save space
           echo "Cleaning up Docker resources..."
           docker container prune -f
           docker image prune -a -f
@@ -330,7 +318,6 @@ jobs:
           fi
 
           # Create backup (skip if database doesn't exist yet)
-          # Database is on host, not in container - use host pg_dump
           pg_dump -h localhost -U ${DATABASE_USERNAME:-mecabal} ${DATABASE_NAME:-mecabal_prod} > $BACKUP_FILE 2>/dev/null || echo "Skipping backup (first deployment or database not ready)"
 
           # Keep only last 7 backups
@@ -339,7 +326,7 @@ jobs:
           # Backup .env.production BEFORE git pull (in case git overwrites it)
           if [ -f .env.production ]; then
             cp .env.production .env.production.backup
-            echo "✓ Backed up existing .env.production"
+            echo "Backed up existing .env.production"
           fi
 
           # Pull latest code
@@ -349,72 +336,63 @@ jobs:
 
           # Restore .env.production from backup or copy from home
           if [ -n "${{ secrets.PRODUCTION_ENV }}" ]; then
-            # Decode to temp file first to validate before overwriting
             if echo "${{ secrets.PRODUCTION_ENV }}" | base64 -d > .env.production.tmp 2>/dev/null && [ -s .env.production.tmp ]; then
               mv .env.production.tmp .env.production
-              echo "✓ Environment variables updated from GitHub secrets"
+              echo "Environment variables updated from GitHub secrets"
             else
               rm -f .env.production.tmp
-              echo "✗ ERROR: Failed to decode PRODUCTION_ENV secret (invalid base64)"
+              echo "ERROR: Failed to decode PRODUCTION_ENV secret"
               echo "Falling back to existing .env.production file..."
-              # Restore from backup if it exists
               if [ -f .env.production.backup ]; then
                 cp .env.production.backup .env.production
-                echo "✓ Restored .env.production from backup"
+                echo "Restored .env.production from backup"
               elif [ -f ~/.env.production ]; then
                 cp ~/.env.production .env.production
-                echo "✓ Copied .env.production from home directory"
+                echo "Copied .env.production from home directory"
               else
-                echo "✗ ERROR: No .env.production found (no backup, no ~/.env.production)"
+                echo "ERROR: No .env.production found"
                 exit 1
               fi
             fi
           else
-            echo "⚠ PRODUCTION_ENV secret not set - using existing .env.production file"
-            # Restore from backup if it exists
+            echo "PRODUCTION_ENV secret not set - using existing .env.production file"
             if [ -f .env.production.backup ]; then
               cp .env.production.backup .env.production
-              echo "✓ Restored .env.production from backup"
-            # Otherwise copy from home directory
+              echo "Restored .env.production from backup"
             elif [ -f ~/.env.production ]; then
               cp ~/.env.production .env.production
-              echo "✓ Copied .env.production from home directory"
+              echo "Copied .env.production from home directory"
             else
-              echo "✗ ERROR: No .env.production found (no backup, no ~/.env.production)"
+              echo "ERROR: No .env.production found"
               exit 1
             fi
           fi
 
           # Load only database environment variables for pg_dump (safely)
           export $(cat .env.production | grep -E "^DATABASE_[A-Z_]+=" | xargs)
-          echo "✓ Environment variables loaded"
+          echo "Environment variables loaded"
 
           # Ensure Docker config directory exists
           mkdir -p ~/.docker
 
-          # Login to GitHub Container Registry and persist credentials
-          # Using GH_PAT (Personal Access Token) for better persistence
-          # This stores credentials in ~/.docker/config.json for future use (including manual docker-compose commands)
+          # Login to GitHub Container Registry
           echo "Authenticating with GitHub Container Registry..."
-
-          # Add timeout to prevent hanging
           if timeout 60 bash -c "echo '$GH_PAT' | docker login ghcr.io -u '$GH_ACTOR' --password-stdin"; then
-            echo "✓ Successfully authenticated with GitHub Container Registry"
-            echo "✓ Credentials saved to ~/.docker/config.json (persistent)"
-            echo "✓ Manual 'docker-compose up' commands will now work without re-authentication"
+            echo "Successfully authenticated with GitHub Container Registry"
           else
             LOGIN_EXIT_CODE=$?
             if [ $LOGIN_EXIT_CODE -eq 124 ]; then
-              echo "✗ Docker login timed out after 60 seconds"
+              echo "Docker login timed out after 60 seconds"
             else
-              echo "✗ Failed to authenticate with GitHub Container Registry (exit code: $LOGIN_EXIT_CODE)"
+              echo "Failed to authenticate (exit code: $LOGIN_EXIT_CODE)"
             fi
 
-            # Try to check if we're already logged in
-            if docker pull ghcr.io/haywhyoh/mecabal-api-gateway:latest >/dev/null 2>&1; then
-              echo "⚠ Login failed but credentials appear to be cached - continuing..."
+            # Check if credentials are cached
+            REGISTRY_OWNER=$(echo "$GH_ACTOR" | tr '[:upper:]' '[:lower:]')
+            if docker pull ghcr.io/${REGISTRY_OWNER}/mecabal-backend:latest >/dev/null 2>&1; then
+              echo "Login failed but credentials appear cached - continuing..."
             else
-              echo "✗ Cannot proceed without valid credentials"
+              echo "Cannot proceed without valid credentials"
               exit 1
             fi
           fi
@@ -423,43 +401,35 @@ jobs:
           echo "Stopping services gracefully..."
           docker-compose -f docker-compose.production.yml down --timeout 30
 
-          # IMPORTANT: DO NOT remove PostgreSQL volume in production
-          # This preserves all data between deployments
-          # Only manually remove volume if absolutely necessary for recovery
-          echo "Preserving PostgreSQL data volume..."
-
-          # Pull pre-built images from GitHub Container Registry (5-10x faster than building!)
-          echo "Pulling latest Docker images from registry..."
-
-          # Add timeout to prevent hanging on slow connections (10 minutes max)
+          # Pull pre-built images from GitHub Container Registry
+          echo "Pulling latest Docker images..."
           if timeout 600 docker-compose -f docker-compose.production.yml pull; then
-            echo "✓ Successfully pulled all Docker images"
+            echo "Successfully pulled all Docker images"
           else
             PULL_EXIT_CODE=$?
             if [ $PULL_EXIT_CODE -eq 124 ]; then
-              echo "✗ Docker pull timed out after 10 minutes"
-              echo "This may indicate network issues or missing images"
+              echo "Docker pull timed out after 10 minutes"
             else
-              echo "⚠ Docker pull failed (exit code: $PULL_EXIT_CODE)"
+              echo "Docker pull failed (exit code: $PULL_EXIT_CODE)"
             fi
             echo "Continuing with deployment using cached images..."
           fi
 
-          # Start infrastructure services
+          # Start infrastructure services first
           echo "Starting infrastructure services..."
           docker-compose -f docker-compose.production.yml up -d redis minio
 
-          # Start all services with newly built images
+          # Start all services
           echo "Starting all services..."
           docker-compose -f docker-compose.production.yml up -d --remove-orphans
 
           # Wait for services to start
-          echo "Waiting for services to start..."
+          echo "Waiting for backend to start..."
           sleep 30
 
           # Run database migrations
           echo "Running database migrations..."
-          docker exec mecabal-backend npm run migration:run --prefix /app/apps/auth-service 2>/dev/null || echo "Migration skipped or already run"
+          docker exec mecabal-backend npm run migration:run 2>/dev/null || echo "Migration skipped or already run"
 
           # Check container status
           echo "Checking container status..."
@@ -477,53 +447,30 @@ jobs:
           fi
 
           # Additional wait for health checks
-          echo "Waiting for health checks to complete..."
-          sleep 30
+          echo "Waiting for health checks..."
+          sleep 15
 
-          # Run comprehensive health checks for all 10 services
+          # Health check with retries
           echo "Running health checks..."
-          HEALTH_CHECK_FAILED=0
-
-          # Try health checks with retries
           for ATTEMPT in {1..3}; do
             echo "Health check attempt $ATTEMPT/3..."
-            FAILED_SERVICES=""
-
-            for PORT in 3000 3001 3002 3003 3004 3005 3006 3007 3008 3009; do
-              if curl -f -s http://localhost:$PORT/health > /dev/null 2>&1; then
-                echo "✓ Service on port $PORT is healthy"
-              else
-                echo "✗ Service on port $PORT not responding"
-                FAILED_SERVICES="$FAILED_SERVICES $PORT"
-              fi
-            done
-
-            if [ -z "$FAILED_SERVICES" ]; then
-              echo "All services are healthy!"
-              HEALTH_CHECK_FAILED=0
+            if curl -f -s http://localhost:3000/health > /dev/null 2>&1; then
+              echo "Backend is healthy!"
               break
             else
-              echo "Services not ready on ports:$FAILED_SERVICES"
               if [ $ATTEMPT -lt 3 ]; then
-                echo "Waiting 20 seconds before retry..."
+                echo "Not ready yet, waiting 20 seconds..."
                 sleep 20
               else
-                HEALTH_CHECK_FAILED=1
+                echo "WARNING: Backend health check failed after 3 attempts"
+                echo "Checking container logs..."
+                docker-compose -f docker-compose.production.yml logs --tail=100
+                echo "Deployment completed with warnings. Please check logs manually."
               fi
             fi
           done
 
-          if [ $HEALTH_CHECK_FAILED -eq 1 ]; then
-            echo "WARNING: Some services are not responding to health checks"
-            echo "Checking container logs..."
-            docker-compose -f docker-compose.production.yml logs --tail=100
-
-            echo "Deployment completed with warnings. Please check logs manually."
-            echo "To check service status: docker-compose -f docker-compose.production.yml ps"
-            echo "To view logs: docker-compose -f docker-compose.production.yml logs -f [service-name]"
-          fi
-
-          # Clean up old images and containers to save space and free memory
+          # Clean up old images and containers to save space
           echo "Cleaning up Docker resources..."
           docker container prune -f
           docker image prune -a -f
@@ -542,7 +489,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [deploy-staging, deploy-production]
     if: always()
-    
+
     steps:
     - name: Notify Slack
       if: env.SLACK_WEBHOOK_URL

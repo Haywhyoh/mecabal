@@ -51,29 +51,10 @@ services:
       timeout: 10s
       retries: 3
 
-  # Message Queue (RabbitMQ)
-  rabbitmq:
-    image: rabbitmq:3-management-alpine
-    container_name: MeCabal-rabbitmq
-    environment:
-      RABBITMQ_DEFAULT_USER: MeCabal_user
-      RABBITMQ_DEFAULT_PASS: MeCabal_password
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
 volumes:
   postgres_data:
   redis_data:
   minio_data:
-  rabbitmq_data:
 
 networks:
   default:

@@ -28,7 +28,7 @@ services:
         reservations:
           memory: 128M
 
-  # MinIO (S3-compatible object storage) - Optional
+  # MinIO (S3-compatible object storage)
   minio:
     image: minio/minio:latest
     container_name: mecabal-minio
@@ -56,7 +56,7 @@ services:
         reservations:
           memory: 128M
 
-  # All Backend Services (Combined in one container using PM2)
+  # Backend Monolith (single NestJS application)
   backend:
     build:
       context: .
@@ -72,16 +72,7 @@ services:
       - REDIS_HOST=host.docker.internal
       - DATABASE_SYNCHRONIZE=${DATABASE_SYNCHRONIZE:-false}
     ports:
-      - "3000:3000"  # API Gateway
-      - "3001:3001"  # Auth Service
-      - "3002:3002"  # User Service
-      - "3003:3003"  # Social Service
-      - "3004:3004"  # Messaging Service
-      - "3005:3005"  # Marketplace Service
-      - "3006:3006"  # Events Service
-      - "3007:3007"  # Notification Service
-      - "3008:3008"  # Location Service
-      - "3009:3009"  # Business Service
+      - "3000:3000"
     depends_on:
       redis:
         condition: service_healthy
@@ -98,9 +89,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 3G
+          memory: 2G
         reservations:
-          memory: 1G
+          memory: 512M
 
   # Nginx (Reverse Proxy)
   nginx:
