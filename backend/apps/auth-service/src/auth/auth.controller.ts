@@ -37,6 +37,7 @@ import { PhoneOtpService } from '../services/phone-otp.service';
 import { GoogleTokenVerifierService } from '../services/google-token-verifier.service';
 import {
   RegisterDto,
+  RegisterUserDto,
   LoginDto,
   VerifyOtpDto,
   RefreshTokenDto,
@@ -44,27 +45,15 @@ import {
   ConfirmPasswordResetDto,
   InitiateOtpLoginDto,
   VerifyOtpLoginDto,
-  InitiatePhoneVerificationDto,
   VerifyPhoneOtpDto,
-  ResendPhoneOtpDto,
-  AlternativeVerificationDto,
-  SocialAuthWithPhoneDto,
-  LinkSocialAccountDto,
-  UnlinkSocialAccountDto,
-  LandmarkSearchDto,
-  EstateSearchDto,
-  EnhancedRegisterDto,
-  UpdateOnboardingStepDto,
 } from '../dto/auth.dto';
 import { MobileRegisterDto } from '../dto/mobile-register.dto';
-import { RegisterUserDto } from '../dto/register-user.dto';
 import { 
   GoogleAuthMobileDto, 
   GoogleAuthResponseDto, 
   LinkGoogleAccountDto 
 } from '@app/validation';
 import { User } from '@app/database';
-import { State } from '@app/database/entities';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -520,137 +509,6 @@ export class AuthController {
     return this.authService.testEmailService(user.email);
   }
 
-  // Nigerian Phone Verification Endpoints
-  @Post('phone/verify/initiate')
-  @Public()
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Initiate Nigerian phone number verification' })
-  @ApiResponse({
-    status: 200,
-    description: 'OTP sent to phone number. Carrier auto-detected.',
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Invalid Nigerian phone number or rate limit exceeded',
-  })
-  initiatePhoneVerification() {
-    throw new Error('Method not implemented yet');
-  }
-
-  @Post('phone/verify/confirm')
-  @Public()
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Verify Nigerian phone OTP code' })
-  @ApiResponse({
-    status: 200,
-    description: 'Phone number verified successfully',
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Invalid or expired OTP code',
-  })
-  verifyPhoneOtp() {
-    throw new Error('Method not implemented yet');
-  }
-
-  @Post('phone/verify/resend')
-  @Public()
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Resend phone verification OTP' })
-  @ApiResponse({
-    status: 200,
-    description: 'New OTP sent successfully',
-  })
-  @ApiResponse({
-    status: 429,
-    description: 'Too many resend attempts. Please wait.',
-  })
-  resendPhoneOtp() {
-    throw new Error('Method not implemented yet');
-  }
-
-  @Post('phone/verify/alternative')
-  @Public()
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Use alternative phone verification (Call/USSD)' })
-  @ApiResponse({
-    status: 200,
-    description: 'Alternative verification initiated',
-  })
-  alternativeVerification() {
-    throw new Error('Method not implemented yet');
-  }
-
-  // Social Authentication Endpoints
-  @Post('social/login')
-  @Public()
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Login or register with social provider' })
-  @ApiResponse({
-    status: 200,
-    description: 'Social authentication successful',
-    schema: {
-      type: 'object',
-      properties: {
-        accessToken: { type: 'string' },
-        refreshToken: { type: 'string' },
-        user: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-            firstName: { type: 'string' },
-            lastName: { type: 'string' },
-            email: { type: 'string' },
-            socialProvider: { type: 'string' },
-            isNewUser: { type: 'boolean' },
-            onboardingStep: { type: 'string' },
-          },
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Invalid social token or provider error',
-  })
-  socialAuth() {
-    throw new Error('Method not implemented yet');
-  }
-
-  @Post('social/link')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Link social account to existing user' })
-  @ApiResponse({
-    status: 200,
-    description: 'Social account linked successfully',
-  })
-  @ApiResponse({
-    status: 409,
-    description: 'Social account already linked to another user',
-  })
-  linkSocialAccount() {
-    throw new Error('Method not implemented yet');
-  }
-
-  @Post('social/unlink')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Unlink social account from user' })
-  @ApiResponse({
-    status: 200,
-    description: 'Social account unlinked successfully',
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Cannot unlink last authentication method',
-  })
-  unlinkSocialAccount() {
-    throw new Error('Method not implemented yet');
-  }
-
   // Google OAuth Endpoints
   @Get('google')
   @Public()
@@ -877,52 +735,7 @@ export class AuthController {
     }
   }
 
-  // Enhanced Registration with Onboarding
-  @Post('register/enhanced')
-  @Public()
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({
-    summary:
-      'Enhanced registration with Nigerian context and onboarding tracking',
-  })
-  @ApiResponse({
-    status: 201,
-    description: 'User registered successfully. Returns next onboarding step.',
-  })
-  @ApiResponse({
-    status: 409,
-    description: 'User already exists with this email or phone number',
-  })
-  enhancedRegister() {
-    throw new Error('Method not implemented yet');
-  }
-
-  @Post('onboarding/step')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Update user onboarding step' })
-  @ApiResponse({
-    status: 200,
-    description: 'Onboarding step updated successfully',
-  })
-  updateOnboardingStep() {
-    throw new Error('Method not implemented yet');
-  }
-
-  @Get('onboarding/status')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get user onboarding status' })
-  @ApiResponse({
-    status: 200,
-    description: 'Onboarding status retrieved successfully',
-  })
-  getOnboardingStatus() {
-    throw new Error('Method not implemented yet');
-  }
-
-  // Location and Nigerian Context Endpoints
+  // Location Endpoints
   @Post('location/setup')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -962,17 +775,6 @@ export class AuthController {
     // Otherwise, just update the profile (fallback for non-registration updates)
     // This would need to be handled differently now that we use UserLocation
     throw new Error('Non-registration location updates not yet implemented');
-  }
-
-  @Get('location/landmarks')
-  @Public()
-  @ApiOperation({ summary: 'Search Nigerian landmarks by state and city' })
-  @ApiResponse({
-    status: 200,
-    description: 'Landmarks retrieved successfully',
-  })
-  searchLandmarks() {
-    throw new Error('Method not implemented yet');
   }
 
   @Get('location/estates')
@@ -1049,18 +851,7 @@ export class AuthController {
     }
   }
 
-  @Get('location/states')
-  @Public()
-  @ApiOperation({ summary: 'Get all Nigerian states and major cities' })
-  @ApiResponse({
-    status: 200,
-    description: 'Nigerian states and cities retrieved successfully',
-  })
-  getNigerianStates() {
-    throw new Error('Method not implemented yet');
-  }
-
-  // Email OTP Endpoints (moved from AuthServiceController)
+  // Email OTP Endpoints
   @Post('email/send-otp')
   @Public()
   @Throttle({ 'otp-send': { limit: 3, ttl: 60000 } }) // 3 sends per minute
@@ -1271,16 +1062,6 @@ export class AuthController {
   async verifyPhoneOTP(
     @Body() body: VerifyPhoneOtpDto,
   ) {
-
-    // Add debug logging
-    console.log('🔍 Phone OTP Verification Request:', {
-      phoneNumber: body.phoneNumber,
-      otpCode: body.otpCode,
-      purpose: body.purpose || 'registration',
-      timestamp: new Date().toISOString(),
-      endpoint: '/auth/phone/verify-otp',
-    });
-
     const result = await this.phoneOtpService.verifyPhoneOTP(
       body.phoneNumber,
       body.otpCode,
@@ -1300,7 +1081,7 @@ export class AuthController {
           body.deviceInfo,
         );
 
-        const response = {
+        return {
           success: true,
           verified: true,
           method: 'phone',
@@ -1317,26 +1098,15 @@ export class AuthController {
           },
           tokens: tokenPair,
         };
-
-        console.log(
-          '📤 Phone OTP Verification Response with tokens:',
-          response,
-        );
-        return response;
       }
     }
 
-    const response = {
+    return {
       success: result.success,
       verified: result.verified,
       error: result.error,
       method: 'phone',
       carrier: result.carrier,
     };
-
-    // Add debug logging for response
-    console.log('📤 Phone OTP Verification Response:', response);
-
-    return response;
   }
 }

@@ -519,3 +519,116 @@ export class RefreshTokenDto {
   @IsString({ message: 'Refresh token must be a string' })
   refreshToken: string;
 }
+
+// Registration DTOs (consolidated from register-user.dto.ts)
+export class RegisterUserDto {
+  @ApiProperty({ description: 'User email address', example: 'user@example.com' })
+  @IsEmail({}, { message: 'Please provide a valid email address' })
+  email: string;
+
+  @ApiProperty({ description: 'Nigerian phone number', example: '+2348123456789', required: false })
+  @IsOptional()
+  @Matches(/^\+234[0-9]{10}$/, { message: 'Phone number must be in Nigerian format (+234XXXXXXXXXX)' })
+  phoneNumber?: string;
+
+  @ApiProperty({ description: 'User first name', example: 'John' })
+  @IsString()
+  @MinLength(2, { message: 'First name must be at least 2 characters long' })
+  firstName: string;
+
+  @ApiProperty({ description: 'User last name', example: 'Doe' })
+  @IsString()
+  @MinLength(2, { message: 'Last name must be at least 2 characters long' })
+  lastName: string;
+
+  @ApiProperty({ description: 'User password', example: 'SecurePassword123!', minLength: 8 })
+  @IsString()
+  @MinLength(8, { message: 'Password must be at least 8 characters long' })
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, {
+    message: 'Password must contain at least one lowercase letter, one uppercase letter, and one number',
+  })
+  password: string;
+
+  @ApiProperty({ description: 'Gated estate ID', example: '123e4567-e89b-12d3-a456-426614174000' })
+  @IsNotEmpty({ message: 'Estate selection is required' })
+  @IsUUID('4', { message: 'Estate ID must be a valid UUID' })
+  estateId: string;
+
+  @ApiProperty({ description: 'State of origin ID', example: 'lagos-state-id' })
+  @IsNotEmpty({ message: 'State of origin is required' })
+  @IsString()
+  stateOfOriginId: string;
+
+  @ApiProperty({ description: 'Cultural background ID', example: 'yoruba-cultural-id' })
+  @IsNotEmpty({ message: 'Cultural background is required' })
+  @IsString()
+  culturalBackgroundId: string;
+
+  @ApiProperty({ description: 'Professional category ID', example: 'tech-category-id' })
+  @IsNotEmpty({ message: 'Professional category is required' })
+  @IsString()
+  professionalCategoryId: string;
+
+  @IsOptional()
+  @IsString()
+  professionalTitle?: string;
+
+  @IsOptional()
+  @IsString()
+  occupation?: string;
+
+  @IsOptional()
+  @IsString()
+  preferredLanguage?: string = 'en';
+}
+
+export class LoginUserDto {
+  @ApiProperty({ description: 'Email or phone number', example: 'user@example.com' })
+  @IsString()
+  identifier: string;
+
+  @ApiProperty({ description: 'User password', example: 'SecurePassword123!' })
+  @IsString()
+  password: string;
+}
+
+// Response DTOs (consolidated from auth-response.dto.ts)
+export class AuthResponseDto {
+  success: boolean;
+  message?: string;
+  error?: string;
+  user?: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    phoneNumber?: string;
+    phoneVerified: boolean;
+    isVerified: boolean;
+    verificationLevel: 'unverified' | 'phone' | 'identity' | 'full';
+    state?: string;
+    city?: string;
+    estate?: string;
+    location?: any;
+    address?: string;
+    addressVerified?: boolean;
+    preferredLanguage?: string;
+    createdAt?: Date;
+    updatedAt?: Date;
+  };
+  accessToken?: string;
+  refreshToken?: string;
+  expiresAt?: Date;
+}
+
+export class OtpResponseDto {
+  success: boolean;
+  message?: string;
+  error?: string;
+  carrier?: string;
+  carrierColor?: string;
+  expiresAt?: Date;
+  method?: 'sms' | 'whatsapp' | 'email';
+  verified?: boolean;
+  otpCode?: string;
+}

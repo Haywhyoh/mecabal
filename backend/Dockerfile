@@ -41,7 +41,6 @@ COPY --from=builder /app/tsconfig.json ./tsconfig.json
 COPY --from=builder /app/libs/database/src/migrations ./libs/database/src/migrations
 COPY --from=builder /app/libs/database/src/entities ./libs/database/src/entities
 COPY --from=builder /app/libs/database/src/seeds ./libs/database/src/seeds
-COPY --from=builder /app/scripts ./scripts
 
 # Install production dependencies and migration tools
 RUN npm ci --production && \

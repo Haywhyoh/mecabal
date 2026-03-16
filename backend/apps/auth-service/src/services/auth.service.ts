@@ -15,11 +15,10 @@ import { UserNeighborhood } from '@app/database/entities/user-neighborhood.entit
 import { State } from '@app/database/entities/state.entity';
 import { CulturalBackground } from '@app/database/entities/cultural-background.entity';
 import { ProfessionalCategory } from '@app/database/entities/professional-category.entity';
-import { RegisterUserDto, LoginUserDto } from '../dto/register-user.dto';
+import { RegisterUserDto, LoginUserDto, AuthResponseDto } from '../dto/auth.dto';
 import { EmailOtpService } from './email-otp.service';
 import { PhoneOtpService } from './phone-otp.service';
 import { TokenService } from './token.service';
-import { AuthResponseDto } from '../dto/auth-response.dto';
 import { GoogleProfileDto, GoogleAuthResponseDto } from '@app/validation';
 
 @Injectable()
