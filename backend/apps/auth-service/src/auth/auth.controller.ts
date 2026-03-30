@@ -23,7 +23,6 @@ import {
 } from '@nestjs/swagger';
 import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
 import {
-  LocalAuthGuard,
   JwtAuthGuard,
   GoogleAuthGuard,
   RolesGuard,
@@ -169,7 +168,6 @@ export class AuthController {
 
   @Post('login')
   @Public()
-  @UseGuards(LocalAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login user' })
   @ApiResponse({

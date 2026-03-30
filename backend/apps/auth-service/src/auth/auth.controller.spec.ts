@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from './auth.controller';
-import { AuthService } from '@app/auth';
+import { AuthService } from '../services/auth.service';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { User } from '@app/database';
 
